@@ -28,7 +28,7 @@ import {
   type MySeasonPermissions,
   type OrganizerResponse,
 } from '../../core/permissions/organizer-api.service'
-import { canManageComposition as canManageCompositionForEvent } from '../../core/permissions/organizer-permissions'
+import { canManageComposition as canManageCompositionForEvent, canManageEvents as canManageEventsForSeason } from '../../core/permissions/organizer-permissions'
 import { canShowDisposExplainability } from '../../core/composition/composition-explainability'
 import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
 import type { TroupeCategory } from '../../core/troupes/troupe-api.service'
@@ -150,7 +150,8 @@ export class EventDetail implements OnDestroy, OnInit {
   protected readonly troupeId = signal('')
   protected readonly user = signal<UserSummary | null>(null)
   protected readonly seasonPermissions = signal<MySeasonPermissions | null>(null)
-  protected readonly canSwitchSubject = signal(false)
+  protected readonly platformAdmin = signal(false)
+  protected readonly canSwitchSubject = computed(() => this.canManageComposition())
   protected readonly linkedParticipantId = signal<string | null>(null)
   protected readonly linkedParticipantName = signal<string | null>(null)
   protected readonly activeTab = signal<EventDetailTab>('infos')
@@ -169,11 +170,12 @@ export class EventDetail implements OnDestroy, OnInit {
   protected readonly infosCategories = signal<TroupeCategory[] | null>(null)
   protected readonly disposBootstrapSummary = signal<EventAvailabilitySummary | null>(null)
 
-  protected readonly canManageEvents = computed(
-    () => this.seasonPermissions()?.canManageEvents === true,
+  protected readonly canManageEvents = computed(() =>
+    canManageEventsForSeason(this.seasonPermissions(), { platformAdmin: this.platformAdmin() }),
   )
   protected readonly canManageTroupe = computed(
-    () => this.seasonPermissions()?.canManageMembers === true,
+    () =>
+      this.platformAdmin() || this.seasonPermissions()?.canManageMembers === true,
   )
   protected readonly canManageSeasonParticipants = computed(
     () => this.seasonPermissions()?.canManageSeasonParticipants === true,
@@ -242,8 +244,10 @@ export class EventDetail implements OnDestroy, OnInit {
   protected readonly canManageComposition = computed(() => {
     const ev = this.event()
     const perms = this.seasonPermissions()
-    if (!ev || !perms) return false
-    return canManageCompositionForEvent(perms, ev.id)
+    if (!ev) return false
+    return canManageCompositionForEvent(perms, ev.id, {
+      platformAdmin: this.platformAdmin(),
+    })
   })
   protected readonly disposExplainabilityEnabled = computed(() => {
     const ev = this.event()
@@ -325,6 +329,8 @@ export class EventDetail implements OnDestroy, OnInit {
       return
     }
     this.user.set(user)
+    const session = await this.auth.ensureHatcastSession()
+    this.platformAdmin.set(session.data?.platformAdmin === true)
 
     this.applyQueryParams(this.route.snapshot.queryParamMap)
 
@@ -769,7 +775,6 @@ export class EventDetail implements OnDestroy, OnInit {
     const found = page.event
     this.event.set(found)
     this.seasonPermissions.set(page.permissions)
-    this.canSwitchSubject.set(canManageCompositionForEvent(page.permissions, found.id))
     const user = this.user()
     const linked =
       page.participantSelectors && user
@@ -917,7 +922,10 @@ export class EventDetail implements OnDestroy, OnInit {
   private async loadDisposSummary(event: EventResponse): Promise<void> {
     const seasonId = this.seasonId()
     const perms = this.seasonPermissions()
-    if (!seasonId || !perms || !canManageCompositionForEvent(perms, event.id)) {
+    if (
+      !seasonId ||
+      !canManageCompositionForEvent(perms, event.id, { platformAdmin: this.platformAdmin() })
+    ) {
       this.disposSummary.set(null)
       return
     }

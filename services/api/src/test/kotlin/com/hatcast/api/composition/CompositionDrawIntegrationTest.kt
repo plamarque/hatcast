@@ -724,6 +724,51 @@ class CompositionDrawIntegrationTest {
 
     @Test
     @Tag("FR19")
+    fun `chance breakdown omits equity_tag when away history is isolated from principal`() {
+        val adminCookie = memberCookie("sub-bd-compartment-admin", admin = true)
+        val veteran = memberCookie("sub-bd-compartment-vet")
+        val rookie = memberCookie("sub-bd-compartment-rook")
+        val seasonId = createSeason(adminCookie)
+        val awayEventId =
+            createEvent(
+                adminCookie,
+                seasonId,
+                """{ "player": 1 }""",
+                templateType = "match",
+                category = "deplacements",
+            )
+        val principalEventId = createEvent(adminCookie, seasonId, """{ "player": 1, "mc": 1 }""")
+
+        setAvailability(veteran, seasonId, awayEventId, "available")
+        setAvailability(rookie, seasonId, awayEventId, "available")
+        setAvailability(veteran, seasonId, principalEventId, "available")
+        setAvailability(rookie, seasonId, principalEventId, "available")
+
+        val veteranId = participantIdForUser(seasonId, "sub-bd-compartment-vet")
+        assignSlot(adminCookie, seasonId, awayEventId, "player", 0, veteranId)
+        validateComposition(awayEventId)
+
+        mockMvc
+            .perform(
+                get(
+                    "/v1/seasons/$seasonId/events/$principalEventId/composition/chance-breakdown" +
+                        "?roleKey=player&participantId=$veteranId",
+                ).cookie(veteran),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.adjustments[?(@.factorId == 'equity_tag')]").isEmpty())
+            .andExpect(jsonPath("$.adjustments").isEmpty())
+            .andReturn()
+            .let { breakdownRes ->
+                val breakdown = mapper.readTree(breakdownRes.response.contentAsString)
+                assertEquals(
+                    breakdown.get("referencePercent").asInt(),
+                    breakdown.get("chancePercent").asInt(),
+                )
+            }
+    }
+
+    @Test
+    @Tag("FR19")
     fun `legacy deplacement template scopes history to deplacements compartment`() {
         val adminCookie = memberCookie("sub-compartment-legacy-admin", admin = true)
         val veteran = memberCookie("sub-compartment-legacy-vet")

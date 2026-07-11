@@ -12,7 +12,7 @@ Slices are incremental deliverables to stabilise and evolve the repo. SPEC.md de
 - **Monorepo:** Vue 3 SPA (V1) lives under **`legacy/`**; **`apps/web/`** and **`services/api/`** are reserved for the V2 stack. See [docs/shared/technical/MONOREPO.md](docs/shared/technical/MONOREPO.md) and [docs/shared/technical/BRANCH_ENVIRONMENTS.md](docs/shared/technical/BRANCH_ENVIRONMENTS.md).
 - **Application:** Firebase backend (Functions, Firestore); CI deploys the **legacy** client build to Firebase Hosting (staging/production). Tests: Playwright + custom runners under `legacy/tests/`; some envs require `test:with-server` when dev server cannot be started by Playwright.
 - **Known gaps:** Some docs in `docs/` are topic-heavy and not yet cross-referenced with SPEC/DOMAIN. No formal "definition of done" for feature work beyond "tests pass and deploy works."
-- **V2 deploy (Cloud Run + Neon):** **Release train V2.0.x** validé (**E3**, prod **v2.0.3+** sur **`https://hatcast.app`**). **Vague 2.1.0** en cours — retours **démo commission spectacle** (implémentation presque terminée). **M4** bascule audience **reportée** (fin saison V1 ~août 2026). **Epic 19** sprint **Wave D** actif (**19.15→19.21**) — formules admin + choix orga ; facteurs **19.11–19.14** parked. Pipeline : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WORKFLOW.md) + **OPS-11**.
+- **V2 deploy (Cloud Run + Neon):** **Release train V2.0.x** validé (**E3**, prod **v2.4.1** sur **`https://hatcast.app`**). **Epic 19** Wave D livré (**19.15→19.21** done ; **19.11–19.14** parked). **M4** bascule audience — **préparation immédiate** (décision PO **2026-07-11** : plus de spectacles été ; membres inactifs jusqu’à fin été ; fenêtre technique ouverte). Correctifs patch **v2.4.2** sur branche `v2` (non publiés). Pipeline : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WORKFLOW.md) + **OPS-11**.
 
 ---
 
@@ -268,7 +268,7 @@ These could not be inferred from code alone; they are tracked here and in `docs/
 | **M1** Infra pre-prod | [x] | Env GitHub `staging`, Neon branch, deploy `staging-v2` | SPA + API + Flyway OK ; E2E gate TEST-1 sur staging |
 | **M2** Playbook migration (périmètre actuel) | [x] doc | Runbook + scripts `export:v1-*:prod` ; imports CSV 2.3 | Users + membres prod → staging |
 | **M3** Boucle reset / rejouer | [x] doc | Procédure C du runbook | ≥ 1 cycle reset documenté (cible : 3 avant cutover) |
-| **M4** Cutover production | **reporté** | Trafic membres V1→V2 ; fenêtre PO + commission spectacle (post-démo stakeholder) | **OPS-8** + **E3** [x] ; voir § Wave V2.0.0 amend. M4 |
+| **M4** Cutover production | **en préparation** | Trafic membres V1→V2 ; fenêtre PO **2026-07-11** (été sans spectacles) | **OPS-8** + **E3** [x] ; voir § **Ordre M4 — session 2026-07-11** |
 
 **Backlog ops (PLAN, pas SPEC) :**
 
@@ -387,15 +387,25 @@ Les waves **MVP** et **expansion** remplacent l’ancien enchaînement 0→4 où
 - **État :** Waves **A–B** [x] ; Wave **C** partielle — **19.8–19.10** [x], **19.11–19.14 parked** ; **sprint Wave D** actif (**19.15→19.21**, voir § Epic 19) ; **OQ-19-01→04** tranchées.
 - **Prod runtime :** pipeline défaut = compartiment `category` + malus participations passées ; facteurs **19.9+** codés **off by default** jusqu’à formules Wave D.
 
-**Ordre de session actuel (post-démo) :**
+**Ordre M4 — session 2026-07-11 (PO : préparer bascule maintenant, trafic membres fin été) :**
 
-1. ~~**Démo V2** stakeholder~~ [x] — retours commission spectacle  
-2. **Finaliser retours démo** → merge sur `v2` / `staging-v2`  
-3. **Release 2.1.0** — tag staging validé → prod (`release_version` + `deploy_prod`)  
-4. **OPS-M4-1** — story + implémentation V1 ; recette staging ; deploy prod quand PO prêt (indépendant de la date M4)  
-5. **Décision fenêtre M4** — date, critères go/no-go (V1 fin saison, migration prod, formation orga)  
-6. **M4** + **OPS-7** (après décision PO + commission)  
-7. **Epic 19** sprint **Wave D** (**19.15→19.21**) — voir § Epic 19 ; **19.11–19.14** après démo formules
+| # | Étape | Story / artefact | Owner | Notes |
+|---|--------|------------------|-------|-------|
+| **1** | **Guides vidéo page connexion** | **4-4** — [story](_bmad-output/implementation-artifacts/4-4-guides-video-page-connexion.md) | Dev | 3 liens YouTube (membre / orga / admin) sur `/connexion` ; PO fournit les URLs après upload |
+| **2** | **Release patch prod** | `./scripts/release_version.sh` → **v2.4.2** + `./scripts/deploy_prod.sh` | Dev / PO | Inclut correctifs locaux (breakdown, H2 JSON, Démo admin) — prod actuelle **v2.4.1** |
+| **3** | **Migration données prod** | `./scripts/migrate-from-v1.sh --target=production` | Dev / PO | Neon prod vierge → replay ; runbook [preprod-reset-and-migrate.md](docs/v2/migration/preprod-reset-and-migrate.md) § C4 ; PO valide données La Malice sur `hatcast.app` |
+| **4** | **Redirection V1** | **OPS-M4-1** (branche `feat/ops-m4-1-…`) ou projet séparé | PO / Dev | `selections.la-malice.fr` → `https://hatcast.app` ; **après** recette migration ; branche `legacy/` ou autre repo selon PO |
+| **5** | **Comms membres** | PO (email / réseaux) | PO | Annoncer HatCast 2 ; trafic effectif attendu fin été |
+| **6** | **Clôture M4** | **OPS-7** renommage branches | Dev | **Après** bascule confirmée |
+
+**Prérequis PO (parallèle étape 1) :** publier les 3 vidéos sur YouTube (URLs stables) ; communiquer la bascule quand prêt.
+
+~~**Ordre de session actuel (post-démo) :**~~ *(remplacé par § Ordre M4 — session 2026-07-11)*
+
+1. ~~**Démo V2** stakeholder~~ [x]  
+2. ~~**Finaliser retours démo** → **v2.4.x** prod~~ [x] — prod **v2.4.1**  
+3. ~~**Epic 19 Wave D**~~ [x]  
+4. ~~**Décision fenêtre M4**~~ [x] — PO **2026-07-11** : préparation immédiate
 
 *(Historique ordre SCP 2026-06-02 : waves A–F code + **E1**/**E2**/**E3** — voir `sprint-status.yaml`.)*
 
@@ -541,12 +551,12 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 | **E1** | Tour écrans staging | [x] Checklist signée PO 2026-06-04 — [e1-cutover-screen-tour-staging-v2.0.0.md](_bmad-output/implementation-artifacts/e1-cutover-screen-tour-staging-v2.0.0.md) |
 | **E2** | Replay migration | [x] Reset Neon → `./scripts/migrate-from-v1.sh` × **≥3** (`validate-replay --min=3`) |
 | **E3** | Release semver staging → prod | [x] Pipeline validé ; prod **v2.0.3** (ajustements patch via `release_version.sh`) |
-| **M4** | Bascule audience prod | **Reporté** — fin saison V1 ; accord commission spectacle ; **pre-M4 : OPS-M4-1** ; critères go-live |
+| **M4** | Bascule audience prod | **En préparation** — PO **2026-07-11** ; ordre § **Ordre M4 — session 2026-07-11** ; **pre-M4 : 4-4** + **v2.4.2** + migration prod |
 | **E4** | Renommage branches | **OPS-7** — **après M4** |
 
 **Gate release train (code + deploy) :** [x] Waves **A–D** + **OPS-8** + **E1** + **E2** + **E3**.
 
-**Gate M4 (bascule utilisateurs) :** **ouverte** — date TBD ; prérequis techniques [x] (**OPS-10**, **6.17**) ; reste : décision PO + recette **1.2**/**1.3** prod si pas fait + **OPS-M4-1** (comms V1) ; **11.2** identify enrichi PostHog (pre-M4) — [11-2-posthog-identify-person-properties-m4-cutover.md](_bmad-output/implementation-artifacts/11-2-posthog-identify-person-properties-m4-cutover.md).
+**Gate M4 (bascule utilisateurs) :** **ouverte — exécution PO 2026-07-11** ; prérequis techniques [x] (**OPS-10**, **6.17**, **11.2**) ; reste : **4-4** guides vidéo → **v2.4.2** prod → migration Neon prod → recette PO → **OPS-M4-1** redirection V1 (option branche séparée).
 
 #### Gate M4 — comms V1 (2026-06-19)
 

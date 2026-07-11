@@ -89,6 +89,12 @@ object ChanceBreakdownCalculator {
         val unfulfilledCount = unfulfilledRoleRequestCountByParticipant[targetParticipantId] ?: 0
 
         for (factor in pipeline.factors) {
+            // Category scope is applied via scoped pastSelectionCount before breakdown;
+            // it is not a separate explainability criterion (story 19.8).
+            if (factor is CategoryCompartmentFactor) {
+                continue
+            }
+
             val context =
                 DrawWeightContext(
                     participantId = targetParticipantId,
@@ -117,41 +123,25 @@ object ChanceBreakdownCalculator {
                 ),
             )
 
+            val partialPipeline =
+                DrawWeightPipeline.of(
+                    pipeline.factors.take(pipeline.factors.indexOf(factor) + 1),
+                )
             val percentAfter =
-                when (factor) {
-                    CategoryCompartmentFactor ->
-                        compartmentExplainabilityPercent(
-                            candidates = candidates,
-                            requiredCount = requiredCount,
-                            pastSelectionCountByParticipant = pastSelectionCountByParticipant,
-                            pastSelectionCountUnscopedByParticipant = pastSelectionCountUnscopedByParticipant,
-                            roleKey = roleKey,
-                            targetIndex = targetIndex,
-                            scopedPast = scopedPast,
-                            unscopedPast = unscopedPast,
-                            percentBefore = percentBefore,
-                        )
-                    else -> {
-                        val partialPipeline =
-                            DrawWeightPipeline.of(
-                                pipeline.factors.take(pipeline.factors.indexOf(factor) + 1),
-                            )
-                        percentForTarget(
-                            candidates,
-                            requiredCount,
-                            pastSelectionCountByParticipant,
-                            roleKey,
-                            targetIndex,
-                            partialPipeline,
-                            categorySlug,
-                            pastSelectionCountUnscopedByParticipant,
-                            playedSameRoleOnImmediatePredecessorByParticipant,
-                            immediatePredecessorTitle,
-                            immediatePredecessorStartsAt,
-                            unfulfilledRoleRequestCountByParticipant,
-                        )
-                    }
-                }
+                percentForTarget(
+                    candidates,
+                    requiredCount,
+                    pastSelectionCountByParticipant,
+                    roleKey,
+                    targetIndex,
+                    partialPipeline,
+                    categorySlug,
+                    pastSelectionCountUnscopedByParticipant,
+                    playedSameRoleOnImmediatePredecessorByParticipant,
+                    immediatePredecessorTitle,
+                    immediatePredecessorStartsAt,
+                    unfulfilledRoleRequestCountByParticipant,
+                )
             val deltaPoints = percentAfter - percentBefore
             if (deltaPoints != 0) {
                 adjustments.add(
@@ -228,34 +218,6 @@ object ChanceBreakdownCalculator {
             poolRank = poolRank,
             aheadCount = aheadCount,
             tiedAtChanceCount = tiedAtChanceCount,
-        )
-    }
-
-    private fun compartmentExplainabilityPercent(
-        candidates: List<AvailabilityChanceCalculator.Candidate>,
-        requiredCount: Int,
-        pastSelectionCountByParticipant: Map<UUID, Int>,
-        pastSelectionCountUnscopedByParticipant: Map<UUID, Int>?,
-        roleKey: String,
-        targetIndex: Int,
-        scopedPast: Int,
-        unscopedPast: Int,
-        percentBefore: Int,
-    ): Int {
-        if (pastSelectionCountUnscopedByParticipant == null || unscopedPast <= scopedPast) {
-            return percentBefore
-        }
-        val unscopedPastMap =
-            pastSelectionCountByParticipant.toMutableMap().apply {
-                this[candidates[targetIndex].participantId] = unscopedPast
-            }
-        return percentForTarget(
-            candidates,
-            requiredCount,
-            unscopedPastMap,
-            roleKey,
-            targetIndex,
-            DrawWeightPipeline.of(PastParticipationFactor.DEFAULT),
         )
     }
 

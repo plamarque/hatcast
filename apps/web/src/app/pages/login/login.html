@@ -101,6 +101,25 @@
           </p>
         }
 
+        @if (videoGuides().length) {
+          <section class="auth__video-guides" aria-labelledby="login-video-guides-heading">
+            <h2 id="login-video-guides-heading" class="auth__video-guides-title">Guides vidéo</h2>
+            @for (guide of videoGuides(); track guide.id) {
+              <a
+                mat-stroked-button
+                class="auth__stroked-action auth__video-guide-link"
+                [href]="guide.url"
+                target="_blank"
+                rel="noopener noreferrer"
+                [attr.aria-label]="guide.ariaLabel"
+              >
+                <mat-icon aria-hidden="true">play_circle</mat-icon>
+                {{ guide.label }}
+              </a>
+            }
+          </section>
+        }
+
         @if (isDev && devLog()) {
           <pre class="auth__out" aria-label="Détails techniques (développement)">{{ devLog() }}</pre>
         }

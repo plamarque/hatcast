@@ -52,6 +52,7 @@ import {
   OrganizerApiService,
   type MySeasonPermissions,
 } from '../../core/permissions/organizer-api.service'
+import { canManageEvents as canManageEventsForSeason } from '../../core/permissions/organizer-permissions'
 import {
   ParticipantApiService,
   type ParticipantSelector,
@@ -198,6 +199,7 @@ export class SeasonHome implements OnDestroy, OnInit {
 
   protected readonly season = signal<SeasonResponse | null>(null)
   protected readonly seasonPermissions = signal<MySeasonPermissions | null>(null)
+  protected readonly platformAdmin = signal(false)
   protected readonly user = signal<UserSummary | null>(null)
   protected readonly viewerGender = signal<MemberGender | undefined>(undefined)
   protected readonly events = signal<EventResponse[]>([])
@@ -335,16 +337,22 @@ export class SeasonHome implements OnDestroy, OnInit {
   })
 
   private readonly categories = signal<TroupeCategory[]>([])
-  protected readonly canManageMembers = computed(() => this.seasonPermissions()?.canManageMembers === true)
-  protected readonly canManageSeasons = computed(
-    () => this.seasonPermissions()?.canManageSeasons === true,
+  protected readonly canManageMembers = computed(
+    () => this.platformAdmin() || this.seasonPermissions()?.canManageMembers === true,
   )
-  protected readonly canManageEvents = computed(() => this.seasonPermissions()?.canManageEvents === true)
+  protected readonly canManageSeasons = computed(
+    () => this.platformAdmin() || this.seasonPermissions()?.canManageSeasons === true,
+  )
+  protected readonly canManageEvents = computed(() =>
+    canManageEventsForSeason(this.seasonPermissions(), { platformAdmin: this.platformAdmin() }),
+  )
   protected readonly canManageSeasonParticipants = computed(
-    () => this.seasonPermissions()?.canManageSeasonParticipants === true,
+    () =>
+      this.platformAdmin() || this.seasonPermissions()?.canManageSeasonParticipants === true,
   )
   protected readonly canManageSeasonOrganizers = computed(
-    () => this.seasonPermissions()?.canManageSeasonOrganizers === true,
+    () =>
+      this.platformAdmin() || this.seasonPermissions()?.canManageSeasonOrganizers === true,
   )
   protected readonly canManageSeasonOrganizersOnly = computed(
     () =>
@@ -357,12 +365,16 @@ export class SeasonHome implements OnDestroy, OnInit {
   )
   protected readonly canExportSeasonStatistics = computed(() => {
     const permissions = this.seasonPermissions()
-    return permissions?.isTroupeAdmin === true || permissions?.isSeasonOrganizer === true
+    return (
+      this.platformAdmin() ||
+      permissions?.isTroupeAdmin === true ||
+      permissions?.isSeasonOrganizer === true
+    )
   })
 
   protected readonly canViewAuditSeason = computed(() => {
     const permissions = this.seasonPermissions()
-    return permissions?.canViewAuditSeason === true
+    return this.platformAdmin() || permissions?.canViewAuditSeason === true
   })
   protected readonly seasonAdminItems = computed<ScopeAdminMenuItem[]>(() => {
     const troupeSlug = this.routeTroupeSlug()
@@ -446,6 +458,7 @@ export class SeasonHome implements OnDestroy, OnInit {
         return
       }
       this.user.set(r.data.user)
+      this.platformAdmin.set(r.data.platformAdmin === true)
       await this.loadViewerGender()
       const snapshotParams = this.route.snapshot?.queryParamMap
       if (snapshotParams) {

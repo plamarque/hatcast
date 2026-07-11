@@ -165,6 +165,13 @@ export async function tapFirstPoolSegmentAndOpenBreakdown(
   })
 }
 
+/** Category scope is not a breakdown criterion — only past_participation (and optional toggles) appear. */
+export async function expectNoEquityTagBreakdownLine(page: Page): Promise<void> {
+  const sheet = page.locator('[data-testid="chance-breakdown-sheet"]')
+  await expect(sheet.locator('[data-testid="chance-breakdown-adjustment-equity_tag"]')).toHaveCount(0)
+  await expect(sheet.getByText('Compté dans un autre type de spectacle')).toHaveCount(0)
+}
+
 /** True when URL is GET …/composition (entity), not chance-breakdown or other subpaths. */
 export function isCompositionEntityRequest(url: string, method: string): boolean {
   if (method !== 'GET') {

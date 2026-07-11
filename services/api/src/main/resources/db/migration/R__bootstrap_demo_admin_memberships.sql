@@ -38,6 +38,18 @@ WHERE lower(u.email) = 'impropick@gmail.com'
     WHERE tm.troupe_id = 'a0000001-0000-4000-8000-000000000099' AND tm.user_id = u.id
   );
 
+-- Promotion si self-join OPEN a créé une adhésion MEMBER avant ce bootstrap (parité Improbots dev).
+UPDATE troupe_memberships tm
+SET
+    baseline_role = 'TROUPE_ADMIN',
+    status = 'ACTIVE',
+    updated_at = CURRENT_TIMESTAMP
+FROM users u
+WHERE tm.user_id = u.id
+  AND tm.troupe_id = 'a0000001-0000-4000-8000-000000000099'
+  AND lower(u.email) IN ('patrice.lamarque@gmail.com', 'impropick@gmail.com')
+  AND (tm.baseline_role <> 'TROUPE_ADMIN' OR tm.status <> 'ACTIVE');
+
 INSERT INTO season_participants (id, season_id, display_name, normalized_email, user_id, troupe_membership_id, status, created_at, updated_at)
 SELECT
     'f0000099-0000-4000-8000-000000000101',
@@ -74,6 +86,20 @@ WHERE lower(u.email) = 'impropick@gmail.com'
   AND NOT EXISTS (
     SELECT 1 FROM season_participants sp
     WHERE sp.season_id = 'b0000001-0000-4000-8000-000000000099' AND sp.user_id = u.id
+  );
+
+-- Organisateur·ices de saison : cascade notifications orga (parité R__bootstrap_improbots_dev_operator_memberships).
+INSERT INTO season_organizers (season_id, user_id, granted_by_user_id, granted_at)
+SELECT
+    'b0000001-0000-4000-8000-000000000099',
+    u.id,
+    u.id,
+    CURRENT_TIMESTAMP
+FROM users u
+WHERE lower(u.email) IN ('patrice.lamarque@gmail.com', 'impropick@gmail.com')
+  AND NOT EXISTS (
+    SELECT 1 FROM season_organizers so
+    WHERE so.season_id = 'b0000001-0000-4000-8000-000000000099' AND so.user_id = u.id
   );
 
 UPDATE seasons

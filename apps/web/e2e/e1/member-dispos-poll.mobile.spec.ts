@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test'
 import {
   expandPollRowPoolWithChances,
   expectDisposPollReady,
+  expectNoEquityTagBreakdownLine,
   isCompositionEntityRequest,
   pollCheckbox,
   pollRowCounter,
@@ -89,7 +90,22 @@ test.describe('E1 — membre dispos pool explainability (mobile, story 5.9)', ()
     await expandPollRowPoolWithChances(page, /^DJ$/)
     await expect(pollRowPoolSegments(page, /^DJ$/)).not.toHaveCount(0)
     await tapFirstPoolSegmentAndOpenBreakdown(page, /^DJ$/)
+    await expectNoEquityTagBreakdownLine(page)
 
     expect(compositionEntityGets).toEqual([])
+  })
+
+  test('E1-MEM-034 — breakdown never shows equity_tag compartment line', async ({
+    page,
+    request,
+  }) => {
+    const fx = await resolveE1Context(request)
+    await assertMobileViewport(page)
+    await openEventTab(page, fx, fx.eventDrawSlug, 'dispos')
+    await expectDisposPollReady(page)
+
+    await expandPollRowPoolWithChances(page, /^Comédien/)
+    await tapFirstPoolSegmentAndOpenBreakdown(page, /^Comédien/)
+    await expectNoEquityTagBreakdownLine(page)
   })
 })

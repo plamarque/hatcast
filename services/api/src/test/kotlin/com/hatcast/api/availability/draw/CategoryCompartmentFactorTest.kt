@@ -34,14 +34,6 @@ class CategoryCompartmentFactorTest {
     }
 
     @Test
-    fun `adjustment label is French compartment copy`() {
-        assertEquals(
-            "Compté dans un autre type de spectacle",
-            CategoryCompartmentFactor.adjustmentLabel(context(scopedPast = 0, unscopedPast = 2)),
-        )
-    }
-
-    @Test
     fun `default pipeline with compartment factor preserves V1 weights`() {
         val pipeline = DrawWeightPipelines.DEFAULT
         val pastOnly = DrawWeightPipeline.of(PastParticipationFactor.DEFAULT)

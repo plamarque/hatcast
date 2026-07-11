@@ -342,13 +342,17 @@ class OrganizerAccessService(
         eventId: UUID,
         season: SeasonEntity,
         principal: SessionUserPrincipal,
-    ): Boolean =
-        seasonOrganizerRepository.canManageCompositionForUser(
+    ): Boolean {
+        if (troupeAccess.isTroupeAdmin(principal, season.troupe.id)) {
+            return true
+        }
+        return seasonOrganizerRepository.canManageCompositionForUser(
             troupeId = season.troupe.id,
             seasonId = season.id,
             eventId = eventId,
             userId = principal.userId,
         )
+    }
 
     override fun canEditEvent(
         eventId: UUID,

@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-06-19T23:57:00+02:00
+# last_updated: 2026-07-11T17:50:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-06-19T12:00:00+02:00"
+last_updated: "2026-07-11T17:50:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -118,6 +118,7 @@ development_status:
   4-1-annuaire-public-des-troupes: done
   4-2-pages-publiques-saison-et-evenements: backlog
   4-3-troupe-logo-description-cartes: done
+  4-4-guides-video-page-connexion: done  # P0 M4 — 3 CTAs guides vidéo /connexion ; URLs Drive interim (PO 2026-07-11) → YouTube later
   epic-4-retrospective: optional
 
   epic-5: in-progress

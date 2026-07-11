@@ -35,6 +35,26 @@
 
 ---
 
+---
+
+## Deferred from: spec-fix-breakdown-no-equity-tag-line (2026-06-23)
+
+| Item | Rationale |
+|------|-----------|
+| **E2E fixture cross-compartment** | E1-MEM-033/034 assert absence of `equity_tag` line on any breakdown; optional follow-up: seed veteran with validated déplacement + assert principal breakdown content (Malice / dedicated fixture). |
+| **Story 19.8 AC7 wording** | AC7 still describes equity_tag breakdown line; superseded for explainability only — amend story file when next touching epic 19 docs. |
+| **`pastSelectionCountUnscoped` cleanup** | Field still passed through API context; no breakdown consumer — consider removing from explainability path if SQL cost matters. |
+
+## Deferred from: code review of spec-fix-breakdown-no-equity-tag-line (2026-06-23)
+
+| Item | Rationale |
+|------|-----------|
+| **Spec UI vacuitaire** | ~~Résolu f9aaa0b7~~ — test injecte désormais payload `equity_tag` + filtre client. |
+| **Test mixte sans label/delta exact** | Réconciliation Σ delta OK ; label FR scoped (5 vs 8) non verrouillé. |
+| **`factorBreakdown` omet `equity_tag`** | Skip avant `factorBreakdown.add` ; diagnostic moteur vs doc « tests / diagnostics ». |
+| **`adjustmentLabel` → `"equity_tag"`** | Code mort tant que le facteur n'est pas surfacé. |
+| **Doc delta algorithm étapes 3–4** | Étape 3 « for each factor » vs étape 4 omit — reformuler si prochaine édition. |
+
 ## Deferred from: code review of 11-3-v1-v2-cutover-funnel-posthog (2026-06-19)
 
 - Versions `posthog-js` divergentes entre legacy (^1.391.2) et web (^1.379.2) — aligner à terme, hors scope critique cutover M4.
@@ -538,3 +558,10 @@
 - **Props personne obsolètes si email/name effacés côté API** — cas rare ; PostHog ne reçoit pas d’unset explicite.
 - **`identifyUser` no-op si PostHog pas encore initialisé** — comportement OPS-9 préexistant.
 - **Sémantique `v2_migration_first_session` = premier identify navigateur** — P1 documenté ; choix PO.
+
+## Deferred from: code review of 4-4-guides-video-page-connexion (2026-07-11)
+
+- **Full web test suite still failing** (22 files / 100 tests, e.g. `season-card.spec.ts`) — pre-existing, unrelated to story 4.4
+- **No isolated unit tests for `guidesFromEnvironment()` edge cases** (`http://`, partial config, whitespace) — login.spec covers happy path + all-empty
+- **M3-1 minor: section title uses custom class** instead of reusing `.auth__heading` / `.auth__tagline` — tokens M3 OK
+- **Tests mutate global `environment` object** — restored in `afterEach`, acceptable pattern for this codebase

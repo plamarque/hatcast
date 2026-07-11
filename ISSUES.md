@@ -10,6 +10,17 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Open Issues
 
+### BUG-012 — Chance breakdown showed false cross-category penalty (equity_tag line)
+- **ID**: BUG-012
+- **Status**: Fixed (2026-06-23)
+- **Severity**: Medium (UX — misleading explainability; draw weights were already correct)
+- **Affected area**: V2 API `ChanceBreakdownCalculator` ; UI `app-chance-breakdown-sheet` (story **19.7** / **19.8**)
+- **Observed behavior**: Waterfall displayed « Compté dans un autre type de spectacle » with a negative delta (e.g. −23 pt) when a participant had validated selections in another event category (déplacements, etc.), implying a penalty on principal draws.
+- **Expected behavior**: Category compartments isolate history; déplacements must not appear as a breakdown penalty on principal events. Only category-scoped `past_participation` should appear (e.g. « Déjà Comédienne 5 fois »).
+- **Cause**: Story **19.8** explainability step simulated unscoped history as a separate waterfall factor (`compartmentExplainabilityPercent`).
+- **Fix**: Skip `CategoryCompartmentFactor` in breakdown adjustments; tests + E2E guard. Spec: `_bmad-output/implementation-artifacts/spec-fix-breakdown-no-equity-tag-line.md`.
+- **Repro**: Member with déplacement history → open Dispos/Équipe chance breakdown on principal match → previously showed equity_tag line (Patrice, 2026-06-23).
+
 ### BUG-010 — Participant add typeahead shows internal option key in name field
 - **ID**: BUG-010
 - **Status**: Fixed (2026-06-06)
