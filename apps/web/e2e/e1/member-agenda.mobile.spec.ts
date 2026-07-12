@@ -2,7 +2,11 @@ import { expect, test } from '@playwright/test'
 
 import { assertMobileViewport, assertNoHorizontalOverflow } from '../helpers/e1-layout'
 import { expectDisposPollReady } from '../helpers/dispos-poll.ui'
-import { openEventTab } from '../helpers/e1.ui'
+import {
+  expectSeasonHistoryLatestEvent,
+  expectUserAgendaReady,
+  openEventTab,
+} from '../helpers/e1.ui'
 import { saisonWorkspacePath } from '../helpers/e1-routes'
 import { isStagingE2e, prepareE1Run, resolveE1Context } from '../helpers/e1-staging'
 
@@ -18,8 +22,9 @@ test.describe('E1 — membre agenda & dispos (mobile)', () => {
   test('E1-MEM-001 — agenda lists MVP events', async ({ page, request }) => {
     const fx = await resolveE1Context(request)
     await assertMobileViewport(page)
-    await page.goto('/agenda')
     if (isStagingE2e()) {
+      await page.goto('/agenda')
+      await expectUserAgendaReady(page)
       const upcomingTitle = fx.agendaUpcomingEventTitle?.trim()
       if (upcomingTitle) {
         await expect(
@@ -28,14 +33,17 @@ test.describe('E1 — membre agenda & dispos (mobile)', () => {
           }),
         ).toBeVisible({ timeout: 30_000 })
       } else {
-        await expect(page.locator('app-agenda, app-member-agenda').first()).toBeVisible({
-          timeout: 30_000,
-        })
         await expect(page.getByRole('heading', { name: /Aucun spectacle à venir/i })).toBeVisible({
           timeout: 30_000,
         })
       }
+
+      const historyTitle = fx.seasonHistoryLatestTitle?.trim()
+      expect(historyTitle, 'staging discovery must resolve season history anchor').toBeTruthy()
+      await page.goto(`${saisonWorkspacePath(fx.troupeSlug, fx.seasonSlug)}?view=history`)
+      await expectSeasonHistoryLatestEvent(page, historyTitle!)
     } else {
+      await page.goto('/agenda')
       await expect(page.getByText(fx.eventDrawTitle, { exact: false })).toBeVisible({
         timeout: 30_000,
       })

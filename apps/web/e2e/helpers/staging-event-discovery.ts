@@ -138,6 +138,21 @@ async function resolveAgendaTitle(
   )
 }
 
+function pickLatestHistoryEvent(events: SeasonEvent[]): SeasonEvent {
+  const past = events.filter((e) => !e.archived && !isUpcoming(e.startsAt))
+  const pinned = pickBySlug(past, env('HATCAST_E2E_EVENT_HISTORY_LATEST_SLUG'))
+  if (pinned) {
+    return pinned
+  }
+  const ranked = past.sort((a, b) => b.startsAt.localeCompare(a.startsAt))
+  if (ranked.length === 0) {
+    throw new Error(
+      'No past events in season for history anchor — pin HATCAST_E2E_EVENT_HISTORY_LATEST_SLUG',
+    )
+  }
+  return ranked[0]!
+}
+
 async function pickDrawEvent(
   request: APIRequestContext,
   seasonId: string,
@@ -234,6 +249,7 @@ export async function discoverStagingE1Context(
       ? pendingPinned
       : dispos.slug
   const upcomingAgenda = await listUpcomingAgenda(request)
+  const historyLatest = pickLatestHistoryEvent(events)
   const eventDrawTitle = (await resolveAgendaTitle(request, seasonSlug, draw.slug)) ?? draw.title
   const agendaUpcomingEventTitle = upcomingAgenda[0]?.title
 
@@ -249,6 +265,8 @@ export async function discoverStagingE1Context(
     eventDrawSlug: draw.slug,
     eventDrawTitle,
     agendaUpcomingEventTitle,
+    seasonHistoryLatestTitle: historyLatest.title,
+    seasonHistoryLatestSlug: historyLatest.slug,
     eventActiviteSlug: activiteSlug,
     eventActiviteTitle: pickBySlug(events, activiteSlug)?.title ?? dispos.title,
     eventPendingSlug: pendingSlug,
