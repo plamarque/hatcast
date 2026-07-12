@@ -1,5 +1,14 @@
 [
   {
+    "version": "2.4.4",
+    "date": "2026-07-12",
+    "changes": [
+      "✨ Membres — passe un membre en externe via le chip de rôle ; choisis par saison active (externe saison ou retrait du roster)",
+      "✨ Membres — repasse un externe en membre : il réintègre le roster des saisons actives",
+      "✨ Accès — les saisons passées conservent l'historique membre ; un externe n'accède qu'aux saisons où il est invité"
+    ]
+  },
+  {
     "version": "2.4.3",
     "date": "2026-07-12",
     "changes": [
