@@ -116,7 +116,7 @@
     <div class="admin-participants__controls">
       <mat-chip-set class="admin-participants__chips">
         @if (showKindChip(p.kind)) {
-          <mat-chip>{{ kindLabel(p.kind) }}</mat-chip>
+          <mat-chip>{{ kindLabel(p) }}</mat-chip>
         }
         @if (participationRoleMenuEnabled(p)) {
           <mat-chip

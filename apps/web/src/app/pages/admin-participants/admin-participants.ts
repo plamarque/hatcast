@@ -238,7 +238,21 @@ export class AdminParticipants implements OnDestroy, OnInit {
     })
   }
 
-  protected kindLabel(kind: ParticipantKind): string {
+  protected kindLabel(participant: SeasonParticipantAdmin): string {
+    switch (participant.participationMode) {
+      case 'MEMBER_SYNC':
+        return 'Membre troupe'
+      case 'GUEST_SEASON':
+        return 'Externe saison'
+      case 'GUEST_EVENT':
+        return 'Externe spectacle'
+      default:
+        break
+    }
+    return this.participantKindLabel(participant.kind)
+  }
+
+  protected participantKindLabel(kind: ParticipantKind): string {
     switch (kind) {
       case 'MEMBER':
         return 'Membre troupe'

@@ -614,6 +614,110 @@ paths:
         '409':
           description: Conflit (utilisateur déjà membre actif)
 
+  /troupes/{troupeId}/members/{membershipId}/conversion-context:
+    get:
+      tags: [Membres]
+      summary: Contexte conversion membre ↔ externe (saisons actives)
+      description: Liste les saisons actives où le membre a une ligne roster, pour le dialogue « Passer en externe ».
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: membershipId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberConversionContext'
+        '403':
+          description: Accès refusé
+        '404':
+          description: Adhésion introuvable
+
+  /troupes/{troupeId}/members/{membershipId}/convert-to-externe:
+    post:
+      tags: [Membres]
+      summary: Passer un membre en externe (ADR-0022)
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: membershipId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConvertToExterneRequest'
+      responses:
+        '200':
+          description: Converti
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TroupeMemberAdmin'
+        '400':
+          description: Validation ou choix saisons incomplets
+        '403':
+          description: Accès refusé
+        '404':
+          description: Adhésion introuvable
+
+  /troupes/{troupeId}/members/{membershipId}/convert-to-member:
+    post:
+      tags: [Membres]
+      summary: Réintégrer un externe comme membre (ADR-0022)
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: membershipId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Réintégré
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TroupeMemberAdmin'
+        '400':
+          description: Validation
+        '403':
+          description: Accès refusé
+        '404':
+          description: Adhésion introuvable
+
   /troupes/{troupeId}/members/{membershipId}:
     patch:
       tags: [Membres]
@@ -1398,6 +1502,46 @@ components:
         `MEMBER` donne l'accès membre actif. `TROUPE_ADMIN` autorise l'administration
         des membres, saisons, événements et délégations d'organisateurs. `EXTERNE` est une
         entrée carnet (contact récurrent ou ponctuel) sans accès membre à l'application.
+
+    MemberConversionSeasonOption:
+      type: object
+      required: [seasonId, seasonTitle, seasonSlug]
+      properties:
+        seasonId:
+          type: string
+          format: uuid
+        seasonTitle:
+          type: string
+        seasonSlug:
+          type: string
+
+    MemberConversionContext:
+      type: object
+      required: [membershipId, baselineRole, activeSeasons]
+      properties:
+        membershipId:
+          type: string
+          format: uuid
+        baselineRole:
+          $ref: '#/components/schemas/TroupeBaselineRole'
+        activeSeasons:
+          type: array
+          items:
+            $ref: '#/components/schemas/MemberConversionSeasonOption'
+
+    ConvertToExterneRequest:
+      type: object
+      properties:
+        seasonsToGuestSeason:
+          type: array
+          items:
+            type: string
+            format: uuid
+        seasonsToRemove:
+          type: array
+          items:
+            type: string
+            format: uuid
 
     TroupeMemberAdmin:
       type: object

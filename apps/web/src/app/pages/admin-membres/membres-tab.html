@@ -132,21 +132,15 @@
               <mat-icon>edit</mat-icon>
             </button>
             <div class="membres-tab__chips">
-              @if (isExterne(member)) {
-                <mat-chip class="membres-tab__role-chip membres-tab__role-chip--static">
-                  {{ roleLabel(member.baselineRole) }}
-                </mat-chip>
-              } @else {
-                <mat-chip
-                  class="membres-tab__role-chip"
-                  [matMenuTriggerFor]="roleMenu"
-                  [disabled]="isLastAdmin(member) || saving()"
-                  [matTooltip]="isLastAdmin(member) ? 'La troupe doit conserver au moins un administrateur actif.' : ''"
-                  (click)="openRoleMenu(member)"
-                >
-                  {{ roleLabel(member.baselineRole) }} ▾
-                </mat-chip>
-              }
+              <mat-chip
+                class="membres-tab__role-chip"
+                [matMenuTriggerFor]="roleMenu"
+                [disabled]="isLastAdmin(member) || saving() || member.status !== 'ACTIVE'"
+                [matTooltip]="roleMenuTooltip(member)"
+                (menuOpened)="openRoleMenu(member)"
+              >
+                {{ roleLabel(member.baselineRole) }} ▾
+              </mat-chip>
             </div>
             <mat-slide-toggle
               [checked]="member.status === 'ACTIVE'"
@@ -183,9 +177,34 @@
 
   <mat-menu #roleMenu="matMenu">
     @if (roleMenuMember(); as menuMember) {
-      <button type="button" mat-menu-item (click)="selectRole('MEMBER')">Membre</button>
-      <button type="button" mat-menu-item (click)="selectRole('TROUPE_ADMIN')">
+      <button
+        type="button"
+        mat-menu-item
+        [disabled]="menuMember.baselineRole === 'MEMBER'"
+        (click)="selectRole('MEMBER')"
+      >
+        Membre
+      </button>
+      <button
+        type="button"
+        mat-menu-item
+        [disabled]="menuMember.baselineRole === 'TROUPE_ADMIN' || isExterne(menuMember)"
+        (click)="selectRole('TROUPE_ADMIN')"
+      >
         Administrateur·ice de troupe
+      </button>
+      <button
+        type="button"
+        mat-menu-item
+        [disabled]="menuMember.baselineRole === 'EXTERNE' || menuMember.baselineRole === 'TROUPE_ADMIN'"
+        [matTooltip]="
+          menuMember.baselineRole === 'TROUPE_ADMIN'
+            ? 'Passez d\'abord en membre avant de devenir externe.'
+            : ''
+        "
+        (click)="selectRole('EXTERNE')"
+      >
+        Externe
       </button>
     }
   </mat-menu>

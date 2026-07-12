@@ -123,6 +123,23 @@ export interface UpdateTroupeMemberRequest {
   baselineRole?: TroupeBaselineRole
 }
 
+export interface MemberConversionSeasonOption {
+  seasonId: string
+  seasonTitle: string
+  seasonSlug: string
+}
+
+export interface MemberConversionContext {
+  membershipId: string
+  baselineRole: TroupeBaselineRole
+  activeSeasons: MemberConversionSeasonOption[]
+}
+
+export interface ConvertToExterneRequest {
+  seasonsToGuestSeason?: string[]
+  seasonsToRemove?: string[]
+}
+
 export type MemberImportRowOutcome = 'SUCCESS' | 'SKIPPED' | 'ERROR'
 
 export type MemberImportErrorCode =
@@ -171,7 +188,17 @@ export interface UserImportResult {
   rows: UserImportRowResult[]
 }
 
-type ApiResult<T> = Promise<{ ok: boolean; status: number; data?: T }>
+type ApiResult<T> = Promise<{ ok: boolean; status: number; data?: T; errorMessage?: string }>
+
+async function readApiErrorMessage(res: Response): Promise<string | undefined> {
+  try {
+    const body = (await res.json()) as { message?: string }
+    const message = body.message?.trim()
+    return message || undefined
+  } catch {
+    return undefined
+  }
+}
 
 @Injectable({ providedIn: 'root' })
 export class TroupeApiService {
@@ -686,6 +713,71 @@ export class TroupeApiService {
       )
       if (!res.ok) return { ok: false, status: res.status }
       return { ok: true, status: res.status, data: (await res.json()) as UserImportResult }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  async getMemberConversionContext(
+    troupeId: string,
+    membershipId: string,
+  ): ApiResult<MemberConversionContext> {
+    try {
+      const res = await fetch(
+        `/v1/troupes/${encodeURIComponent(troupeId)}/members/${encodeURIComponent(membershipId)}/conversion-context`,
+        { credentials: 'include' },
+      )
+      if (!res.ok) return { ok: false, status: res.status }
+      return { ok: true, status: res.status, data: (await res.json()) as MemberConversionContext }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  async convertMemberToExterne(
+    troupeId: string,
+    membershipId: string,
+    body: ConvertToExterneRequest,
+  ): ApiResult<TroupeMemberAdmin> {
+    try {
+      const res = await fetch(
+        `/v1/troupes/${encodeURIComponent(troupeId)}/members/${encodeURIComponent(membershipId)}/convert-to-externe`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            ...csrfHeaders(),
+          },
+          body: JSON.stringify(body),
+        },
+      )
+      if (!res.ok) {
+        return { ok: false, status: res.status, errorMessage: await readApiErrorMessage(res) }
+      }
+      return { ok: true, status: res.status, data: (await res.json()) as TroupeMemberAdmin }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  async convertExterneToMember(
+    troupeId: string,
+    membershipId: string,
+  ): ApiResult<TroupeMemberAdmin> {
+    try {
+      const res = await fetch(
+        `/v1/troupes/${encodeURIComponent(troupeId)}/members/${encodeURIComponent(membershipId)}/convert-to-member`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: { ...csrfHeaders() },
+        },
+      )
+      if (!res.ok) {
+        return { ok: false, status: res.status, errorMessage: await readApiErrorMessage(res) }
+      }
+      return { ok: true, status: res.status, data: (await res.json()) as TroupeMemberAdmin }
     } catch {
       return { ok: false, status: 0 }
     }

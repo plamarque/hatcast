@@ -209,10 +209,12 @@ Removing from carnet = « we no longer want this contact suggested » — not «
 | **P2 — Scope + cascade** | `invitation_scope`; add flows event/season → carnet upsert |
 | **P3 — Typeahead** | Suggest MEMBER + ADMIN + EXTERNE + season roster (story 3.8c extension) |
 | **P4 — Guest app access** | Scoped dispos + agenda for linked externals |
+| **P5 — Role lifecycle** | Season `participation_mode`; MEMBER ↔ EXTERNE conversion — [ADR-0022](0022-season-participation-mode-role-lifecycle.md), story **2.26** |
 
 ## References
 
 - [DOMAIN.md](../../DOMAIN.md) — participant vs membership (to be updated on acceptance)
 - [3-8-rosters-participants-saison-et-evenement.md](../../_bmad-output/implementation-artifacts/3-8-rosters-participants-saison-et-evenement.md)
 - [sprint-change-proposal-2026-05-31-participant-removal-three-levels.md](../../_bmad-output/planning-artifacts/sprint-change-proposal-2026-05-31-participant-removal-three-levels.md)
-- [TroupeBaselineRole.kt](../../services/api/src/main/kotlin/com/hatcast/api/troupe/TroupeBaselineRole.kt) — today `MEMBER`, `TROUPE_ADMIN` only
+- [0022-season-participation-mode-role-lifecycle.md](0022-season-participation-mode-role-lifecycle.md) — role lifecycle (builds on this ADR)
+- [TroupeBaselineRole.kt](../../services/api/src/main/kotlin/com/hatcast/api/troupe/TroupeBaselineRole.kt) — `MEMBER`, `TROUPE_ADMIN`, `EXTERNE`

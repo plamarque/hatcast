@@ -10,6 +10,28 @@ import org.junit.jupiter.api.Test
 
 class SeasonParticipantEntityKindTest {
     @Test
+    fun `kind prefers participation_mode over live baseline role`() {
+        val troupe = TroupeEntity(id = java.util.UUID.randomUUID(), name = "Troupe", slug = "troupe")
+        val season = SeasonEntity(id = java.util.UUID.randomUUID(), troupe = troupe, slug = "saison", title = "Saison")
+        val externeMembership =
+            TroupeMembershipEntity(
+                troupe = troupe,
+                status = TroupeMembershipStatus.ACTIVE,
+                baselineRole = TroupeBaselineRole.EXTERNE,
+                displayName = "Laetitia",
+            )
+        val historicalMemberRow =
+            SeasonParticipantEntity(
+                season = season,
+                displayName = "Laetitia",
+                troupeMembership = externeMembership,
+                participationMode = SeasonParticipationMode.MEMBER_SYNC,
+            )
+
+        assertEquals(ParticipantKind.MEMBER, historicalMemberRow.kind())
+    }
+
+    @Test
     fun `kind returns EXTERNE for externe-linked season participant`() {
         val troupe = TroupeEntity(id = java.util.UUID.randomUUID(), name = "Troupe", slug = "troupe")
         val season = SeasonEntity(id = java.util.UUID.randomUUID(), troupe = troupe, slug = "saison", title = "Saison")

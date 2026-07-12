@@ -60,7 +60,16 @@ interface SeasonRepository : JpaRepository<SeasonEntity, UUID> {
               LEFT JOIN sp.troupeMembership tm
               WHERE sp.season.id = s.id
                 AND sp.status = com.hatcast.api.participant.ParticipantStatus.ACTIVE
-                AND sp.invitationScope IS NOT NULL
+                AND (
+                  sp.participationMode IN (
+                    com.hatcast.api.participant.SeasonParticipationMode.GUEST_SEASON,
+                    com.hatcast.api.participant.SeasonParticipationMode.GUEST_EVENT
+                  )
+                  OR (
+                    sp.participationMode IS NULL
+                    AND sp.invitationScope IS NOT NULL
+                  )
+                )
                 AND (
                   sp.user.id = :userId
                   OR (
@@ -105,7 +114,16 @@ interface SeasonRepository : JpaRepository<SeasonEntity, UUID> {
               LEFT JOIN sp.troupeMembership tm
               WHERE sp.season.id = s.id
                 AND sp.status = com.hatcast.api.participant.ParticipantStatus.ACTIVE
-                AND sp.invitationScope IS NOT NULL
+                AND (
+                  sp.participationMode IN (
+                    com.hatcast.api.participant.SeasonParticipationMode.GUEST_SEASON,
+                    com.hatcast.api.participant.SeasonParticipationMode.GUEST_EVENT
+                  )
+                  OR (
+                    sp.participationMode IS NULL
+                    AND sp.invitationScope IS NOT NULL
+                  )
+                )
                 AND (
                   sp.user.id = :userId
                   OR (

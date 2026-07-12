@@ -286,6 +286,10 @@ components:
       type: string
       enum: [MEMBER, EXTERNE, LINKED, MANAGED, NAME_ONLY]
 
+    SeasonParticipationMode:
+      type: string
+      enum: [MEMBER_SYNC, GUEST_SEASON, GUEST_EVENT]
+
     SeasonParticipantAdmin:
       type: object
       properties:
@@ -308,6 +312,9 @@ components:
           nullable: true
         invitationScope:
           $ref: '#/components/schemas/InvitationScope'
+          nullable: true
+        participationMode:
+          $ref: '#/components/schemas/SeasonParticipationMode'
           nullable: true
         kind:
           $ref: '#/components/schemas/ParticipantKind'
