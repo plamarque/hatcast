@@ -5,10 +5,12 @@
   "notes": "v2.4.3 — guides vidéo connexion (story 4.4) + nettoyage détail tirage — skill hatcast-v2-release",
   "changes": [
     "✨ Connexion — trois guides vidéo (membre, organisateur, admin) directement sur la page de connexion",
-    "🐛 Tirage — le détail de tes chances n'affiche plus d'étiquettes techniques internes"
+    "🐛 Tirage — le détail de tes chances n'affiche plus d'étiquettes techniques internes",
+    "✨ Navigation — Mes stats avant Ma troupe dans le menu membre"
   ],
   "changes_en": [
     "✨ Login — three video guides (member, organizer, admin) on the sign-in page",
-    "🐛 Draw — your chance breakdown no longer shows internal technical labels"
+    "🐛 Draw — your chance breakdown no longer shows internal technical labels",
+    "✨ Navigation — Mes stats before Ma troupe in the member menu"
   ]
 }

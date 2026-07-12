@@ -565,3 +565,8 @@
 - **No isolated unit tests for `guidesFromEnvironment()` edge cases** (`http://`, partial config, whitespace) — login.spec covers happy path + all-empty
 - **M3-1 minor: section title uses custom class** instead of reusing `.auth__heading` / `.auth__tagline` — tokens M3 OK
 - **Tests mutate global `environment` object** — restored in `afterEach`, acceptable pattern for this codebase
+
+## Deferred from: code review of 17-45-nav-stats-before-troupe (2026-07-12)
+
+- **Doc E2E gate stale** — `test-design-e1-cutover-preprod-gate.md:293` mentionne l’ancien ordre des onglets ; les tests E2E ne l’assertent pas (lookup par libellé).
+- **Epic 17.41 AC historique** — `epics.md:2157` conserve l’AC d’origine de 17.41 ; amendé explicitement par story 17.45.
