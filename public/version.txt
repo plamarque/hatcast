@@ -1,4 +1,4 @@
-0.48.0
-Production build - 2026-05-22
-Git: d46d35c
-Build: 2026-05-22T11:13:49+0200
+0.48.1
+Production build - 2026-07-12
+Git: bb07b521
+Build: 2026-07-12T11:29:11+0200

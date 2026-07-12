@@ -35,6 +35,8 @@ jobs:
         VITE_ENVIRONMENT=production
         VITE_FIRESTORE_DATABASE=default
         VITE_STORAGE_PREFIX=production/
+        VITE_V2_CUTOVER_ANNOUNCEMENT_ENABLED=true
+        VITE_V2_PROD_URL=https://hatcast.app
 
         EOF
         

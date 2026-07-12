@@ -1,15 +1,18 @@
-## [0.48.0] - 2026-05-22
+## [0.48.1] - 2026-07-12
 
 ### 📝 Other Changes
 
-- fix(scripts): Force-delete staging backup after rebase
-- fix(scripts): Avoid popping unrelated stash in dry-run
-- feat(casts): Display sel/dispo ratio in stats cells
-- feat(casts): Enrich CSV export with dispos
+- ops(v1): Enable M4 cutover gate in production CI
+- ops(v1): Enable M4 cutover gate in staging CI
+- feat(v1): Refresh M4 cutover gate for staging
+- feat(v1): Port story 11.3 cutover modal to staging
+- ops(v1): Enable cutover flag in staging CI build
+- feat(v1): Port M4 cutover blocking screen from legacy
 
 
 # Changelog
 
+## [0.48.1] - 2026-07-12
 ## [0.48.0] - 2026-05-22
 ## [0.47.2] - 2026-04-08
 ## [0.47.1] - 2026-03-03
