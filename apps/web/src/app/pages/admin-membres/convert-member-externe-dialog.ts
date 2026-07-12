@@ -27,17 +27,15 @@ type SeasonChoice = 'GUEST_SEASON' | 'REMOVE'
     <h2 mat-dialog-title>Passer en externe</h2>
     <mat-dialog-content>
       <p class="convert-dialog__intro">
-        {{ data.member.displayName }} restera dans le carnet externe. Le compte HatCast lié est
-        conservé. Les saisons passées restent en historique membre ; choisissez le traitement
-        pour chaque saison active.
+        {{ data.member.displayName }} devient <strong>externe</strong> dans la troupe. Le compte
+        HatCast lié est conservé. Les saisons passées restent en historique membre.
       </p>
       @if (loading()) {
         <p>Chargement des saisons…</p>
-      } @else if (error()) {
-        <p class="convert-dialog__error" role="alert">{{ error() }}</p>
       } @else if (seasons().length === 0) {
-        <p>Aucune saison active avec roster — la conversion ne modifie que le rôle troupe.</p>
+        <p>Aucune saison active avec roster — seul le rôle troupe change.</p>
       } @else {
+        <p class="convert-dialog__hint">Pour chaque saison active :</p>
         <ul class="convert-dialog__seasons">
           @for (season of seasons(); track season.seasonId) {
             <li class="convert-dialog__season">
@@ -53,6 +51,9 @@ type SeasonChoice = 'GUEST_SEASON' | 'REMOVE'
             </li>
           }
         </ul>
+      }
+      @if (error()) {
+        <p class="convert-dialog__error" role="alert">{{ error() }}</p>
       }
     </mat-dialog-content>
     <mat-dialog-actions align="end">
@@ -77,6 +78,12 @@ type SeasonChoice = 'GUEST_SEASON' | 'REMOVE'
 
       .convert-dialog__intro {
         margin: 0 0 1rem;
+        color: var(--mat-sys-on-surface-variant);
+      }
+
+      .convert-dialog__hint {
+        margin: 0 0 0.5rem;
+        font-size: 0.875rem;
         color: var(--mat-sys-on-surface-variant);
       }
 

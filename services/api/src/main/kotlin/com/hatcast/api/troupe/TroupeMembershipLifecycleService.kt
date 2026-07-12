@@ -97,8 +97,15 @@ class TroupeMembershipLifecycleService(
                 .findByTroupeMembership_Id(membership.id)
                 .filter { it.status == ParticipantStatus.ACTIVE && isActiveSeason(it.season) }
         val activeSeasonIds = activeRosterRows.map { it.season.id }.toSet()
-        val accounted = guestSeasonIds + removeSeasonIds
-        if (accounted != activeSeasonIds) {
+        val resolvedGuestSeasonIds =
+            if (guestSeasonIds.isEmpty() && removeSeasonIds.isEmpty() && activeSeasonIds.isNotEmpty()) {
+                activeSeasonIds
+            } else {
+                guestSeasonIds
+            }
+        val resolvedRemoveSeasonIds = removeSeasonIds
+        val accounted = resolvedGuestSeasonIds + resolvedRemoveSeasonIds
+        if (activeSeasonIds.isNotEmpty() && accounted != activeSeasonIds) {
             throw ResponseStatusException(
                 HttpStatus.BAD_REQUEST,
                 "Choisissez pour chaque saison active : externe saison ou retrait du roster.",
@@ -112,8 +119,8 @@ class TroupeMembershipLifecycleService(
         val now = Instant.now()
         for (row in activeRosterRows) {
             when (row.season.id) {
-                in guestSeasonIds -> applyGuestSeason(row, now)
-                in removeSeasonIds -> applyRemoved(row, now)
+                in resolvedGuestSeasonIds -> applyGuestSeason(row, now)
+                in resolvedRemoveSeasonIds -> applyRemoved(row, now)
             }
         }
         seasonParticipantRepository.saveAll(activeRosterRows)

@@ -183,18 +183,40 @@ export class MembresTab implements OnInit, OnDestroy {
     this.roleMenuMember.set(member)
   }
 
+  protected roleMenuTooltip(member: TroupeMemberAdmin): string {
+    if (this.isLastAdmin(member)) {
+      return 'La troupe doit conserver au moins un administrateur actif.'
+    }
+    if (member.status !== 'ACTIVE') {
+      return 'Réactivez cette personne pour modifier son rôle.'
+    }
+    return 'Changer le rôle dans la troupe'
+  }
+
   protected async selectRole(role: TroupeBaselineRole): Promise<void> {
     const member = this.roleMenuMember()
-    if (!member) return
-    await this.onRoleChange(member, role)
     this.roleMenuMember.set(null)
+    if (!member || role === member.baselineRole || this.isLastAdmin(member)) {
+      return
+    }
+    if (role === 'EXTERNE') {
+      this.openConvertToExterne(member)
+      return
+    }
+    if (this.isExterne(member)) {
+      if (role === 'MEMBER') {
+        this.reintegrerCommeMembre(member)
+      }
+      return
+    }
+    await this.onRoleChange(member, role)
   }
 
   protected async onRoleChange(
     member: TroupeMemberAdmin,
     role: TroupeBaselineRole,
   ): Promise<void> {
-    if (this.isExterne(member) || role === member.baselineRole || this.isLastAdmin(member)) {
+    if (role === 'EXTERNE' || role === member.baselineRole || this.isLastAdmin(member)) {
       return
     }
     await this.patchMember(member, { baselineRole: role })
@@ -209,19 +231,6 @@ export class MembresTab implements OnInit, OnDestroy {
       return
     }
     await this.patchMember(member, { status: nextStatus })
-  }
-
-  protected canConvertToExterne(member: TroupeMemberAdmin): boolean {
-    return (
-      member.status === 'ACTIVE' &&
-      !this.isExterne(member) &&
-      member.baselineRole === 'MEMBER' &&
-      !this.isLastAdmin(member)
-    )
-  }
-
-  protected canReintegrateAsMember(member: TroupeMemberAdmin): boolean {
-    return member.status === 'ACTIVE' && this.isExterne(member)
   }
 
   protected openConvertToExterne(member: TroupeMemberAdmin): void {
@@ -263,9 +272,11 @@ export class MembresTab implements OnInit, OnDestroy {
     try {
       const r = await this.api.convertExterneToMember(this.troupeId(), member.id)
       if (!r.ok) {
-        this.snack.open(this.errorMessage(r.status, 'Réintégration impossible.'), 'OK', {
-          duration: 5000,
-        })
+        this.snack.open(
+          r.errorMessage ?? this.errorMessage(r.status, 'Réintégration impossible.'),
+          'OK',
+          { duration: 5000 },
+        )
         return
       }
       this.snack.open('Externe réintégré comme membre.', 'OK', { duration: 4000 })

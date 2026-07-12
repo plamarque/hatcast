@@ -120,7 +120,7 @@ Post-import **`MEMBER`** rows may be converted via §2 without SQL. Acceptance s
 | **P0 — Spec** | This ADR **Accepted**; DOMAIN.md; story **2.26** |
 | **P1 — Schema + API** | Flyway V69; enum; backfill; conversion endpoints |
 | **P1 — Guards** | Access services use season mode |
-| **P1 — UI** | Membres admin conversion dialogs |
+| **P1 — UI** | Membres admin — role chip dropdown (*Membre* / *Admin* / *Externe*) + conversion dialog for active seasons |
 | **P2 — CSV + migration playbook** | Import transitions; doc for La Malice |
 
 ## References

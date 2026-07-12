@@ -220,6 +220,46 @@ class TroupeMembershipLifecycleIntegrationTest {
     }
 
     @Test
+    fun `convert to externe with empty body defaults active seasons to GUEST_SEASON`() {
+        val adminCookie =
+            signInAdmin("sub-lifecycle-default-admin", "lifecycle-default-admin@example.com", "Admin Default")
+        signIn("sub-lifecycle-default-member", "lifecycle-default-member@example.com", "Default Member")
+        val memberUser = userRepository.findByGoogleSub("sub-lifecycle-default-member")!!
+        val membership =
+            membershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, memberUser.id)!!
+        val seasonA = createSeason(adminCookie, "Default season A")
+        val seasonB = createSeason(adminCookie, "Default season B")
+        activateSeason(seasonA)
+        activateSeason(seasonB)
+        seasonParticipantService.ensureMembershipParticipants(seasonRepository.findById(seasonA).orElseThrow())
+        seasonParticipantService.ensureMembershipParticipants(seasonRepository.findById(seasonB).orElseThrow())
+
+        mockMvc
+            .perform(
+                post("/v1/troupes/$seedTroupeId/members/${membership.id}/convert-to-externe")
+                    .cookie(adminCookie)
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        mapper.writeValueAsString(
+                            mapOf(
+                                "seasonsToGuestSeason" to emptyList<String>(),
+                                "seasonsToRemove" to emptyList<String>(),
+                            ),
+                        ),
+                    ),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.baselineRole").value("EXTERNE"))
+
+        val rowA =
+            seasonParticipantRepository.findBySeason_IdAndTroupeMembership_Id(seasonA, membership.id)!!
+        val rowB =
+            seasonParticipantRepository.findBySeason_IdAndTroupeMembership_Id(seasonB, membership.id)!!
+        assertEquals(SeasonParticipationMode.GUEST_SEASON, rowA.participationMode)
+        assertEquals(SeasonParticipationMode.GUEST_SEASON, rowB.participationMode)
+    }
+
+    @Test
     fun `downgraded externe GUEST_SEASON gets partial guest workspace and agenda only`() {
         val adminCookie = signInAdmin("sub-lifecycle-guest-admin", "lifecycle-guest-admin@example.com", "Admin Guest")
         val memberCookie = signIn("sub-lifecycle-guest-member", "lifecycle-guest-member@example.com", "Guest Member")

@@ -21,11 +21,11 @@ so that **real-life transitions work** (e.g. former member becomes season-scoped
 
 1. **Given** the participant schema, **when** migrated (Flyway **V69**), **then** `season_participants.participation_mode` (`MEMBER_SYNC` | `GUEST_SEASON` | `GUEST_EVENT`) exists with backfill: existing member-linked rows with `invitation_scope IS NULL` → **`MEMBER_SYNC`**; `invitation_scope = SEASON` → **`GUEST_SEASON`**; `invitation_scope = EVENT` → **`GUEST_EVENT`**; name-only rows without membership → mode derived from scope or left NULL until next write. OpenAPI exposes `participationMode` on `SeasonParticipantAdmin`. [Source: ADR-0022 §1; epics 2.26 AC1]
 
-2. **Given** a troupe admin on **Membres**, **when** they choose **« Passer en externe »** on an active **`MEMBER`** row, **then** API converts **the same** `troupe_memberships` row to `baseline_role = EXTERNE` (no second row); dialog lists **active seasons** where the person has roster rows and lets admin pick: **keep as externe saison** (`GUEST_SEASON`) or **retirer du roster** (`REMOVED`); **past/archived** seasons default to **preserve** `MEMBER_SYNC` without prompt (historical truth). Linked account and email **unchanged**. [Source: ADR-0022 §2; LIMIT-005; Laetitia]
+2. **Given** a troupe admin on **Membres**, **when** they pick **Externe** on the role chip of an active **`MEMBER`** row, **then** a conversion dialog opens when active roster seasons exist; API converts **the same** `troupe_memberships` row to `baseline_role = EXTERNE` (no second row); dialog lists **active seasons** and lets admin pick **externe saison** (`GUEST_SEASON`, default) or **retirer du roster** (`REMOVED`); **past/archived** seasons preserve **`MEMBER_SYNC`** without prompt. Linked account and email **unchanged**. **`TROUPE_ADMIN` → `EXTERNE`** is blocked until demoted to **Membre**. [Source: ADR-0022 §2; SPEC § Members; LIMIT-005; Laetitia]
 
-3. **Given** **« Passer en externe »** completes, **when** a **new** season is created or sync runs, **then** the person is **not** auto-added (`ensureMembershipParticipants` skips **`EXTERNE`** — regression **2.21**); they appear only after explicit Participants invite (**3.23**). [Source: ADR-0021; 2.21 AC6]
+3. **Given** **MEMBER → EXTERNE** conversion completes, **when** a **new** season is created or sync runs, **then** the person is **not** auto-added (`ensureMembershipParticipants` skips **`EXTERNE`** — regression **2.21**); they appear only after explicit Participants invite (**3.23**). [Source: ADR-0021; 2.21 AC6]
 
-4. **Given** a troupe admin chooses **« Réintégrer comme membre »** on an active **`EXTERNE`** carnet row with linked account, **when** confirmed, **then** same membership row → `baseline_role = MEMBER`; **`ensureMembershipParticipants`** runs for active seasons (respect **`SEASON_ADMIN`** removals); active season rows become **`MEMBER_SYNC`** with `invitation_scope = NULL`. [Source: ADR-0022 §2; supersedes 3.25 out-of-scope EXTERNE→MEMBER]
+4. **Given** a troupe admin picks **Membre** on the role chip of an active **`EXTERNE`** carnet row, **when** confirmed, **then** same membership row → `baseline_role = MEMBER`; **`ensureMembershipParticipants`** runs for active seasons (respect **`SEASON_ADMIN`** removals); active season rows become **`MEMBER_SYNC`** with `invitation_scope = NULL`. [Source: ADR-0022 §2; supersedes 3.25 out-of-scope EXTERNE→MEMBER]
 
 5. **Given** access checks for season **S** / event **E**, **when** the user is not platform admin, **then** **`GuestInvitationAccessService`** (and agenda/list guards) use **`participation_mode` on the season row** as primary signal; **`GUEST_*`** paths do **not** call `requireActiveMemberMembership`; **`MEMBER_SYNC`** grants member season workspace on **S** only when user has active **`MEMBER`/`TROUPE_ADMIN`** **or** historical **`MEMBER_SYNC`** row on **S** with current troupe role **`EXTERNE`** (past member season: member workspace on **that** season only — not troupe-wide hub). [Source: ADR-0022 §3; story **3.25** matrix amended]
 
@@ -33,7 +33,7 @@ so that **real-life transitions work** (e.g. former member becomes season-scoped
 
 7. **Given** carnet **`EXTERNE`** with **no** linked account, **when** on roster with **`GUEST_SEASON`**, **then** organizer can assign in composition and set proxy dispos; guest self-service **unchanged** (none). [Source: ADR-0021 §1; PO 2026-07-12 #2]
 
-8. **Given** PATCH member with `baselineRole: EXTERNE` or CSV member row attempting role flip, **when** submitted, **then** **either** dedicated conversion endpoint succeeded **or** clear **400** directing to **« Passer en externe »** flow (no silent partial update). [Source: LIMIT-005; `TroupeMembershipService.kt:566-572`]
+8. **Given** PATCH member with `baselineRole: EXTERNE` or CSV member row attempting role flip, **when** submitted, **then** **either** dedicated conversion endpoint succeeded **or** clear **400** directing to the role chip **Externe** flow (no silent partial update). [Source: LIMIT-005; `TroupeMembershipService.kt:566-572`]
 
 9. **Given** implementation complete, **when** tests run, **then** integration tests cover: (a) MEMBER→EXTERNE conversion preserves past `MEMBER_SYNC`; (b) active season → `GUEST_SEASON` or REMOVED per admin choice; (c) EXTERNE→MEMBER re-sync; (d) guest dispos/agenda on `GUEST_SEASON` only; (e) no auto-sync on new season after downgrade; (f) Laetitia-style: imported MEMBER converted, invited on one season only; (g) regression **3.25** Ruben/Laetitia guest matrix. [Source: ADR-0022; investigation reproduction plan]
 
@@ -45,7 +45,7 @@ so that **real-life transitions work** (e.g. former member becomes season-scoped
 
 ## Acceptance Criteria — Material 3 (UI)
 
-**M3-1. Composants Material** — **Given** Membres conversion UI, **when** implemented, **then** use `MatDialog` + `mat-radio-group` or `mat-checkbox` for season choices, `mat-form-field` outline for confirm copy, `mat-stroked-button` / `mat-flat-button` actions — extend [`edit-troupe-member-dialog.ts`](../../apps/web/src/app/pages/admin-membres/edit-troupe-member-dialog.ts) or sibling dialog; reuse [`membres-tab`](../../apps/web/src/app/pages/admin-membres/membres-tab.ts) action menu. [Source: FRONTEND_UI.md; **3.24**]
+**M3-1. Composants Material** — **Given** Membres role/conversion UI, **when** implemented, **then** use role **chip + `mat-menu`** (*Membre* / *Administrateur·ice de troupe* / *Externe*) on [`membres-tab`](../../apps/web/src/app/pages/admin-membres/membres-tab.ts); conversion dialog uses `MatDialog` + `mat-radio-group` for season choices, `mat-stroked-button` / `mat-flat-button` actions ([`convert-member-externe-dialog.ts`](../../apps/web/src/app/pages/admin-membres/convert-member-externe-dialog.ts)). [Source: FRONTEND_UI.md; **3.24**; **17-17** chip pattern]
 
 **M3-2. Tokens & thème** — **Given** new dialogs and roster badges, **when** styled, **then** only `var(--mat-sys-*)` and `color-mix(in srgb, var(--mat-sys-…) …)`. [Source: FRONTEND_UI.md]
 
@@ -77,8 +77,8 @@ so that **real-life transitions work** (e.g. former member becomes season-scoped
 
 - **Three layers (ADR-0021)** unchanged: carnet (A) → invitation (B) → optional account (C). Account **optional**; linked account enables self-service on in-scope events only.
 - **Troupe role** = **current default** for new seasons; **season mode** = truth for **that season's** access and admin badges.
-- **Laetitia acceptance (La Malice):** MEMBER import → **Passer en externe** → keep **past season** as `MEMBER_SYNC` → active/new season **GUEST_SEASON** only where invited; linked account keeps self-service on invited season(s) only.
-- **Vocabulary (French UI):** **Passer en externe**; **Réintégrer comme membre**; roster badges **Membre troupe**, **Externe saison**, **Externe spectacle** (align **3.23** / **3.8d**).
+- **Laetitia acceptance (La Malice):** MEMBER import → role chip **Externe** → keep **past season** as `MEMBER_SYNC` → active/new season **GUEST_SEASON** only where invited; linked account keeps self-service on invited season(s) only.
+- **Vocabulary (French UI):** role chip *Membre* / *Administrateur·ice de troupe* / *Externe*; dialog title **Passer en externe**; roster badges **Membre troupe**, **Externe saison**, **Externe spectacle** (align **3.23** / **3.8d**).
 - **Confirm copy downgrade:** explain loss of member hub / auto-sync; carnet retained; spectacle history preserved; optional account unchanged.
 
 ### Participation mode vs invitation_scope
@@ -100,7 +100,7 @@ Keep both columns during migration; guards **prefer `participation_mode`** when 
 | `SeasonParticipantEntity.kind()` | Uses **live** `baselineRole` | Use **`participation_mode`** when set |
 | `GuestInvitationAccessService.resolveGuestSeasonWorkspaceMode` | Checks `invitationScope == SEASON` only | Check `GUEST_SEASON` / `GUEST_EVENT` modes |
 | `GuestEventAccessJpql` | `invitationScope IS NULL OR SEASON` | Align with `MEMBER_SYNC` / `GUEST_SEASON` explicitly |
-| `edit-troupe-member-dialog` | No role change | Wire conversion actions from membre tab |
+| `edit-troupe-member-dialog` | No role change | Name/email only; role via chip on membres-tab |
 
 ### Explicit non-goals
 
@@ -153,7 +153,7 @@ Keep both columns during migration; guards **prefer `participation_mode`** when 
 - V69 Flyway: `participation_mode` column + backfill + index on `(season_id, participation_mode)`.
 - `TroupeMembershipLifecycleService`: convert-to-externe / convert-to-member + conversion-context GET; audit metadata `conversion`.
 - Access: `GuestInvitationAccessService`, `GuestEventAccessJpql`, `UserAgendaRepository`, `SeasonRepository.findInvitedForUserInTroupe` prefer season mode; historical `MEMBER_SYNC` grants season workspace for past member seasons.
-- UI: `convert-member-externe-dialog`, membres-tab actions menu; admin-participants participation mode badges.
+- UI: role chip dropdown + `convert-member-externe-dialog`; admin-participants participation mode badges.
 - Tests: `TroupeMembershipLifecycleIntegrationTest`, `SeasonParticipantEntityKindTest`; regression GuestInvitation/TroupeMembership/ParticipantExterne green.
 - M3 waiver: dedicated conversion dialog spec deferred (dialog covered via membres-tab integration path); checklist walked manually on new dialog.
 
@@ -204,3 +204,12 @@ Keep both columns during migration; guards **prefer `participation_mode`** when 
 - [x] [Review][Patch] LIMIT-005 in ISSUES.md still `Scheduled` — closed to `Resolved`.
 - [x] [Review][Patch] Conversion dialog swallows API error detail — `readApiErrorMessage` + display in dialog.
 - [x] [Review][Patch] Dialog submit allows double-click — in-flight guard + keep saving until close or error.
+
+- 2026-07-12 : Review pass 2 — role chip UX, API empty-body default, SPEC/DOMAIN sync.
+
+### Review Findings (2026-07-12 — pass 2)
+
+- [x] [Review][Patch] `loadContext` failure shows « seul le rôle troupe change » but API defaults all active roster rows to `GUEST_SEASON` when body lists are empty — restored blocking error on load failure. [`convert-member-externe-dialog.ts`]
+- [x] [Review][Patch] Story AC2 / M3-1 / Dev Notes still describe a separate « Passer en externe » menu action — aligned with role chip UX.
+- [x] [Review][Patch] Uncommitted delta — committed on feature branch.
+- [x] [Review][Patch] No integration test for API empty-body default — added `convert to externe with empty body defaults active seasons to GUEST_SEASON`.
