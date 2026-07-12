@@ -33,6 +33,10 @@ import {
   EditTroupeMemberDialog,
   type EditTroupeMemberDialogData,
 } from './edit-troupe-member-dialog'
+import {
+  ConvertMemberExterneDialog,
+  type ConvertMemberExterneDialogData,
+} from './convert-member-externe-dialog'
 import { ImportResultsDialog, type ImportResultsDialogData } from './import-results-dialog'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 
@@ -205,6 +209,71 @@ export class MembresTab implements OnInit, OnDestroy {
       return
     }
     await this.patchMember(member, { status: nextStatus })
+  }
+
+  protected canConvertToExterne(member: TroupeMemberAdmin): boolean {
+    return (
+      member.status === 'ACTIVE' &&
+      !this.isExterne(member) &&
+      member.baselineRole === 'MEMBER' &&
+      !this.isLastAdmin(member)
+    )
+  }
+
+  protected canReintegrateAsMember(member: TroupeMemberAdmin): boolean {
+    return member.status === 'ACTIVE' && this.isExterne(member)
+  }
+
+  protected openConvertToExterne(member: TroupeMemberAdmin): void {
+    const ref = this.dialog.open<ConvertMemberExterneDialog, ConvertMemberExterneDialogData, boolean>(
+      ConvertMemberExterneDialog,
+      {
+        data: { troupeId: this.troupeId(), member },
+        width: 'min(100vw - 2rem, 28rem)',
+      },
+    )
+    ref.afterClosed().subscribe((ok) => {
+      if (ok) {
+        this.snack.open('Membre passé en externe.', 'OK', { duration: 4000 })
+        void this.reload()
+        this.membersChanged.emit()
+      }
+    })
+  }
+
+  protected reintegrerCommeMembre(member: TroupeMemberAdmin): void {
+    const ref = this.dialog.open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
+      data: {
+        title: 'Réintégrer comme membre ?',
+        message:
+          "Cette personne redevient membre de la troupe et sera resynchronisée sur les saisons actives (sauf retraits admin).",
+        confirmLabel: 'Réintégrer',
+      },
+      width: 'min(100vw - 2rem, 28rem)',
+    })
+    ref.afterClosed().subscribe((confirmed) => {
+      if (confirmed) {
+        void this.confirmReintegrate(member)
+      }
+    })
+  }
+
+  private async confirmReintegrate(member: TroupeMemberAdmin): Promise<void> {
+    this.saving.set(true)
+    try {
+      const r = await this.api.convertExterneToMember(this.troupeId(), member.id)
+      if (!r.ok) {
+        this.snack.open(this.errorMessage(r.status, 'Réintégration impossible.'), 'OK', {
+          duration: 5000,
+        })
+        return
+      }
+      this.snack.open('Externe réintégré comme membre.', 'OK', { duration: 4000 })
+      void this.reload()
+      this.membersChanged.emit()
+    } finally {
+      this.saving.set(false)
+    }
   }
 
   protected retirerMembre(member: TroupeMemberAdmin): void {

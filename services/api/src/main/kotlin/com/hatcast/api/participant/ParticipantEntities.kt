@@ -56,14 +56,24 @@ class SeasonParticipantEntity(
     @Enumerated(EnumType.STRING)
     @Column(name = "invitation_scope", length = 16)
     var invitationScope: InvitationScope? = null,
+    @Enumerated(EnumType.STRING)
+    @Column(name = "participation_mode", length = 32)
+    var participationMode: SeasonParticipationMode? = null,
 ) {
     fun kind(): ParticipantKind =
-        when {
-            troupeMembership?.baselineRole == TroupeBaselineRole.EXTERNE -> ParticipantKind.EXTERNE
-            troupeMembership != null -> ParticipantKind.MEMBER
-            user != null -> ParticipantKind.LINKED
-            normalizedEmail.isNullOrBlank() -> ParticipantKind.NAME_ONLY
-            else -> ParticipantKind.MANAGED
+        when (effectiveParticipationMode()) {
+            SeasonParticipationMode.GUEST_SEASON,
+            SeasonParticipationMode.GUEST_EVENT,
+            -> ParticipantKind.EXTERNE
+            SeasonParticipationMode.MEMBER_SYNC -> ParticipantKind.MEMBER
+            null ->
+                when {
+                    troupeMembership?.baselineRole == TroupeBaselineRole.EXTERNE -> ParticipantKind.EXTERNE
+                    troupeMembership != null -> ParticipantKind.MEMBER
+                    user != null -> ParticipantKind.LINKED
+                    normalizedEmail.isNullOrBlank() -> ParticipantKind.NAME_ONLY
+                    else -> ParticipantKind.MANAGED
+                }
         }
 }
 

@@ -126,6 +126,16 @@
               type="button"
               mat-icon-button
               [disabled]="saving()"
+              [matMenuTriggerFor]="memberActionsMenu"
+              aria-label="Actions membre"
+              (click)="openRoleMenu(member)"
+            >
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <button
+              type="button"
+              mat-icon-button
+              [disabled]="saving()"
               [attr.aria-label]="isExterne(member) ? 'Modifier cet externe' : 'Modifier le membre'"
               (click)="openEditMember(member)"
             >
@@ -187,6 +197,21 @@
       <button type="button" mat-menu-item (click)="selectRole('TROUPE_ADMIN')">
         Administrateur·ice de troupe
       </button>
+    }
+  </mat-menu>
+
+  <mat-menu #memberActionsMenu="matMenu">
+    @if (roleMenuMember(); as menuMember) {
+      @if (canConvertToExterne(menuMember)) {
+        <button type="button" mat-menu-item (click)="openConvertToExterne(menuMember)">
+          Passer en externe
+        </button>
+      }
+      @if (canReintegrateAsMember(menuMember)) {
+        <button type="button" mat-menu-item (click)="reintegrerCommeMembre(menuMember)">
+          Réintégrer comme membre
+        </button>
+      }
     }
   </mat-menu>
 </section>

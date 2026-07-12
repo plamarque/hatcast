@@ -6,6 +6,8 @@ import com.hatcast.api.participant.ParticipantKind
 import com.hatcast.api.participant.ParticipantRowPresentation
 import com.hatcast.api.participant.ParticipantStatus
 import com.hatcast.api.participant.SeasonParticipantEntity
+import com.hatcast.api.participant.SeasonParticipationMode
+import com.hatcast.api.participant.effectiveParticipationMode
 import jakarta.validation.constraints.NotBlank
 import java.util.UUID
 
@@ -33,6 +35,7 @@ data class SeasonParticipantAdminDto(
     val userId: UUID?,
     val troupeMembershipId: UUID?,
     val invitationScope: InvitationScope?,
+    val participationMode: SeasonParticipationMode?,
     val kind: ParticipantKind,
     val status: ParticipantStatus,
     val removable: Boolean,
@@ -56,6 +59,7 @@ data class SeasonParticipantAdminDto(
                 userId = entity.user?.id ?: entity.troupeMembership?.user?.id,
                 troupeMembershipId = entity.troupeMembership?.id,
                 invitationScope = entity.invitationScope,
+                participationMode = entity.participationMode ?: entity.effectiveParticipationMode(),
                 kind = entity.kind(),
                 status = entity.status,
                 removable =

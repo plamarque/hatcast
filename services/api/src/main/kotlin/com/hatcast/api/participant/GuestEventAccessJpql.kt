@@ -1,7 +1,7 @@
 package com.hatcast.api.participant
 
 /**
- * Shared JPQL fragments for guest invitation scope (ADR-0021, story 3.25).
+ * Shared JPQL fragments for guest invitation scope (ADR-0021, ADR-0022, story 3.25 / 2.26).
  * Parameter `:guestUserId` must be bound when used.
  */
 object GuestEventAccessJpql {
@@ -21,8 +21,15 @@ object GuestEventAccessJpql {
             )
           )
           AND (
-            sp.invitationScope IS NULL
-            OR sp.invitationScope = com.hatcast.api.participant.InvitationScope.SEASON
+            sp.participationMode = com.hatcast.api.participant.SeasonParticipationMode.MEMBER_SYNC
+            OR sp.participationMode = com.hatcast.api.participant.SeasonParticipationMode.GUEST_SEASON
+            OR (
+              sp.participationMode IS NULL
+              AND (
+                sp.invitationScope IS NULL
+                OR sp.invitationScope = com.hatcast.api.participant.InvitationScope.SEASON
+              )
+            )
           )
         """
 
@@ -42,8 +49,15 @@ object GuestEventAccessJpql {
               )
             )
             AND (
-              sp.invitationScope IS NULL
-              OR sp.invitationScope = com.hatcast.api.participant.InvitationScope.SEASON
+              sp.participationMode = com.hatcast.api.participant.SeasonParticipationMode.MEMBER_SYNC
+              OR sp.participationMode = com.hatcast.api.participant.SeasonParticipationMode.GUEST_SEASON
+              OR (
+                sp.participationMode IS NULL
+                AND (
+                  sp.invitationScope IS NULL
+                  OR sp.invitationScope = com.hatcast.api.participant.InvitationScope.SEASON
+                )
+              )
             )
             AND NOT EXISTS (
               SELECT 1 FROM EventParticipantExclusionEntity ex

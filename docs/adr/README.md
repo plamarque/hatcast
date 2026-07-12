@@ -43,6 +43,7 @@ Each ADR documents a significant technical decision: context, decision, conseque
 | [0019](0019-draw-weight-engine.md) | V2 draw weight engine: normative V1 spec, factor pipeline, golden regression, `% = draw` invariant; Wave D formulas & policies → [draw-formulas-policies-spec.md](../v2/technical/draw-formulas-policies-spec.md) | Accepted |
 | [0020](0020-participant-gender-organizer-operational.md) | Participant-level gender: organizer operational layer, effective precedence, cascade on Mon compte PATCH | Accepted |
 | [0021](0021-troupe-externes-carnet-invitations.md) | Troupe externes (carnet), invitation scope (season vs event), upward inclusion on add | Accepted |
+| [0022](0022-season-participation-mode-role-lifecycle.md) | Season participation mode; bidirectional MEMBER ↔ EXTERNE lifecycle; per-season access | Accepted |
 
 ---
 

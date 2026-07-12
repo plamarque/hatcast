@@ -44,6 +44,9 @@ class GuestInvitationAccessService(
     ): GuestSeasonWorkspaceMode {
         val season =
             seasonRepository.findById(seasonId).orElse(null) ?: return GuestSeasonWorkspaceMode.NONE
+        if (hasMemberSyncOnSeason(userId, seasonId)) {
+            return GuestSeasonWorkspaceMode.FULL
+        }
         if (isActiveTroupeMember(userId, season.troupe.id)) {
             return GuestSeasonWorkspaceMode.FULL
         }
@@ -53,7 +56,7 @@ class GuestInvitationAccessService(
                 ParticipantStatus.ACTIVE,
                 userId,
             )
-        if (seasonRows.any { it.invitationScope == InvitationScope.SEASON }) {
+        if (seasonRows.any { it.grantsGuestSeasonWorkspace() }) {
             return GuestSeasonWorkspaceMode.AGENDA_ONLY
         }
         if (eventParticipantRepository.existsActiveForSeasonLinkedToUser(seasonId, userId)) {
@@ -70,6 +73,9 @@ class GuestInvitationAccessService(
     ): Boolean {
         val season =
             seasonRepository.findById(seasonId).orElse(null) ?: return false
+        if (hasMemberSyncOnSeason(userId, seasonId)) {
+            return true
+        }
         if (isActiveTroupeMember(userId, season.troupe.id)) {
             return true
         }
@@ -119,6 +125,9 @@ class GuestInvitationAccessService(
             return
         }
         val userId = principal.userId
+        if (hasMemberSyncOnSeason(userId, season.id)) {
+            return
+        }
         val membership = membershipService.getActiveMembershipForUser(userId, season.troupe.id)
         if (membership != null && membership.baselineRole != TroupeBaselineRole.EXTERNE) {
             return
@@ -144,6 +153,9 @@ class GuestInvitationAccessService(
         }
         val season = loadSeason(seasonId)
         val userId = principal.userId
+        if (hasMemberSyncOnSeason(userId, seasonId)) {
+            return GuestSeasonWorkspaceMode.FULL
+        }
         if (isActiveTroupeMember(userId, season.troupe.id)) {
             membershipService.requireActiveMemberMembership(userId, season.troupe.id)
             return GuestSeasonWorkspaceMode.FULL
@@ -163,6 +175,9 @@ class GuestInvitationAccessService(
         }
         val season = loadSeason(seasonId)
         val userId = principal.userId
+        if (hasMemberSyncOnSeason(userId, seasonId)) {
+            return GuestSeasonWorkspaceMode.FULL
+        }
         if (isActiveTroupeMember(userId, season.troupe.id)) {
             membershipService.requireActiveMemberMembership(userId, season.troupe.id)
             return GuestSeasonWorkspaceMode.FULL
@@ -185,8 +200,19 @@ class GuestInvitationAccessService(
             return
         }
         val season = loadSeason(seasonId)
+        if (hasMemberSyncOnSeason(principal.userId, seasonId)) {
+            return
+        }
         membershipService.requireActiveMemberMembership(principal.userId, season.troupe.id)
     }
+
+    private fun hasMemberSyncOnSeason(
+        userId: UUID,
+        seasonId: UUID,
+    ): Boolean =
+        seasonParticipantRepository
+            .findActiveForSeasonLinkedToUser(seasonId, ParticipantStatus.ACTIVE, userId)
+            .any { it.grantsMemberSeasonWorkspace() }
 
     private fun canAccessEventAsGuest(
         userId: UUID,
@@ -200,8 +226,8 @@ class GuestInvitationAccessService(
                 userId,
             )
         for (row in seasonRows) {
-            when (row.invitationScope) {
-                InvitationScope.SEASON -> {
+            when {
+                row.grantsMemberSeasonWorkspace() || row.grantsGuestSeasonWorkspace() -> {
                     if (
                         !eventParticipantExclusionRepository.existsByIdEventIdAndIdSeasonParticipantId(
                             eventId,
@@ -211,8 +237,7 @@ class GuestInvitationAccessService(
                         return true
                     }
                 }
-                null -> Unit
-                InvitationScope.EVENT -> {
+                row.grantsGuestEventWorkspace() -> {
                     val membershipId = row.troupeMembership?.id
                     if (membershipId != null) {
                         val linked =
@@ -260,6 +285,9 @@ class GuestInvitationAccessService(
             return false
         }
         val season = seasonRepository.findById(seasonId).orElse(null) ?: return false
+        if (hasMemberSyncOnSeason(principal.userId, seasonId)) {
+            return false
+        }
         if (isActiveTroupeMember(principal.userId, season.troupe.id)) {
             return false
         }
