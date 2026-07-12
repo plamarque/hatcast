@@ -663,7 +663,7 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 
 **Wave hub membre (2026-05-27) :** livrer **17.18** seul en premier si besoin rapide ; puis **17.19** ; **17.21** avant ou en parallèle de **17.22** ; **17.20** si remember last visit doit inclure `/accueil`. Spec : [_ux-hub-a-faire.md_](_bmad-output/planning-artifacts/ux-hub-a-faire.md).
 
-**Wave univers Ma Troupe (2026-06-10) :** spec normative [_ux-design-ma-troupe-hub.md_](_bmad-output/planning-artifacts/ux-design-ma-troupe-hub.md). **Done** 2026-06-14 — **17.41–17.44** (nav **Ma troupe**, hub dashboard collectif, chrome événement ED1–ED5, mini-chart MT15). Distinction : **Mon agenda** = moi cross-troupes ; **Ma troupe** = nous (saison courante). Raccourcis **17.18** conservés sur agenda/saison (PO 2026-06-12).
+**Wave univers Ma Troupe (2026-06-10) :** spec normative [_ux-design-ma-troupe-hub.md_](_bmad-output/planning-artifacts/ux-design-ma-troupe-hub.md). **Done** 2026-06-14 — **17.41–17.44** (nav **Ma troupe**, hub dashboard collectif, chrome événement ED1–ED5, mini-chart MT15). **17.45** (done 2026-07-12) : ordre nav **Mes stats · Ma troupe** avant release **v2.4.3**. Distinction : **Mon agenda** = moi cross-troupes ; **Ma troupe** = nous (saison courante). Raccourcis **17.18** conservés sur agenda/saison (PO 2026-06-12).
 
 **DoD phase navigation (17.1–17.5) :** plus de hub `/seasons` ; breadcrumb sur troupe/saison/événement ; admin troupe depuis hub ; lien nom de troupe sur événement → hub.
 

@@ -162,6 +162,34 @@ describe('MemberNav', () => {
     expect(fixture.nativeElement.textContent).toContain('Mon agenda')
   })
 
+  it('orders bottom tabs Accueil, Mon agenda, Mes stats, Ma troupe', async () => {
+    await renderAt('/accueil')
+
+    const labels = Array.from(
+      fixture.nativeElement.querySelectorAll(
+        '.member-nav__bottom a.mat-mdc-tab-link',
+      ) as NodeListOf<HTMLElement>,
+    ).map((tab) =>
+      tab.querySelector('.member-nav__bottom-label')?.textContent?.trim(),
+    )
+
+    expect(labels).toEqual(['Accueil', 'Mon agenda', 'Mes stats', 'Ma troupe'])
+  })
+
+  it('orders rail tabs Accueil, Mon agenda, Mes stats, Ma troupe', async () => {
+    await renderAt('/accueil')
+
+    const labels = Array.from(
+      fixture.nativeElement.querySelectorAll(
+        '.member-nav__rail-link',
+      ) as NodeListOf<HTMLElement>,
+    ).map((link) =>
+      link.querySelector('.member-nav__rail-label')?.textContent?.trim(),
+    )
+
+    expect(labels).toEqual(['Accueil', 'Mon agenda', 'Mes stats', 'Ma troupe'])
+  })
+
   it('links Ma troupe tab to stored troupe hub', async () => {
     await renderAt('/accueil')
 

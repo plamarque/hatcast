@@ -286,6 +286,7 @@ development_status:
   17-42-hub-troupe-dashboard-collectif: done  # UX ma-troupe-hub MT6–MT14 — dashboard saison + participants + teaser
   17-43-event-detail-contexte-infos: done  # UX ma-troupe-hub ED1–ED5 — retrait breadcrumb, titre inline, Saison chips, badge Équipe
   17-44-hub-troupe-mini-chart-saison: done  # UX ma-troupe-hub MT15 — phase 2 mini-chart mois
+  17-45-nav-stats-before-troupe: done  # PO 2026-07-12 — Mes stats avant Ma troupe (nav rail + bottom)
   epic-17-retrospective: optional
 
   epic-18: in-progress

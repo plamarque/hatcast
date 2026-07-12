@@ -60,7 +60,7 @@ uxDr: UX-DR13 (amended post-login), UX-DR14 (agenda distinction)
 |----|----------|
 | **MT1** | Ajouter un **4ᵉ onglet nav membre** : **Ma troupe** (`groups`) → `/troupes/{lastVisitedTroupeSlug}` ; fallback `/troupes` si aucune troupe mémorisée ou membership vide. |
 | **MT2** | Mémoriser **`lastVisitedTroupeSlug`** (mise à jour à chaque visite hub troupe ou workspace saison de la troupe) — parallèle à `lastVisitedSeason`. |
-| **MT3** | Nav membre cible : **Accueil · Mon agenda · Ma troupe · Mes stats** (libellés UI ; routes `/accueil`, `/agenda`, `/troupes/:slug`, `/membre/:userSlug`). |
+| **MT3** | Nav membre cible : **Accueil · Mon agenda · Mes stats · Ma troupe** (libellés UI ; routes `/accueil`, `/agenda`, `/membre/:userSlug`, `/troupes/:slug`). Amendement PO 2026-07-12 (ex : Ma troupe · Mes stats). |
 | **MT4** | **Mon agenda** reste la chronologie **personnelle cross-troupes** ; **Ma troupe** est le **tableau de bord collectif** — pas un second agenda complet. |
 | **MT5** | Workspace saison (`/saison/:troupeSlug/:seasonSlug`) reste le **drill-down orga** (Agenda \| Historique \| Statistiques \| admin). Depuis le hub : **Voir tous les spectacles**, lien **+N** (section Personnes), tap carte teaser — **pas** de CTA primaire « Ouvrir la saison » sur la carte métriques (amend. 2026-06-12). L’onglet Infos événement : chips **Saison** / troupe (ED4). |
 
@@ -310,7 +310,7 @@ Saison
 
 ### Nav shell (MT1–MT3)
 
-- [ ] **MT-AC1** : Rail / bottom bar affiche 4 entrées : Accueil, Mon agenda, Ma troupe, Mes stats.
+- [ ] **MT-AC1** : Rail / bottom bar affiche 4 entrées : Accueil, Mon agenda, Mes stats, Ma troupe.
 - [ ] **MT-AC2** : Tap **Ma troupe** → `/troupes/{lastVisitedTroupeSlug}` ou `/troupes` si indéterminé.
 - [ ] **MT-AC3** : `lastVisitedTroupeSlug` mis à jour à la visite hub ou workspace d’une troupe.
 
