@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.4.4] - 2026-07-12
+
+### ✨ New Features
+- feat(story): merge 2-26-participation-mode-role-lifecycle
+- feat(troupe): Unify member role chip with externe conversion
+- feat(troupe): Add season participation mode lifecycle
+
+### 🐛 Bug Fixes
+- fix(ops): Fix prod migration confirm slug
+
+### 📝 Other Changes
+- chore(v2): promote v2 to staging-v2
+- docs(release): Add v2.4.4 user changelog cutover
+- chore(v2): sync release v2.4.3-rc.2 artifacts to v2
+
+---
+
 ## [2.4.3] - 2026-07-12
 
 ### ✨ New Features
