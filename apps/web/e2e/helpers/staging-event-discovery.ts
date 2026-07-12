@@ -123,14 +123,19 @@ async function filterMemberEligibleDisposOpen(
   return eligible
 }
 
+async function listUpcomingAgenda(request: APIRequestContext): Promise<UserAgendaItem[]> {
+  const agenda = await apiGet<UserAgendaResponse>(request, '/v1/me/agenda?scope=upcoming&size=50')
+  return agenda.content
+}
+
 async function resolveAgendaTitle(
   request: APIRequestContext,
   seasonSlug: string,
   eventSlug: string,
 ): Promise<string | undefined> {
-  const agenda = await apiGet<UserAgendaResponse>(request, '/v1/me/agenda?scope=upcoming&size=50')
-  return agenda.content.find((item) => item.seasonSlug === seasonSlug && item.eventSlug === eventSlug)
-    ?.title
+  return listUpcomingAgenda(request).then((items) =>
+    items.find((item) => item.seasonSlug === seasonSlug && item.eventSlug === eventSlug)?.title,
+  )
 }
 
 async function pickDrawEvent(
@@ -228,7 +233,9 @@ export async function discoverStagingE1Context(
     pendingPinned && memberEligible.some((event) => event.slug === pendingPinned)
       ? pendingPinned
       : dispos.slug
+  const upcomingAgenda = await listUpcomingAgenda(request)
   const eventDrawTitle = (await resolveAgendaTitle(request, seasonSlug, draw.slug)) ?? draw.title
+  const agendaUpcomingEventTitle = upcomingAgenda[0]?.title
 
   return {
     troupeSlug,
@@ -241,6 +248,7 @@ export async function discoverStagingE1Context(
     memberSeasonParticipantId: drawParticipant.participantId,
     eventDrawSlug: draw.slug,
     eventDrawTitle,
+    agendaUpcomingEventTitle,
     eventActiviteSlug: activiteSlug,
     eventActiviteTitle: pickBySlug(events, activiteSlug)?.title ?? dispos.title,
     eventPendingSlug: pendingSlug,
