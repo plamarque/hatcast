@@ -15,8 +15,11 @@ export type E1CutoverFixture = {
   memberSeasonParticipantId: string
   eventDrawSlug: string
   eventDrawTitle: string
-  /** Staging only: first title from `/v1/me/agenda?scope=upcoming` (may differ from draw event). */
+  /** Staging: first title from `/v1/me/agenda?scope=upcoming` (may be empty post-migration). */
   agendaUpcomingEventTitle?: string
+  /** Staging: most recent past event in the migrated season (Historique). */
+  seasonHistoryLatestTitle?: string
+  seasonHistoryLatestSlug?: string
   eventActiviteSlug: string
   eventActiviteTitle: string
   eventPendingSlug: string

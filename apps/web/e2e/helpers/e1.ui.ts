@@ -12,6 +12,21 @@ export async function prepareE2ePage(page: Page): Promise<void> {
   })
 }
 
+/** Personal Mon agenda — wait for shell and loading to finish. */
+export async function expectUserAgendaReady(page: Page): Promise<void> {
+  await expect(page.locator('app-user-agenda')).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByText('Chargement de l’agenda…')).toHaveCount(0, { timeout: 45_000 })
+}
+
+/** Season workspace Historique — newest past card first (groupPastEventsByMonth). */
+export async function expectSeasonHistoryLatestEvent(page: Page, title: string): Promise<void> {
+  await expect(page.locator('app-season-header')).toBeVisible({ timeout: 45_000 })
+  await expect(page.getByText('Chargement de l’historique…')).toHaveCount(0, { timeout: 45_000 })
+  const firstCard = page.locator('app-season-agenda .agenda-card').first()
+  await expect(firstCard).toBeVisible({ timeout: 30_000 })
+  await expect(firstCard.locator('.agenda-card__title')).toHaveText(title)
+}
+
 export async function openEventTab(
   page: Page,
   fx: E1CutoverFixture,
