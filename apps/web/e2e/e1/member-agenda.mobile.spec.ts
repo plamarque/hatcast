@@ -19,14 +19,22 @@ test.describe('E1 — membre agenda & dispos (mobile)', () => {
     const fx = await resolveE1Context(request)
     await assertMobileViewport(page)
     await page.goto('/agenda')
-    if (isStagingE2e() && !fx.eventDrawTitle) {
-      await expect(page.locator('app-agenda, app-member-agenda').first()).toBeVisible({
-        timeout: 30_000,
-      })
-    } else if (isStagingE2e()) {
-      await expect(
-        page.getByRole('button', { name: new RegExp(`^Ouvrir ${escapeRegExp(fx.eventDrawTitle)}`, 'i') }),
-      ).toBeVisible({ timeout: 30_000 })
+    if (isStagingE2e()) {
+      const upcomingTitle = fx.agendaUpcomingEventTitle?.trim()
+      if (upcomingTitle) {
+        await expect(
+          page.getByRole('button', {
+            name: new RegExp(`^Ouvrir ${escapeRegExp(upcomingTitle)}`, 'i'),
+          }),
+        ).toBeVisible({ timeout: 30_000 })
+      } else {
+        await expect(page.locator('app-agenda, app-member-agenda').first()).toBeVisible({
+          timeout: 30_000,
+        })
+        await expect(page.getByRole('heading', { name: /Aucun spectacle à venir/i })).toBeVisible({
+          timeout: 30_000,
+        })
+      }
     } else {
       await expect(page.getByText(fx.eventDrawTitle, { exact: false })).toBeVisible({
         timeout: 30_000,
