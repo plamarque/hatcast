@@ -41,21 +41,6 @@
     <a
       mat-list-item
       class="member-nav__rail-link"
-      [routerLink]="troupeShortcut.link()"
-      [class.member-nav__link--active]="isTroupeTabActive()"
-      aria-label="Ma troupe"
-      [attr.aria-current]="isTroupeTabActive() ? 'page' : null"
-    >
-      <span class="member-nav__rail-item">
-        <span class="member-nav__rail-icon-wrap">
-          <mat-icon aria-hidden="true">groups</mat-icon>
-        </span>
-        <span class="member-nav__rail-label">Ma troupe</span>
-      </span>
-    </a>
-    <a
-      mat-list-item
-      class="member-nav__rail-link"
       [routerLink]="statsShortcut.link()"
       [class.member-nav__link--active]="isStatsTabActive()"
       aria-label="Mes stats"
@@ -66,6 +51,21 @@
           <mat-icon aria-hidden="true">insights</mat-icon>
         </span>
         <span class="member-nav__rail-label">Mes stats</span>
+      </span>
+    </a>
+    <a
+      mat-list-item
+      class="member-nav__rail-link"
+      [routerLink]="troupeShortcut.link()"
+      [class.member-nav__link--active]="isTroupeTabActive()"
+      aria-label="Ma troupe"
+      [attr.aria-current]="isTroupeTabActive() ? 'page' : null"
+    >
+      <span class="member-nav__rail-item">
+        <span class="member-nav__rail-icon-wrap">
+          <mat-icon aria-hidden="true">groups</mat-icon>
+        </span>
+        <span class="member-nav__rail-label">Ma troupe</span>
       </span>
     </a>
     </mat-nav-list>
@@ -118,18 +118,6 @@
     </a>
     <a
       mat-tab-link
-      [routerLink]="troupeShortcut.link()"
-      [active]="isTroupeTabActive()"
-      aria-label="Ma troupe"
-      [attr.aria-current]="isTroupeTabActive() ? 'page' : null"
-    >
-      <span class="member-nav__bottom-item">
-        <mat-icon aria-hidden="true">groups</mat-icon>
-        <span class="member-nav__bottom-label">Ma troupe</span>
-      </span>
-    </a>
-    <a
-      mat-tab-link
       [routerLink]="statsShortcut.link()"
       [active]="isStatsTabActive()"
       aria-label="Mes stats"
@@ -138,6 +126,18 @@
       <span class="member-nav__bottom-item">
         <mat-icon aria-hidden="true">insights</mat-icon>
         <span class="member-nav__bottom-label member-nav__bottom-label--truncate">Mes stats</span>
+      </span>
+    </a>
+    <a
+      mat-tab-link
+      [routerLink]="troupeShortcut.link()"
+      [active]="isTroupeTabActive()"
+      aria-label="Ma troupe"
+      [attr.aria-current]="isTroupeTabActive() ? 'page' : null"
+    >
+      <span class="member-nav__bottom-item">
+        <mat-icon aria-hidden="true">groups</mat-icon>
+        <span class="member-nav__bottom-label">Ma troupe</span>
       </span>
     </a>
   </nav>

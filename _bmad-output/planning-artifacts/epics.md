@@ -2226,6 +2226,24 @@ afin de **voir la densité des spectacles** comme sur Mes Stats.
 
 ---
 
+#### Story 17.45 : Nav shell — Mes stats avant Ma troupe *(PO 2026-07-12)*
+
+En tant que **membre**,  
+je veux **Mes stats** placé **avant Ma troupe** dans la navigation globale,  
+afin de **retrouver plus naturellement** ma vue perso avant l’espace collectif.
+
+**Acceptance Criteria (résumé)**
+
+- **Given** shell membre, **when** nav affichée (rail + bottom), **then** ordre : Accueil · Mon agenda · **Mes stats** · **Ma troupe** (amendement ex-17.41).
+- **Given** liens et états actifs, **then** inchangés — seul l’ordre DOM.
+- **Couverture :** amendement [ux-design-ma-troupe-hub.md](./ux-design-ma-troupe-hub.md) MT3.
+
+**Priorité :** P2 — patch **v2.4.3**.  
+**Depends :** 17.41 (done).  
+**Story file :** [_17-45-nav-stats-before-troupe.md_](../implementation-artifacts/17-45-nav-stats-before-troupe.md)
+
+---
+
 ### Epic 18 — Troupe Démo & politique d’adhésion (onboarding prod V2)
 
 **Décisions produit (2026-05-28) :** sandbox **partagée** ; admin contenu par **super-admin** ; participants fictifs obligatoires ; `join_policy` sans paywall premium ; **Démo prod** via **`db/migration` idempotent (Option A)** ; seed dev renommé **Les Improbots** (slug `les-improbots`, emails `@seed.improbots.test`) — **La Malice** réservée à la migration V1 prod réelle.

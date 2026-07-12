@@ -26,7 +26,7 @@ const AUTH_PATHS_WITHOUT_NAV = new Set([
   '/reinitialiser-mot-de-passe',
 ])
 
-/** Paths that show the global member nav (Accueil · Mon agenda · Ma troupe · Mes stats), including admin screens. */
+/** Paths that show the global member nav (Accueil · Mon agenda · Mes stats · Ma troupe), including admin screens. */
 const MEMBER_NAV_PATH_PATTERNS: RegExp[] = [
   /^\/accueil$/,
   /^\/agenda$/,
