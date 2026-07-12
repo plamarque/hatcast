@@ -55,30 +55,3 @@
   white-space: nowrap;
 }
 
-@media (max-width: 839px) {
-  .scope-admin-menu__trigger--stroked {
-    box-sizing: border-box;
-    width: var(--member-shell-corner-size, 3rem);
-    min-width: var(--member-shell-corner-size, 3rem);
-    height: var(--member-shell-corner-size, 3rem);
-    min-height: var(--member-shell-corner-size, 3rem);
-    padding: 0;
-    margin: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-
-    .scope-admin-menu__trigger-label {
-      display: none;
-    }
-
-    mat-icon {
-      margin-right: 0;
-    }
-
-    .mat-mdc-button-touch-target {
-      width: var(--member-shell-corner-size, 3rem);
-      height: var(--member-shell-corner-size, 3rem);
-    }
-  }
-}
