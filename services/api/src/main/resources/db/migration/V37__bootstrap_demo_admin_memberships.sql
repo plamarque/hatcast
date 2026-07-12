@@ -37,17 +37,6 @@ WHERE lower(u.email) = 'impropick@gmail.com'
     WHERE tm.troupe_id = 'a0000001-0000-4000-8000-000000000099' AND tm.user_id = u.id
   );
 
-UPDATE troupe_memberships tm
-SET
-    baseline_role = 'TROUPE_ADMIN',
-    status = 'ACTIVE',
-    updated_at = CURRENT_TIMESTAMP
-FROM users u
-WHERE tm.user_id = u.id
-  AND tm.troupe_id = 'a0000001-0000-4000-8000-000000000099'
-  AND lower(u.email) IN ('patrice.lamarque@gmail.com', 'impropick@gmail.com')
-  AND (tm.baseline_role <> 'TROUPE_ADMIN' OR tm.status <> 'ACTIVE');
-
 INSERT INTO season_participants (id, season_id, display_name, normalized_email, user_id, troupe_membership_id, status, created_at, updated_at)
 SELECT
     'f0000099-0000-4000-8000-000000000101',
