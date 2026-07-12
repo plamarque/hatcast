@@ -1,5 +1,28 @@
 # Changelog
 
+## [2.4.3] - 2026-07-12
+
+### ✨ New Features
+- feat(story): merge fix-troupe-hub-mobile-gear-alignment
+- feat(story): merge 17-45-nav-stats-before-troupe
+- feat(web): Place Mes stats before Ma troupe in member nav
+
+### 🐛 Bug Fixes
+- fix(web): Align troupe hub admin gear on mobile
+- fix(db): Restore V37 checksum and add V68 demo admin promotion
+
+### 📝 Other Changes
+- merge(v2): Integrate E2E fixes and UI tweaks for v2.4.3-rc.2
+- docs(release): Update v2.4.3 cutover with nav and hub fixes
+- test(e2e): Assert agenda empty state and season history
+- test(e2e): Assert agenda empty state and season history
+- test(e2e): Align E1-MEM-001 with upcoming agenda on staging
+- test(e2e): Align E1-MEM-001 with upcoming agenda on staging
+- merge(v2): Fix Flyway V37 checksum for 2.4.3 redeploy
+- chore(v2): sync release v2.4.3-rc.1 artifacts to v2
+
+---
+
 ## [2.4.3] - 2026-07-11
 
 ### ✨ New Features
