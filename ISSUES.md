@@ -237,4 +237,16 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Deferred / Accepted Issues
 
-(none)
+### LIMIT-005 — Pas de bascule membre → externe après import V1 (ex. Laetitia Landelle)
+- **ID**: LIMIT-005
+- **Status**: Deferred (2026-07-12 — recette post-migration M4 prod ; non bloquant cutover)
+- **Severity**: Low (workaround manuel possible ; friction orga)
+- **Affected area**: V1→V2 migration (`export:v1-members` / import CSV 2.3) ; admin **Membres** (`edit-troupe-member-dialog`, `add-member-dialog`) ; API `TroupeMembershipService.updateMember` / `TroupeMemberCsvImportService` ; ADR-0021 (carnet `EXTERNE`)
+- **Observed behavior** (2026-07-12, Patrice, prod `hatcast.app` — La Malice) : après migration M4, **Laetitia Landelle** apparaît comme **membre** troupe (import V1). L’organisateur souhaite la traiter comme **externe** sur la saison passée et la nouvelle saison, mais **aucun parcours UI** ne permet de basculer un membre existant vers le carnet Externe. L’édition membre ne propose que nom (et email géré par compte) ; pas de sélecteur de rôle `EXTERNE`.
+- **Expected behavior** (à clarifier produit) : soit un flux explicite « passer en externe » (avec garde-fous adhésion / roster / accès membre), soit documentation que les externes doivent être créés **avant** migration ou via ajout Externe dédié — pas via conversion post-import.
+- **Cause (probable, by design)** :
+  - Export V1 `members.csv` : `baselineRole` ∈ `{ MEMBER, TROUPE_ADMIN }` seulement — pas de statut externe V1 ([`scripts/v1/troupeMembersCsv.js`](scripts/v1/troupeMembersCsv.js)).
+  - API refuse `MEMBER` → `EXTERNE` via `PATCH` membre et via import CSV membre : *« Utilisez l'ajout Externe pour les entrées carnet. »* ([`TroupeMembershipService.kt`](services/api/src/main/kotlin/com/hatcast/api/troupe/TroupeMembershipService.kt), [`TroupeMemberCsvImportService.kt`](services/api/src/main/kotlin/com/hatcast/api/troupe/TroupeMemberCsvImportService.kt)).
+  - UI édition membre : pas de changement de rôle vers Externe ([`edit-troupe-member-dialog.ts`](apps/web/src/app/pages/admin-membres/edit-troupe-member-dialog.ts)).
+- **Notes/context** : Recette smoke M4 prod OK ; issue notée pour investigation ultérieure. **Open question** : bug (manque de parcours) vs spec ADR-0021 (externe = entrée carnet à la création, pas rétro-conversion). Piste si produit valide : story dédiée (conversion avec sync roster/saison) ou enrichissement export V1 si V1 distingue invités récurrents. **Ne pas traiter avant clôture M4.**
+
