@@ -1,5 +1,49 @@
 <template>
+  <Transition
+    name="install-banner"
+    appear
+  >
+    <div
+      v-if="showCutoverBlock"
+      data-testid="v2-cutover-announcement"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="v2-cutover-announcement-title"
+      class="fixed inset-0 z-[100000] flex items-center justify-center bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4"
+    >
+      <div class="w-full max-w-md bg-black/80 border border-gray-700 rounded-2xl p-6 text-center">
+        <div class="flex flex-col items-center gap-4">
+          <img
+            src="/icons/icon-48x48.png"
+            alt=""
+            class="w-16 h-16 rounded-lg"
+          />
+          <h1
+            id="v2-cutover-announcement-title"
+            class="font-semibold text-2xl text-white"
+          >
+            HatCast
+          </h1>
+          <p class="text-sm text-gray-300 leading-relaxed">
+            Cette version de HatCast n'est plus disponible. Retrouvez vos saisons et spectacles sur HatCast 2 sur
+            <span class="text-white font-medium">{{ v2ProdUrlDisplay }}</span>.
+          </p>
+          <a
+            data-testid="v2-cutover-announcement-cta"
+            :href="v2ProdUrl"
+            rel="noopener noreferrer"
+            autofocus
+            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+          >
+            Continuer sur HatCast 2
+          </a>
+        </div>
+      </div>
+    </div>
+  </Transition>
+
   <div
+    v-if="!showCutoverBlock"
     data-testid="app-loaded"
     class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900"
   >
@@ -42,7 +86,7 @@
     appear
   >
     <div
-      v-if="canInstallPwa && !bannerDismissed"
+      v-if="!showCutoverBlock && canInstallPwa && !bannerDismissed"
       class="fixed top-0 left-0 right-0 z-[99999] bg-black text-white shadow-lg border-b border-gray-800"
       @click="installPwa"
     >
@@ -95,7 +139,7 @@
     appear
   >
     <div
-      v-if="updateAvailable && !refreshing && isPwaInstalled()"
+      v-if="!showCutoverBlock && updateAvailable && !refreshing && isPwaInstalled()"
       class="fixed top-0 left-0 right-0 z-[99999] bg-black text-white shadow-lg border-b border-gray-800"
       @click="updateApp"
     >
@@ -132,7 +176,7 @@
   
   <!-- Modal d'instructions d'installation PWA -->
   <PWAInstallModal 
-    :show="showInstallModal" 
+    :show="!showCutoverBlock && showInstallModal" 
     :browser-info="installModalBrowserInfo"
     @close="showInstallModal = false"
     @retry-install="retryInstallFromModal"
@@ -144,7 +188,7 @@
     appear
   >
     <div
-      v-if="refreshing"
+      v-if="!showCutoverBlock && refreshing"
       class="fixed top-0 left-0 right-0 z-[99999] bg-black text-white shadow-lg border-b border-gray-800"
     >
       <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -179,10 +223,10 @@
       </div>
     </div>
   </Transition>
-
-  <!-- Modal cutover V1 → V2 (story 11.3) -->
+  
+  <!-- Modal cutover V1 → V2 (story 11.3) — masqué si écran blocage M4 actif -->
   <V2CutoverModal
-    v-if="showV2CutoverModal"
+    v-if="!showCutoverBlock && showV2CutoverModal"
     :show="showV2CutoverModal"
     @close="showV2CutoverModal = false"
   />
@@ -190,8 +234,13 @@
 </template>
 
 <script setup>
-import { onMounted, onBeforeUnmount, ref, watch, nextTick } from 'vue'
+import { computed, onMounted, onBeforeUnmount, ref, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
+import {
+  formatV2ProdUrlForDisplay,
+  getV2ProdUrl,
+  isCutoverAnnouncementEnabled,
+} from './services/v2CutoverAnnouncement.js'
 
 const route = useRoute()
 
@@ -224,11 +273,16 @@ const canInstallPwa = ref(false)
 const updateAvailable = ref(false)
 const refreshing = ref(false)
 const bannerDismissed = ref(false)
-const showV2CutoverModal = ref(false)
+const v2ProdUrl = getV2ProdUrl()
+const v2ProdUrlDisplay = formatV2ProdUrlForDisplay(v2ProdUrl)
+const showCutoverBlock = computed(() => isCutoverAnnouncementEnabled())
 
 // PWA Install Modal
 const showInstallModal = ref(false)
 const installModalBrowserInfo = ref({})
+
+// Cutover V1 → V2 modal (story 11.3)
+const showV2CutoverModal = ref(false)
 
 // Navigation tracking supprimé - remplacé par seasonPreferences
 
@@ -614,10 +668,14 @@ function handlePwaUpdateTest() {
 }
 
 onMounted(async () => {
-  if (shouldShowCutoverModal()) {
+  if (!showCutoverBlock.value && shouldShowCutoverModal()) {
     await initPostHogCutover()
     showV2CutoverModal.value = true
     captureCutoverEvent(V1_CUTOVER_MODAL_SHOWN)
+  }
+
+  if (showCutoverBlock.value) {
+    return
   }
 
   // Vérifier si on doit afficher la barre d'installation
