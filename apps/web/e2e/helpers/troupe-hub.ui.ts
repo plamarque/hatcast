@@ -52,15 +52,16 @@ export async function expectTroupeHubLabeledAdminTrigger(
   page: Page,
   options?: { visibleLabel?: boolean },
 ): Promise<void> {
-  const trigger = page.locator('.troupe-hub__hero-admin .scope-admin-menu__trigger--stroked')
+  const trigger = page.locator('.troupe-hub__hero-admin .scope-admin-menu__trigger')
   await expect(trigger).toBeVisible({ timeout: 15_000 })
   await expect(trigger).toHaveAttribute('aria-label', 'Gérer la troupe')
 
   const label = trigger.locator('.scope-admin-menu__trigger-label')
   if (options?.visibleLabel === false) {
-    await expect(label).toHaveCount(1)
-    await expect(label).toBeHidden()
+    await expect(label).toHaveCount(0)
+    await expect(trigger.locator('mat-icon')).toBeVisible()
   } else {
+    await expect(trigger).toHaveClass(/scope-admin-menu__trigger--stroked/)
     await expect(label).toBeVisible()
     await expect(label).toHaveText('Gérer la troupe')
   }
