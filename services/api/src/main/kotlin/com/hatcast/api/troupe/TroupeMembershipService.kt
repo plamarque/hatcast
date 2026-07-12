@@ -560,7 +560,7 @@ class TroupeMembershipService(
         ) {
             throw ResponseStatusException(
                 HttpStatus.BAD_REQUEST,
-                "Un externe ne peut pas être promu membre ou administrateur via cette API.",
+                "Utilisez « Réintégrer comme membre » pour promouvoir un externe.",
             )
         }
         if (targetRole == TroupeBaselineRole.EXTERNE &&
@@ -568,7 +568,7 @@ class TroupeMembershipService(
         ) {
             throw ResponseStatusException(
                 HttpStatus.BAD_REQUEST,
-                "Utilisez l'ajout Externe pour les entrées carnet.",
+                "Utilisez « Passer en externe » pour convertir un membre en externe.",
             )
         }
         ensureLastAdminRemains(membership, targetStatus, targetRole)

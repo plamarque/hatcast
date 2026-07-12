@@ -33,6 +33,10 @@ import {
   EditTroupeMemberDialog,
   type EditTroupeMemberDialogData,
 } from './edit-troupe-member-dialog'
+import {
+  ConvertMemberExterneDialog,
+  type ConvertMemberExterneDialogData,
+} from './convert-member-externe-dialog'
 import { ImportResultsDialog, type ImportResultsDialogData } from './import-results-dialog'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 
@@ -179,18 +183,40 @@ export class MembresTab implements OnInit, OnDestroy {
     this.roleMenuMember.set(member)
   }
 
+  protected roleMenuTooltip(member: TroupeMemberAdmin): string {
+    if (this.isLastAdmin(member)) {
+      return 'La troupe doit conserver au moins un administrateur actif.'
+    }
+    if (member.status !== 'ACTIVE') {
+      return 'Réactivez cette personne pour modifier son rôle.'
+    }
+    return 'Changer le rôle dans la troupe'
+  }
+
   protected async selectRole(role: TroupeBaselineRole): Promise<void> {
     const member = this.roleMenuMember()
-    if (!member) return
-    await this.onRoleChange(member, role)
     this.roleMenuMember.set(null)
+    if (!member || role === member.baselineRole || this.isLastAdmin(member)) {
+      return
+    }
+    if (role === 'EXTERNE') {
+      this.openConvertToExterne(member)
+      return
+    }
+    if (this.isExterne(member)) {
+      if (role === 'MEMBER') {
+        this.reintegrerCommeMembre(member)
+      }
+      return
+    }
+    await this.onRoleChange(member, role)
   }
 
   protected async onRoleChange(
     member: TroupeMemberAdmin,
     role: TroupeBaselineRole,
   ): Promise<void> {
-    if (this.isExterne(member) || role === member.baselineRole || this.isLastAdmin(member)) {
+    if (role === 'EXTERNE' || role === member.baselineRole || this.isLastAdmin(member)) {
       return
     }
     await this.patchMember(member, { baselineRole: role })
@@ -205,6 +231,60 @@ export class MembresTab implements OnInit, OnDestroy {
       return
     }
     await this.patchMember(member, { status: nextStatus })
+  }
+
+  protected openConvertToExterne(member: TroupeMemberAdmin): void {
+    const ref = this.dialog.open<ConvertMemberExterneDialog, ConvertMemberExterneDialogData, boolean>(
+      ConvertMemberExterneDialog,
+      {
+        data: { troupeId: this.troupeId(), member },
+        width: 'min(100vw - 2rem, 28rem)',
+      },
+    )
+    ref.afterClosed().subscribe((ok) => {
+      if (ok) {
+        this.snack.open('Membre passé en externe.', 'OK', { duration: 4000 })
+        void this.reload()
+        this.membersChanged.emit()
+      }
+    })
+  }
+
+  protected reintegrerCommeMembre(member: TroupeMemberAdmin): void {
+    const ref = this.dialog.open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
+      data: {
+        title: 'Réintégrer comme membre ?',
+        message:
+          "Cette personne redevient membre de la troupe et sera resynchronisée sur les saisons actives (sauf retraits admin).",
+        confirmLabel: 'Réintégrer',
+      },
+      width: 'min(100vw - 2rem, 28rem)',
+    })
+    ref.afterClosed().subscribe((confirmed) => {
+      if (confirmed) {
+        void this.confirmReintegrate(member)
+      }
+    })
+  }
+
+  private async confirmReintegrate(member: TroupeMemberAdmin): Promise<void> {
+    this.saving.set(true)
+    try {
+      const r = await this.api.convertExterneToMember(this.troupeId(), member.id)
+      if (!r.ok) {
+        this.snack.open(
+          r.errorMessage ?? this.errorMessage(r.status, 'Réintégration impossible.'),
+          'OK',
+          { duration: 5000 },
+        )
+        return
+      }
+      this.snack.open('Externe réintégré comme membre.', 'OK', { duration: 4000 })
+      void this.reload()
+      this.membersChanged.emit()
+    } finally {
+      this.saving.set(false)
+    }
   }
 
   protected retirerMembre(member: TroupeMemberAdmin): void {

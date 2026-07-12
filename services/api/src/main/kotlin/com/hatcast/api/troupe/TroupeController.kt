@@ -4,6 +4,8 @@ import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.troupe.dto.AddTroupeExterneRequest
 import com.hatcast.api.troupe.dto.AddTroupeMemberRequest
 import com.hatcast.api.troupe.dto.CreateTroupeRequest
+import com.hatcast.api.troupe.dto.ConvertToExterneRequest
+import com.hatcast.api.troupe.dto.MemberConversionContextDto
 import com.hatcast.api.troupe.dto.MemberImportResultDto
 import com.hatcast.api.troupe.dto.MembershipSummaryDto
 import com.hatcast.api.troupe.dto.PagedTroupeMembersResponse
@@ -46,6 +48,7 @@ import java.util.concurrent.TimeUnit
 @RequestMapping("/v1/troupes")
 class TroupeController(
     private val membershipService: TroupeMembershipService,
+    private val membershipLifecycleService: TroupeMembershipLifecycleService,
     private val troupeService: TroupeService,
     private val userImportService: UserImportService,
     private val troupeCategoryService: TroupeCategoryService,
@@ -235,6 +238,31 @@ class TroupeController(
         @RequestBody body: UpdateTroupeMemberRequest,
         @AuthenticationPrincipal principal: SessionUserPrincipal,
     ): TroupeMemberAdminDto = membershipService.updateMember(troupeId, membershipId, body, principal)
+
+    @GetMapping("/{troupeId}/members/{membershipId}/conversion-context")
+    fun getMemberConversionContext(
+        @PathVariable troupeId: UUID,
+        @PathVariable membershipId: UUID,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): MemberConversionContextDto =
+        membershipLifecycleService.getConversionContext(troupeId, membershipId, principal)
+
+    @PostMapping("/{troupeId}/members/{membershipId}/convert-to-externe")
+    fun convertMemberToExterne(
+        @PathVariable troupeId: UUID,
+        @PathVariable membershipId: UUID,
+        @Valid @RequestBody body: ConvertToExterneRequest,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): TroupeMemberAdminDto =
+        membershipLifecycleService.convertToExterne(troupeId, membershipId, body, principal)
+
+    @PostMapping("/{troupeId}/members/{membershipId}/convert-to-member")
+    fun convertExterneToMember(
+        @PathVariable troupeId: UUID,
+        @PathVariable membershipId: UUID,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): TroupeMemberAdminDto =
+        membershipLifecycleService.convertToMember(troupeId, membershipId, principal)
 
     @DeleteMapping("/{troupeId}/members/{membershipId}")
     fun deactivateMember(

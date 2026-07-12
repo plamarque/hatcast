@@ -58,6 +58,8 @@ class SeasonParticipantMembershipSync(
                     existing.status = ParticipantStatus.ACTIVE
                     existing.removedAt = null
                     existing.removalSource = null
+                    existing.participationMode = SeasonParticipationMode.MEMBER_SYNC
+                    existing.invitationScope = null
                     existing.updatedAt = now
                     existing
                 }
@@ -69,6 +71,7 @@ class SeasonParticipantMembershipSync(
                     user = membership.user,
                     troupeMembership = membership,
                     status = ParticipantStatus.ACTIVE,
+                    participationMode = SeasonParticipationMode.MEMBER_SYNC,
                     createdAt = now,
                     updatedAt = now,
                 )

@@ -1,0 +1,16 @@
+{
+  "version": "2.4.4",
+  "date": "__BUILD_DATE__",
+  "source": "curated-release",
+  "notes": "v2.4.4 — cycle de vie membre ↔ externe par saison (story 2.26, ADR-0022) — skill hatcast-v2-release",
+  "changes": [
+    "✨ Membres — passe un membre en externe via le chip de rôle ; choisis par saison active (externe saison ou retrait du roster)",
+    "✨ Membres — repasse un externe en membre : il réintègre le roster des saisons actives",
+    "✨ Accès — les saisons passées conservent l'historique membre ; un externe n'accède qu'aux saisons où il est invité"
+  ],
+  "changes_en": [
+    "✨ Members — switch a member to guest (externe) from the role chip, choosing status per active season",
+    "✨ Members — switch a guest back to member: they rejoin active season rosters",
+    "✨ Access — past seasons keep member history; guests only access seasons they're invited to"
+  ]
+}

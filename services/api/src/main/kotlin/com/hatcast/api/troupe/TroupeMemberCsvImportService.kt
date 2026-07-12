@@ -66,7 +66,7 @@ class TroupeMemberCsvImportService(
                     row.rowNumber,
                     email,
                     MemberImportErrorCode.PARSE_ERROR,
-                    "Un externe ne peut pas être promu membre via import.",
+                    "Utilisez « Réintégrer comme membre » pour promouvoir un externe.",
                 )
             }
             if (existing.baselineRole != TroupeBaselineRole.EXTERNE && targetRole == TroupeBaselineRole.EXTERNE) {
@@ -74,7 +74,7 @@ class TroupeMemberCsvImportService(
                     row.rowNumber,
                     email,
                     MemberImportErrorCode.PARSE_ERROR,
-                    "Utilisez une ligne Externe pour les entrées carnet.",
+                    "Utilisez « Passer en externe » dans Membres pour convertir un membre.",
                 )
             }
             val resolvedDisplayName = targetDisplayName ?: existing.displayName

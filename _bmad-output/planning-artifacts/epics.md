@@ -728,6 +728,23 @@ afin de conserver un **carnet de contacts** réutilisable sans accorder l’acc�
 5. **Given** un compte lié `EXTERNE` seul, **when** accès membre, **then** pas de hub troupe / lecture membre équivalente `MEMBER`.
 6. **Couverture :** ADR-0021 P1. **Priorité :** P1. **Depends :** **2.2**, **2.8** (done). **Blocks :** **3.23**, **3.8d**. **SCP :** [sprint-change-proposal-2026-06-06-troupe-externes-adr-0021.md](sprint-change-proposal-2026-06-06-troupe-externes-adr-0021.md). **ADR :** [0021](../../docs/adr/0021-troupe-externes-carnet-invitations.md).
 
+---
+
+#### Story 2.26 : Mode de participation saison et lifecycle membre ↔ externe *(P1 — ADR-0022, LIMIT-005)*
+
+En tant qu’**administrateur de troupe**,  
+je veux **convertir un membre en externe (et inversement) tout en conservant le mode de participation de chaque saison**,  
+afin de gérer les transitions réelles (ex. ancien membre invité MC ; Laetitia post-import V1) **sans SQL manuel**.
+
+**Acceptance Criteria**
+
+1. **Given** le schéma participant, **when** migré, **then** `season_participants.participation_mode` (`MEMBER_SYNC` | `GUEST_SEASON` | `GUEST_EVENT`) est exposé (Flyway + OpenAPI).
+2. **Given** Membres admin, **when** l’admin **passe en externe** un `MEMBER`, **then** même ligne `troupe_memberships` ; saisons actives choisies → `GUEST_SEASON` ou retrait ; saisons passées → `MEMBER_SYNC` préservé ; compte HatCast optionnel conservé.
+3. **Given** conversion en externe, **when** nouvelle saison, **then** pas d’auto-sync (**2.21**).
+4. **Given** Membres admin, **when** **réintégration comme membre** d’un externe, **then** sync membership sur saisons actives ; `MEMBER_SYNC`.
+5. **Given** accès dispos/agenda, **when** évalué, **then** guards utilisent le **mode saison** ; invité ≠ membre troupe.
+6. **Couverture :** ADR-0022, LIMIT-005, FR7, FR43–FR45. **Priorité :** P1. **Depends :** **2.21**, **3.23**, **3.25** (done). **ADR :** [0022](../../docs/adr/0022-season-participation-mode-role-lifecycle.md). **Story file :** [2-26-participation-mode-role-lifecycle.md](../implementation-artifacts/2-26-participation-mode-role-lifecycle.md).
+
 ### Epic 3 — Saisons, spectacles et gouvernance organisateur
 
 #### Story 3.1 : Gestion des saisons (création, édition, archivage) et liste saisons

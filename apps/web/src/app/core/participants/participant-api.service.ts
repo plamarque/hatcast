@@ -5,6 +5,8 @@ import { csrfHeaders } from '../http/hatcast-csrf'
 
 export type InvitationScope = 'SEASON' | 'EVENT'
 
+export type SeasonParticipationMode = 'MEMBER_SYNC' | 'GUEST_SEASON' | 'GUEST_EVENT'
+
 export type ParticipantKind = 'MEMBER' | 'EXTERNE' | 'LINKED' | 'MANAGED' | 'NAME_ONLY'
 
 export interface SeasonParticipantAdmin {
@@ -14,6 +16,7 @@ export interface SeasonParticipantAdmin {
   userId: string | null
   troupeMembershipId: string | null
   invitationScope?: InvitationScope | null
+  participationMode?: SeasonParticipationMode | null
   kind: ParticipantKind
   status: 'ACTIVE' | 'REMOVED'
   removable: boolean

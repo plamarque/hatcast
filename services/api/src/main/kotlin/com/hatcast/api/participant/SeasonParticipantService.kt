@@ -175,6 +175,7 @@ class SeasonParticipantService(
                     user = carnet.user,
                     troupeMembership = carnet,
                     invitationScope = InvitationScope.SEASON,
+                    participationMode = SeasonParticipationMode.GUEST_SEASON,
                     status = ParticipantStatus.ACTIVE,
                     createdAt = now,
                     updatedAt = now,
@@ -367,6 +368,7 @@ class SeasonParticipantService(
         existing.user = carnet.user
         existing.troupeMembership = carnet
         existing.invitationScope = InvitationScope.SEASON
+        existing.participationMode = SeasonParticipationMode.GUEST_SEASON
         ParticipantGenderWriteSupport.applyGenderFromRequest(existing, carnet.user, genderRaw)
         val now = Instant.now()
         existing.status = ParticipantStatus.ACTIVE
@@ -412,6 +414,7 @@ class SeasonParticipantService(
             removed.user = carnet.user
             removed.troupeMembership = carnet
             removed.invitationScope = InvitationScope.EVENT
+            removed.participationMode = SeasonParticipationMode.GUEST_EVENT
             removed.status = ParticipantStatus.ACTIVE
             removed.removedAt = null
             removed.removalSource = null
@@ -437,6 +440,7 @@ class SeasonParticipantService(
                     user = carnet.user,
                     troupeMembership = carnet,
                     invitationScope = InvitationScope.EVENT,
+                    participationMode = SeasonParticipationMode.GUEST_EVENT,
                     status = ParticipantStatus.ACTIVE,
                     createdAt = now,
                     updatedAt = now,
@@ -795,6 +799,8 @@ class SeasonParticipantService(
                 existing.status = ParticipantStatus.ACTIVE
                 existing.removedAt = null
                 existing.removalSource = null
+                existing.participationMode = SeasonParticipationMode.MEMBER_SYNC
+                existing.invitationScope = null
                 existing.updatedAt = now
                 toSave.add(existing)
             } else {
@@ -806,6 +812,7 @@ class SeasonParticipantService(
                         user = membership.user,
                         troupeMembership = membership,
                         status = ParticipantStatus.ACTIVE,
+                        participationMode = SeasonParticipationMode.MEMBER_SYNC,
                         createdAt = now,
                         updatedAt = now,
                     ),

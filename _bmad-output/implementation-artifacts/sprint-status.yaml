@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-07-11T17:50:00+02:00
+# last_updated: 2026-07-12T21:45:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-07-11T17:50:00+02:00"
+last_updated: "2026-07-12T20:30:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -91,6 +91,7 @@ development_status:
   2-12c-avatars-repli-selon-genre: done  # P1 — depends 2.12, 2.6 ; closure with 2.12b
   2-12d-genre-participant-admin-roster: done  # P2 — SCP 2026-06-06 Lot B phase 1 ; ADR 0020
   2-21-troupe-externes-carnet: done  # P1 — SCP 2026-06-06 ADR-0021 ; blocks 3.23, 3.8d
+  2-26-participation-mode-role-lifecycle: done  # P1 — ADR-0022 ; role chip UX ; LIMIT-005 closed
   epic-2-retrospective: done
 
   epic-3: in-progress  # 3.21 draft/publish — SCP 2026-06-01 notifications

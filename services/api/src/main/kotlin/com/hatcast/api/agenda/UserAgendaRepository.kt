@@ -57,8 +57,15 @@ private const val USER_AGENDA_GUEST_EVENT_VISIBILITY =
           )
         )
         AND (
-          sp.invitationScope IS NULL
-          OR sp.invitationScope = com.hatcast.api.participant.InvitationScope.SEASON
+          sp.participationMode = com.hatcast.api.participant.SeasonParticipationMode.MEMBER_SYNC
+          OR sp.participationMode = com.hatcast.api.participant.SeasonParticipationMode.GUEST_SEASON
+          OR (
+            sp.participationMode IS NULL
+            AND (
+              sp.invitationScope IS NULL
+              OR sp.invitationScope = com.hatcast.api.participant.InvitationScope.SEASON
+            )
+          )
         )
         AND NOT EXISTS (
           SELECT 1 FROM EventParticipantExclusionEntity ex

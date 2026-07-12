@@ -448,7 +448,7 @@ RUN_ARGS=(
   --migration-api-key="${HATCAST_MIGRATION_API_KEY}"
 )
 if [[ "${MIGRATE_REQUIRES_PROD_CONFIRM}" == "1" ]]; then
-  RUN_ARGS+=(--confirm-prod=production)
+  RUN_ARGS+=(--confirm-prod="${MIGRATE_LOAD_TARGET}")
 fi
 if [[ "${DRY_RUN}" == true ]]; then
   RUN_ARGS+=(--dry-run)
