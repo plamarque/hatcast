@@ -1,0 +1,8 @@
+{
+  "version": "2.4.5",
+  "date": "__BUILD_DATE__",
+  "source": "curated-release",
+  "notes": "v2.4.5 — OPS-12 Neon Hikari scale-to-zero (BUG-013) — skill hatcast-v2-release",
+  "changes": [],
+  "changes_en": []
+}
