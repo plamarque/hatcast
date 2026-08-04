@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.4.5] - 2026-08-04
+
+### ✨ New Features
+- feat(story): merge ops-12-neon-hikari-scale-to-zero
+
+### 📝 Other Changes
+- chore(v2): promote v2 to staging-v2
+- docs(release): Add v2.4.5 user changelog cutover
+- ops(ci): Give hatcast-v2-dev 2Gi memory
+- ops(api): Allow Neon Hikari scale-to-zero
+- chore(v2): sync release v2.4.4-rc.1 artifacts to v2
+
+---
+
 ## [2.4.4] - 2026-07-12
 
 ### ✨ New Features
