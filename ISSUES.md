@@ -10,6 +10,17 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Open Issues
 
+### BUG-013 — Neon Launch bill ~$78/mo while scale-to-zero enabled (Hikari pool)
+- **ID**: BUG-013
+- **Status**: Fixed (2026-08-04 — OPS-12)
+- **Severity**: High (ops cost — ~$78/mo with near-zero product traffic)
+- **Affected area**: V2 API Spring datasource / HikariCP defaults ; Neon compute (ADR-0009)
+- **Observed behavior**: After leaving Neon Free for Launch, invoice ≈ **$78/month** despite scale-to-zero enabled and little/no app usage. Matches ~1 CU always-on compute (`730 h × $0.106`).
+- **Expected behavior**: After ~5 minutes without SQL activity, Neon compute reaches **Idle** and compute charges approach **$0** (Free plan quota or Launch pay-per-use).
+- **Cause**: HikariCP defaults (`minimumIdle` = `maximumPoolSize` ≈ 10) recreate connections after Neon suspends, preventing sustained Idle. Secondary wake: Spring Session JDBC cleanup cron default (**every minute**). No explicit `spring.datasource.hikari.*` / session cleanup override in cloud/dev YAML.
+- **Fix**: OPS-12 (`ops-12-neon-hikari-scale-to-zero`) — `minimum-idle: 0`, `idle-timeout: 60s`, `connection-timeout: 20s`, `maximum-pool-size: 5`; `management.health.db.enabled: false`; `spring.session.jdbc.cleanup-cron` daily; docs Free CU-h + `--offline`. Verified Idle on Neon branche `local` with JVM still running.
+- **Notes/context**: Cold start latency acceptable (PO). Related: [ADR-0009](docs/adr/0009-neon-postgres-environments.md); story `_bmad-output/implementation-artifacts/ops-12-neon-hikari-scale-to-zero.md`.
+
 ### BUG-012 — Chance breakdown showed false cross-category penalty (equity_tag line)
 - **ID**: BUG-012
 - **Status**: Fixed (2026-06-23)

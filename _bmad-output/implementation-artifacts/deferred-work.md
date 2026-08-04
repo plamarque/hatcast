@@ -570,3 +570,11 @@
 
 - **Doc E2E gate stale** — `test-design-e1-cutover-preprod-gate.md:293` mentionne l’ancien ordre des onglets ; les tests E2E ne l’assertent pas (lookup par libellé).
 - **Epic 17.41 AC historique** — `epics.md:2157` conserve l’AC d’origine de 17.41 ; amendé explicitement par story 17.45.
+
+## Deferred from: code review of ops-12-neon-hikari-scale-to-zero (2026-08-04)
+
+- **Cleanup Spring Session 1×/jour** — sessions expirées / croissance `SPRING_SESSION` jusqu’à ~24 h ; tradeoff volontaire vs wake minute (BUG-013).
+- **Fuseau cron session `0 30 3 * * *`** — UTC vs TZ instance Cloud Run non documenté.
+- **Overrides env Hikari / health.db** — peuvent contourner la politique idle YAML au runtime.
+- **Jobs `@Scheduled` notification** — SQL quotidien réveille Neon (hors cause always-on BUG-013).
+- **PgBouncer + Spring Session JDBC** — interaction endpoint poolé / session store ; architecture préexistante.
