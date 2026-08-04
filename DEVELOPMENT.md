@@ -51,6 +51,7 @@ Stack : [`services/api/`](services/api/) (Kotlin / Spring Boot) et [`apps/web/`]
 
 1. Créer un client OAuth **Web** dans Google Cloud Console ; ajouter l’origine JavaScript **`https://localhost:4200`** (dev Angular avec TLS par défaut, voir `apps/web/angular.json` → `serve.options.ssl`). Ajouter d’autres origines si vous utilisez `127.0.0.1`, le réseau local (`--host`), ou du HTTP sans SSL.
 2. **Neon (V2)** : créer ou utiliser la branche **`local`** dans le projet Neon ; renseigner `HATCAST_DATASOURCE_URL`, `HATCAST_DATASOURCE_USERNAME`, `HATCAST_DATASOURCE_PASSWORD` dans **`.env`** (voir [`.env.example`](.env.example)). Cette branche est **distincte** de **`development`**, utilisée par Cloud Run `hatcast-v2-dev` — voir [ADR-0009](docs/adr/0009-neon-postgres-environments.md).
+   - **Coût Free / scale-to-zero (OPS-12)** : le plan Free limite à **100 CU-h/mois** et **0,5 Go** ; scale-to-zero est forcé. Hikari est réglé (`minimum-idle: 0`, `idle-timeout: 60s`) pour laisser Neon passer Idle après ~5 min sans SQL — détail [DEPLOY_V2_CLOUD_RUN.md](docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md) §5.2.1. Pour ne **pas** brûler de CU-h sur le poste, préférer **`--offline`** (H2). Sur Cloud Run, garder l’URL JDBC **poolée** Neon (§5.2).
 3. **API** : `cd services/api && export HATCAST_GOOGLE_OAUTH_WEB_CLIENT_ID="…" && ./gradlew bootRun` (port **8080**). Pour **email / mot de passe (Identity Platform)**, renseigner aussi `GOOGLE_APPLICATION_CREDENTIALS` (compte de service GCP) dans `.env` — voir [DEPLOY_V2_CLOUD_RUN.md](docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md) §6.1.
 
 **Identity Platform — config client Angular (Google + email sur `/connexion`)** : le SPA lit la config au **build** (`environment.*.ts`), pas le `.env` à l’exécution. Deux chemins :
@@ -78,7 +79,7 @@ Stack : [`services/api/`](services/api/) (Kotlin / Spring Boot) et [`apps/web/`]
 
 **Tout-en-un (recommandé) :** `./scripts/start-dev.sh` à la racine — démarre l’API puis le client Angular (`ng serve --host`, HTTPS). Variables `HATCAST_*` lues depuis `.env` si le fichier existe. **E2E :** arrêter ce script puis `./scripts/run_e2e.sh` (voir § Tests).
 
-**Mode offline (sans Neon / sans internet)** : si la branche Neon `local` est injoignable (train, avion, etc.), lancer avec une base H2 locale et les seeds Les Improbots :
+**Mode offline (sans Neon / sans internet)** : si la branche Neon `local` est injoignable (train, avion, etc.), **ou** pour éviter de consommer des CU-h Free, lancer avec une base H2 locale et les seeds Les Improbots :
 
 ```bash
 ./scripts/start-dev.sh --offline

@@ -6,9 +6,25 @@
 spring:
   flyway:
     locations: classpath:db/migration,classpath:db/migration-postgresql
+  # OPS-12 / BUG-013: allow Neon scale-to-zero — empty pool when idle (no keepalive SQL).
+  datasource:
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 0
+      idle-timeout: 60000
+      max-lifetime: 280000
+      connection-timeout: 20000
+  # Default Spring Session cleanup is every minute (SQL) and would keep Neon awake.
+  session:
+    jdbc:
+      cleanup-cron: "0 30 3 * * *"
 
 # PERF-16: aggregated pool metrics only — no SQL text logging on cloud/prod.
+# OPS-12: disable DB health ping so /actuator/health does not keep Neon awake.
 management:
+  health:
+    db:
+      enabled: false
   endpoints:
     web:
       exposure:

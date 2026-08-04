@@ -521,6 +521,7 @@ Objectif : parité **usage troupe type La Malice** sur V2 (pas feature parity ex
 | **OPS-5** | Prod depuis artefact taggué (sans branche prod dédiée) | **P0** | done | Règle : tag prod = tag validé staging |
 | **OPS-6** | Couplage version / CHANGELOG / `changelog.json` / `version.txt` | **P0** | done | Réutilise `version-changelog.sh` |
 | **OPS-11** | CLI release V2 simplifiée (4 commandes dev) | **P0** | done | Façades `deploy_staging.sh`, `release_version.sh`, `deploy_prod.sh` — story [ops-11](_bmad-output/implementation-artifacts/ops-11-simplified-release-cli.md) |
+| **OPS-12** | Neon scale-to-zero + Hikari (coût Launch / Free) | **P0** | done | BUG-013 Fixed ; Hikari min-idle 0 + session cleanup daily ; Idle+auth /me vérifiés local |
 | **OPS-7** | Cutover branches post-M4 | **P0** | backlog | `v1`, `staging-v1` archives ; `v2`→`main` ; `staging-v2`→`staging` |
 
 #### Wave F — Domaine prod `hatcast.app` (2026-06-03)
