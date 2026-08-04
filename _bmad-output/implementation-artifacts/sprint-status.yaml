@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-07-12T21:45:00+02:00
+# last_updated: 2026-08-04T12:00:00+02:00
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,7 +37,7 @@
 # MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-07-12T20:30:00+02:00"
+last_updated: "2026-08-04T12:00:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -50,6 +50,7 @@ development_status:
   ops-5-prod-deploy-from-semver-tag: done
   ops-6-version-changelog-pipeline: done
   ops-11-simplified-release-cli: done
+  ops-12-neon-hikari-scale-to-zero: done  # P0 — BUG-013 Fixed ; Hikari min-idle 0 + session cleanup daily ; Idle+auth /me vérifiés local ; CR 2026-08-04
   ops-m4-1-v1-cutover-announcement-banner: ready-for-dev  # P0 M4 — V1 comms → https://hatcast.app ; PO schedules deploy ; SCP 2026-06-19
   ops-7-branch-cutover-post-m4: backlog
   ops-8-prod-domain-hatcast-app: done  # P0 V2.0.0 — prod https://hatcast.app live 2026-06-04 ; gate M4 prérequis OK

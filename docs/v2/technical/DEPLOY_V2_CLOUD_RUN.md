@@ -271,6 +271,26 @@ La valeur **`HATCAST_DATASOURCE_URL`** doit être au format JDBC Postgres attend
 - Pour l’**application** sur Cloud Run (scale-to-zero, nombreuses connexions courtes), privilégiez l’endpoint **poolé** (« Pooled connection » / PgBouncer) proposé par Neon dans la console, s’il est disponible pour votre projet.
 - Pour **Flyway** ou migrations nécessitant des fonctionnalités session complètes, utilisez l’endpoint **direct** si Neon le recommande pour ces opérations.
 
+### 5.2.1 HikariCP et Neon scale-to-zero (OPS-12 / BUG-013)
+
+Sans réglage explicite, HikariCP garde `minimumIdle == maximumPoolSize` : après suspend Neon (~5 min sans SQL), le housekeeper **rouvre** des connexions et empêche l’Idle durable (facture compute always-on / épuisement Free).
+
+Profils **`cloud`** et **`dev`** (`application-cloud.yml` / `application-dev.yml`) :
+
+| Propriété | Valeur | Rôle |
+|-----------|--------|------|
+| `minimum-idle` | `0` | Pool autorisé à se vider — **critique** pour scale-to-zero |
+| `idle-timeout` | `60000` ms | Connexions idle libérées avant la fenêtre Neon |
+| `connection-timeout` | `20000` ms | Marge cold start Neon |
+| `maximum-pool-size` | `5` | Adapté à Cloud Run 1 instance |
+| `max-lifetime` | `280000` ms | Sous la durée de vie typique des connexions poolées |
+
+- **Ne pas** activer `keepalive-time` > 0 (ping SQL qui maintiendrait Neon awake).
+- **`management.health.db.enabled: false`** sous `cloud` / `dev` : `/actuator/health` ne fait pas de ping JDBC (les probes Cloud Run utilisent déjà `/` Nginx côté startup ; le wait Docker interne sur health reste non-SQL).
+- **`spring.session.jdbc.cleanup-cron`** : défaut Spring = **chaque minute** (SQL) → empêcherait l’Idle ; réglé à **`0 30 3 * * *`** (une fois / jour) sous `cloud` / `dev`.
+- **Plan Free Neon** : 100 CU-h / projet / mois, 0,5 Go storage, scale-to-zero forcé. Sans `minimum-idle: 0`, un wake permanent peut épuiser le quota mid-month.
+- **Poste local** : préférer `./scripts/start-dev.sh --offline` (H2) si le poste ne doit pas consommer de CU-h Neon ; sinon branche `local` avec la même politique idle.
+
 ### 5.5 Schéma Flyway vs seeds (staging / production)
 
 Sur Cloud Run (`HATCAST_SPRING_PROFILE=cloud`), Flyway n’applique que `classpath:db/migration` — **pas** les scripts sous `db/seed` (données Les Improbots / MVP). Voir [ADR-0014](../../adr/0014-v2-preprod-migration-no-seed.md) et le runbook [preprod-reset-and-migrate.md](../migration/preprod-reset-and-migrate.md) pour alimenter staging depuis **Firestore V1 production** (`default`).

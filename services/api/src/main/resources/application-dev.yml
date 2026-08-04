@@ -4,9 +4,12 @@
 # Super-admin : HATCAST_SUPER_ADMIN_EMAILS dans .env local (voir .env.example) — pas de défaut commité.
 #
 # Mail optionnel en local (Mailpit via start-dev.sh) : pas de health check SMTP sur actuator/health.
+# OPS-12: same Neon idle policy as cloud when .env points at branche `local` (prefer --offline to save CU-h).
 management:
   health:
     mail:
+      enabled: false
+    db:
       enabled: false
   endpoints:
     web:
@@ -29,6 +32,18 @@ spring:
     # Seeds déplacés dans db/seed (OPS-1) : V3_1 peut arriver après V4+ sur une base Neon déjà migrée.
     out-of-order: true
     repair-on-migrate: true
+  # OPS-12 / BUG-013: allow Neon scale-to-zero on branche `local` (H2 offline unaffected).
+  datasource:
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 0
+      idle-timeout: 60000
+      max-lifetime: 280000
+      connection-timeout: 20000
+  # Default Spring Session cleanup is every minute (SQL) and would keep Neon awake.
+  session:
+    jdbc:
+      cleanup-cron: "0 30 3 * * *"
 
 # Logs lisibles en dev : stacktrace courte en console, WARN sans stack dans .cursor/hatcast-api-warnings.log
 logging:
