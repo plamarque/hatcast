@@ -10,6 +10,15 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Open Issues
 
+### LIMIT-006 — Fresh Git worktrees need live validation of BMad provisioning
+- **ID**: LIMIT-006
+- **Status**: Mitigated (2026-08-24; local lifecycle harness uses an injected pinned-installer substitute; live pinned-installer provisioning remains explicitly unverified)
+- **Severity**: Medium (development workflow / parallel story isolation)
+- **Affected area**: BMad local installation and fresh Git worktrees
+- **Observed behavior**: A worktree created from `v2` contains tracked BMad customizations but not ignored local skills, so its runtime could not be verified reproducibly.
+- **Expected behavior**: A dedicated story worktree can validate the project-standard manual BMad runtime without copying an untracked developer installation by hand.
+- **Mitigation**: `scripts/v2/story-worktree-bootstrap.sh` invokes the pinned `bmad-method` installer only in the requested unit and verifies the real `bmad-create-story`, `bmad-dev-story`, and `bmad-code-review` skills with `_bmad/scripts/memlog.py` and tracked custom policy. A network download requires explicit `HATCAST_BMAD_ALLOW_NETWORK=1`; tests inject a local provisioner. `story-branch.sh start` preserves the unit for inspection if bootstrap fails. A live approved network run must still verify the installed output.
+
 ### BUG-014 — Session V2 appears to end after 2–3 inactive days (unverified)
 - **ID**: BUG-014
 - **Status**: Open (reported 2026-08-24; source default contradicts the observed duration)

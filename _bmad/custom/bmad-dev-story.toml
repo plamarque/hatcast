@@ -4,10 +4,10 @@
 
 persistent_facts = [
   "file:{project-root}/_bmad/custom/story-branch-workflow.md",
-  "HatCast story Git rule (MANDATORY): all code and story-file edits for this story run on feat/{story-key}, never on v2 directly.",
-  "GATE before workflow step 4 (mark in-progress): read `feature_branch` from story YAML frontmatter; run `./scripts/v2/story-branch.sh assert {{story_key}}` from repo root. HALT on failure — run `start` first if the branch was never created.",
-  "If baseline_commit is missing and current status is ready-for-dev, set baseline_commit from `git rev-parse HEAD` on the feature branch (do not overwrite an existing baseline_commit).",
-  "Do NOT merge to v2 in dev-story. Merge only after code review approval via `./scripts/v2/story-branch.sh merge {{story_key}}`.",
+  "HatCast story Git rule (MANDATORY): all code and story-file edits run in the feat/{story-key} unit worktree, never in the v2 integration checkout.",
+  "GATE before workflow step 4 (mark in-progress): read `feature_branch`; from the unit worktree run `./scripts/v2/story-branch.sh assert {{story_key}}`. HALT on failure — from clean v2 run start first.",
+  "If baseline_commit is missing and current status is ready-for-dev, record BASELINE_COMMIT from the unit command output (do not overwrite it and do not record a path).",
+  "Do NOT merge, push, or delete in dev-story. After code review approval, merge from clean v2 with `./scripts/v2/story-branch.sh merge {{story_key}}`.",
 ]
 
-on_complete = "Remind the user: run code-review on this branch; after approval, `./scripts/v2/story-branch.sh merge {{story_key}}` then push v2 manually if desired."
+on_complete = "Remind the user: review in this unit worktree; after approval, from clean v2 run merge, then push v2 manually if desired."

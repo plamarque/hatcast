@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# HatCast V2 — branche Git dédiée par user story BMad.
+# HatCast V2 — isolated Git worktrees for manual BMad story delivery.
 #
 # Usage:
-#   ./scripts/v2/story-branch.sh start STORY_KEY   # fetch origin, créer ou checkout feat/STORY_KEY depuis origin/v2
-#   ./scripts/v2/story-branch.sh assert STORY_KEY  # vérifier qu'on est sur feat/STORY_KEY (HALT sinon)
-#   ./scripts/v2/story-branch.sh merge STORY_KEY   # merge --no-ff feat/STORY_KEY → v2 (local, sans push)
-#   ./scripts/v2/story-branch.sh status STORY_KEY    # afficher branche courante vs attendue
+#   ./scripts/v2/story-branch.sh start STORY_KEY   # create or reopen an adjacent unit worktree
+#   ./scripts/v2/story-branch.sh assert STORY_KEY  # verify this checkout owns the unit
+#   ./scripts/v2/story-branch.sh merge STORY_KEY   # local merge into v2, without push or cleanup
+#   ./scripts/v2/story-branch.sh status STORY_KEY  # print stable unit metadata
 
 set -euo pipefail
 
@@ -18,105 +18,157 @@ usage() {
 Usage: $(basename "$0") <command> <story-key>
 
 Commands:
-  start STORY_KEY   Fetch origin, créer ou basculer sur feat/STORY_KEY depuis origin/\${HATCAST_V2_BRANCH_DEV}
-  assert STORY_KEY  Vérifier que HEAD est feat/STORY_KEY (code 1 sinon)
-  merge STORY_KEY   Merge --no-ff feat/STORY_KEY dans \${HATCAST_V2_BRANCH_DEV} (local, arbre propre requis)
-  status STORY_KEY  Afficher branche courante, baseline, divergences éventuelles
+  start STORY_KEY   Create or reopen the adjacent feat/STORY_KEY unit worktree from origin/\${HATCAST_V2_BRANCH_DEV}
+  assert STORY_KEY  Verify this checkout is the unit worktree for feat/STORY_KEY
+  merge STORY_KEY   Merge feat/STORY_KEY locally into \${HATCAST_V2_BRANCH_DEV} from clean integration
+  status STORY_KEY  Print stable branch, baseline, and worktree metadata
 
 Exemple:
   ./scripts/v2/story-branch.sh start 17-43-event-detail-contexte-infos
 
-Convention : branche feat/{story-key}, intégration sur \${HATCAST_V2_BRANCH_DEV:-v2} après code review.
+The current checkout must be the clean \${HATCAST_V2_BRANCH_DEV:-v2} integration worktree for start and merge.
 EOF
 }
 
 require_story_key() {
   local story_key="$1"
-  if [[ -z "${story_key}" ]]; then
-    echo "❌ story_key requis (ex. 17-43-event-detail-contexte-infos)" >&2
-    usage >&2
+  if [[ ! "${story_key}" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
+    echo "ERROR: story_key must use lowercase letters, digits, and single hyphens." >&2
     exit 1
   fi
-  if [[ "${story_key}" =~ [[:space:]/] ]]; then
-    echo "❌ story_key invalide : « ${story_key} »" >&2
+}
+
+unit_path_for() {
+  printf '%s-%s\n' "$1" "$2"
+}
+
+worktree_path_for_branch() {
+  git worktree list --porcelain | awk -v wanted="refs/heads/$1" '
+    /^worktree / { path = substr($0, 10) }
+    $1 == "branch" && $2 == wanted { print path; exit }
+  '
+}
+
+is_valid_worktree_path() {
+  local path="$1"
+  [[ -d "${path}" && "$(git -C "${path}" rev-parse --show-toplevel 2>/dev/null || true)" == "${path}" ]]
+}
+
+assert_integration_worktree() {
+  local dev="$1" current
+  current="$(git rev-parse --abbrev-ref HEAD)"
+  if [[ "${current}" != "${dev}" ]]; then
+    echo "ERROR: start and merge must run from the ${dev} integration worktree, not ${current}." >&2
     exit 1
+  fi
+  hatcast_v2_assert_clean
+}
+
+print_metadata() {
+  local branch="$1" dev_ref="$2" path="$3" baseline
+  printf 'FEATURE_BRANCH=%s\n' "${branch}"
+  printf 'WORKTREE_PATH=%s\n' "${path}"
+  printf 'DEV_REF=%s\n' "${dev_ref}"
+  if git rev-parse --verify "${dev_ref}" >/dev/null 2>&1; then
+    baseline="$(git merge-base "${branch}" "${dev_ref}" 2>/dev/null || true)"
+    printf 'BASELINE_COMMIT=%s\n' "${baseline:-unavailable}"
+  else
+    printf 'BASELINE_COMMIT=unavailable\n'
+    printf 'DEV_REF_STATUS=unavailable\n'
   fi
 }
 
 start_story_branch() {
-  local story_key="$1"
-  local branch dev_ref current
+  local story_key="$1" branch dev dev_ref integration_root unit_path existing_path
 
   require_story_key "${story_key}"
   hatcast_v2_detect_project_root
-  branch="$(hatcast_v2_story_branch_name "${story_key}")"
+  integration_root="${HATCAST_V2_PROJECT_ROOT}"
+  dev="${HATCAST_V2_BRANCH_DEV}"
   dev_ref="$(hatcast_v2_dev_ref)"
+  branch="$(hatcast_v2_story_branch_name "${story_key}")"
+  unit_path="$(unit_path_for "${integration_root}" "${story_key}")"
+  assert_integration_worktree "${dev}"
+
+  existing_path="$(worktree_path_for_branch "${branch}")"
+  if [[ -e "${unit_path}" && "${existing_path}" != "${unit_path}" ]]; then
+    echo "ERROR: unit path already exists and is not the requested ${branch} worktree: ${unit_path}" >&2
+    exit 1
+  fi
+  if [[ -n "${existing_path}" && "${existing_path}" != "${unit_path}" ]]; then
+    echo "ERROR: ${branch} is already checked out in another worktree: ${existing_path}" >&2
+    exit 1
+  fi
 
   hatcast_v2_fetch
-
   if ! git rev-parse --verify "${dev_ref}" >/dev/null 2>&1; then
-    echo "❌ ${dev_ref} introuvable — vérifiez le remote origin et la branche dev (${HATCAST_V2_BRANCH_DEV})" >&2
+    echo "ERROR: ${dev_ref} is unavailable after fetch." >&2
     exit 1
   fi
 
-  current="$(git rev-parse --abbrev-ref HEAD)"
-
-  if [[ "${current}" == "${branch}" ]]; then
-    echo "✅ Déjà sur ${branch}"
-    _print_branch_metadata "${branch}" "${dev_ref}"
-    return 0
-  fi
-
-  if [[ -n "$(git status --porcelain)" ]]; then
-    echo "❌ Arbre de travail non propre — committez ou stashez avant de basculer vers ${branch} :" >&2
-    git status --short >&2
-    exit 1
-  fi
-
-  if git show-ref --verify --quiet "refs/heads/${branch}"; then
-    echo "↪ Bascule sur branche existante ${branch}"
-    git checkout "${branch}"
+  if [[ "${existing_path}" == "${unit_path}" ]]; then
+    if ! is_valid_worktree_path "${unit_path}"; then
+      echo "ERROR: ${branch} is registered but its unit worktree cannot be validated: ${unit_path}" >&2
+      exit 1
+    fi
+    echo "REOPENED_UNIT_WORKTREE=${unit_path}"
+    if bash "${_script_dir}/story-worktree-bootstrap.sh" --verify "${unit_path}"; then
+      print_metadata "${branch}" "${dev_ref}" "${unit_path}"
+      return 0
+    fi
+  elif git show-ref --verify --quiet "refs/heads/${branch}"; then
+    git worktree add "${unit_path}" "${branch}"
   elif git show-ref --verify --quiet "refs/remotes/origin/${branch}"; then
-    echo "↪ Branche distante trouvée — checkout ${branch} (tracking origin/${branch})"
-    git checkout -b "${branch}" "origin/${branch}"
+    git worktree add -b "${branch}" "${unit_path}" "origin/${branch}"
   else
-    echo "🌿 Création de ${branch} depuis ${dev_ref}"
-    git checkout -b "${branch}" "${dev_ref}"
+    git worktree add -b "${branch}" "${unit_path}" "${dev_ref}"
   fi
 
-  echo "✅ Branche story prête : ${branch}"
-  _print_branch_metadata "${branch}" "${dev_ref}"
+  if ! is_valid_worktree_path "${unit_path}"; then
+    echo "ERROR: created or reopened unit path is not a valid Git worktree: ${unit_path}" >&2
+    exit 1
+  fi
+  if ! bash "${_script_dir}/story-worktree-bootstrap.sh" "${unit_path}"; then
+    echo "ERROR: BMad bootstrap failed; the unit worktree was preserved for inspection: ${unit_path}" >&2
+    exit 1
+  fi
+  print_metadata "${branch}" "${dev_ref}" "${unit_path}"
 }
 
 assert_story_branch() {
-  local story_key="$1"
-  local branch current
-
+  local story_key="$1" branch root actual_path
   require_story_key "${story_key}"
   hatcast_v2_detect_project_root
+  root="${HATCAST_V2_PROJECT_ROOT}"
   branch="$(hatcast_v2_story_branch_name "${story_key}")"
-  current="$(git rev-parse --abbrev-ref HEAD)"
-
-  if [[ "${current}" != "${branch}" ]]; then
-    echo "❌ Branche courante : ${current} — attendu : ${branch}" >&2
-    echo "💡 Exécutez : ./scripts/v2/story-branch.sh start ${story_key}" >&2
+  actual_path="$(worktree_path_for_branch "${branch}")"
+  if [[ "$(git rev-parse --abbrev-ref HEAD)" != "${branch}" || "${actual_path}" != "${root}" ]]; then
+    echo "ERROR: run manual BMad work from the ${branch} unit worktree. From clean ${HATCAST_V2_BRANCH_DEV}, run: ./scripts/v2/story-branch.sh start ${story_key}" >&2
     exit 1
   fi
-
-  echo "✅ Sur ${branch}"
-  _print_branch_metadata "${branch}" "$(hatcast_v2_dev_ref)"
+  bash "${_script_dir}/story-worktree-bootstrap.sh" --verify "${root}"
+  print_metadata "${branch}" "$(hatcast_v2_dev_ref)" "${root}"
 }
 
 merge_story_branch() {
   local story_key="$1"
-  local branch dev current merge_msg
+  local branch dev unit_path merge_msg
 
   require_story_key "${story_key}"
   hatcast_v2_detect_project_root
-  hatcast_v2_assert_clean
-
   branch="$(hatcast_v2_story_branch_name "${story_key}")"
   dev="${HATCAST_V2_BRANCH_DEV}"
+  assert_integration_worktree "${dev}"
+  unit_path="$(worktree_path_for_branch "${branch}")"
+  if [[ -z "${unit_path}" ]] || ! is_valid_worktree_path "${unit_path}"; then
+    echo "ERROR: no valid unit worktree exists for ${branch}. Review it before integration." >&2
+    exit 1
+  fi
+  if [[ -n "$(git -C "${unit_path}" status --porcelain)" ]]; then
+    echo "ERROR: unit worktree is not clean; commit or stash its changes before integration: ${unit_path}" >&2
+    git -C "${unit_path}" status --short >&2
+    exit 1
+  fi
   merge_msg="feat(story): merge ${story_key}"
 
   if ! git show-ref --verify --quiet "refs/heads/${branch}"; then
@@ -125,62 +177,38 @@ merge_story_branch() {
   fi
 
   hatcast_v2_fetch
+  git pull --ff-only origin "${dev}"
 
-  current="$(git rev-parse --abbrev-ref HEAD)"
-  if [[ "${current}" != "${branch}" ]]; then
-    git checkout "${branch}"
-  fi
-
-  echo "🔀 Merge ${branch} → ${dev} (local, sans push automatique)…"
-  git checkout "${dev}"
-  git pull origin "${dev}"
+  echo "Merging ${branch} into ${dev} locally; no push or unit checkout change..."
   git merge --no-ff "${branch}" -m "${merge_msg}"
-
-  echo "✅ ${branch} mergée dans ${dev} (local)."
-  echo "ℹ️  Prochaine étape manuelle : git push origin ${dev}"
-  echo "ℹ️  Optionnel : git branch -d ${branch} && git push origin --delete ${branch}"
+  echo "MERGED_BRANCH=${branch}"
+  echo "INTEGRATION_BRANCH=${dev}"
+  echo "NEXT_ACTION=Push ${dev} manually after any required checks. The unit worktree was kept at ${unit_path}."
 }
 
 status_story_branch() {
   local story_key="$1"
-  local branch dev_ref current ahead behind
+  local branch dev_ref path
 
   require_story_key "${story_key}"
   hatcast_v2_detect_project_root
   branch="$(hatcast_v2_story_branch_name "${story_key}")"
   dev_ref="$(hatcast_v2_dev_ref)"
-  current="$(git rev-parse --abbrev-ref HEAD)"
-
-  echo "Story key      : ${story_key}"
-  echo "Branche attendue: ${branch}"
-  echo "Branche courante: ${current}"
-  echo "Dev ref        : ${dev_ref}"
-
-  if git show-ref --verify --quiet "refs/heads/${branch}"; then
-    _print_branch_metadata "${branch}" "${dev_ref}"
-    if git rev-parse --verify "${dev_ref}" >/dev/null 2>&1; then
-      ahead="$(git rev-list --count "${dev_ref}..${branch}" 2>/dev/null || echo 0)"
-      behind="$(git rev-list --count "${branch}..${dev_ref}" 2>/dev/null || echo 0)"
-      echo "Commits ahead of ${dev_ref}: ${ahead}"
-      echo "Commits behind ${dev_ref}: ${behind}"
-      if [[ "${behind}" != "0" ]]; then
-        echo "⚠️  Rebase recommandé : git fetch origin && git checkout ${branch} && git rebase ${dev_ref}"
-      fi
-    fi
-  else
-    echo "Branche locale ${branch} : absente"
+  path="$(worktree_path_for_branch "${branch}")"
+  printf 'STORY_KEY=%s\n' "${story_key}"
+  if [[ -z "${path}" ]]; then
+    printf 'UNIT_WORKTREE=absent\n'
+    return 0
   fi
-}
-
-_print_branch_metadata() {
-  local branch="$1"
-  local dev_ref="$2"
-  echo "FEATURE_BRANCH=${branch}"
-  echo "BASELINE_COMMIT=$(git rev-parse HEAD)"
-  if git rev-parse --verify "${dev_ref}" >/dev/null 2>&1; then
-    echo "DEV_REF=${dev_ref}"
-    echo "DEV_HEAD=$(git rev-parse "${dev_ref}")"
+  if ! is_valid_worktree_path "${path}"; then
+    echo "ERROR: ${branch} is registered but its unit worktree cannot be validated: ${path}" >&2
+    exit 1
   fi
+  if ! bash "${_script_dir}/story-worktree-bootstrap.sh" --verify "${path}"; then
+    echo "ERROR: ${branch} worktree exists but its BMad runtime validation failed: ${path}" >&2
+    exit 1
+  fi
+  print_metadata "${branch}" "${dev_ref}" "${path}"
 }
 
 main() {
