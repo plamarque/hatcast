@@ -43,7 +43,7 @@ Fichier **court** pour les skills BMad (`bmad-dev-story`, `bmad-create-story`, `
 4. **Stories UI** — Inclure la section **« Acceptance Criteria — Material 3 (UI) »** (voir `story-template.md`) ou marquer **N/A** si API/backend seul.
 5. **Commits** — [Conventional Commits](docs/shared/technical/COMMIT_MESSAGE_GUIDELINES.md), sujet en anglais.
 6. **Tests** — Ne pas désactiver les tests pour faire passer un build ; corriger le test ou le code.
-7. **Branche par story** — Chaque user story BMad se développe sur `feat/{story-key}` (ex. `feat/17-43-event-detail-contexte-infos`), créée depuis `origin/v2`. **`v2`** = intégration / deploy dev cloud, pas branche de travail story. Script : `./scripts/v2/story-branch.sh` ; détail : [`_bmad/custom/story-branch-workflow.md`](_bmad/custom/story-branch-workflow.md). Skills BMad surchargés : `bmad-create-story`, `bmad-dev-story`, `bmad-code-review`.
+7. **Worktree par story** — Chaque unité BMad se développe dans un worktree adjacent dédié sur `feat/{story-key}` (ex. `feat/17-43-event-detail-contexte-infos`), créé depuis `origin/v2` avec `./scripts/v2/story-branch.sh start {story-key}`. **`v2`** = intégration / deploy dev cloud propre, jamais un checkout de travail story. Le bootstrap installe et vérifie les workflows BMad standards épinglés dans cette seule unité; il demande l’accord explicite `HATCAST_BMAD_ALLOW_NETWORK=1` si un téléchargement est nécessaire. Ne jamais copier de secrets ni enregistrer un chemin local dans le frontmatter. Détail : [`_bmad/custom/story-branch-workflow.md`](_bmad/custom/story-branch-workflow.md). Skills BMad surchargés : `bmad-create-story`, `bmad-dev-story`, `bmad-code-review`.
 
 ---
 

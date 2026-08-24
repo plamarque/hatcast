@@ -5,10 +5,10 @@
 
 persistent_facts = [
   "file:{project-root}/_bmad/custom/story-branch-workflow.md",
-  "HatCast story Git rule (MANDATORY): never implement or author a story file on branch v2 directly. Each story uses branch feat/{story-key} from origin/v2 (HATCAST_V2_BRANCH_DEV).",
-  "GATE after workflow step 1 (story_key known), BEFORE step 2: run `./scripts/v2/story-branch.sh start {{story_key}}` from repo root. HALT on non-zero exit. Parse FEATURE_BRANCH and BASELINE_COMMIT from script output.",
+  "HatCast story Git rule (MANDATORY): never implement or author a story file in the v2 integration checkout. Each story uses feat/{story-key} in its bootstrapped adjacent unit worktree from origin/v2 (HATCAST_V2_BRANCH_DEV).",
+  "GATE after workflow step 1 (story_key known), BEFORE step 2: from clean v2 run `./scripts/v2/story-branch.sh start {{story_key}}`. HALT on non-zero exit. Continue only in WORKTREE_PATH; parse FEATURE_BRANCH and BASELINE_COMMIT.",
   "When writing the story file (step 5), YAML frontmatter MUST include `feature_branch: feat/{{story_key}}` and `baseline_commit: <value from script>`.",
-  "Sprint-status and story artifact edits for this story happen on feat/{{story_key}}, not on v2.",
+  "Sprint-status and story artifact edits for this story happen in its unit worktree, not on v2. Never persist WORKTREE_PATH in frontmatter.",
 ]
 
-on_complete = "Report feature_branch and baseline_commit in the completion summary. Remind the user that all dev work for this story stays on feat/{story_key} until merge after code review."
+on_complete = "Report feature_branch and baseline_commit in the completion summary. Remind the user that all dev work stays in the unit worktree until review-approved local merge from v2."
