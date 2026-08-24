@@ -45,12 +45,14 @@ make_fixture() {
 integration="$(make_fixture integration)"
 unit_alpha="${integration}-alpha-unit"
 unit_beta="${integration}-beta-unit"
+creation_baseline="$(git -C "${integration}" rev-parse HEAD)"
 
 run_story "${integration}" start alpha-unit >"${tmp_root}/alpha.out"
 assert_file "${unit_alpha}/.agents/skills/bmad-create-story/SKILL.md"
 assert_file "${unit_alpha}/.agents/skills/bmad-dev-story/SKILL.md"
 assert_file "${unit_alpha}/.agents/skills/bmad-code-review/SKILL.md"
 assert_file "${unit_alpha}/_bmad/scripts/memlog.py"
+[[ -z "$(git -C "${unit_alpha}" status --porcelain)" ]] || fail "bootstrap changed tracked unit files"
 assert_eq "v2" "$(git -C "${integration}" rev-parse --abbrev-ref HEAD)"
 assert_eq "feat/alpha-unit" "$(git -C "${unit_alpha}" rev-parse --abbrev-ref HEAD)"
 grep -q '^FEATURE_BRANCH=feat/alpha-unit$' "${tmp_root}/alpha.out" || fail "start metadata missing branch"
@@ -63,11 +65,13 @@ status_output="$(bash "${integration}/scripts/v2/story-branch.sh" status alpha-u
 
 printf 'independent\n' >"${unit_alpha}/unit.txt"
 [[ ! -e "${integration}/unit.txt" ]] || fail "unit edit leaked into integration checkout"
-git -C "${unit_alpha}" add unit.txt
-git -C "${unit_alpha}" commit -m "test: Change alpha unit" >/dev/null
 
 run_story "${integration}" start beta-unit >/dev/null
 assert_eq "feat/beta-unit" "$(git -C "${unit_beta}" rev-parse --abbrev-ref HEAD)"
+assert_file "${unit_alpha}/unit.txt"
+[[ -n "$(git -C "${unit_alpha}" status --porcelain)" ]] || fail "uncommitted alpha work was lost"
+git -C "${unit_alpha}" add unit.txt
+git -C "${unit_alpha}" commit -m "test: Change alpha unit" >/dev/null
 reopen_output="$(bash "${integration}/scripts/v2/story-branch.sh" start beta-unit 2>&1)" || fail "valid reopen failed: ${reopen_output}"
 [[ "${reopen_output}" == *"REOPENED_UNIT_WORKTREE="* ]] || fail "reopen was not reported: ${reopen_output}"
 
@@ -78,10 +82,14 @@ expect_fail env HATCAST_BMAD_TEST_MODE=1 HATCAST_BMAD_PROVISIONER="${integration
 
 printf 'dirty\n' >"${integration}/dirty.txt"
 expect_fail env HATCAST_BMAD_TEST_MODE=1 HATCAST_BMAD_PROVISIONER="${integration}/scripts/v2/test-fixtures/mock-bmad-provisioner.sh" bash "${integration}/scripts/v2/story-branch.sh" start dirty-unit
+! git -C "${integration}" show-ref --verify --quiet refs/heads/feat/dirty-unit || fail "dirty start created a branch"
+[[ ! -e "${integration}-dirty-unit" ]] || fail "dirty start created a worktree"
 rm "${integration}/dirty.txt"
 expect_fail env HATCAST_BMAD_TEST_MODE=1 HATCAST_BMAD_PROVISIONER="${integration}/scripts/v2/test-fixtures/mock-bmad-provisioner.sh" bash "${integration}/scripts/v2/story-branch.sh" start ../unsafe
+! git -C "${integration}" show-ref --verify --quiet refs/heads/feat/unsafe || fail "unsafe start created a branch"
 mkdir "${integration}-conflict-unit"
 expect_fail env HATCAST_BMAD_TEST_MODE=1 HATCAST_BMAD_PROVISIONER="${integration}/scripts/v2/test-fixtures/mock-bmad-provisioner.sh" bash "${integration}/scripts/v2/story-branch.sh" start conflict-unit
+! git -C "${integration}" show-ref --verify --quiet refs/heads/feat/conflict-unit || fail "conflicting start created a branch"
 
 foreign="$(make_fixture foreign)"
 git -C "${foreign}" branch feat/checked-elsewhere origin/v2
@@ -92,6 +100,23 @@ broken="$(make_fixture broken)"
 network_output="$(bash "${broken}/scripts/v2/story-branch.sh" start unavailable-runtime 2>&1)" && fail "network confirmation guard unexpectedly succeeded"
 [[ "${network_output}" == *"NETWORK_CONFIRMATION_REQUIRED="* ]] || fail "missing explicit network confirmation"
 [[ -d "${broken}-unavailable-runtime" ]] || fail "failed bootstrap unit was not preserved"
+
+failed_unit="${integration}-failed-installer"
+expect_fail env HATCAST_BMAD_TEST_MODE=1 HATCAST_BMAD_TEST_FAIL=1 HATCAST_BMAD_PROVISIONER="${integration}/scripts/v2/test-fixtures/mock-bmad-provisioner.sh" bash "${integration}/scripts/v2/story-branch.sh" start failed-installer
+[[ -d "${failed_unit}" ]] || fail "failed installer unit was not preserved"
+[[ -z "$(git -C "${failed_unit}" status --porcelain)" ]] || fail "failed installer left tracked changes"
+run_story "${integration}" start failed-installer >/dev/null
+
+mock_bin="${tmp_root}/mock-bin"
+mkdir "${mock_bin}"
+ln -s "${source_root}/scripts/v2/test-fixtures/mock-npx.sh" "${mock_bin}/npx"
+ln -s "${source_root}/scripts/v2/test-fixtures/mock-bmad-provisioner.sh" "${mock_bin}/mock-bmad-provisioner.sh"
+production_unit="${integration}-production-path"
+HATCAST_BMAD_NPX_LOG="${tmp_root}/npx.log" HATCAST_BMAD_FIXTURE_DIR="${source_root}/scripts/v2/test-fixtures" PATH="${mock_bin}:${PATH}" HATCAST_BMAD_ALLOW_NETWORK=1 bash "${integration}/scripts/v2/story-branch.sh" start production-path >/dev/null
+grep -Fx -- '--action' "${tmp_root}/npx.log" >/dev/null
+grep -Fx -- 'update' "${tmp_root}/npx.log" >/dev/null
+assert_file "${production_unit}/.agents/skills/bmad-code-review/SKILL.md"
+[[ -z "$(git -C "${production_unit}" status --porcelain)" ]] || fail "production installer path changed tracked unit files"
 
 printf 'uncommitted\n' >"${unit_alpha}/uncommitted.txt"
 expect_fail bash "${integration}/scripts/v2/story-branch.sh" merge alpha-unit
@@ -106,11 +131,15 @@ printf 'upstream\n' >"${upstream}/upstream.txt"
 git -C "${upstream}" add upstream.txt
 git -C "${upstream}" commit -m "test: Advance v2 upstream" >/dev/null
 git -C "${upstream}" push origin v2 >/dev/null
+remote_before_merge="$(git --git-dir="${tmp_root}/integration-origin.git" rev-parse refs/heads/v2)"
 
 bash "${integration}/scripts/v2/story-branch.sh" merge alpha-unit >/dev/null
 assert_eq "v2" "$(git -C "${integration}" rev-parse --abbrev-ref HEAD)"
 assert_eq "feat/alpha-unit" "$(git -C "${unit_alpha}" rev-parse --abbrev-ref HEAD)"
 assert_file "${integration}/upstream.txt"
 git -C "${integration}" show --quiet --format=%s HEAD | grep -q 'feat(story): merge alpha-unit' || fail "merge commit missing"
+assert_eq "${remote_before_merge}" "$(git --git-dir="${tmp_root}/integration-origin.git" rev-parse refs/heads/v2)"
+status_after_upstream="$(bash "${integration}/scripts/v2/story-branch.sh" status alpha-unit)"
+[[ "${status_after_upstream}" == *"BASELINE_COMMIT=${creation_baseline}"* ]] || fail "creation baseline changed after upstream advance"
 
 echo "PASS: story worktree lifecycle"

@@ -42,6 +42,41 @@ unit_path_for() {
   printf '%s-%s\n' "$1" "$2"
 }
 
+baseline_config_key() {
+  local branch="$1"
+  printf 'hatcast.story.%s.baseline\n' "${branch#feat/}"
+}
+
+persist_creation_baseline() {
+  local branch="$1" dev_ref="$2"
+  git config --local "$(baseline_config_key "${branch}")" "$(git rev-parse "${dev_ref}")"
+}
+
+read_creation_baseline() {
+  local branch="$1" dev_ref="$2" baseline path metadata
+  while IFS= read -r path; do
+    metadata="$(git show "${branch}:${path}" 2>/dev/null || true)"
+    baseline="$(awk -v expected="${branch}" '
+      /^---$/ { delimiters++; next }
+      delimiters == 1 && $0 == "feature_branch: " expected { matched = 1 }
+      delimiters == 1 && /^baseline_commit: / { baseline = $2 }
+      delimiters == 2 && matched && baseline != "" { print baseline; exit }
+    ' <<<"${metadata}")"
+    baseline="${baseline#\'}"
+    baseline="${baseline%\'}"
+    baseline="${baseline#\"}"
+    baseline="${baseline%\"}"
+    if [[ -n "${baseline}" ]]; then
+      printf '%s\n' "${baseline}"
+      return
+    fi
+  done < <(git ls-tree -r --name-only "${branch}" -- _bmad-output/implementation-artifacts)
+  baseline="$(git config --local --get "$(baseline_config_key "${branch}")" 2>/dev/null || true)"
+  if [[ -n "${baseline}" ]]; then
+    printf '%s\n' "${baseline}"
+  fi
+}
+
 worktree_path_for_branch() {
   git worktree list --porcelain | awk -v wanted="refs/heads/$1" '
     /^worktree / { path = substr($0, 10) }
@@ -70,7 +105,7 @@ print_metadata() {
   printf 'WORKTREE_PATH=%s\n' "${path}"
   printf 'DEV_REF=%s\n' "${dev_ref}"
   if git rev-parse --verify "${dev_ref}" >/dev/null 2>&1; then
-    baseline="$(git merge-base "${branch}" "${dev_ref}" 2>/dev/null || true)"
+    baseline="$(read_creation_baseline "${branch}" "${dev_ref}")"
     printf 'BASELINE_COMMIT=%s\n' "${baseline:-unavailable}"
   else
     printf 'BASELINE_COMMIT=unavailable\n'
@@ -79,7 +114,7 @@ print_metadata() {
 }
 
 start_story_branch() {
-  local story_key="$1" branch dev dev_ref integration_root unit_path existing_path
+  local story_key="$1" branch dev dev_ref integration_root unit_path existing_path created=false
 
   require_story_key "${story_key}"
   hatcast_v2_detect_project_root
@@ -122,6 +157,11 @@ start_story_branch() {
     git worktree add -b "${branch}" "${unit_path}" "origin/${branch}"
   else
     git worktree add -b "${branch}" "${unit_path}" "${dev_ref}"
+    created=true
+  fi
+
+  if [[ "${created}" == true ]]; then
+    persist_creation_baseline "${branch}" "${dev_ref}"
   fi
 
   if ! is_valid_worktree_path "${unit_path}"; then

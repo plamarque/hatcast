@@ -12,12 +12,13 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ### LIMIT-006 — Fresh Git worktrees need live validation of BMad provisioning
 - **ID**: LIMIT-006
-- **Status**: Mitigated (2026-08-24; local lifecycle harness uses an injected pinned-installer substitute; live pinned-installer provisioning remains explicitly unverified)
+- **Status**: Fixed (2026-08-25; live provisioning installed and verified the required skills)
 - **Severity**: Medium (development workflow / parallel story isolation)
 - **Affected area**: BMad local installation and fresh Git worktrees
 - **Observed behavior**: A worktree created from `v2` contains tracked BMad customizations but not ignored local skills, so its runtime could not be verified reproducibly.
 - **Expected behavior**: A dedicated story worktree can validate the project-standard manual BMad runtime without copying an untracked developer installation by hand.
-- **Mitigation**: `scripts/v2/story-worktree-bootstrap.sh` invokes the pinned `bmad-method` installer only in the requested unit and verifies the real `bmad-create-story`, `bmad-dev-story`, and `bmad-code-review` skills with `_bmad/scripts/memlog.py` and tracked custom policy. A network download requires explicit `HATCAST_BMAD_ALLOW_NETWORK=1`; tests inject a local provisioner. `story-branch.sh start` preserves the unit for inspection if bootstrap fails. A live approved network run must still verify the installed output.
+- **Cause**: A fresh Git worktree contains the tracked BMad manifest, so BMad 6.11.0 treats it as an existing installation. The bootstrap passed `--action install`, which that state rejects before writing the ignored IDE skill files.
+- **Fix**: `scripts/v2/story-worktree-bootstrap.sh` invokes the pinned `bmad-method` installer only in the requested clean unit and verifies the real `bmad-create-story`, `bmad-dev-story`, and `bmad-code-review` skills with `_bmad/scripts/memlog.py` and tracked custom policy. It uses BMad's update flow for a worktree containing the tracked manifest, then restores only the tracked `_bmad/` files so the ignored IDE skills are added without rewriting project-owned runtime configuration. A network download requires explicit `HATCAST_BMAD_ALLOW_NETWORK=1`; tests inject a local provisioner. `story-branch.sh start` preserves the unit for inspection if bootstrap fails. A live approved run on 2026-08-25 passed BMad 6.11.0 verification.
 
 ### BUG-014 — Mobile remembered session lost when the browser closes
 - **ID**: BUG-014

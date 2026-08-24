@@ -3,6 +3,7 @@ title: 'Isolated manual story worktrees'
 type: 'feature'
 created: '2026-08-24'
 status: 'done'
+feature_branch: feat/worktree-development-workflow
 baseline_commit: '2db300e61bf88568a8ac932f6388b48487a88589'
 review_loop_iteration: 0
 context:
@@ -59,6 +60,17 @@ context:
 - [x] `scripts/v2/story-branch.test.sh` -- cover local Git topology, creation/reopen, guard failures, assert/status, bootstrap validation, and explicit integration semantics.
 - [x] `_bmad-output/specs/spec-worktree-story-workflow/` and `ISSUES.md` -- record the provisioning decision and update LIMIT-006 with its mitigated, locally verified status.
 
+### Review Findings
+
+- [x] [Review][Patch] Preserve the creation baseline after a rebase [scripts/v2/story-branch.sh:67]
+- [x] [Review][Patch] Reject non-Git paths during bootstrap verification [scripts/v2/story-worktree-bootstrap.sh:94]
+- [x] [Review][Patch] Restore tracked BMad files after a failed installer [scripts/v2/story-worktree-bootstrap.sh:62]
+- [x] [Review][Patch] Prove merge remains local-only [scripts/v2/story-branch.test.sh:111]
+- [x] [Review][Patch] Exercise the pinned installer command path [scripts/v2/story-branch.test.sh:14]
+- [x] [Review][Patch] Preserve uncommitted work in a parallel unit [scripts/v2/story-branch.test.sh:65]
+- [x] [Review][Patch] Assert failed starts leave no Git mutation [scripts/v2/story-branch.test.sh:75]
+- [x] [Review][Patch] Record successful live provisioning in the canonical SPEC [_bmad-output/specs/spec-worktree-story-workflow/SPEC.md:62]
+
 **Acceptance Criteria:**
 - Given a clean V2 integration worktree, when a valid unused key starts, then an adjacent unit worktree on `feat/{key}` is created from the fetched V2 baseline and the integration checkout remains unchanged.
 - Given another unit worktree is active, when a second key starts, then both directories retain independent indexes and uncommitted files.
@@ -110,10 +122,10 @@ The deterministic sibling location is derived from the integration checkout path
 - Preserves portable branch and baseline metadata in every new story.
   [`story-template.md:1`](story-template.md#L1)
 
-**Evidence and residual limitation**
+**Evidence**
 
 - Exercises isolated creation, guards, reopening, and upstream-aware merging locally.
   [`story-branch.test.sh:21`](../../scripts/v2/story-branch.test.sh#L21)
 
-- Records the still-required approved live provisioning validation.
+- Records the completed approved live provisioning validation.
   [`ISSUES.md:13`](../../ISSUES.md#L13)
