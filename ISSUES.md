@@ -10,6 +10,16 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Open Issues
 
+### BUG-014 — Session V2 appears to end after 2–3 inactive days (unverified)
+- **ID**: BUG-014
+- **Status**: Open (reported 2026-08-24; source default contradicts the observed duration)
+- **Severity**: Medium (UX / notification trust)
+- **Affected area**: V2 authentication session (Spring Session JDBC, browser cookie and Identity Platform client state)
+- **Observed behavior**: A user reports that HatCast V2 appears signed out after two or three days without opening the application and is consequently unsure whether browser notifications will still arrive.
+- **Expected behavior**: With « Se souvenir de moi » enabled (the login default), the user should remain signed in for the configured 30-day inactivity interval. Browser push should remain independent of the HatCast HTTP session when its subscription and permissions are still valid.
+- **Cause**: « Se souvenir de moi » only sets the server-side `HttpSession.maxInactiveInterval`; the configured `HATCAST_SESSION` cookie has no `Max-Age`/expiry. Mobile browser closure, data cleanup, or OS eviction can therefore lose the cookie before the 30-day server window. In addition, the Google button sends a Google Identity Services credential directly to `/v1/auth/google`, creating a HatCast server session but no Firebase client session. The existing transparent-recovery code only recreates a lost HatCast session when a persisted Firebase client user exists (email/password Identity Platform flow), so it cannot recover the Google-button path.
+- **Notes/context**: Source defaults are `HATCAST_AUTH_REMEMBER_ME_SECONDS=2592000` (30 days) and `HATCAST_AUTH_NO_REMEMBER_ME_SECONDS=1800` (30 minutes); deployment overrides and the affected browser's cookie/local storage, notification permission, and subscription state have not yet been inspected. Investigation: `_bmad-output/implementation-artifacts/investigations/v2-session-and-push-lifetime-investigation.md`.
+
 ### BUG-013 — Neon Launch bill ~$78/mo while scale-to-zero enabled (Hikari pool)
 - **ID**: BUG-013
 - **Status**: Fixed (2026-08-04 — OPS-12)
@@ -260,4 +270,3 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
   - API refuse `MEMBER` → `EXTERNE` via `PATCH` membre et via import CSV membre : *« Utilisez l'ajout Externe pour les entrées carnet. »* ([`TroupeMembershipService.kt`](services/api/src/main/kotlin/com/hatcast/api/troupe/TroupeMembershipService.kt), [`TroupeMemberCsvImportService.kt`](services/api/src/main/kotlin/com/hatcast/api/troupe/TroupeMemberCsvImportService.kt)).
   - UI édition membre : pas de changement de rôle vers Externe ([`edit-troupe-member-dialog.ts`](apps/web/src/app/pages/admin-membres/edit-troupe-member-dialog.ts)).
 - **Notes/context** : Investigation 2026-07-12 → [member-externe-conversion-investigation.md](_bmad-output/implementation-artifacts/investigations/member-externe-conversion-investigation.md). **Décision produit :** conversion bidirectionnelle + **mode de participation par saison** ([ADR-0022](docs/adr/0022-season-participation-mode-role-lifecycle.md)). **Livré :** story **2.26** (recette OK 2026-07-12).
-
