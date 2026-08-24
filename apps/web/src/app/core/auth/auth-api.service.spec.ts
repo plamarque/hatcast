@@ -139,6 +139,51 @@ describe('AuthApiService', () => {
     )
   })
 
+  it('ensureHatcastSession laisse Google dépendre du cookie HatCast persistant', async () => {
+    localStorage.setItem('hatcastRememberMe', '1')
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 401 })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await service().ensureHatcastSession()
+
+    expect(result).toEqual({ ok: false, status: 401 })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock).toHaveBeenCalledWith('/v1/auth/me', { credentials: 'include' })
+  })
+
+  it('ensureHatcastSession re-échange seulement la session Identity Platform disponible', async () => {
+    const getIdToken = vi.fn().mockResolvedValue('firebase-id-token')
+    TestBed.resetTestingModule()
+    TestBed.configureTestingModule({
+      providers: [
+        AuthApiService,
+        { provide: FirebaseAuthService, useValue: { getAuthOrNull: () => ({ currentUser: { getIdToken } }) } },
+      ],
+    })
+    localStorage.setItem('hatcastRememberMe', '1')
+    const session = { user: { id: 'u1', slug: 'pat', email: 'a@b.c', displayName: 'Pat' } }
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, status: 401 })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(session) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(session) })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await TestBed.inject(AuthApiService).ensureHatcastSession()
+
+    expect(result.ok).toBe(true)
+    expect(getIdToken).toHaveBeenCalledWith(true)
+    expect(fetchMock.mock.calls.map((call) => call[0])).toEqual(['/v1/auth/me', '/v1/auth/idp', '/v1/auth/me'])
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      '/v1/auth/idp',
+      expect.objectContaining({
+        credentials: 'include',
+        body: JSON.stringify({ idToken: 'firebase-id-token', rememberMe: true }),
+      }),
+    )
+  })
+
   it('logout invalide le cache des préférences et inbox membre', async () => {
     const invalidatePreferences = vi.fn()
     const invalidateInbox = vi.fn()

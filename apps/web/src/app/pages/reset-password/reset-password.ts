@@ -106,7 +106,7 @@ export class ResetPassword implements OnInit {
     try {
       const cred = await signInWithEmailAndPassword(auth, mail, password)
       const idToken = await cred.user.getIdToken()
-      const r = await this.authApi.signInWithIdentityPlatformIdToken(idToken)
+      const r = await this.authApi.signInWithIdentityPlatformIdToken(idToken, true)
       if (r.ok) {
         setHatcastRememberMePreference(true)
         this.snack.open('Mot de passe mis à jour. Connexion réussie.', 'OK', { duration: 3500 })

@@ -74,8 +74,8 @@ class AuthController(
         val context = SecurityContextHolder.createEmptyContext()
         context.authentication = authentication
         SecurityContextHolder.setContext(context)
+        authSessionPolicy.applyToSession(request, body.rememberMe)
         securityContextRepository.saveContext(context, request, response)
-        authSessionPolicy.applyToSession(request.session, body.rememberMe)
 
         if (!picture.isNullOrBlank()) {
             request.session.setAttribute(GooglePictureSessionKeys.PICTURE_URL, picture)
@@ -150,8 +150,8 @@ class AuthController(
         val context = SecurityContextHolder.createEmptyContext()
         context.authentication = authentication
         SecurityContextHolder.setContext(context)
+        authSessionPolicy.applyToSession(request, body.rememberMe)
         securityContextRepository.saveContext(context, request, response)
-        authSessionPolicy.applyToSession(request.session, body.rememberMe)
 
         return ResponseEntity.ok(
             toAuthSessionResponse(

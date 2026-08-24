@@ -33,7 +33,11 @@ paths:
       summary: Connexion avec Google (ID token OIDC)
       description: >
         Valide le JWT ID token émis par Google, crée ou met à jour l’utilisateur en base,
-        établit une session serveur et renvoie un cookie de session (`Set-Cookie`).
+        établit une session serveur et renvoie un cookie de session (`Set-Cookie`). Avec
+        `rememberMe=true` (valeur par défaut), `HATCAST_SESSION` reçoit un `Max-Age` de
+        30 jours à compter de son émission ou réémission. L’intervalle serveur est une
+        limite d’inactivité glissante de 30 jours ; avec `false`, le cookie reste dans le
+        navigateur et la session serveur expire après 30 minutes d’inactivité.
         Les messages d’erreur exposés au client ne doivent pas divulguer de détails internes (NFR-S1).
       operationId: signInWithGoogle
       requestBody:
@@ -47,7 +51,7 @@ paths:
           description: Session établie ; corps minimal utilisateur ; en-tête `Set-Cookie` pour la session.
           headers:
             Set-Cookie:
-              description: Cookie de session HttpOnly (nom exact défini à l’implémentation).
+              description: Cookie `HATCAST_SESSION` HttpOnly, SameSite=Lax et Secure en environnement cloud ; persistant 30 jours si `rememberMe=true`, sinon cookie de navigateur.
               schema:
                 type: string
           content:
@@ -86,7 +90,7 @@ paths:
       description: >
         Valide un ID token émis pour le projet Google Cloud Identity Platform (issuer typique
         `https://securetoken.google.com/...`), crée ou met à jour l’utilisateur (`idp_uid`), établit une session
-        cookie comme `/auth/google`. Même schéma de corps que Google (`idToken`). Retourne 503 si le serveur
+        cookie comme `/auth/google`, avec la même politique `rememberMe`. Même schéma de corps que Google (`idToken`). Retourne 503 si le serveur
         n’a pas initialisé Firebase Admin (`GOOGLE_APPLICATION_CREDENTIALS`).
       operationId: signInWithIdentityPlatformToken
       requestBody:
@@ -100,7 +104,7 @@ paths:
           description: Session établie ; même schéma que `/auth/google`.
           headers:
             Set-Cookie:
-              description: Cookie de session HttpOnly.
+              description: Même cookie HttpOnly, SameSite=Lax et Secure cloud que `/auth/google` ; persistant seulement si `rememberMe=true`.
               schema:
                 type: string
           content:
