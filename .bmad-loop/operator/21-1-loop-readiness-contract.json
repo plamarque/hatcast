@@ -1,9 +1,0 @@
-{
-  "actions": [
-    "Resolve the orchestrator-owned pending sprint-status.yaml bookkeeping change, then provide a clean v2 checkout for final commit verification."
-  ],
-  "parked_at": "2026-08-25",
-  "run_id": "20260825-092826-4d1d",
-  "spec_file": "_bmad-output/implementation-artifacts/21-1-loop-readiness-contract.md",
-  "story_key": "21-1-loop-readiness-contract"
-}

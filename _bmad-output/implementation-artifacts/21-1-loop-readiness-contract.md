@@ -1,7 +1,7 @@
 ---
 feature_branch: feat/21-1-loop-readiness-contract
 baseline_commit: 268b999c59af14277d3dd6140fa444ba777217b3
-status: awaiting-operator
+status: done
 followup_review_recommended: true
 deferred:
   - summary: >-
@@ -83,3 +83,11 @@ Verification performed:
 - In a clean v2 checkout with the installed local BMad runtime, the documented policy, JSON validation, deterministic dry-run, no-new-worktree, and no-new-tmux-session checks passed.
 
 Residual risks: A raw fresh clone lacks ignored BMad skill files until its local runtime is provisioned; this is recorded as deferred. The orchestrator-owned sprint-status change remains intentionally untouched, so final clean-worktree and commit verification require its owner.
+
+## Operator Confirmation
+
+Confirmed 2026-08-25: the external actions this story owed were carried out.
+
+- Resolve the orchestrator-owned pending sprint-status.yaml bookkeeping change, then provide a clean v2 checkout for final commit verification.
+
+_Appended by the bmad-loop orchestrator (`bmad-loop confirm`, #335): a human confirmed these external actions out of band, and the story was advanced from `awaiting-operator` to `done`._
