@@ -148,6 +148,17 @@ an operator decision; this implementation intentionally does not supply one.
   - `[medium]` `[patch]` Accepted both single- and double-quoted static Playwright project names during discovery.
   - `[low]` `[patch]` Rejected missing option values with a semantic gate error.
 
+### 2026-08-25 — Review pass
+- intent_gap: 0
+- bad_spec: 0
+- patch: 3 (high 2, medium 1)
+- defer: 0
+- reject: 11 (medium 6, low 5)
+- addressed_findings:
+  - `[high]` `[patch]` Rejected report paths traversing a symlink before deleting or accepting the Playwright report, preventing external report mutation or attestation.
+  - `[high]` `[patch]` Made the canonical runner refuse a missing Chromium browser when invoked by the evidence gate, preserving the no-download contract.
+  - `[medium]` `[patch]` Accepted explicit Playwright project names declared with either single or double quotes, matching discovery behavior.
+
 ## Auto Run Result
 
 Summary: Added a feature-worktree gate that discovers targeted Playwright coverage, invokes the existing isolated E2E runner, and writes a portable JSON attestation or exactly one valid absence disposition.
@@ -224,3 +235,35 @@ Residual risks: These hermetic fixtures verify the delivery gate rather than a
 live HatCast product E2E run or human smoke. A waiver policy remains a
 non-secret operator decision and is required only if that no-coverage path is
 chosen.
+
+### Independent review result
+
+Summary: Re-reviewed the targeted-E2E evidence gate and hardened report-path
+handling, explicit no-download execution, and project declaration parsing.
+
+Files changed:
+- `scripts/v2/story-e2e-evidence.sh` — Rejects symlink-traversing report paths,
+  propagates the no-browser-install runner guard, and accepts both supported
+  static project quote styles.
+- `scripts/run_e2e.sh` — Refuses a missing browser when the evidence gate
+  requires the already-prepared runtime.
+- `scripts/v2/story-e2e-evidence.test.sh` — Verifies the no-download runner
+  flag and refusal before a symlinked report parent can invoke the runner.
+- `_bmad-output/implementation-artifacts/spec-21-3-targeted-e2e-evidence.md`
+  — Records this review pass and final verification.
+
+Review findings: 3 patches applied (high 2, medium 1); 0 items deferred; 11
+items rejected. Follow-up review recommended: true (patched score: 7).
+
+Verification performed:
+- `bash -n scripts/v2/story-e2e-evidence.sh scripts/v2/story-e2e-evidence.test.sh scripts/run_e2e.sh` passed.
+- `bash scripts/v2/story-e2e-evidence.test.sh` passed.
+- `bash scripts/v2/story-worktree-runtime.test.sh` passed.
+- `HATCAST_E2E_NO_BROWSER_INSTALL=1` with an empty browser cache made
+  `scripts/run_e2e.sh` refuse without starting a Chromium download.
+- `git diff --check` passed.
+
+Residual risks: The gate has hermetic delivery verification, not a live HatCast
+product E2E run or human smoke. Coverage selection follows the repository's
+declared target naming convention; an authorized waiver remains an operator
+decision only if the no-coverage disposition is chosen.

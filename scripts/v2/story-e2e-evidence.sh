@@ -43,6 +43,16 @@ safe_existing_file() {
   done
   [[ -f "${current}" ]]
 }
+safe_path_components() {
+  local path="$1" component current
+  relative_path "${path}" || return 1
+  current="${root}"
+  IFS=/ read -r -a components <<<"${path}"
+  for component in "${components[@]}"; do
+    current="${current}/${component}"
+    [[ ! -L "${current}" ]] || return 1
+  done
+}
 ensure_attestation_parent() {
   local parent component current
   parent="${attestation%/*}"
@@ -99,7 +109,7 @@ ensure_attestation_parent
 
 for project in "${projects[@]}"; do
   [[ "${project}" =~ ^[A-Za-z0-9._-]+$ ]] || die "unsafe project selection"
-  grep -Fq "name: '${project}'" "${root}/apps/web/playwright.config.ts" || die "unknown Playwright project: ${project}"
+  sed -nE -e "s/^[[:space:]]*name: '([^']+)'.*/\1/p" -e 's/^[[:space:]]*name: "([^"]+)".*/\1/p' "${root}/apps/web/playwright.config.ts" | grep -Fxq "${project}" || die "unknown Playwright project: ${project}"
 done
 for spec in "${specs[@]}"; do
   relative_path "${spec}" && [[ "${spec}" == apps/web/e2e/*.spec.ts ]] && safe_existing_file "${spec}" || die "spec must be an existing declared relative E2E spec"
@@ -218,18 +228,19 @@ if ((${#selected[@]} == 0)); then
   exit 0
 fi
 
+safe_path_components "${report_ref}" || die "report path must not traverse a symlink"
 rm -f "${root}/${report_ref}"
 runner_args=()
 for item in "${selected[@]}"; do
   case "${item}" in project:*) runner_args+=("--project=${item#project:}") ;; spec:*) runner_args+=("${item#spec:apps/web/}") ;; esac
 done
-normalized_command="PLAYWRIGHT_REUSE_SERVERS=0 scripts/run_e2e.sh -- ${runner_args[*]}"
+normalized_command="HATCAST_E2E_NO_BROWSER_INSTALL=1 PLAYWRIGHT_REUSE_SERVERS=0 scripts/run_e2e.sh -- ${runner_args[*]}"
 set +e
-PLAYWRIGHT_REUSE_SERVERS=0 bash "${runner}" -- "${runner_args[@]}"
+HATCAST_E2E_NO_BROWSER_INSTALL=1 PLAYWRIGHT_REUSE_SERVERS=0 bash "${runner}" -- "${runner_args[@]}"
 runner_status=$?
 set -e
 if ((runner_status == 0)); then
-  if [[ ! -f "${root}/${report_ref}" || -L "${root}/${report_ref}" ]]; then
+  if ! safe_path_components "${report_ref}" || [[ ! -f "${root}/${report_ref}" || -L "${root}/${report_ref}" ]]; then
     write_attestation "failed:report-missing" "${normalized_command}"
     echo "E2E evidence report is missing: ${report_ref}" >&2
     exit 1

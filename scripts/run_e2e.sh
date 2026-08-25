@@ -130,6 +130,10 @@ ensure_playwright_browser() {
     cache="${PLAYWRIGHT_BROWSERS_PATH:-${HOME}/.cache/ms-playwright}"
   fi
   if ! compgen -G "${cache}/chromium-"* >/dev/null 2>&1; then
+    if [[ "${HATCAST_E2E_NO_BROWSER_INSTALL:-}" == 1 ]]; then
+      echo "❌ Chromium Playwright manquant — exécutez d'abord la préparation explicitement confirmée." >&2
+      exit 1
+    fi
     echo "→ Installation Chromium (Playwright)…"
     (cd "${WEB}" && npx playwright install chromium)
   fi
