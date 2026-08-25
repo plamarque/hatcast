@@ -6,5 +6,5 @@ persistent_facts = [
   "file:{project-root}/_bmad/custom/story-branch-workflow.md",
   "HatCast story Git rule: code review targets the feat/{story-key} unit worktree. Run `./scripts/v2/story-branch.sh assert {{story_key}}`; warn if reviewing from another checkout.",
   "Review diff scope: prefer `git diff {{baseline_commit}}..HEAD` using baseline_commit from story frontmatter; fallback to diff against origin/v2 if baseline missing.",
-  "On Approve outcome: recommend running `./scripts/v2/story-branch.sh merge {{story_key}}` from clean v2, then manual `git push origin v2`. Never push, merge, or delete a unit automatically.",
+  "On Approve outcome: recommend the explicit `./scripts/v2/story-branch.sh integrate {{story_key}}` from clean v2. It merges, pushes, verifies origin/v2, then removes the local unit and local branch; never delete the remote story branch automatically.",
 ]

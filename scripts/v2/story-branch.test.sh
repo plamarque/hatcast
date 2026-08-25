@@ -142,4 +142,49 @@ assert_eq "${remote_before_merge}" "$(git --git-dir="${tmp_root}/integration-ori
 status_after_upstream="$(bash "${integration}/scripts/v2/story-branch.sh" status alpha-unit)"
 [[ "${status_after_upstream}" == *"BASELINE_COMMIT=${creation_baseline}"* ]] || fail "creation baseline changed after upstream advance"
 
+automated="$(make_fixture automated)"
+expect_fail bash "${automated}/scripts/v2/story-branch.sh" integrate absent-unit
+run_story "${automated}" start integrate-unit >/dev/null
+integrate_unit="${automated}-integrate-unit"
+printf 'integrate\n' >"${integrate_unit}/integrate.txt"
+git -C "${integrate_unit}" add integrate.txt
+git -C "${integrate_unit}" commit -m "test: Change integrate unit" >/dev/null
+git -C "${integrate_unit}" push -u origin feat/integrate-unit >/dev/null
+printf 'dirty\n' >"${automated}/dirty.txt"
+expect_fail bash "${automated}/scripts/v2/story-branch.sh" integrate integrate-unit
+rm "${automated}/dirty.txt"
+integrate_output="$(bash "${automated}/scripts/v2/story-branch.sh" integrate integrate-unit)"
+[[ "${integrate_output}" == *"REMOTE_FEATURE_BRANCH=unchanged"* ]] || fail "integration did not report remote feature branch preservation"
+[[ ! -e "${integrate_unit}" ]] || fail "successful integration kept the unit worktree"
+! git -C "${automated}" show-ref --verify --quiet refs/heads/feat/integrate-unit || fail "successful integration kept the local feature branch"
+git --git-dir="${tmp_root}/automated-origin.git" show-ref --verify --quiet refs/heads/feat/integrate-unit || fail "successful integration deleted the remote feature branch"
+git --git-dir="${tmp_root}/automated-origin.git" merge-base --is-ancestor "$(git -C "${automated}" rev-parse HEAD)" refs/heads/v2 || fail "remote v2 does not contain the integrated head"
+
+run_story "${automated}" start rejected-unit >/dev/null
+rejected_unit="${automated}-rejected-unit"
+printf 'rejected\n' >"${rejected_unit}/rejected.txt"
+git -C "${rejected_unit}" add rejected.txt
+git -C "${rejected_unit}" commit -m "test: Change rejected unit" >/dev/null
+hook="${tmp_root}/automated-origin.git/hooks/pre-receive"
+printf '%s\n' '#!/usr/bin/env bash' 'while read -r _old _new ref; do' '  if [[ "${HATCAST_REJECT_V2:-0}" == "1" && "${ref}" == "refs/heads/v2" ]]; then exit 1; fi' 'done' 'exit 0' >"${hook}"
+chmod +x "${hook}"
+expect_fail env HATCAST_REJECT_V2=1 bash "${automated}/scripts/v2/story-branch.sh" integrate rejected-unit
+[[ -d "${rejected_unit}" ]] || fail "rejected push removed the unit worktree"
+git -C "${automated}" show-ref --verify --quiet refs/heads/feat/rejected-unit || fail "rejected push removed the local feature branch"
+expect_fail bash "${automated}/scripts/v2/story-branch.sh" integrate rejected-unit
+
+verification="$(make_fixture verification)"
+run_story "${verification}" start verification-unit >/dev/null
+verification_unit="${verification}-verification-unit"
+printf 'verification\n' >"${verification_unit}/verification.txt"
+git -C "${verification_unit}" add verification.txt
+git -C "${verification_unit}" commit -m "test: Change verification unit" >/dev/null
+hook="${tmp_root}/verification-origin.git/hooks/post-receive"
+printf '%s\n' '#!/usr/bin/env bash' 'while read -r old new ref; do' '  if [[ "${HATCAST_REWIND_V2_AFTER_PUSH:-0}" == "1" && "${ref}" == "refs/heads/v2" ]]; then git update-ref "${ref}" "${old}" "${new}"; fi' 'done' >"${hook}"
+chmod +x "${hook}"
+expect_fail env HATCAST_REWIND_V2_AFTER_PUSH=1 bash "${verification}/scripts/v2/story-branch.sh" integrate verification-unit
+[[ -d "${verification_unit}" ]] || fail "failed remote verification removed the unit worktree"
+git -C "${verification}" show-ref --verify --quiet refs/heads/feat/verification-unit || fail "failed remote verification removed the local feature branch"
+expect_fail bash "${verification}/scripts/v2/story-branch.sh" integrate verification-unit
+
 echo "PASS: story worktree lifecycle"

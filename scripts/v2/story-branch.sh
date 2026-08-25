@@ -5,6 +5,7 @@
 #   ./scripts/v2/story-branch.sh start STORY_KEY   # create or reopen an adjacent unit worktree
 #   ./scripts/v2/story-branch.sh assert STORY_KEY  # verify this checkout owns the unit
 #   ./scripts/v2/story-branch.sh merge STORY_KEY   # local merge into v2, without push or cleanup
+#   ./scripts/v2/story-branch.sh integrate STORY_KEY # approved merge, push, verify, and local cleanup
 #   ./scripts/v2/story-branch.sh status STORY_KEY  # print stable unit metadata
 
 set -euo pipefail
@@ -21,12 +22,13 @@ Commands:
   start STORY_KEY   Create or reopen the adjacent feat/STORY_KEY unit worktree from origin/\${HATCAST_V2_BRANCH_DEV}
   assert STORY_KEY  Verify this checkout is the unit worktree for feat/STORY_KEY
   merge STORY_KEY   Merge feat/STORY_KEY locally into \${HATCAST_V2_BRANCH_DEV} from clean integration
+  integrate STORY_KEY  Merge, push, verify origin/\${HATCAST_V2_BRANCH_DEV}, then remove the local unit and branch
   status STORY_KEY  Print stable branch, baseline, and worktree metadata
 
 Exemple:
   ./scripts/v2/story-branch.sh start 17-43-event-detail-contexte-infos
 
-The current checkout must be the clean \${HATCAST_V2_BRANCH_DEV:-v2} integration worktree for start and merge.
+The current checkout must be the clean \${HATCAST_V2_BRANCH_DEV:-v2} integration worktree for start, merge, and integrate.
 EOF
 }
 
@@ -93,10 +95,19 @@ assert_integration_worktree() {
   local dev="$1" current
   current="$(git rev-parse --abbrev-ref HEAD)"
   if [[ "${current}" != "${dev}" ]]; then
-    echo "ERROR: start and merge must run from the ${dev} integration worktree, not ${current}." >&2
+    echo "ERROR: start, merge, and integrate must run from the ${dev} integration worktree, not ${current}." >&2
     exit 1
   fi
   hatcast_v2_assert_clean
+}
+
+assert_integration_matches_remote() {
+  local dev_ref="$1"
+  hatcast_v2_fetch
+  if [[ "$(git rev-parse HEAD)" != "$(git rev-parse "${dev_ref}")" ]]; then
+    echo "ERROR: local ${HATCAST_V2_BRANCH_DEV} differs from ${dev_ref}; resolve it with the human before integrate. No unit was cleaned up." >&2
+    exit 1
+  fi
 }
 
 print_metadata() {
@@ -226,6 +237,56 @@ merge_story_branch() {
   echo "NEXT_ACTION=Push ${dev} manually after any required checks. The unit worktree was kept at ${unit_path}."
 }
 
+integrate_story_branch() {
+  local story_key="$1"
+  local branch dev unit_path integration_head
+
+  require_story_key "${story_key}"
+  hatcast_v2_detect_project_root
+  branch="$(hatcast_v2_story_branch_name "${story_key}")"
+  dev="${HATCAST_V2_BRANCH_DEV}"
+  assert_integration_worktree "${dev}"
+  assert_integration_matches_remote "$(hatcast_v2_dev_ref)"
+  unit_path="$(worktree_path_for_branch "${branch}")"
+  if [[ -z "${unit_path}" ]] || ! is_valid_worktree_path "${unit_path}"; then
+    echo "ERROR: no valid unit worktree exists for ${branch}. Review it before integration." >&2
+    exit 1
+  fi
+  if [[ -n "$(git -C "${unit_path}" status --porcelain)" ]]; then
+    echo "ERROR: unit worktree is not clean; commit or stash its changes before integration: ${unit_path}" >&2
+    git -C "${unit_path}" status --short >&2
+    exit 1
+  fi
+
+  merge_story_branch "${story_key}"
+  integration_head="$(git rev-parse HEAD)"
+  echo "Pushing ${dev}; local unit cleanup waits for remote verification..."
+  if ! git push origin "${dev}"; then
+    echo "ERROR: ${dev} push was rejected; the local merge, unit, and feature branch were kept. Resolve it with the human before integrate." >&2
+    exit 1
+  fi
+  hatcast_v2_fetch
+  if ! git merge-base --is-ancestor "${integration_head}" "$(hatcast_v2_dev_ref)"; then
+    echo "ERROR: origin/${dev} does not contain the integrated HEAD; keeping ${unit_path} and ${branch} for recovery." >&2
+    exit 1
+  fi
+
+  if ! git worktree remove "${unit_path}"; then
+    echo "ERROR: remote verification passed but unit cleanup failed; ${unit_path} and ${branch} were kept for recovery." >&2
+    exit 1
+  fi
+  if ! git branch -d "${branch}"; then
+    echo "ERROR: unit cleanup succeeded but local branch ${branch} remains; resolve it with the human." >&2
+    exit 1
+  fi
+  echo "INTEGRATED_BRANCH=${branch}"
+  echo "INTEGRATION_BRANCH=${dev}"
+  echo "REMOTE_VERIFIED_HEAD=${integration_head}"
+  echo "REMOVED_UNIT_WORKTREE=${unit_path}"
+  echo "REMOVED_LOCAL_BRANCH=${branch}"
+  echo "REMOTE_FEATURE_BRANCH=unchanged"
+}
+
 status_story_branch() {
   local story_key="$1"
   local branch dev_ref path
@@ -259,6 +320,7 @@ main() {
     start) start_story_branch "${story_key}" ;;
     assert) assert_story_branch "${story_key}" ;;
     merge) merge_story_branch "${story_key}" ;;
+    integrate) integrate_story_branch "${story_key}" ;;
     status) status_story_branch "${story_key}" ;;
     -h | --help | help | "") usage; exit 0 ;;
     *)

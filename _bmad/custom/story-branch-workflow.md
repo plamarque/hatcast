@@ -18,8 +18,14 @@ Exemple : story `17-43-event-detail-contexte-infos` → branche `feat/17-43-even
 ./scripts/v2/story-branch.sh start STORY_KEY  # from clean v2: create/reopen and bootstrap unit
 ./scripts/v2/story-branch.sh assert STORY_KEY # from unit: before manual story/code edits
 ./scripts/v2/story-branch.sh merge STORY_KEY  # from clean v2 after approved review (local)
-git push origin v2                              # manuel, après merge
+./scripts/v2/story-branch.sh integrate STORY_KEY # from clean v2 after approved review: merge, push, verify, cleanup
 ```
+
+`merge` remains the local-only compatibility command: it neither pushes nor
+changes the unit checkout. `integrate` is the explicit post-review command.
+It merges locally, pushes `v2`, fetches and verifies that `origin/v2` contains
+the integrated HEAD, then removes this clean local unit worktree and its local
+`feat/{story-key}` branch. It never deletes `origin/feat/{story-key}`.
 
 ## Gates par skill BMad
 
@@ -49,7 +55,7 @@ git push origin v2                              # manuel, après merge
 
 1. Vérifier `./scripts/v2/story-branch.sh assert {{story_key}}` dans le worktree unité, ou signaler si review hors unité.
 2. Diff de review : `git diff {{baseline_commit}}..HEAD` (ou merge-base avec `v2` si baseline absent).
-3. Si un humain confirme la review **approuvée** : recommander `./scripts/v2/story-branch.sh merge {{story_key}}` depuis le checkout `v2` propre et à jour, puis push manuel de `v2` — **ne pas push sans demande explicite**. Le script de merge ne peut pas prouver cette approbation.
+3. Si un humain confirme la review **approuvée** : recommander `./scripts/v2/story-branch.sh integrate {{story_key}}` depuis le checkout `v2` propre et à jour. Cette invocation explicite pousse `v2`, vérifie le remote, puis supprime sans confirmation supplémentaire l’unité locale et sa branche locale. Ne jamais supprimer la branche distante de story automatiquement. Le script ne peut pas prouver cette approbation.
 
 ## Parallélisme
 
@@ -64,4 +70,4 @@ git rebase origin/v2
 
 - Stories **docs-only** ou **ops** sans code : même convention (isolation + review).
 - Hotfix urgent sur `v2` : hors cycle BMad ; documenter dans le Change Log de la story si applicable.
-- Un échec de bootstrap laisse le worktree unité inspectable. Le bootstrap installe les workflows BMad standards épinglés uniquement dans l’unité; tout téléchargement requiert `HATCAST_BMAD_ALLOW_NETWORK=1`. Aucune suppression, fusion ou copie de secrets n’est automatique.
+- Un échec de bootstrap laisse le worktree unité inspectable. Le bootstrap installe les workflows BMad standards épinglés uniquement dans l’unité; tout téléchargement requiert `HATCAST_BMAD_ALLOW_NETWORK=1`. Aucun secret n’est copié. `integrate` ne nettoie qu’après publication et vérification distantes réussies; en cas d’échec, l’unité et la branche locale restent disponibles.

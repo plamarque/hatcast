@@ -7,7 +7,7 @@ persistent_facts = [
   "HatCast story Git rule (MANDATORY): all code and story-file edits run in the feat/{story-key} unit worktree, never in the v2 integration checkout.",
   "GATE before workflow step 4 (mark in-progress): read `feature_branch`; from the unit worktree run `./scripts/v2/story-branch.sh assert {{story_key}}`. HALT on failure — from clean v2 run start first.",
   "If baseline_commit is missing and current status is ready-for-dev, record BASELINE_COMMIT from the unit command output (do not overwrite it and do not record a path).",
-  "Do NOT merge, push, or delete in dev-story. After code review approval, merge from clean v2 with `./scripts/v2/story-branch.sh merge {{story_key}}`.",
+  "Do NOT merge, push, or delete in dev-story. After code review approval, use the explicit integration command from clean v2: `./scripts/v2/story-branch.sh integrate {{story_key}}`.",
 ]
 
-on_complete = "Remind the user: review in this unit worktree; after approval, from clean v2 run merge, then push v2 manually if desired."
+on_complete = "Remind the user: review in this unit worktree; after approval, from clean v2 run integrate. It verifies the pushed v2 before local unit cleanup."
