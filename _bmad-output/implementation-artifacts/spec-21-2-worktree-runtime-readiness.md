@@ -2,7 +2,7 @@
 title: '21-2 Worktree runtime readiness'
 type: 'feature'
 created: '2026-08-25'
-status: 'awaiting-operator'
+status: done
 baseline_revision: '01ab0273e39f36a376235978990209687cd6d162'
 review_loop_iteration: 0
 followup_review_recommended: false
@@ -132,3 +132,13 @@ Verification performed:
 - Shell parsing and `git diff --check` passed before the revert; final artifact validation is re-run before commit.
 
 Residual risks: The D0 environment-handoff reference, dependency-preparation action, and fixed-port strategy remain operator-owned. Until they are recorded, no readiness implementation, E2E run, or smoke handoff may claim readiness.
+
+## Operator Confirmation
+
+Confirmed 2026-08-25: the external actions this story owed were carried out.
+
+- Record a non-secret environment-handoff reference for Story 21-2 without copying, printing, tracking, or serialising any environment value.
+- Choose the dependency-preparation action and state the explicit confirmation required before any download.
+- Choose the strategy for the fixed E2E ports 8080 and 4200, including the required response to a port conflict.
+
+_Appended by the bmad-loop orchestrator (`bmad-loop confirm`, #335): a human confirmed these external actions out of band, and the story was advanced from `awaiting-operator` to `done`._

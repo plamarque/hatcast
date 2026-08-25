@@ -363,7 +363,7 @@ development_status:
   # Epic 21 — Worktree delivery readiness (approved plan 2026-08-25)
   epic-21: in-progress
   21-1-loop-readiness-contract: done
-  21-2-worktree-runtime-readiness: awaiting-operator
+  21-2-worktree-runtime-readiness: done
   21-3-targeted-e2e-evidence: backlog
   21-4-human-smoke-handoff: backlog
   21-5-delivery-gates-integration: backlog
