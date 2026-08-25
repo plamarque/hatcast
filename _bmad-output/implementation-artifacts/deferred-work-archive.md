@@ -624,3 +624,33 @@ Clôture **T1** vide ; repriorisation **T2/T3** par coût vs bénéfice dans l�
 ## Deferred from: code review of ops-5-prod-deploy-from-semver-tag.md (2026-06-03)
 
 - Fragilite preexistante de la construction `--set-env-vars` CSV dans le workflow deploy Cloud Run (valeurs contenant `,` ou `=`), non introduite par OPS-5; a traiter dans un hardening CI/CD dedie.
+
+---
+
+## Ajout archive — nettoyage du backlog différé (2026-08-25)
+
+### DW-108 — accepté
+
+- **Intention initiale :** faire remonter par `notifiedCount` le nombre de notifications réellement envoyées, plutôt que le décompte de prévisualisation.
+- **Clôture :** accepté après la story 6.17. À rouvrir seulement si le PO exige explicitement le comptage strict NFR-R2.
+
+### DW-109, DW-110, DW-119 — suivis de migration V1 vers V2
+
+- **Intention initiale :** vérifier les slugs exotiques MIG-2, durcir les rejets ciblés de transformation MIG-3, et documenter ou purger les orphelines MIG-3 après replay.
+- **Clôture :** MIG-2 et MIG-3 sont terminées, ainsi que le gate de replay production. Le PO ne prévoit pas de nouveau replay V1 vers V2 ; rouvrir ce lot uniquement si un nouvel import ou replay est approuvé.
+
+### Notes de revue résolues
+
+- **Test UI du breakdown :** résolu par `f9aaa0b7` ; le test injecte un payload `equity_tag` et le filtre côté client.
+- **Route 17.39 :** `/troupes/:slug/admin/parametres` a été livrée par la story 17.40 et est couverte par les tests de routes.
+- **Observations de worktree 17.39 / 17.40 :** les diffs non liés sur `share-announce-messages`, le calcul de probabilités et les tests de composition étaient des constats de worktree de revue, pas du deferred durable.
+- **Hauteur du menu destinataires 6.23 :** résolue en revue avec `max-height` et `overflow-y`.
+
+### Suivis Wave D formules et politiques résolus par les stories ultérieures
+
+- **UUID de formule système V1 :** livré par la story 19.16.
+- **Codes HTTP du tirage et choix de formule côté membre :** livrés par les stories 19.18 et 19.21, avec les traitements `400` / `403` documentés.
+- **Valeur par défaut de `immediate_replay.params.mode` :** livrée par la story 19.16.
+- **Validation du statut publié et clés de portée troupe/saison :** livrées par la story 19.18.
+
+Les notes 19.15 restantes sur le périmètre du preview et l’alignement documentaire PLAN/epics restent dans le ledger actif : elles demandent encore une décision produit ou documentaire.

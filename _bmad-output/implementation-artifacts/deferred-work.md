@@ -23,7 +23,7 @@
 | **DW-113** | 2026-06-08 | **Obsolète** — hub sans prefs troupe (**17.29**) |
 | **DW-114** | 2026-06-07 | Post-save re-check `reinclude` → 409 ; fenêtre commit-edge acceptée |
 | **DW-118** | 2026-06-07 | Audit SQL staging + prod : 0 membre `REMOVED` + `removal_source` NULL — pas de migration V61 ; voir [`dw-118-investigation.md`](../investigations/dw-118-investigation.md) |
-| **6.17** | 2026-06-04 | Annonces + `lastNotifiedAt` ; **DW-108** partiel |
+| **6.17** | 2026-06-04 | Annonces + `lastNotifiedAt` |
 | **ops-8**, **ops-10** | 2026-06-04/05 | Prod domaine + email |
 | **19.1**, **mig-7** | 2026-06-04/06 | ADR tirage + backfill genre V1 |
 | **2.12***, **2.21** | 2026-06-05/06 | Genre + carnet externes |
@@ -49,7 +49,6 @@
 
 | Item | Rationale |
 |------|-----------|
-| **Spec UI vacuitaire** | ~~Résolu f9aaa0b7~~ — test injecte désormais payload `equity_tag` + filtre client. |
 | **Test mixte sans label/delta exact** | Réconciliation Σ delta OK ; label FR scoped (5 vs 8) non verrouillé. |
 | **`factorBreakdown` omet `equity_tag`** | Skip avant `factorBreakdown.add` ; diagnostic moteur vs doc « tests / diagnostics ». |
 | **`adjustmentLabel` → `"equity_tag"`** | Code mort tant que le facteur n'est pas surfacé. |
@@ -240,30 +239,8 @@
 |------|------------|---------------------------|
 | **T0** | — | *(vide)* |
 | **T1** | — | *(vide)* |
-| **T2** | Avant **M4** (~août) | **DW-119** → **DW-109** → **DW-110** |
-| **T3** | Backlog 2.1.0+ | **DW-117** → **DW-116** → **DW-115** → **DW-122** → **DW-123** → **DW-124** → **DW-125** → **DW-121** → **DW-120** ; **DW-108** accepté |
-
----
-
-## T2 — Avant M4 (coût vs bénéfice)
-
-| # | ID | Coût | Bénéfice | Notes |
-|---|-----|------|----------|-------|
-| 1 | **DW-119** | **S** | Modéré | Vérif titres exotiques MIG-2 (`translate` vs `slugify` NFD) — script/doc |
-| 2 | **DW-109** | **M** | Élevé si trigger | Rejects ciblés MIG-3 (`comment`, `role_key`) — évite transaction entière KO |
-| 3 | **DW-110** | **M** | Modéré | Orphelines re-run MIG-3 sans reset — confiance staging ; prod = apply unique |
-
-### DW-119 — Slugs exotiques
-
-- **Risque :** faible (titres atypiques) ; **impact :** URLs post-import MIG-2.
-
-### DW-109 — Validation MIG-3
-
-- **Fichier :** [`maliceAvailabilityCompositions.js`](../../scripts/v1/maliceAvailabilityCompositions.js).
-
-### DW-110 — Orphelines re-run MIG-3
-
-- Replay gate déjà passé ; priorité **après** DW-109/119.
+| **T2** | — | *(vide)* |
+| **T3** | Backlog 2.1.0+ | **DW-117** → **DW-116** → **DW-115** → **DW-122** → **DW-123** → **DW-124** → **DW-125** → **DW-121** → **DW-120** |
 
 ---
 
@@ -280,7 +257,6 @@
 | 7 | **DW-125** | **M** | Faible | Découpage optionnel `event-equipe-tab` |
 | 8 | **DW-121** | **L** | Faible | Sass `@import` → `@use` (échéance Dart Sass 3.0 lointaine) |
 | 9 | **DW-120** | **L** | Modéré | Suite web globale rouge → **ISSUES.md** / gate CI |
-| — | **DW-108** | — | ↓ | **Accepté** post-6.17 — `notifiedCount` ≠ SENT ; rouvrir seulement si PO exige **NFR-R2** strict |
 
 ---
 
@@ -386,7 +362,6 @@
 
 ## Deferred from: code review of 17-39-ui-category-selection (2026-06-09)
 
-- **Navigation vers `/admin/parametres` sans route 17.40** — non-goal explicite story ; lien préparé pour 17.40.
 - **`persistCategory` sans garde post-await identité événement** — même pattern que Date/Lieu ; pré-existant.
 - **Échec silencieux `loadGlossary` onglet Infos** — helper inchangé ; pré-existant.
 - **Fallback `categoryLabel` → slug brut si glossaire incomplet** — comportement hérité ; pré-existant.
@@ -395,14 +370,11 @@
 
 - **`saving` partagé orga/format/catégorie sans séquencement** — PATCH concurrents possibles ; pattern pré-existant onglet Infos.
 - **Catégorie éditable sur spectacle archivé si `canManageEvents`** — même gate que format ; pas introduit par v4.
-- **Changement `share-announce-messages.ts` hors scope 17.39** — copy rappel dispo ; à committer séparément ou revert.
 
 ---
 
 ## Deferred from: code review of 17-40-troupe-settings-categories (2026-06-09)
 
-- **`AvailabilityService.kt` modifié (draw odds operational)** — changement story 19.x bundlé dans le working tree ; sans lien avec Paramètres catégories.
-- **Tests composition (`CompositionGapFillIntegrationTest`, `CompositionSlotAssignmentIntegrationTest`)** — idem, bundlé sans lien 17.40.
 - **Race concurrent delete : `affectedEventCount` peut diverger du preview** — intégrité données OK ; count preview/delete peut être stale sous concurrence ; pattern v1 accepté (cf. 17-38).
 
 ---
@@ -421,7 +393,6 @@
 - **Tooltip WhatsApp via `title` natif** — préexistant story 6.15 ; `matTooltip` non importé ; M3-1 partiellement satisfait.
 - **AC10 suite web complète non verte** — 80 échecs préexistants / 29 fichiers ; tests share-announce 18/18 OK.
 - **`::ng-deep` panel menu** — dette technique Angular ; pattern acceptable court terme pour `panelClass`.
-- **Menu noms sans max-height** — débordement si audience très large ; **résolu en review 6.23** (`max-height` + `overflow-y` sur panel menu).
 
 ---
 
@@ -512,19 +483,13 @@
 
 ## Deferred from: code review of 19-15-spec-formules-politiques-adr (2026-06-15)
 
-- **Identité UUID stable de la formule system V1** — contrat de seed reporté à story **19.16**.
 - **`formulaId` pour Simuler / preview % (19.17 AC3)** — comportement HTTP/UI reporté à **19.17–19.18**.
 - **Epics 19.16 AC3 (system V1 seul) vs OQ-19-02 (CHOICE + published + system V1)** — epics à realigner au grooming Wave D.
 - **Epics 19.18 titre « admin saison » vs OQ-19-05 TROUPE_ADMIN only** — epics outdated ; spec 19.15 fait foi.
 - **PLAN.md résumé résolution tronqué (sans chemin implicit CHOICE)** — hors scope 19.15 ; MAJ PLAN opportuniste.
-- **Codes HTTP draw (403 vs 400) pour formulaId hors liste** — OpenAPI **19.18**.
-- **Visibilité effective policy pour membres (Équipe tab)** — story **19.21**.
-- **Défaut `immediate_replay.params.mode` si absent** — **19.16** param wiring.
 
 ## Deferred from: code review of 19-16-persistance-formules-defaut-v1 (2026-06-15)
 
-- **`DrawPolicyValidator` n'exige pas `status=PUBLISHED`** — enforcement runtime et validation API reportés à **19.18**.
-- **`troupeScopeKey`/`seasonScopeKey` non imposés à la persistance** — factory/service policy save en **19.18**.
 - **V65 prépare un statement JDBC par troupe** — volume troupes MVP acceptable ; optimiser si backfill massif.
 - **`draw_policies` sans `created_at`** — hors AC1 explicite ; audit historique si besoin futur.
 
