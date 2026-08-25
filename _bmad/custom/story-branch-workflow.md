@@ -27,6 +27,32 @@ It merges locally, pushes `v2`, fetches and verifies that `origin/v2` contains
 the integrated HEAD, then removes this clean local unit worktree and its local
 `feat/{story-key}` branch. It never deletes `origin/feat/{story-key}`.
 
+## Runtime readiness (Epic 21)
+
+From a valid `feat/{story-key}` unit, inspect without mutation:
+
+```bash
+./scripts/v2/story-worktree-runtime.sh inspect
+```
+
+The output contains semantic states only: it never prints environment values,
+link targets, local paths, or process details. `prepare` is the explicit local
+operation. It may create an absent unit `.env` as a relative symlink to the
+canonical local `v2/.env`, run root `npm ci` with its normal shared npm cache,
+and provision Playwright Chromium in its normal shared browser cache. It never
+copies ignored files or shares `node_modules`.
+
+```bash
+./scripts/v2/story-worktree-runtime.sh prepare
+```
+
+An existing or broken `.env` is an operator conflict and is never replaced.
+Ports `8080` and `4200` must be free; readiness only reports the unavailable
+port and never identifies or stops a process. A ready result is a handoff, not
+an E2E run: execute isolated E2E separately with
+`PLAYWRIGHT_REUSE_SERVERS=0`; never use `start-dev.sh` or a normal development
+API as E2E evidence. Human smoke remains a separate, later action.
+
 ## BMad Loop preflight (Epic 21)
 
 Before any Loop command, operate from the clean `v2` integration checkout. This
