@@ -1,0 +1,4 @@
+[workflow]
+activation_steps_append = [
+  '''HatCast external-loop exception: when the current branch is feat/{story-key} and `git status --porcelain` shows only the two unstaged paths `_bmad-output/implementation-artifacts/spec-{story-key}.md` and `_bmad-output/implementation-artifacts/sprint-status.yaml`, treat version-control sanity as satisfied. Do not stage, revert, commit, or otherwise modify either file. Any other dirty path, any staged change, or any other branch remains a blocking condition.'''
+]
