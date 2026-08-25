@@ -654,3 +654,11 @@ Clôture **T1** vide ; repriorisation **T2/T3** par coût vs bénéfice dans l�
 - **Validation du statut publié et clés de portée troupe/saison :** livrées par la story 19.18.
 
 Les notes 19.15 restantes sur le périmètre du preview et l’alignement documentaire PLAN/epics restent dans le ledger actif : elles demandent encore une décision produit ou documentaire.
+
+### Snapshots historiques de suite web
+
+- **6.23 (2026-06-09) :** [`6-23-modales-partager-annoncer-manuel-compact.md`](6-23-modales-partager-annoncer-manuel-compact.md) — 80 échecs dans 29 fichiers ; tests share-announce 18/18.
+- **17.41 (2026-06-12) :** [`17-41-nav-shell-ma-troupe.md`](17-41-nav-shell-ma-troupe.md) — 76+ échecs hors scope ; tests ciblés 22/22.
+- **4.4 (2026-07-11) :** [`4-4-guides-video-page-connexion.md`](4-4-guides-video-page-connexion.md) — 22 fichiers / 100 tests en échec, dont `season-card.spec.ts`.
+
+Ces comptes restent les constats datés de leurs stories. DW-120 est la seule référence du baseline courant.

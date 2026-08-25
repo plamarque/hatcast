@@ -10,6 +10,16 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Open Issues
 
+### LIMIT-007 — V2 web unit suite is red and non-deterministic
+- **ID**: LIMIT-007
+- **Status**: Open
+- **Severity**: Medium (development confidence / CI readiness)
+- **Affected area**: V2 Angular/Vitest unit suite (`apps/web`)
+- **Observed behavior**: On the same commit and dependency lock, three executions of `npm run test -w @hatcast/web -- --watch=false` failed with different aggregates: 20/89, 18/78, then 16/76 failed files/tests. Each run also reported one unhandled error.
+- **Expected behavior**: The suite is reproducible on unchanged inputs and eventually green before it becomes a CI gate. A failure must identify either a product regression or the stale test/mock that needs updating.
+- **Evidence**: Baseline and remediation order: `_bmad-output/implementation-artifacts/deferred-work.md` (DW-120). The observed clusters include incomplete troupe/season resolver doubles, canonical-route expectations, authentication expectations after BUG-014, and member bootstrap expectations.
+- **Notes/context**: Run at `0d77badfb4b49134627c43126db9c96e5e8f76a9` with Node `v22.12.0`, npm `10.9.0`, and root `package-lock.json` SHA-256 `e29ea70abcd8d15866a29ee14c7898948153b1a1702cc9c4dc2c6024c3d5a11d`.
+
 ### LIMIT-006 — Fresh Git worktrees need live validation of BMad provisioning
 - **ID**: LIMIT-006
 - **Status**: Fixed (2026-08-25; live provisioning installed and verified the required skills)

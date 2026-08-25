@@ -260,6 +260,29 @@
 
 ---
 
+### DW-120 — Suite web : baseline actuel et stabilisation
+
+- **Commande :** `npm run test -w @hatcast/web -- --watch=false`.
+- **Environnement :** `0d77badfb4b49134627c43126db9c96e5e8f76a9` ; Node `v22.12.0` ; npm `10.9.0` ; `package-lock.json` SHA-256 `e29ea70abcd8d15866a29ee14c7898948153b1a1702cc9c4dc2c6024c3d5a11d`.
+- **Exécutions 2026-08-25, toutes avec code de sortie `1` et une erreur non gérée :**
+
+  | Run | Fichiers | Tests |
+  |---|---:|---:|
+  | 1 | 20 en échec / 169 passants | 89 en échec / 1 595 passants |
+  | 2 | 18 en échec / 171 passants | 78 en échec / 1 606 passants |
+  | 3 | 16 en échec / 173 passants | 76 en échec / 1 608 passants |
+
+- **Constat :** la suite est rouge et non déterministe ; ces trois runs sont le baseline courant. Les anciens décomptes dans les stories restent des faits historiques, pas un état de référence.
+- **Clusters à diagnostiquer, dans cet ordre :**
+  1. Doubles troupe/saison incomplets dans `season-home.spec.ts`, `season-card.spec.ts` et `troupes-list.spec.ts` après l’ajout du résolveur ; l’erreur non gérée vient de `troupeContext.findTroupeBySlug` absent du double `SeasonCard`.
+  2. Assertions de routes historiques dans `season-home.spec.ts` ; la route canonique doit rester `/saison/:troupeSlug/:seasonSlug` selon `project-context.md`.
+  3. Attentes d’authentification dans `signup.spec.ts` et `account-change-email-dialog.spec.ts` incompatibles avec la politique `rememberMe` de BUG-014 ; vérifier le contrat avant de modifier test ou code.
+  4. `user-agenda.spec.ts` attend zéro requête après session invalide alors que le bootstrap émet actuellement une requête ; décider si c’est une course runtime ou une attente obsolète.
+- **Critères de sortie :** chaque cluster a un diagnostic explicite, un test ciblé vert, aucune erreur non gérée, puis trois exécutions complètes consécutives vertes. Après chaque baseline, mettre à jour DW-120 seulement si le HEAD, le lockfile, la version Node/npm ou le résultat des trois runs change ; conserver le précédent baseline dans l’archive.
+- **Suivi :** **LIMIT-007** dans `ISSUES.md`. Ne pas recopier de décompte de suite globale dans les notes de revue de stories.
+
+---
+
 ## Deferred from: code review of 19-3-fixtures-orchestration-draw-complet (2026-06-07)
 
 - `computeOpeningChancePercent` réimplémente le filtrage du pool au lieu d'appeler `CompositionParticipantPool.buildRolePool` — acceptable tant que les fixtures restent simples ; réévaluer si le pool runtime gagne des filtres (genre, exclusions).
@@ -391,7 +414,6 @@
 ## Deferred from: code review of 6-23-modales-partager-annoncer-manuel-compact (2026-06-09)
 
 - **Tooltip WhatsApp via `title` natif** — préexistant story 6.15 ; `matTooltip` non importé ; M3-1 partiellement satisfait.
-- **AC10 suite web complète non verte** — 80 échecs préexistants / 29 fichiers ; tests share-announce 18/18 OK.
 - **`::ng-deep` panel menu** — dette technique Angular ; pattern acceptable court terme pour `panelClass`.
 
 ---
@@ -453,7 +475,6 @@
 ## Deferred from: code review of 17-41-nav-shell-ma-troupe (2026-06-12)
 
 - **No logout / access-denied slug clear** — story explicitly deferred (season slug not cleared on logout either); `clearLastVisitedTroupeSlug` exported but unused in prod paths.
-- **Full `npm run test -w @hatcast/web` suite failures** — pre-existing (76+ failures unrelated to this story); targeted includes pass (22/22).
 
 ## Deferred from: code review of 17-43-event-detail-contexte-infos (2026-06-12)
 
@@ -526,7 +547,6 @@
 
 ## Deferred from: code review of 4-4-guides-video-page-connexion (2026-07-11)
 
-- **Full web test suite still failing** (22 files / 100 tests, e.g. `season-card.spec.ts`) — pre-existing, unrelated to story 4.4
 - **No isolated unit tests for `guidesFromEnvironment()` edge cases** (`http://`, partial config, whitespace) — login.spec covers happy path + all-empty
 - **M3-1 minor: section title uses custom class** instead of reusing `.auth__heading` / `.auth__tagline` — tokens M3 OK
 - **Tests mutate global `environment` object** — restored in `afterEach`, acceptable pattern for this codebase
@@ -543,3 +563,7 @@
 - **Overrides env Hikari / health.db** — peuvent contourner la politique idle YAML au runtime.
 - **Jobs `@Scheduled` notification** — SQL quotidien réveille Neon (hors cause always-on BUG-013).
 - **PgBouncer + Spring Session JDBC** — interaction endpoint poolé / session store ; architecture préexistante.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-web-test-suite-baseline.md`
+  summary: Decide whether T3 items remain in the active deferred-work ledger or move to the archive.
+  evidence: The ledger rule limits new review entries to T0–T2 while the active matrix retains nine T3 items.
