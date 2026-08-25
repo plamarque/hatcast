@@ -32,6 +32,31 @@ EOF
 }
 die() { echo "E2E evidence gate: $*" >&2; exit 2; }
 relative_path() { [[ "$1" != /* && "$1" != *".."* && "$1" =~ ^[A-Za-z0-9._/-]+$ ]]; }
+safe_existing_file() {
+  local path="$1" component current
+  relative_path "${path}" || return 1
+  current="${root}"
+  IFS=/ read -r -a components <<<"${path}"
+  for component in "${components[@]}"; do
+    current="${current}/${component}"
+    [[ ! -L "${current}" ]] || return 1
+  done
+  [[ -f "${current}" ]]
+}
+ensure_attestation_parent() {
+  local parent component current
+  parent="${attestation%/*}"
+  current="${root}"
+  IFS=/ read -r -a components <<<"${parent}"
+  for component in "${components[@]}"; do
+    current="${current}/${component}"
+    [[ ! -L "${current}" ]] || die "attestation parent must not be a symlink"
+    if [[ ! -e "${current}" ]]; then
+      mkdir "${current}"
+    fi
+    [[ -d "${current}" && ! -L "${current}" ]] || die "attestation parent must be a directory"
+  done
+}
 safe_text() {
   [[ -n "$1" && "$1" != *$'\n'* && "$1" != *$'\r'* && "$1" != /* && ! "$1" =~ (^|[[:space:]])/ ]] || return 1
   [[ ! "$1" =~ (^|[[:space:]])[A-Za-z_][A-Za-z0-9_]*= ]] || return 1
@@ -40,14 +65,19 @@ normalise() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]'
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --target) target="${2:-}"; shift 2 ;;
-    --rationale) rationale="${2:-}"; shift 2 ;;
-    --project) projects+=("${2:-}"); shift 2 ;;
-    --spec) specs+=("${2:-}"); shift 2 ;;
-    --attestation) attestation="${2:-}"; shift 2 ;;
-    --test-now) test_now="${2:-}"; shift 2 ;;
-    --cited-equivalent) cited_equivalent="${2:-}"; shift 2 ;;
-    --waiver-policy) waiver_policy="${2:-}"; shift 2 ;;
+    --target|--rationale|--project|--spec|--attestation|--test-now|--cited-equivalent|--waiver-policy)
+      [[ $# -ge 2 && -n "${2}" && "${2}" != --* ]] || die "missing value for $1"
+      case "$1" in
+        --target) target="$2" ;;
+        --rationale) rationale="$2" ;;
+        --project) projects+=("$2") ;;
+        --spec) specs+=("$2") ;;
+        --attestation) attestation="$2" ;;
+        --test-now) test_now="$2" ;;
+        --cited-equivalent) cited_equivalent="$2" ;;
+        --waiver-policy) waiver_policy="$2" ;;
+      esac
+      shift 2 ;;
     --help|-h) usage; exit 0 ;;
     *) die "unknown argument: $1" ;;
   esac
@@ -65,24 +95,30 @@ story_key="$(git -C "${root}" branch --show-current | sed 's#^feat/##')"
 relative_path "${attestation}" || die "attestation must be a safe relative path"
 [[ "${attestation}" == _bmad-output/implementation-artifacts/e2e-evidence/* ]] || die "attestation must stay under _bmad-output/implementation-artifacts/e2e-evidence"
 [[ ! -L "${root}/${attestation}" ]] || die "attestation destination must not be a symlink"
+ensure_attestation_parent
 
 for project in "${projects[@]}"; do
   [[ "${project}" =~ ^[A-Za-z0-9._-]+$ ]] || die "unsafe project selection"
   grep -Fq "name: '${project}'" "${root}/apps/web/playwright.config.ts" || die "unknown Playwright project: ${project}"
 done
 for spec in "${specs[@]}"; do
-  relative_path "${spec}" && [[ "${spec}" == apps/web/e2e/* && -f "${root}/${spec}" ]] || die "spec must be an existing declared relative E2E spec"
+  relative_path "${spec}" && [[ "${spec}" == apps/web/e2e/*.spec.ts ]] && safe_existing_file "${spec}" || die "spec must be an existing declared relative E2E spec"
 done
 
 # A target is discoverable if it maps to a declared project or a declared spec.
-target_key="$(normalise "${target}")"
+target_key="$(printf '%s' "${target}" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^[:alnum:]]+/-/g; s/^-//; s/-$//')"
 [[ -n "${target_key}" ]] || die "target must contain at least one letter or digit"
+matches_target() {
+  local candidate
+  candidate="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^[:alnum:]]+/-/g; s/^-//; s/-$//')"
+  [[ "${candidate}" == "${target_key}" || "${candidate}" == "${target_key}-"* || "${candidate}" == *"-${target_key}" || "${candidate}" == *"-${target_key}-"* ]]
+}
 discovered=()
 while IFS= read -r project; do
-  [[ "$(normalise "${project}")" == *"${target_key}"* ]] && discovered+=("project:${project}")
-done < <(sed -nE "s/^[[:space:]]*name: '([^']+)'.*/\1/p" "${root}/apps/web/playwright.config.ts")
+  matches_target "${project}" && discovered+=("project:${project}")
+done < <(sed -nE -e "s/^[[:space:]]*name: '([^']+)'.*/\1/p" -e 's/^[[:space:]]*name: "([^"]+)".*/\1/p' "${root}/apps/web/playwright.config.ts")
 while IFS= read -r spec; do
-  [[ "$(normalise "${spec}")" == *"${target_key}"* ]] && discovered+=("spec:${spec}")
+  matches_target "${spec}" && discovered+=("spec:${spec}")
 done < <(cd "${root}" && find apps/web/e2e -type f -name '*.spec.ts' -print | LC_ALL=C sort)
 
 if ((${#projects[@]} + ${#specs[@]} > 0)); then
@@ -111,9 +147,9 @@ fi
 
 disposition="run"
 if [[ -n "${test_now}" ]]; then relative_path "${test_now}" || die "test-now reference must be relative"; disposition="test-now:${test_now}"; fi
-if [[ -n "${cited_equivalent}" ]]; then relative_path "${cited_equivalent}" && [[ -f "${root}/${cited_equivalent}" ]] || die "cited equivalent must be an existing relative file"; disposition="cited-equivalent:${cited_equivalent}"; fi
+if [[ -n "${cited_equivalent}" ]]; then safe_existing_file "${cited_equivalent}" || die "cited equivalent must be an existing relative file"; disposition="cited-equivalent:${cited_equivalent}"; fi
 if [[ -n "${waiver_policy}" ]]; then
-  relative_path "${waiver_policy}" && [[ -f "${root}/${waiver_policy}" ]] || die "waiver policy must be an existing relative file"
+  safe_existing_file "${waiver_policy}" || die "waiver policy must be an existing relative file"
   python3 - "${root}/${waiver_policy}" <<'PY' || die "waiver policy is unauthorized, malformed, or expired"
 import datetime, json, sys
 try:
@@ -134,7 +170,7 @@ write_attestation() {
   local outcome="$1" command="$2" destination temporary
   destination="${root}/${attestation}"
   [[ ! -L "${destination}" ]] || die "attestation destination must not be a symlink"
-  mkdir -p "${root}/$(dirname "${attestation}")"
+  ensure_attestation_parent
   temporary="$(mktemp "${destination}.tmp.XXXXXX")"
   if ! python3 - "${temporary}" "${story_key}" "${target}" "${rationale}" "${report_ref}" "${outcome}" "${command}" "${disposition}" -- "${selected[@]}" -- "${discovered[@]}" <<'PY'
 import json, sys
@@ -167,8 +203,11 @@ PY
 
 # Readiness is checked after all pure argument validation and before the runner.
 # A non-ready state supersedes any previous passing attestation for this target.
-readiness_output="$(bash "${runtime}" inspect 2>&1 || true)"
-if ! grep -Fqx 'READINESS=ready' <<<"${readiness_output}"; then
+set +e
+readiness_output="$(bash "${runtime}" inspect 2>&1)"
+readiness_status=$?
+set -e
+if ((readiness_status != 0)) || ! grep -Fqx 'READINESS=ready' <<<"${readiness_output}" || ! grep -Fqx 'E2E_PROFILE=PLAYWRIGHT_REUSE_SERVERS=0' <<<"${readiness_output}"; then
   write_attestation "failed:not-ready" ""
   die "runtime readiness is not ready"
 fi
@@ -179,9 +218,10 @@ if ((${#selected[@]} == 0)); then
   exit 0
 fi
 
+rm -f "${root}/${report_ref}"
 runner_args=()
 for item in "${selected[@]}"; do
-  case "${item}" in project:*) runner_args+=("--project=${item#project:}") ;; spec:*) runner_args+=("${item#spec:}") ;; esac
+  case "${item}" in project:*) runner_args+=("--project=${item#project:}") ;; spec:*) runner_args+=("${item#spec:apps/web/}") ;; esac
 done
 normalized_command="PLAYWRIGHT_REUSE_SERVERS=0 scripts/run_e2e.sh -- ${runner_args[*]}"
 set +e
@@ -189,7 +229,7 @@ PLAYWRIGHT_REUSE_SERVERS=0 bash "${runner}" -- "${runner_args[@]}"
 runner_status=$?
 set -e
 if ((runner_status == 0)); then
-  if [[ ! -f "${root}/${report_ref}" ]]; then
+  if [[ ! -f "${root}/${report_ref}" || -L "${root}/${report_ref}" ]]; then
     write_attestation "failed:report-missing" "${normalized_command}"
     echo "E2E evidence report is missing: ${report_ref}" >&2
     exit 1

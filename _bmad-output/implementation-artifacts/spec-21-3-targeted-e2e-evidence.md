@@ -119,6 +119,35 @@ an operator decision; this implementation intentionally does not supply one.
   - `[medium]` `[patch]` Rejected empty normalized targets and arbitrary absolute paths in attested text.
   - `[medium]` `[patch]` Extended hermetic tests for all three absence dispositions, mismatched coverage, missing reports, stale evidence, path safety, and destination safety.
 
+### 2026-08-25 — Follow-up review pass
+- intent_gap: 0
+- bad_spec: 0
+- patch: 6 (high 4, medium 1, low 1)
+- defer: 0
+- reject: 10 (medium 6, low 4)
+- addressed_findings:
+  - `[high]` `[patch]` Required both a successful runtime inspection and its declared isolated E2E profile before runner invocation.
+  - `[high]` `[patch]` Removed any pre-existing report before execution, so a successful attestation requires a report produced by this run.
+  - `[high]` `[patch]` Converted discovered repository-relative E2E specs to the `apps/web`-relative form consumed by the canonical runner.
+  - `[high]` `[patch]` Rejected symlinked evidence parent directories before creating or replacing an attestation.
+  - `[medium]` `[patch]` Made missing option values semantic gate errors instead of relying on shell `shift` failure.
+  - `[low]` `[patch]` Extended the hermetic runner fixture to reject spec paths that would not resolve from its `apps/web` execution boundary.
+
+### 2026-08-25 — Review pass
+- intent_gap: 0
+- bad_spec: 0
+- patch: 10 (high 5, medium 4, low 1)
+- defer: 0
+- reject: 4 (medium 3, low 1)
+- addressed_findings:
+  - `[high]` `[patch]` Required a successful runtime inspection and its declared isolated E2E profile before runner invocation.
+  - `[high]` `[patch]` Removed the prior report before execution and rejected symlink reports, so the attestation cannot cite stale or redirected output.
+  - `[high]` `[patch]` Rejected symlinked attestation parents and repository-relative cited or waiver files that traverse a symlink.
+  - `[high]` `[patch]` Converted selected spec paths to the `apps/web`-relative paths consumed by the canonical runner.
+  - `[medium]` `[patch]` Limited explicit specs to declared `*.spec.ts` coverage and made target matching separator-aware.
+  - `[medium]` `[patch]` Accepted both single- and double-quoted static Playwright project names during discovery.
+  - `[low]` `[patch]` Rejected missing option values with a semantic gate error.
+
 ## Auto Run Result
 
 Summary: Added a feature-worktree gate that discovers targeted Playwright coverage, invokes the existing isolated E2E runner, and writes a portable JSON attestation or exactly one valid absence disposition.
@@ -138,3 +167,60 @@ Verification performed:
 - `git diff --check` passed.
 
 Residual risks: The gate validates a non-secret waiver policy's schema, authority label, required approval fields, and expiry, but does not claim to independently prove the human authority behind that policy. The hermetic tests prove the delivery gate; no live HatCast product E2E was launched in this workflow.
+
+### Follow-up review result
+
+Summary: Hardened the targeted E2E evidence gate against incomplete readiness
+signals, stale reports, runner-relative spec resolution, unsafe evidence
+parents, and malformed command-line options.
+
+Files changed:
+- `scripts/v2/story-e2e-evidence.sh` — Verifies the full runtime contract,
+  clears stale reports, converts spec paths for the canonical runner, and
+  protects attestation parents.
+- `scripts/v2/story-e2e-evidence.test.sh` — Verifies the hardened contract in
+  the hermetic feature-worktree fixture.
+- `_bmad-output/implementation-artifacts/spec-21-3-targeted-e2e-evidence.md`
+  — Records this independent follow-up review and its verification.
+
+Review findings: 6 patches applied (high 4, medium 1, low 1); 0 items
+deferred; 10 items rejected. Follow-up review recommended: true (patched
+score: 16).
+
+Verification performed:
+- `bash scripts/v2/story-e2e-evidence.test.sh` passed.
+- `bash scripts/v2/story-worktree-runtime.test.sh` passed.
+- `bash -n scripts/v2/story-e2e-evidence.sh scripts/v2/story-e2e-evidence.test.sh` passed.
+- `git diff --check` passed.
+
+Residual risks: This is hermetic gate verification only; no live HatCast
+product E2E run or human smoke was started. The waiver policy remains a
+non-secret operator authority decision.
+
+### Final review result
+
+Summary: Hardened the targeted-E2E gate against incomplete runtime contracts,
+stale or redirected reports, unsafe repository-relative evidence paths, and
+runner-relative spec selection.
+
+Files changed:
+- `scripts/v2/story-e2e-evidence.sh` — Enforces the full readiness contract,
+  safely handles reports and evidence paths, and normalizes runner spec paths.
+- `scripts/v2/story-e2e-evidence.test.sh` — Covers the isolated-profile,
+  stale-report, symlink-parent, and command-boundary cases.
+- `_bmad-output/implementation-artifacts/spec-21-3-targeted-e2e-evidence.md`
+  — Records the final independent review and verification.
+
+Review findings: 10 patches applied (high 5, medium 4, low 1); 0 items
+deferred; 4 items rejected. Follow-up review recommended: true (score: 13).
+
+Verification performed:
+- `bash scripts/v2/story-e2e-evidence.test.sh` passed.
+- `bash scripts/v2/story-worktree-runtime.test.sh` passed.
+- `bash -n scripts/v2/story-e2e-evidence.sh scripts/v2/story-e2e-evidence.test.sh` passed.
+- `git diff --check` passed.
+
+Residual risks: These hermetic fixtures verify the delivery gate rather than a
+live HatCast product E2E run or human smoke. A waiver policy remains a
+non-secret operator decision and is required only if that no-coverage path is
+chosen.
