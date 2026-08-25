@@ -16,7 +16,7 @@ so that an orchestration failure is detected without starting an agent session.
 ## Acceptance Criteria
 
 1. **Given** Codex is the selected local adapter, **when** `bmad-loop validate --project . --json` runs from a clean checkout, **then** it reports `ok: true` and confirms Codex hooks and upstream skills.
-2. **Given** Epic 21 is in `sprint-status.yaml`, **when** `bmad-loop run --project . --dry-run --epic 21` runs, **then** it selects `21-1-loop-readiness-contract` without spawning a session.
+2. **Given** Epic 21 is in `sprint-status.yaml`, **when** `bmad-loop run --project . --dry-run --epic 21 --max-stories 1` runs, **then** it selects only `21-1-loop-readiness-contract` without spawning a session.
 3. **Given** the local policy, **when** it is generated or amended, **then** it stays ignored and contains no secret value; the committed documentation states the reproducible operator procedure but no machine-local path.
 4. **Given** the current worktree contract, **when** a Loop dry-run is requested, **then** it requires a clean checkout and does not weaken `story-branch.sh` human-review or integration guards.
 
@@ -26,7 +26,7 @@ so that an orchestration failure is detected without starting an agent session.
 
 - [ ] Record the local Codex policy initialization and validation procedure without tracking the policy file.
 - [ ] Add Epic 21 numeric queue entries and this first story artifact.
-- [ ] Add a deterministic dry-run verification to the workflow documentation.
+- [ ] Add a deterministic one-story dry-run verification to the workflow documentation.
 
 ## Dependencies
 

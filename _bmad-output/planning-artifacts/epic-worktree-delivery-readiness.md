@@ -41,7 +41,7 @@ The operator selects the Loop adapter locally before queue activation. The remai
 | 4 | `21-4-human-smoke-handoff` | Start the selected story worktree, publish a click-ready smoke handoff, and stop it cleanly. | 21-2, 21-3; D0 smoke-guide choice | Handoff names branch, URL, guide, E2E evidence and owner; stop verification passes. |
 | 5 | `21-5-delivery-gates-integration` | Connect the four evidence contracts to the existing BMad/worktree lifecycle without weakening human integration approval. | 21-1..21-4 | Black-box workflow tests prove ordering and retention on every failure. |
 
-Stories are strictly sequential through 21-5. Parallel product stories may use the resulting workflow only after their own readiness evidence exists.
+Stories are strictly sequential through 21-5. Loop treats `backlog` entries as selectable, so every Epic 21 invocation must use `--max-stories 1`; the operator starts the next story only after the preceding story's required human gate is recorded. Parallel product stories may use the resulting workflow only after their own readiness evidence exists.
 
 ## Story acceptance contract
 
@@ -89,4 +89,4 @@ Stories are strictly sequential through 21-5. Parallel product stories may use t
 
 ## Activation and non-goals
 
-After plan approval, create Epic 21 and its numeric backlog entries through the established planning/tracking workflow, then run the green preflight and `run --dry-run` before any real Loop run. No code, policy rewrite, dependency download, secret handoff, process stop, worktree creation, merge, push, or cleanup is authorised by this plan review.
+After plan approval, create Epic 21 and its numeric backlog entries through the established planning/tracking workflow, then run the green preflight and `bmad-loop run --project . --dry-run --epic 21 --max-stories 1` before any real Loop run. No code, policy rewrite, dependency download, secret handoff, process stop, worktree creation, merge, push, or cleanup is authorised by this plan review.

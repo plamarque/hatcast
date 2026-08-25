@@ -70,5 +70,5 @@ Loop's verified facilities are preflight, dry-run, run status, pending decisions
 
 **Commands:**
 - `bmad-loop validate --project . --json` -- expected: green only after the approved adapter/policy story.
-- `bmad-loop run --project . --dry-run --epic 21` -- expected: selects the approved numeric Epic 21 queue without spawning sessions.
+- `bmad-loop run --project . --dry-run --epic 21 --max-stories 1` -- expected: selects only the next approved Epic 21 story without spawning sessions.
 - `bash scripts/v2/story-branch.test.sh` -- expected: existing isolation and integration guard cases remain green.
