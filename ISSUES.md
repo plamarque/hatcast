@@ -10,6 +10,15 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Open Issues
 
+### LIMIT-008 — BMad Loop local policy does not match versioned Codex integration
+- **ID**: LIMIT-008
+- **Status**: Open
+- **Severity**: Medium (workflow automation unavailable)
+- **Affected area**: BMad Loop 0.11.1 local policy, CLI adapter and skill registration
+- **Observed behavior**: `bmad-loop validate --project . --json` selects Claude for dev/review/triage, but `claude`, `.claude` hooks and required `.claude/skills` are absent. The repository instead versions Codex hooks. `.bmad-loop/policy.toml` is ignored and absent.
+- **Expected behavior**: The operator-selected adapter, hooks and required skills agree, and Loop preflight is green before a real run.
+- **Notes/context**: This is the first prerequisite in `_bmad-output/planning-artifacts/epic-worktree-delivery-readiness.md`; policy must not contain secrets.
+
 ### LIMIT-007 — V2 web unit suite is red and non-deterministic
 - **ID**: LIMIT-007
 - **Status**: Open

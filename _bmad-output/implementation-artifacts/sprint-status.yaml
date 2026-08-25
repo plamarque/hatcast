@@ -359,3 +359,11 @@ development_status:
   perf-14-profiling-script-in-app-nav: done
   perf-15-composition-summary-api-hot-path: done
   perf-16-db-latency-observability: done
+
+  # Epic 21 — Worktree delivery readiness (approved plan 2026-08-25)
+  epic-21: backlog
+  21-1-loop-readiness-contract: ready-for-dev
+  21-2-worktree-runtime-readiness: backlog
+  21-3-targeted-e2e-evidence: backlog
+  21-4-human-smoke-handoff: backlog
+  21-5-delivery-gates-integration: backlog
