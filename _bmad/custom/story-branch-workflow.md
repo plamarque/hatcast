@@ -53,6 +53,35 @@ an E2E run: execute isolated E2E separately with
 `PLAYWRIGHT_REUSE_SERVERS=0`; never use `start-dev.sh` or a normal development
 API as E2E evidence. Human smoke remains a separate, later action.
 
+### Preuve E2E ciblée (Epic 21)
+
+Après une inspection qui se termine par `READINESS=ready`, produire la preuve
+Playwright depuis le worktree `feat/{story-key}` :
+
+```bash
+./scripts/v2/story-e2e-evidence.sh \
+  --target 3-19 \
+  --rationale 'Retrait roster saison' \
+  --project chromium-3-19
+```
+
+Le script découvre les projets/specs déclarés, appelle uniquement
+`scripts/run_e2e.sh` avec `PLAYWRIGHT_REUSE_SERVERS=0`, puis écrit une
+attestation JSON sous
+`_bmad-output/implementation-artifacts/e2e-evidence/`. Elle contient la
+sélection, sa rationale, la commande normalisée, le résultat et la référence
+relative `apps/web/playwright-report/index.html`. Elle ne contient ni valeurs
+d'environnement, ni chemin local absolu, ni sortie de processus.
+
+Si aucune couverture déclarée ne correspond, ne demander ni smoke humain ni
+approbation d'intégration. Enregistrer exactement une disposition :
+`--test-now <reference-relative>`, `--cited-equivalent <fichier-relatif>`, ou
+`--waiver-policy <fichier-json-relatif>`. Une waiver policy est fournie par
+l'opérateur ; elle doit nommer son autorité, ses champs obligatoires, et une
+approbation de même autorité non expirée. Le script ne crée jamais cette
+autorité et une attestation E2E ne prouve ni une recette humaine ni une
+approbation d'intégration.
+
 ## BMad Loop preflight (Epic 21)
 
 Before any Loop command, operate from the clean `v2` integration checkout. This
