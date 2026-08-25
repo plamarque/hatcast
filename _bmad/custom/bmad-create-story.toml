@@ -11,4 +11,4 @@ persistent_facts = [
   "Sprint-status and story artifact edits for this story happen in its unit worktree, not on v2. Never persist WORKTREE_PATH in frontmatter.",
 ]
 
-on_complete = "Report feature_branch and baseline_commit in the completion summary. Remind the user that all dev work stays in the unit worktree until review-approved local merge from v2."
+on_complete = "Report feature_branch and baseline_commit in the completion summary. Remind the user that all dev work stays in the unit worktree until review approval, then the explicit integrate command runs from clean v2."
