@@ -27,6 +27,88 @@ It merges locally, pushes `v2`, fetches and verifies that `origin/v2` contains
 the integrated HEAD, then removes this clean local unit worktree and its local
 `feat/{story-key}` branch. It never deletes `origin/feat/{story-key}`.
 
+## BMad Loop preflight (Epic 21)
+
+Before any Loop command, operate from the clean `v2` integration checkout. This
+also applies to a dry-run: it is not an exception to the worktree contract.
+The following shell is intentionally strict; a failed command stops the
+preflight.
+
+```bash
+set -euo pipefail
+
+test "$(git branch --show-current)" = "v2"
+git diff --quiet
+git diff --cached --quiet
+
+bmad-loop init --project . --cli codex
+python3 - <<'PY'
+from pathlib import Path
+import re
+
+path = Path(".bmad-loop/policy.toml")
+text = path.read_text()
+adapter, separator, remainder = text.partition("[adapter]\n")
+if not separator:
+    raise SystemExit("missing [adapter] policy section")
+body, next_section, tail = remainder.partition("\n[")
+body, substitutions = re.subn(r'(?m)^name\s*=\s*"[^"]*"', 'name = "codex"', body, count=1)
+if substitutions != 1:
+    raise SystemExit("missing adapter name in policy")
+path.write_text(adapter + separator + body + next_section + tail)
+PY
+
+test -f .bmad-loop/policy.toml
+git check-ignore -q .bmad-loop/policy.toml
+if git ls-files --error-unmatch .bmad-loop/policy.toml >/dev/null 2>&1; then
+  echo "policy.toml must not be tracked" >&2
+  exit 1
+fi
+git diff --quiet
+git diff --cached --quiet
+
+validation_json="$(bmad-loop validate --project . --json)"
+jq -e '
+  .ok == true
+  and any(.findings[]; .check == "policy" and .severity == "ok"
+    and .detail.adapters.dev == "codex"
+    and .detail.adapters.review == "codex"
+    and .detail.adapters.triage == "codex")
+  and any(.findings[]; .check == "hooks.registered" and .severity == "ok"
+    and .detail.profile == "codex")
+  and any(.findings[]; .check == "skills.base" and .severity == "ok")
+' <<<"$validation_json" >/dev/null
+```
+
+`init` creates or updates the ignored local policy. It may default to Claude,
+so the command above forces `[adapter] name = "codex"` before validation. Never
+place a secret in this policy. Do not put the queue into execution if any check
+fails.
+
+When `21-1-loop-readiness-contract` is the only Epic 21 story in
+`ready-for-dev` (later stories remain `backlog`), run this deterministic
+selection check:
+
+```bash
+set -euo pipefail
+
+worktrees_before="$(git worktree list --porcelain)"
+tmux_sessions_before="$(tmux list-sessions -F '#{session_name}' 2>/dev/null || true)"
+dry_run_output="$(bmad-loop run --project . --dry-run --epic 21 --max-stories 1)"
+selected_story_keys="$(printf '%s\n' "$dry_run_output" | sed -nE 's/^[[:space:]]+([0-9]+-[^[:space:]]+) \(epic [0-9]+, status [^)]+\)$/\1/p')"
+
+test "$(printf '%s\n' "$selected_story_keys" | sed '/^$/d' | wc -l | tr -d ' ')" -eq 1
+test "$selected_story_keys" = "21-1-loop-readiness-contract"
+test "$(git worktree list --porcelain)" = "$worktrees_before"
+test "$(tmux list-sessions -F '#{session_name}' 2>/dev/null || true)" = "$tmux_sessions_before"
+```
+
+The comparison of Git worktrees and tmux sessions before and after the command
+is the explicit no-new-worktree and no-session proof. Never replace `--dry-run`
+with a real run in this preflight. The command does not bypass `story-branch.sh`
+and is neither human review nor integration approval: the `assert`, `merge`, and
+`integrate` guards remain mandatory.
+
 ## Gates par skill BMad
 
 ### `bmad-create-story` (CS)

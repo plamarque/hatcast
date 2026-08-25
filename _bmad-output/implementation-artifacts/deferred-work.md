@@ -567,3 +567,11 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-web-test-suite-baseline.md`
   summary: Decide whether T3 items remain in the active deferred-work ledger or move to the archive.
   evidence: The ledger rule limits new review entries to T0–T2 while the active matrix retains nine T3 items.
+
+### DW-126: A fresh Git clone without its ignored, locally provisioned BMad skills fails the upstream-skills validation before the Loop preflight can pass.
+origin: spec-deferred 5e29daf747f0
+location: scripts/v2/story-worktree-bootstrap.sh:46
+source_spec: `21-1-loop-readiness-contract.md`
+severity: medium
+reason: The clean-clone check reported missing bmad-build-auto and legacy review-layer skills; the same check passed after the existing local BMad runtime was provisioned.
+status: open
