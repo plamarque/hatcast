@@ -24,6 +24,15 @@ evidence="${unit}/_bmad-output/implementation-artifacts/e2e-evidence/21-3-target
 [[ -f "${evidence}" ]] || fail 'missing successful attestation'
 grep -Fq 'project:chromium-3-19' "${evidence}" || fail 'project mapping was not discovered'
 grep -Fq 'spec:apps/web/e2e/recette-3.19.spec.ts' "${evidence}" || fail 'spec mapping was not discovered'
+python3 - "${evidence}" <<'PY' || fail 'attestation did not preserve separate selected and discovered coverage'
+import json, sys
+payload = json.load(open(sys.argv[1], encoding='utf-8'))
+assert payload['selection'] == [
+    'project:chromium-3-19',
+    'spec:apps/web/e2e/recette-3.19.spec.ts',
+]
+assert payload['discovered'] == payload['selection']
+PY
 grep -Fqx 'no-browser-install=1 reuse=0 args=-- --project=chromium-3-19 e2e/recette-3.19.spec.ts' "${log}" || fail 'runner did not use isolated invocation without browser download'
 ! grep -Fq "${unit}" "${evidence}" || fail 'attestation exposed absolute path'
 ! grep -Eqi 'human smoke|integration approval|process|secret' "${evidence}" || fail 'attestation made prohibited claim or output'

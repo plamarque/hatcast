@@ -182,15 +182,18 @@ write_attestation() {
   [[ ! -L "${destination}" ]] || die "attestation destination must not be a symlink"
   ensure_attestation_parent
   temporary="$(mktemp "${destination}.tmp.XXXXXX")"
-  if ! python3 - "${temporary}" "${story_key}" "${target}" "${rationale}" "${report_ref}" "${outcome}" "${command}" "${disposition}" -- "${selected[@]}" -- "${discovered[@]}" <<'PY'
+  if ! python3 - "${temporary}" "${story_key}" "${target}" "${rationale}" "${report_ref}" "${outcome}" "${command}" "${disposition}" --selected "${selected[@]}" --discovered "${discovered[@]}" <<'PY'
 import json, sys
 path, story, target, rationale, report, outcome, command, disposition, *rest = sys.argv[1:]
 selected, discovered = [], []
-bucket = selected
+bucket = None
 for value in rest:
-    if value == '--':
+    if value == '--selected':
+        bucket = selected
+    elif value == '--discovered':
         bucket = discovered
     else:
+        assert bucket is not None
         bucket.append(value)
 payload = {
   'schema': 'hatcast.story-e2e-evidence.v1', 'story_key': story,

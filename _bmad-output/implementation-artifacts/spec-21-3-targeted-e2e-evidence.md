@@ -2,10 +2,10 @@
 title: '21-3 Targeted E2E evidence'
 type: 'feature'
 created: '2026-08-25'
-status: 'done'
-baseline_revision: 'fe4ab813453cb76748769fff16cd9caabda06313'
+status: done
+baseline_revision: '3799e60dd57c74c1c709da0db72a85d238ec6b98'
 review_loop_iteration: 0
-followup_review_recommended: true
+followup_review_recommended: false
 context:
   - '{project-root}/_bmad/custom/story-branch-workflow.md'
   - '{project-root}/apps/web/e2e/README.md'
@@ -258,6 +258,7 @@ items rejected. Follow-up review recommended: true (patched score: 7).
 Verification performed:
 - `bash -n scripts/v2/story-e2e-evidence.sh scripts/v2/story-e2e-evidence.test.sh scripts/run_e2e.sh` passed.
 - `bash scripts/v2/story-e2e-evidence.test.sh` passed.
+
 - `bash scripts/v2/story-worktree-runtime.test.sh` passed.
 - `HATCAST_E2E_NO_BROWSER_INSTALL=1` with an empty browser cache made
   `scripts/run_e2e.sh` refuse without starting a Chromium download.
@@ -267,3 +268,52 @@ Residual risks: The gate has hermetic delivery verification, not a live HatCast
 product E2E run or human smoke. Coverage selection follows the repository's
 declared target naming convention; an authorized waiver remains an operator
 decision only if the no-coverage disposition is chosen.
+
+### 2026-08-25 — Review pass
+- intent_gap: 0
+- bad_spec: 0
+- patch: 0
+- defer: 0
+- reject: 16
+- addressed_findings:
+  - none
+
+### Build-auto finalization
+
+Summary: Revalidated the existing targeted-E2E evidence gate and its hermetic
+black-box coverage; no implementation change was needed in this pass.
+
+Files changed:
+- `_bmad-output/implementation-artifacts/spec-21-3-targeted-e2e-evidence.md`
+  — Records this workflow pass and review decision.
+
+Review findings: 0 patches applied; 0 items deferred; 16 items rejected as
+non-actionable for this diff, including orchestrator-owned sprint bookkeeping.
+Follow-up review recommendation: false (patched score: 0).
+
+Verification performed:
+- `bash scripts/v2/story-e2e-evidence.test.sh` passed.
+- `bash scripts/v2/story-worktree-runtime.test.sh` passed.
+- `bash -n scripts/v2/story-e2e-evidence.sh scripts/v2/story-e2e-evidence.test.sh scripts/run_e2e.sh` passed.
+- `git diff --check` passed.
+
+Residual risks: The verification is hermetic. It does not replace a future
+live product E2E or the separate human smoke handoff in story 21-4. A waiver
+policy is an operator decision only if the no-coverage path is selected.
+
+### 2026-08-26 — Targeted execution correction
+
+The first persisted live attestation exposed a serialization defect: its
+selected coverage was empty and its discovered coverage contained duplicates.
+The gate now uses distinct argument markers for the two arrays, and its
+hermetic test asserts their exact, separate values. `BUG-015` records the
+defect and its fix.
+
+Verification performed:
+- `bash scripts/v2/story-e2e-evidence.test.sh` passed.
+- `HATCAST_E2E_NO_BROWSER_INSTALL=1 PLAYWRIGHT_REUSE_SERVERS=0 bash
+  scripts/v2/story-e2e-evidence.sh --target 3-19 --rationale 'Retrait roster
+  saison'` passed.
+- The resulting attestation records `chromium-3-19` and
+  `apps/web/e2e/recette-3.19.spec.ts` separately in both `selection` and
+  `discovered`; its command uses the non-installing isolated runner profile.
