@@ -5,6 +5,7 @@ created: '2026-08-26'
 status: 'awaiting-operator'
 feature_branch: 'feat/21-4-human-smoke-handoff'
 baseline_commit: '38fc9534cfd33b3eafd7393e33655c05fa62a491'
+prior_e2e_evidence: '_bmad-output/implementation-artifacts/e2e-evidence/21-3-targeted-e2e-evidence.json'
 review_loop_iteration: 0
 followup_review_recommended: false
 context:

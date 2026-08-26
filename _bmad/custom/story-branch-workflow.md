@@ -84,8 +84,9 @@ approbation d'intégration.
 
 ### Handoff de smoke humain (Epic 21)
 
-Après `READINESS=ready` et une attestation E2E passée, ou sa disposition
-acceptée, préparer un guide JSON non secret contenant exactement `route`,
+Après `READINESS=ready` et l'attestation E2E antérieure déclarée dans la spec
+de la feature, passée ou avec sa disposition acceptée, préparer un guide JSON
+non secret contenant exactement `route`,
 `account_or_fixture_reference`, `actions` et `expected_observations`. Puis,
 depuis le worktree `feat/{story-key}` :
 

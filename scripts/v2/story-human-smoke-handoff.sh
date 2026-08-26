@@ -65,6 +65,27 @@ subprocess.check_call(['git', '-C', root, 'rev-parse', '--verify', '-q', baselin
 print(path + '\t' + baseline)
 PY
 }
+story_e2e_reference() {
+  local story="$1"
+  python3 - "${root}" "${story}" <<'PY'
+import os, re, sys
+root, story = sys.argv[1:]
+matches = []
+for base, dirs, names in os.walk(os.path.join(root, '_bmad-output', 'implementation-artifacts')):
+    dirs[:] = [d for d in dirs if not os.path.islink(os.path.join(base, d))]
+    for name in names:
+        path = os.path.join(base, name)
+        if not name.endswith('.md') or os.path.islink(path): continue
+        try: text = open(path, encoding='utf-8').read(8192)
+        except OSError: continue
+        branch = re.search(r'(?m)^feature_branch:\s*[\'\"]?([^\s\'\"]+)', text)
+        evidence = re.search(r'(?m)^prior_e2e_evidence:\s*[\'\"]?([^\s\'\"]+)', text)
+        if branch and evidence and branch.group(1) == 'feat/' + story:
+            matches.append(evidence.group(1))
+if len(matches) != 1: raise SystemExit(1)
+print(matches[0])
+PY
+}
 state_path() { printf '_bmad-output/implementation-artifacts/human-smoke/%s.json\n' "$(story_key)"; }
 ensure_state_parent() {
   local parent component current
@@ -107,14 +128,15 @@ PY
 }
 validate_evidence() {
   local story="$1" evidence
-  evidence="_bmad-output/implementation-artifacts/e2e-evidence/${story}.json"
+  evidence="$(story_e2e_reference "${story}")" || die "prior E2E evidence reference is missing or unsafe"
   safe_existing_file "${evidence}" || die "prior E2E evidence is missing or unsafe"
-  python3 - "${root}" "${evidence}" "${story}" <<'PY' || die "prior E2E evidence lacks a permitted outcome or disposition"
+  python3 - "${root}" "${evidence}" <<'PY' || die "prior E2E evidence lacks a permitted outcome or disposition"
 import datetime, json, os, re, sys
 try:
-    root, evidence, story = sys.argv[1:]
+    root, evidence = sys.argv[1:]
     data = json.load(open(os.path.join(root, evidence), encoding='utf-8'))
-    assert data['schema'] == 'hatcast.story-e2e-evidence.v1' and data['story_key'] == story
+    assert data['schema'] == 'hatcast.story-e2e-evidence.v1'
+    assert evidence.endswith('/' + data['story_key'] + '.json')
     outcome, disposition = data['outcome'], data['disposition']
     rel = lambda p: isinstance(p, str) and re.fullmatch(r'[A-Za-z0-9._/-]+', p) and '..' not in p and not p.startswith('/')
     selected = data.get('selection'); discovered = data.get('discovered')

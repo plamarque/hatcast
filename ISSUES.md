@@ -10,6 +10,25 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Open Issues
 
+### BUG-016 — Human smoke handoff rejected its declared prior E2E evidence
+- **ID**: BUG-016
+- **Status**: Fixed (2026-08-26)
+- **Severity**: High (delivery smoke blocked)
+- **Affected area**: `scripts/v2/story-human-smoke-handoff.sh` evidence gate
+- **Observed behavior**: The 21.4 handoff derived an E2E evidence path from its
+  own story key, although its Epic contract requires the prior 21.3 attestation.
+  It therefore rejected a valid 21.3 evidence file before starting the stack.
+- **Expected behavior**: The controller consumes the non-secret prior evidence
+  reference declared by the feature spec and verifies that the referenced file
+  matches its own evidence `story_key`.
+- **Cause**: The initial implementation conflated the smoke-handoff story key
+  with the already-validated E2E story key.
+- **Fix**: Add `prior_e2e_evidence` to the feature spec; resolve and validate
+  that declared repository-relative reference in the controller and its
+  hermetic black-box test.
+- **Repro**: From `feat/21-4-human-smoke-handoff`, start with the 21.3
+  attestation present and no synthetic 21.4 attestation.
+
 ### BUG-015 — Targeted E2E attestations lost the selected coverage
 - **ID**: BUG-015
 - **Status**: Fixed (2026-08-26)

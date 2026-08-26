@@ -12,9 +12,9 @@ cp "${source_root}/scripts/v2/story-human-smoke-handoff.sh" "${integration}/scri
 printf '#!/usr/bin/env bash\nprintf "READINESS=ready\\n"\n' >"${integration}/scripts/v2/story-worktree-runtime.sh"
 printf '#!/usr/bin/env bash\nprintf "started\\n" >>"${SMOKE_LAUNCH_LOG}"\ntrap "exit 0" TERM INT\nwhile :; do sleep 1; done\n' >"${integration}/scripts/start-dev.sh"
 chmod +x "${integration}/scripts/v2/"*.sh "${integration}/scripts/start-dev.sh"
-printf '%s\n' '---' 'feature_branch: feat/21-4-human-smoke-handoff' 'baseline_commit: BASELINE' '---' >"${integration}/_bmad-output/implementation-artifacts/spec-21-4-human-smoke-handoff.md"
+printf '%s\n' '---' 'feature_branch: feat/21-4-human-smoke-handoff' 'baseline_commit: BASELINE' 'prior_e2e_evidence: _bmad-output/implementation-artifacts/e2e-evidence/21-3-targeted-e2e-evidence.json' '---' >"${integration}/_bmad-output/implementation-artifacts/spec-21-4-human-smoke-handoff.md"
 printf '%s\n' '{"route":"/connexion","account_or_fixture_reference":"fixture: smoke-member","actions":["Open the route","Sign in"],"expected_observations":["The page loads","The member area appears"]}' >"${integration}/guide.json"
-printf '%s\n' '{"schema":"hatcast.story-e2e-evidence.v1","story_key":"21-4-human-smoke-handoff","outcome":"passed","disposition":"run","selection":["project:chromium-21-4"],"discovered":["project:chromium-21-4"],"report_reference":"apps/web/playwright-report/index.html","command":"HATCAST_E2E_NO_BROWSER_INSTALL=1 PLAYWRIGHT_REUSE_SERVERS=0 scripts/run_e2e.sh -- --project=chromium-21-4"}' >"${integration}/_bmad-output/implementation-artifacts/e2e-evidence/21-4-human-smoke-handoff.json"
+printf '%s\n' '{"schema":"hatcast.story-e2e-evidence.v1","story_key":"21-3-targeted-e2e-evidence","outcome":"passed","disposition":"run","selection":["project:chromium-21-4"],"discovered":["project:chromium-21-4"],"report_reference":"apps/web/playwright-report/index.html","command":"HATCAST_E2E_NO_BROWSER_INSTALL=1 PLAYWRIGHT_REUSE_SERVERS=0 scripts/run_e2e.sh -- --project=chromium-21-4"}' >"${integration}/_bmad-output/implementation-artifacts/e2e-evidence/21-3-targeted-e2e-evidence.json"
 printf '{"name":"fixture"}\n' >"${integration}/package.json"
 git -C "${integration}" add . && git -C "${integration}" commit -m 'test: Add smoke fixture' >/dev/null
 baseline="$(git -C "${integration}" rev-parse HEAD)"
@@ -44,13 +44,13 @@ printf '%s\n' 'guide.ignored.json' >>"${integration}/.git/info/exclude"
 cp "${unit}/guide.json" "${unit}/guide.ignored.json"
 expect_fail "${base[@]}" bash "${gate}" start --guide guide.ignored.json
 [[ ! -e "${launch_log}" ]] || fail 'unsafe or ignored guide launched a stack'
-printf '%s\n' '{"schema":"hatcast.story-e2e-evidence.v1","story_key":"21-4-human-smoke-handoff","outcome":"failed:1","disposition":"run"}' >"${unit}/_bmad-output/implementation-artifacts/e2e-evidence/21-4-human-smoke-handoff.json"
+printf '%s\n' '{"schema":"hatcast.story-e2e-evidence.v1","story_key":"21-3-targeted-e2e-evidence","outcome":"failed:1","disposition":"run"}' >"${unit}/_bmad-output/implementation-artifacts/e2e-evidence/21-3-targeted-e2e-evidence.json"
 expect_fail "${base[@]}" bash "${gate}" start --guide guide.json
 [[ ! -e "${launch_log}" ]] || fail 'failed E2E evidence launched a stack'
-printf '%s\n' '{"schema":"hatcast.story-e2e-evidence.v1","story_key":"21-4-human-smoke-handoff","outcome":"passed","disposition":"run","selection":["project:chromium-21-4"],"discovered":["project:chromium-21-4"],"report_reference":"apps/web/playwright-report/index.html","command":"HATCAST_E2E_NO_BROWSER_INSTALL=1 PLAYWRIGHT_REUSE_SERVERS=0 scripts/run_e2e.sh -- --project=chromium-21-4"}' >"${unit}/_bmad-output/implementation-artifacts/e2e-evidence/21-4-human-smoke-handoff.json"
-printf '%s\n' '{"schema":"hatcast.story-e2e-evidence.v1","story_key":"21-4-human-smoke-handoff","outcome":"passed","disposition":"run","selection":[],"discovered":[],"report_reference":"apps/web/playwright-report/index.html","command":"HATCAST_E2E_NO_BROWSER_INSTALL=1 PLAYWRIGHT_REUSE_SERVERS=0 scripts/run_e2e.sh -- --project=chromium-21-4"}' >"${unit}/_bmad-output/implementation-artifacts/e2e-evidence/21-4-human-smoke-handoff.json"
+printf '%s\n' '{"schema":"hatcast.story-e2e-evidence.v1","story_key":"21-3-targeted-e2e-evidence","outcome":"passed","disposition":"run","selection":["project:chromium-21-4"],"discovered":["project:chromium-21-4"],"report_reference":"apps/web/playwright-report/index.html","command":"HATCAST_E2E_NO_BROWSER_INSTALL=1 PLAYWRIGHT_REUSE_SERVERS=0 scripts/run_e2e.sh -- --project=chromium-21-4"}' >"${unit}/_bmad-output/implementation-artifacts/e2e-evidence/21-3-targeted-e2e-evidence.json"
+printf '%s\n' '{"schema":"hatcast.story-e2e-evidence.v1","story_key":"21-3-targeted-e2e-evidence","outcome":"passed","disposition":"run","selection":[],"discovered":[],"report_reference":"apps/web/playwright-report/index.html","command":"HATCAST_E2E_NO_BROWSER_INSTALL=1 PLAYWRIGHT_REUSE_SERVERS=0 scripts/run_e2e.sh -- --project=chromium-21-4"}' >"${unit}/_bmad-output/implementation-artifacts/e2e-evidence/21-3-targeted-e2e-evidence.json"
 expect_fail "${base[@]}" bash "${gate}" start --guide guide.json
-printf '%s\n' '{"schema":"hatcast.story-e2e-evidence.v1","story_key":"21-4-human-smoke-handoff","outcome":"passed","disposition":"run","selection":["project:chromium-21-4"],"discovered":["project:chromium-21-4"],"report_reference":"apps/web/playwright-report/index.html","command":"HATCAST_E2E_NO_BROWSER_INSTALL=1 PLAYWRIGHT_REUSE_SERVERS=0 scripts/run_e2e.sh -- --project=chromium-21-4"}' >"${unit}/_bmad-output/implementation-artifacts/e2e-evidence/21-4-human-smoke-handoff.json"
+printf '%s\n' '{"schema":"hatcast.story-e2e-evidence.v1","story_key":"21-3-targeted-e2e-evidence","outcome":"passed","disposition":"run","selection":["project:chromium-21-4"],"discovered":["project:chromium-21-4"],"report_reference":"apps/web/playwright-report/index.html","command":"HATCAST_E2E_NO_BROWSER_INSTALL=1 PLAYWRIGHT_REUSE_SERVERS=0 scripts/run_e2e.sh -- --project=chromium-21-4"}' >"${unit}/_bmad-output/implementation-artifacts/e2e-evidence/21-3-targeted-e2e-evidence.json"
 expect_fail "${base[@]}" SMOKE_PORT_CONFLICT='-iTCP:8080' bash "${gate}" start --guide guide.json
 [[ ! -e "${launch_log}" ]] || fail 'occupied port launched a stack'
 "${base[@]}" bash "${gate}" start --guide guide.json >"${tmp_root}/handoff.json"
@@ -98,7 +98,7 @@ PY
 )"
 ! kill -0 "${group}" 2>/dev/null || fail 'startup failure left the owned group alive'
 rm -f "${state}"
-printf '%s\n' '{"schema":"hatcast.story-e2e-evidence.v1","story_key":"21-4-human-smoke-handoff","outcome":"not-run","disposition":"test-now:apps/web/e2e/new-smoke.spec.ts","selection":[],"discovered":[]}' >"${unit}/_bmad-output/implementation-artifacts/e2e-evidence/21-4-human-smoke-handoff.json"
+printf '%s\n' '{"schema":"hatcast.story-e2e-evidence.v1","story_key":"21-3-targeted-e2e-evidence","outcome":"not-run","disposition":"test-now:apps/web/e2e/new-smoke.spec.ts","selection":[],"discovered":[]}' >"${unit}/_bmad-output/implementation-artifacts/e2e-evidence/21-3-targeted-e2e-evidence.json"
 "${base[@]}" bash "${gate}" start --guide guide.json >/dev/null
 "${base[@]}" bash "${gate}" stop >/dev/null
 echo 'PASS: story human smoke handoff'
