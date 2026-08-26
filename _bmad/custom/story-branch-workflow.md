@@ -108,6 +108,44 @@ d'intégrer. À la fin de la recette, arrêter uniquement cette instance :
 vérifiable. Le contrôleur refuse tout état existant, stale ou non possédé ; il
 ne recherche ni n'arrête de processus externes.
 
+### Contrôleur de livraison (Epic 21)
+
+Depuis le worktree `feat/{story-key}`, après une nouvelle inspection
+`READINESS=ready` et l'attestation E2E déclarée par la spec :
+
+```bash
+./scripts/v2/story-delivery-gates.sh request-human-smoke
+```
+
+Le résultat retenu ne contient que des références relatives et des états
+sémantiques. Il permet de demander le handoff de smoke séparé ; il ne démarre
+aucun service et ne vaut ni review Git ni autorisation d'intégrer.
+
+Le propriétaire exécute alors le handoff de smoke séparé, puis l'arrête après
+ses actions externes :
+
+```bash
+./scripts/v2/story-human-smoke-handoff.sh start --guide docs/v2/smoke/story-guide.json
+# external human smoke actions
+./scripts/v2/story-human-smoke-handoff.sh stop
+```
+
+Après le smoke externe, arrêté proprement par son propriétaire, l'opérateur
+fournit son jeton de confirmation sans le persister :
+
+```bash
+./scripts/v2/story-delivery-gates.sh reverify --confirmation OPERATOR_TOKEN
+```
+
+Cette re-vérification exige le résultat de demande retenu et un état smoke
+`stopped` cohérent. Elle confirme seulement que les preuves sont encore
+valides. L'approbation de review reste humaine et l'intégration reste, depuis
+un checkout `v2` propre et à jour, la commande inchangée :
+
+```bash
+./scripts/v2/story-branch.sh integrate STORY_KEY
+```
+
 ## BMad Loop preflight (Epic 21)
 
 Before any Loop command, operate from the clean `v2` integration checkout. This
