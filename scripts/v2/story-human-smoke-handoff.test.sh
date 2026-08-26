@@ -22,7 +22,7 @@ sed -i.bak "s/BASELINE/${baseline}/" "${integration}/_bmad-output/implementation
 git -C "${integration}" add . && git -C "${integration}" commit -m 'test: Add baseline identity' >/dev/null && git -C "${integration}" branch -M v2
 git -C "${integration}" worktree add -b feat/21-4-human-smoke-handoff "${unit}" >/dev/null
 mkdir -p "${bin}"
-printf '#!/usr/bin/env bash\n[[ -n "${SMOKE_PORT_CONFLICT:-}" && "$*" == *"${SMOKE_PORT_CONFLICT}"* ]]\n' >"${bin}/lsof"
+printf '#!/usr/bin/env bash\nif [[ -n "${SMOKE_PORT_CONFLICT:-}" && "$*" == *"${SMOKE_PORT_CONFLICT}"* ]]; then exit 0; fi\nrelease_port="${SMOKE_PORT_RELEASE_PORT:-8080}"\nif [[ -n "${SMOKE_PORT_RELEASE_MARKER:-}" && -e "${SMOKE_PORT_RELEASE_MARKER}" && "$*" == *"-iTCP:${release_port}"* ]]; then\n  count=0; [[ -f "${SMOKE_PORT_PROBE_COUNT_FILE}" ]] && count="$(cat "${SMOKE_PORT_PROBE_COUNT_FILE}")"\n  count=$((count + 1)); printf "%%s\\n" "${count}" >"${SMOKE_PORT_PROBE_COUNT_FILE}"\n  (( count <= ${SMOKE_PORT_RELEASE_AFTER:-0} )) && exit 0\nfi\nexit 1\n' >"${bin}/lsof"
 printf '#!/usr/bin/env bash\n[[ "${SMOKE_ENDPOINTS:-ready}" == ready ]]\n' >"${bin}/curl"
 chmod +x "${bin}/lsof" "${bin}/curl"
 # The controller marker is a documented, real start-dev option; verify its
@@ -35,7 +35,8 @@ env PATH="${parser_root}/bin:${PATH}" START_DEV_NPM_LOG="${tmp_root}/start-dev-n
 expect_fail env PATH="${parser_root}/bin:${PATH}" bash "${parser_root}/scripts/start-dev.sh" --legacy --human-smoke-owner=unsafe_marker
 grep -Fqx '[[ -z "${HUMAN_SMOKE_OWNER_MARKER}" ]] && set -m' "${source_root}/scripts/start-dev.sh" || fail 'real start-dev does not retain the smoke process group'
 gate="${unit}/scripts/v2/story-human-smoke-handoff.sh"
-base=(env PATH="${bin}:${PATH}" SMOKE_LAUNCH_LOG="${launch_log}" HATCAST_SMOKE_WAIT_ATTEMPTS=1)
+release_marker="${tmp_root}/release-ports"; probe_count="${tmp_root}/port-probes"
+base=(env PATH="${bin}:${PATH}" SMOKE_LAUNCH_LOG="${launch_log}" HATCAST_SMOKE_WAIT_ATTEMPTS=1 HATCAST_SMOKE_STOP_PORT_WAIT_ATTEMPTS=5 SMOKE_PORT_RELEASE_MARKER="${release_marker}" SMOKE_PORT_PROBE_COUNT_FILE="${probe_count}" SMOKE_PORT_RELEASE_AFTER=2 SMOKE_PORT_RELEASE_PORT=8080)
 printf '%s\n' '{"route":"/connexion","actions":["Open"],"expected_observations":["Loaded"]}' >"${unit}/guide.bad.json"
 expect_fail "${base[@]}" bash "${gate}" start --guide guide.bad.json
 [[ ! -e "${launch_log}" ]] || fail 'invalid guide launched a stack'
@@ -72,15 +73,27 @@ import json,sys
 p=json.load(open(sys.argv[1])); p['baseline_commit']=sys.argv[2]; json.dump(p, open(sys.argv[1], 'w'))
 PY
 expect_fail "${base[@]}" bash "${gate}" start --guide guide.json
+touch "${release_marker}"
 "${base[@]}" bash "${gate}" stop >"${tmp_root}/stop.out"
 grep -Fqx 'SMOKE_STOP=clean' "${tmp_root}/stop.out" || fail 'owned stack did not cleanly stop'
 grep -Fq '"result": "stopped"' "${state}" || fail 'clean stop result was not persisted'
+[[ "$(cat "${probe_count}")" == 3 ]] || fail 'stop did not wait for delayed port release'
+rm -f "${release_marker}" "${probe_count}"
 group="$(python3 - "${state}" <<'PY'
 import json,sys
 print(json.load(open(sys.argv[1]))['owned_process_group'])
 PY
 )"
 ! kill -0 "${group}" 2>/dev/null || fail 'clean stop left the owned group alive'
+"${base[@]}" SMOKE_PORT_RELEASE_PORT=4200 bash "${gate}" start --guide guide.json >/dev/null
+touch "${release_marker}"
+"${base[@]}" SMOKE_PORT_RELEASE_PORT=4200 bash "${gate}" stop >"${tmp_root}/second-stop.out"
+grep -Fqx 'SMOKE_STOP=clean' "${tmp_root}/second-stop.out" || fail 'port 4200 did not cleanly stop after delayed release'
+[[ "$(cat "${probe_count}")" == 3 ]] || fail 'stop did not wait for delayed port 4200 release'
+rm -f "${release_marker}" "${probe_count}"
+"${base[@]}" bash "${gate}" start --guide guide.json >/dev/null
+expect_fail "${base[@]}" SMOKE_PORT_CONFLICT='-iTCP:8080' bash "${gate}" stop
+grep -Fq '"result": "stopped:ports-unreleased"' "${state}" || fail 'persistent port conflict was not persisted'
 "${base[@]}" bash "${gate}" start --guide guide.json >/dev/null
 group="$(python3 - "${state}" <<'PY'
 import json,sys

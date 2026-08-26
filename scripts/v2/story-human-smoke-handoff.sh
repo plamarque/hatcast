@@ -226,6 +226,15 @@ stop_group() {
   for ((i=0; i<60; i++)); do kill -0 -- "-${group}" 2>/dev/null || return 0; sleep 0.5; done
   return 1
 }
+wait_for_ports_release() {
+  local attempts="${HATCAST_SMOKE_STOP_PORT_WAIT_ATTEMPTS:-10}" i
+  [[ "${attempts}" =~ ^[1-9][0-9]*$ && "${attempts}" -le 30 ]] || attempts=10
+  for ((i=0; i<attempts; i++)); do
+    [[ "$(port_state 8080)" == free && "$(port_state 4200)" == free ]] && return 0
+    (( i + 1 < attempts )) && sleep 0.2
+  done
+  return 1
+}
 cleanup_owned_launch() {
   local ec=$?
   if [[ "${launch_active}" == true && -n "${owned_group_id}" ]] && owned_group "${owned_group_id}" "${owned_marker}"; then
@@ -299,7 +308,7 @@ stop() {
     # unowned or reused group.
     group_missing "${group}" || die "smoke state is not demonstrably owned by this controller"
   fi
-  [[ "$(port_state 8080)" == free && "$(port_state 4200)" == free ]] || { write_state stopped:ports-unreleased "${group}" "${marker}" "$(story_key)" "${baseline}" "${guide}" "${evidence}" "${outcome}"; die "owned stack stopped but reserved ports remain unavailable"; }
+  wait_for_ports_release || { write_state stopped:ports-unreleased "${group}" "${marker}" "$(story_key)" "${baseline}" "${guide}" "${evidence}" "${outcome}"; die "owned stack stopped but reserved ports remain unavailable"; }
   write_state stopped "${group}" "${marker}" "$(story_key)" "${baseline}" "${guide}" "${evidence}" "${outcome}"
   echo 'SMOKE_STOP=clean'
 }

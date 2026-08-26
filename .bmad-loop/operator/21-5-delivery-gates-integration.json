@@ -1,0 +1,13 @@
+{
+  "actions": [
+    "Create a non-secret repository-relative smoke guide with the selected route, fixture or account reference, actions, and expected observations.",
+    "Run `story-delivery-gates.sh request-human-smoke` from this registered feature worktree, then start the smoke handoff with that guide.",
+    "Open the emitted `https://localhost:4200` URL in a browser, perform the guide actions, and stop the owned smoke handoff.",
+    "Run `story-delivery-gates.sh reverify --confirmation OPERATOR_TOKEN` after the clean smoke stop without treating its result as Git approval.",
+    "Approve the code review explicitly, then run `story-branch.sh integrate 21-5-delivery-gates-integration` only from clean current `v2` if approved."
+  ],
+  "parked_at": "2026-08-26",
+  "run_id": "20260826-220922-6669",
+  "spec_file": "_bmad-output/implementation-artifacts/spec-21-5-delivery-gates-integration.md",
+  "story_key": "21-5-delivery-gates-integration"
+}
