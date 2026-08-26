@@ -30,8 +30,6 @@
 # Mode --offline : base H2 fichier sous .local/hatcast-offline/ (pas de Neon requis).
 
 set -euo pipefail
-# Contrôle de jobs : le PID du job en arrière-plan devient chef de groupe → `kill -TERM -$pid` arrête Gradle **et** la JVM.
-set -m
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # shellcheck source=load-dotenv.sh
@@ -55,6 +53,10 @@ for arg in "$@"; do
       ;;
   esac
 done
+# Outside the human-smoke controller, job control keeps the API wrapper and
+# JVM together.  A smoke handoff instead owns the entire start-dev process
+# group, so its verified group signal must also reach the API and web children.
+[[ -z "${HUMAN_SMOKE_OWNER_MARKER}" ]] && set -m
 if [[ "${HATCAST_SPRING_PROFILE:-}" == *offline* ]]; then
   OFFLINE=1
 fi

@@ -10,6 +10,27 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Open Issues
 
+### BUG-017 — Human smoke stop did not reach job-control child groups
+- **ID**: BUG-017
+- **Status**: Fixed (2026-08-26)
+- **Severity**: High (owned development stack could remain running)
+- **Affected area**: `scripts/start-dev.sh`; `scripts/v2/story-human-smoke-handoff.sh`
+- **Observed behavior**: A human smoke handoff sent `TERM` to its verified
+  `start-dev.sh` group, but job control had placed Gradle/API and the web
+  process in separate groups. The parent remained waiting and the controller
+  refused to record a clean stop.
+- **Expected behavior**: The verified smoke group contains the stack it owns,
+  and a bounded clean stop records completion only after both reserved ports
+  are free.
+- **Cause**: `start-dev.sh` enabled job control before parsing the dedicated
+  smoke-owner option; the controller also timed out before the API's bounded
+  cleanup period could complete.
+- **Fix**: Disable job control only for the marked human-smoke invocation,
+  extend the bounded stop wait, and safely record a stop that completed after
+  the controller's earlier timeout only when the former PID is verifiably gone.
+- **Repro**: Start a smoke handoff, then run its `stop` command while the API
+  and front development processes are active.
+
 ### BUG-016 — Human smoke handoff rejected its declared prior E2E evidence
 - **ID**: BUG-016
 - **Status**: Fixed (2026-08-26)

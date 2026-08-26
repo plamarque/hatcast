@@ -202,6 +202,12 @@ owned_group() {
   command="$(ps -o command= -p "${group}" 2>/dev/null || true)"
   [[ "${command}" == *"--human-smoke-owner=${marker}"* ]]
 }
+group_missing() {
+  local group="$1" observed
+  kill -0 "${group}" 2>/dev/null && return 1
+  observed="$(ps -o pgid= -p "${group}" 2>/dev/null | tr -d '[:space:]')"
+  [[ -z "${observed}" ]]
+}
 wait_for_endpoints() {
   local attempts="${HATCAST_SMOKE_WAIT_ATTEMPTS:-60}" i
   [[ "${attempts}" =~ ^[1-9][0-9]*$ ]] || attempts=60
@@ -214,7 +220,10 @@ wait_for_endpoints() {
 stop_group() {
   local group="$1" i
   kill -TERM -- "-${group}" 2>/dev/null || return 1
-  for ((i=0; i<20; i++)); do kill -0 -- "-${group}" 2>/dev/null || return 0; sleep 0.5; done
+  # start-dev may give Gradle up to 20 seconds to stop the API before its
+  # controlled fallback.  Wait beyond that bounded cleanup rather than
+  # reporting a false failed stop while the owned stack is still exiting.
+  for ((i=0; i<60; i++)); do kill -0 -- "-${group}" 2>/dev/null || return 0; sleep 0.5; done
   return 1
 }
 cleanup_owned_launch() {
@@ -281,8 +290,15 @@ PY
 stop() {
   local values baseline guide evidence outcome owner result group marker story
   unit_valid || die "must run from a registered feat/{story-key} worktree"; values="$(read_state)"; IFS=$'\t' read -r baseline guide evidence outcome owner result group marker <<<"${values}"
-  [[ "${result}" == running ]] || die "smoke handoff is not running"; owned_group "${group}" "${marker}" || die "smoke state is not demonstrably owned by this controller"
-  stop_group "${group}" || die "owned smoke process group did not stop"
+  [[ "${result}" == running ]] || die "smoke handoff is not running"
+  if owned_group "${group}" "${marker}"; then
+    stop_group "${group}" || die "owned smoke process group did not stop"
+  else
+    # A previous controlled stop can finish after its timeout.  If its process
+    # group is now gone, record the verified clean result; never signal an
+    # unowned or reused group.
+    group_missing "${group}" || die "smoke state is not demonstrably owned by this controller"
+  fi
   [[ "$(port_state 8080)" == free && "$(port_state 4200)" == free ]] || { write_state stopped:ports-unreleased "${group}" "${marker}" "$(story_key)" "${baseline}" "${guide}" "${evidence}" "${outcome}"; die "owned stack stopped but reserved ports remain unavailable"; }
   write_state stopped "${group}" "${marker}" "$(story_key)" "${baseline}" "${guide}" "${evidence}" "${outcome}"
   echo 'SMOKE_STOP=clean'

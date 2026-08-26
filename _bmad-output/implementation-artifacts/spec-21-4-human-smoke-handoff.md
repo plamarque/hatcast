@@ -82,6 +82,16 @@ The controller keeps machine lifecycle facts separate from human judgement. The 
 - `bash -n scripts/v2/story-human-smoke-handoff.sh scripts/v2/story-human-smoke-handoff.test.sh` — expected: no shell syntax errors.
 - `git diff --check` — expected: no whitespace errors.
 
+## Spec Change Log
+
+### 2026-08-26 — Smoke stop lifecycle repair
+
+- Keep the full development stack in the controller-owned process group for a
+  marked human-smoke launch; retain ordinary job-control behavior otherwise.
+- Wait for the bounded API cleanup before reporting stop failure, and record a
+  clean completion only when the prior owned group is verifiably absent and the
+  reserved ports are free.
+
 ## Review Triage Log
 
 ### 2026-08-26 — Review pass

@@ -10,7 +10,7 @@ git init "${integration}" >/dev/null; git -C "${integration}" config user.email 
 mkdir -p "${integration}/scripts/v2" "${integration}/_bmad-output/implementation-artifacts/e2e-evidence"
 cp "${source_root}/scripts/v2/story-human-smoke-handoff.sh" "${integration}/scripts/v2/"
 printf '#!/usr/bin/env bash\nprintf "READINESS=ready\\n"\n' >"${integration}/scripts/v2/story-worktree-runtime.sh"
-printf '#!/usr/bin/env bash\nprintf "started\\n" >>"${SMOKE_LAUNCH_LOG}"\ntrap "exit 0" TERM INT\nwhile :; do sleep 1; done\n' >"${integration}/scripts/start-dev.sh"
+printf '#!/usr/bin/env bash\nif [[ "$*" != *"--human-smoke-owner="* ]]; then set -m; fi\nprintf "started\\n" >>"${SMOKE_LAUNCH_LOG}"\ntrap "exit 0" TERM INT\nsleep 600 &\nwait $!\n' >"${integration}/scripts/start-dev.sh"
 chmod +x "${integration}/scripts/v2/"*.sh "${integration}/scripts/start-dev.sh"
 printf '%s\n' '---' 'feature_branch: feat/21-4-human-smoke-handoff' 'baseline_commit: BASELINE' 'prior_e2e_evidence: _bmad-output/implementation-artifacts/e2e-evidence/21-3-targeted-e2e-evidence.json' '---' >"${integration}/_bmad-output/implementation-artifacts/spec-21-4-human-smoke-handoff.md"
 printf '%s\n' '{"route":"/connexion","account_or_fixture_reference":"fixture: smoke-member","actions":["Open the route","Sign in"],"expected_observations":["The page loads","The member area appears"]}' >"${integration}/guide.json"
@@ -33,6 +33,7 @@ printf '#!/usr/bin/env bash\nprintf "%s\\n" "$*" >"${START_DEV_NPM_LOG}"\n' >"${
 env PATH="${parser_root}/bin:${PATH}" START_DEV_NPM_LOG="${tmp_root}/start-dev-npm.log" bash "${parser_root}/scripts/start-dev.sh" --legacy --human-smoke-owner=smoke-parser
 [[ -s "${tmp_root}/start-dev-npm.log" ]] || fail 'real start-dev parser did not accept the smoke owner option'
 expect_fail env PATH="${parser_root}/bin:${PATH}" bash "${parser_root}/scripts/start-dev.sh" --legacy --human-smoke-owner=unsafe_marker
+grep -Fqx '[[ -z "${HUMAN_SMOKE_OWNER_MARKER}" ]] && set -m' "${source_root}/scripts/start-dev.sh" || fail 'real start-dev does not retain the smoke process group'
 gate="${unit}/scripts/v2/story-human-smoke-handoff.sh"
 base=(env PATH="${bin}:${PATH}" SMOKE_LAUNCH_LOG="${launch_log}" HATCAST_SMOKE_WAIT_ATTEMPTS=1)
 printf '%s\n' '{"route":"/connexion","actions":["Open"],"expected_observations":["Loaded"]}' >"${unit}/guide.bad.json"
@@ -80,6 +81,16 @@ print(json.load(open(sys.argv[1]))['owned_process_group'])
 PY
 )"
 ! kill -0 "${group}" 2>/dev/null || fail 'clean stop left the owned group alive'
+"${base[@]}" bash "${gate}" start --guide guide.json >/dev/null
+group="$(python3 - "${state}" <<'PY'
+import json,sys
+print(json.load(open(sys.argv[1]))['owned_process_group'])
+PY
+)"
+kill -TERM -- "-${group}"
+for ((i=0; i<20; i++)); do kill -0 -- "-${group}" 2>/dev/null || break; sleep 0.1; done
+"${base[@]}" bash "${gate}" stop >"${tmp_root}/recovered-stop.out"
+grep -Fqx 'SMOKE_STOP=clean' "${tmp_root}/recovered-stop.out" || fail 'completed owned stop was not recorded'
 expect_fail "${base[@]}" bash "${gate}" status
 expect_fail "${base[@]}" bash "${gate}" stop
 python3 - "${state}" <<'PY'
