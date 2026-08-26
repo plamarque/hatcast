@@ -1,0 +1,33 @@
+- id: "21-6"
+  title: Prepare external Loop worktrees deterministically
+  description: >-
+    Implement the declarative Loop preparation plugin and its tested repository-owned helper
+    so normal stories and sweep bundles satisfy CAP-1 before external-worktree validation.
+    Preserve the existing `story-branch.sh start` contract and fail closed on invalid state.
+  spec_checkpoint: true
+  done_checkpoint: true
+  invoke_dev_with: >-
+    This story may only be dispatched after Epic 21 stories 21-4 and 21-5 have cleared their
+    operator gates. Work from a clean v2 integration checkout; do not modify sprint-status.yaml.
+- id: "21-7"
+  title: Add review-gated integration handoff and cleanup control
+  description: >-
+    Implement CAP-2 and CAP-3: durable post-delivery handoffs plus an explicitly approved
+    integration entrypoint that delegates to the existing story-branch integration contract.
+    It must preserve units on every failure and cannot infer human review or approval.
+  spec_checkpoint: true
+  done_checkpoint: true
+  invoke_dev_with: >-
+    Requires 21-6 integrated and a clean v2 checkout. Do not automate human approval, merge,
+    push, remote branch deletion, or cleanup outside scripts/v2/story-branch.sh integrate.
+- id: "21-8"
+  title: Launch BMad builds only from validated story units
+  description: >-
+    Implement the supported deterministic launch paths for bmad-build and bmad-build-auto,
+    satisfying CAP-4 without relying on prompt compliance for worktree correctness.
+    Validate key, branch, registration, and runtime before skill invocation and reject v2.
+  spec_checkpoint: true
+  done_checkpoint: true
+  invoke_dev_with: >-
+    Requires 21-6 and 21-7 integrated. Keep skill customizations advisory only; enforce lifecycle
+    invariants through repository-owned commands and isolated Git-fixture tests.
