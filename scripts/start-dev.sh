@@ -7,6 +7,7 @@
 #   ./scripts/start-dev.sh --with-push --no-tailscale
 #   ./scripts/start-dev.sh --no-tailscale   # sans Tailscale Serve (accès mobile MagicDNS)
 #   ./scripts/start-dev.sh --offline   # sans Neon : base H2 locale + comptes seed Improbots
+#   ./scripts/start-dev.sh --human-smoke-owner=MARKER  # marqueur non secret du contrôleur smoke
 #   ./scripts/start-dev.sh --legacy   # ancien comportement : seulement le serveur V1 (Vue / Vite)
 #
 # Prérequis : `npm install` à la racine ; JDK 21 pour Gradle.
@@ -42,11 +43,16 @@ cd "$ROOT"
 SKIP_TAILSCALE_SERVE="${HATCAST_SKIP_TAILSCALE_SERVE:-0}"
 WITH_PUSH="${HATCAST_START_DEV_WITH_PUSH:-0}"
 OFFLINE="${HATCAST_START_DEV_OFFLINE:-0}"
+HUMAN_SMOKE_OWNER_MARKER=""
 for arg in "$@"; do
   case "$arg" in
     --no-tailscale) SKIP_TAILSCALE_SERVE=1 ;;
     --with-push | --push-test) WITH_PUSH=1 ;;
     --offline) OFFLINE=1 ;;
+    --human-smoke-owner=*)
+      HUMAN_SMOKE_OWNER_MARKER="${arg#--human-smoke-owner=}"
+      [[ "${HUMAN_SMOKE_OWNER_MARKER}" =~ ^[A-Za-z0-9-]+$ ]] || { echo "Erreur : marqueur smoke invalide." >&2; exit 2; }
+      ;;
   esac
 done
 if [[ "${HATCAST_SPRING_PROFILE:-}" == *offline* ]]; then
@@ -304,26 +310,9 @@ wait_for_mailpit_smtp() {
   echo "  ⚠ Mailpit SMTP :${MAILPIT_SMTP_PORT} injoignable après 10 s — vérifiez Docker (docker ps)."
 }
 
-# Arrête tout ce qui écoute sur 8080 et ressemble à la JVM Spring / Gradle (repli si le groupe de processus n’a pas suffi).
-free_hatcast_api_port() {
-  local p args
-  for p in $(lsof -nP -tiTCP:8080 -sTCP:LISTEN 2>/dev/null || true); do
-    args=$(ps -p "$p" -o args= 2>/dev/null || true)
-    [[ "$args" == *java* ]] || [[ "$(ps -p "$p" -o comm= 2>/dev/null)" == *java* ]] || continue
-    kill -TERM "$p" 2>/dev/null || true
-  done
-  sleep 1
-  for p in $(lsof -nP -tiTCP:8080 -sTCP:LISTEN 2>/dev/null || true); do
-    args=$(ps -p "$p" -o args= 2>/dev/null || true)
-    [[ "$args" == *java* ]] || [[ "$(ps -p "$p" -o comm= 2>/dev/null)" == *java* ]] || continue
-    kill -KILL "$p" 2>/dev/null || true
-  done
-}
-
 stop_api_tree() {
   [[ -z "$API_PID" ]] && return 0
   if ! kill -0 "$API_PID" 2>/dev/null; then
-    free_hatcast_api_port
     return 0
   fi
   # Tuer le groupe de processus (Gradle wrapper + JVM enfant).
@@ -341,7 +330,6 @@ stop_api_tree() {
     kill -KILL -"$API_PID" 2>/dev/null || kill -KILL "$API_PID" 2>/dev/null || true
   fi
   wait "$API_PID" 2>/dev/null || true
-  free_hatcast_api_port
 }
 
 WEB_WATCH_PID=""

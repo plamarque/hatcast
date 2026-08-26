@@ -22,6 +22,7 @@
     "test:unit": "npm run test:unit -w hatcast-legacy",
     "test:story-worktree": "bash scripts/v2/story-branch.test.sh",
     "test:story-worktree-runtime": "bash scripts/v2/story-worktree-runtime.test.sh",
+    "test:story-human-smoke-handoff": "bash scripts/v2/story-human-smoke-handoff.test.sh",
     "replay": "node scripts/replay-season.js",
     "export:v1-members": "node scripts/v1-export-troupe-members-csv.js",
     "export:v1-users": "node scripts/v1-export-season-users-csv.js",
