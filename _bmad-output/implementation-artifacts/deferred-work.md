@@ -1,572 +1,1460 @@
-# Deferred work (actif)
+# Deferred Work
 
-**Hygiène DOC-1** — MAJ **2026-06-09**. **T0** et **T1** clôturés ; restant ordonné **coût vs bénéfice** — voir [`deferred-triage-2026-06.md`](deferred-triage-2026-06.md) §3–4. Historique : [`deferred-work-archive.md`](deferred-work-archive.md).
+### DW-129: Versions `posthog-js` divergentes entre legacy (^1.391.2) et web (^1.379.2) — aligner à terme, hors scope critique cutover M4.
 
-**Contexte PLAN :** release train **V2.0.x** OK ; **M4** audience reportée (~août 2026) ; vague **2.1.0** (démo commission) en cours.
+origin: migrated from legacy ledger ("Deferred from: code review of 11-3-v1-v2-cutover-funnel-posthog (2026-06-19)"), 2026-08-26
+location: n/a
+reason: Versions `posthog-js` divergentes entre legacy (^1.391.2) et web (^1.379.2) — aligner à terme, hors scope critique cutover M4.
+status: open
 
-**Règle :** nouvelle revue → entrée ici si **T0–T2** ; sinon archive + ligne triage.
+### DW-130: Tests V1 sans mock PostHog initialisé — couverture partielle AC15 acceptable MVP ; renforcer si régression funnel.
 
----
+origin: migrated from legacy ledger ("Deferred from: code review of 11-3-v1-v2-cutover-funnel-posthog (2026-06-19)"), 2026-08-26
+location: n/a
+reason: Tests V1 sans mock PostHog initialisé — couverture partielle AC15 acceptable MVP ; renforcer si régression funnel.
+status: open
 
-## Fermé / accepté (ne pas rouvrir)
+### DW-131: `ObjectProvider<DrawWeightPipeline>` court-circuite la résolution — pattern test voulu (story 19.18 task 6), conservé pour `@Primary` test beans.
 
-| ID / story | Clôture | Note |
-|------------|---------|------|
-| **DW-101/102** | 2026-06-04 | Story **3.22** — coach match API + seeds |
-| **DW-103** | accepté | Pas de backfill matchs historiques |
-| **DW-104** | 2026-06-08 | Story **1.8** — retry signup + login recovery |
-| **DW-105** | 2026-06-07 | Spec **dw-105** — IdP `deleteUser` post-commit (`AFTER_COMMIT`) |
-| **DW-106** | 2026-06-07 | Spec **dw-106** — intent `COMPOSITION_SHARED` + `toCategory()` ; dispatch **8.4** reste à câbler |
-| **DW-107** | 2026-06-08 | Story **8.5b** — garde `AssigneePresenceReminderJob` |
-| **DW-111** | 2026-06-05 | Replay migration × ≥3 (PO) |
-| **DW-112** | 2026-06-07 | Deploy `--env-vars-file` YAML |
-| **DW-113** | 2026-06-08 | **Obsolète** — hub sans prefs troupe (**17.29**) |
-| **DW-114** | 2026-06-07 | Post-save re-check `reinclude` → 409 ; fenêtre commit-edge acceptée |
-| **DW-118** | 2026-06-07 | Audit SQL staging + prod : 0 membre `REMOVED` + `removal_source` NULL — pas de migration V61 ; voir [`dw-118-investigation.md`](../investigations/dw-118-investigation.md) |
-| **6.17** | 2026-06-04 | Annonces + `lastNotifiedAt` |
-| **ops-8**, **ops-10** | 2026-06-04/05 | Prod domaine + email |
-| **19.1**, **mig-7** | 2026-06-04/06 | ADR tirage + backfill genre V1 |
-| **2.12***, **2.21** | 2026-06-05/06 | Genre + carnet externes |
-| **3.8c/d**, **3.23–3.25** | 2026-06-06 | Roster UX + invitations scope |
-| **6.18**, **6.19**, **6.21**, **6.22** | 2026-06-05/07 | Aide statut, calendrier, mixité, unlock |
-| **Équipe SCSS** | 2026-06-06 | Budget `anyComponentStyle` OK (`f418887e`) |
+origin: migrated from legacy ledger ("Deferred from: code review of 19-18-api-politiques-tirage-troupe-saison (2026-06-19)"), 2026-08-26
+location: n/a
+reason: `ObjectProvider<DrawWeightPipeline>` court-circuite la résolution — pattern test voulu (story 19.18 task 6), conservé pour `@Primary` test beans.
+status: open
 
-*Clôtures T0/T1 + defers specs → archive § hygiène 2026-06-09.*
+### DW-132: Course concurrente sur upsert politique — fenêtre TOCTOU rare ; index unique V65 ; retry non implémenté MVP.
 
----
+origin: migrated from legacy ledger ("Deferred from: code review of 19-18-api-politiques-tirage-troupe-saison (2026-06-19)"), 2026-08-26
+location: n/a
+reason: Course concurrente sur upsert politique — fenêtre TOCTOU rare ; index unique V65 ; retry non implémenté MVP.
+status: open
 
----
+### DW-133: GET politique 404 ambigu (troupe vs politique absente) — fuite d’information mineure ; pattern cohérent 19.17.
 
-## Deferred from: spec-fix-breakdown-no-equity-tag-line (2026-06-23)
+origin: migrated from legacy ledger ("Deferred from: code review of 19-18-api-politiques-tirage-troupe-saison (2026-06-19)"), 2026-08-26
+location: n/a
+reason: GET politique 404 ambigu (troupe vs politique absente) — fuite d’information mineure ; pattern cohérent 19.17.
+status: open
 
-| Item | Rationale |
-|------|-----------|
-| **E2E fixture cross-compartment** | E1-MEM-033/034 assert absence of `equity_tag` line on any breakdown; optional follow-up: seed veteran with validated déplacement + assert principal breakdown content (Malice / dedicated fixture). |
-| **Story 19.8 AC7 wording** | AC7 still describes equity_tag breakdown line; superseded for explainability only — amend story file when next touching epic 19 docs. |
-| **`pastSelectionCountUnscoped` cleanup** | Field still passed through API context; no breakdown consumer — consider removing from explainability path if SQL cost matters. |
+### DW-134: Pas de verrou optimiste / ETag sur PUT politique — last-write-wins MVP ; UI admin 19.20 pourra ajouter precondition.
 
-## Deferred from: code review of spec-fix-breakdown-no-equity-tag-line (2026-06-23)
+origin: migrated from legacy ledger ("Deferred from: code review of 19-18-api-politiques-tirage-troupe-saison (2026-06-19)"), 2026-08-26
+location: n/a
+reason: Pas de verrou optimiste / ETag sur PUT politique — last-write-wins MVP ; UI admin 19.20 pourra ajouter precondition.
+status: open
 
-| Item | Rationale |
-|------|-----------|
-| **Test mixte sans label/delta exact** | Réconciliation Σ delta OK ; label FR scoped (5 vs 8) non verrouillé. |
-| **`factorBreakdown` omet `equity_tag`** | Skip avant `factorBreakdown.add` ; diagnostic moteur vs doc « tests / diagnostics ». |
-| **`adjustmentLabel` → `"equity_tag"`** | Code mort tant que le facteur n'est pas surfacé. |
-| **Doc delta algorithm étapes 3–4** | Étape 3 « for each factor » vs étape 4 omit — reformuler si prochaine édition. |
+### DW-135: TOCTOU between policy reference check and archive save — MVP race window accepted at current scale.
 
-## Deferred from: code review of 11-3-v1-v2-cutover-funnel-posthog (2026-06-19)
+origin: migrated from legacy ledger ("Deferred from: code review of 19-17-api-crud-formules-tirage (2026-06-16)"), 2026-08-26
+location: n/a
+reason: TOCTOU between policy reference check and archive save — MVP race window accepted at current scale.
+status: open
 
-- Versions `posthog-js` divergentes entre legacy (^1.391.2) et web (^1.379.2) — aligner à terme, hors scope critique cutover M4.
-- Tests V1 sans mock PostHog initialisé — couverture partielle AC15 acceptable MVP ; renforcer si régression funnel.
+### DW-136: O(n) in-memory policy scan on every archive — Dev Notes explicitly defer DB JSON query at MVP scale.
 
----
+origin: migrated from legacy ledger ("Deferred from: code review of 19-17-api-crud-formules-tirage (2026-06-16)"), 2026-08-26
+location: n/a
+reason: O(n) in-memory policy scan on every archive — Dev Notes explicitly defer DB JSON query at MVP scale.
+status: open
 
-## Deferred from: code review of 19-18-api-politiques-tirage-troupe-saison (2026-06-19)
+### DW-137: Version bump on no-op PATCH — minor versioning noise, low impact.
 
-- `ObjectProvider<DrawWeightPipeline>` court-circuite la résolution — pattern test voulu (story 19.18 task 6), conservé pour `@Primary` test beans.
-- Course concurrente sur upsert politique — fenêtre TOCTOU rare ; index unique V65 ; retry non implémenté MVP.
-- GET politique 404 ambigu (troupe vs politique absente) — fuite d’information mineure ; pattern cohérent 19.17.
-- Pas de verrou optimiste / ETag sur PUT politique — last-write-wins MVP ; UI admin 19.20 pourra ajouter precondition.
+origin: migrated from legacy ledger ("Deferred from: code review of 19-17-api-crud-formules-tirage (2026-06-16)"), 2026-08-26
+location: n/a
+reason: Version bump on no-op PATCH — minor versioning noise, low impact.
+status: open
 
----
+### DW-138: Avatar URL without storage read (metadata-only hot path) — intentional PERF-15 trade-off per dev notes; hot path skips `readAvatarContent`.
 
-## Deferred from: code review of 19-17-api-crud-formules-tirage (2026-06-16)
+origin: migrated from legacy ledger ("Deferred from: code review of perf-15-composition-summary-api-hot-path (2026-06-10)"), 2026-08-26
+location: n/a
+reason: Avatar URL without storage read (metadata-only hot path) — intentional PERF-15 trade-off per dev notes; hot path skips `readAvatarContent`.
+status: open
 
-- TOCTOU between policy reference check and archive save — MVP race window accepted at current scale.
-- O(n) in-memory policy scan on every archive — Dev Notes explicitly defer DB JSON query at MVP scale.
-- Version bump on no-op PATCH — minor versioning noise, low impact.
+### DW-139: Neon gate command not in DEVELOPMENT.md — KDoc on `NeonCompositionSummaryPerformanceIntegrationTest` sufficient for manual CI gate.
 
----
+origin: migrated from legacy ledger ("Deferred from: code review of perf-15-composition-summary-api-hot-path (2026-06-10)"), 2026-08-26
+location: n/a
+reason: Neon gate command not in DEVELOPMENT.md — KDoc on `NeonCompositionSummaryPerformanceIntegrationTest` sufficient for manual CI gate.
+status: open
 
-## Deferred from: code review of perf-15-composition-summary-api-hot-path (2026-06-10)
+### DW-140: JOIN FETCH cartesian risk on large rosters — JDBC budget passes on Improbots seed; monitor via PERF-16 headers.
 
-- Avatar URL without storage read (metadata-only hot path) — intentional PERF-15 trade-off per dev notes; hot path skips `readAvatarContent`.
-- Neon gate command not in DEVELOPMENT.md — KDoc on `NeonCompositionSummaryPerformanceIntegrationTest` sufficient for manual CI gate.
-- JOIN FETCH cartesian risk on large rosters — JDBC budget passes on Improbots seed; monitor via PERF-16 headers.
+origin: migrated from legacy ledger ("Deferred from: code review of perf-15-composition-summary-api-hot-path (2026-06-10)"), 2026-08-26
+location: n/a
+reason: JOIN FETCH cartesian risk on large rosters — JDBC budget passes on Improbots seed; monitor via PERF-16 headers.
+status: open
 
----
+### DW-141: `loginEmail` and default seed credentials written in JSON report — pre-existing in perf script; local-only artifact.
 
-## Deferred from: code review of perf-14-profiling-script-in-app-nav (2026-06-10)
+origin: migrated from legacy ledger ("Deferred from: code review of perf-14-profiling-script-in-app-nav (2026-06-10)"), 2026-08-26
+location: n/a
+reason: `loginEmail` and default seed credentials written in JSON report — pre-existing in perf script; local-only artifact.
+status: open
 
-- `loginEmail` and default seed credentials written in JSON report — pre-existing in perf script; local-only artifact.
-- `attachApiListeners` pending-map leak / query-string endpoint merge — pre-existing before PERF-14 refactor.
-- `networkidle` timeout swallowed in `waitForReady` — pre-existing; acceptable for dev gate script.
-- `isMain` path compare fragile on Windows — pre-existing pattern; team dev on macOS.
-- No Playwright E2E for `--in-app` flux — manual validation documented in story; out of PERF-14 scope.
-- UI selector coupling (French tab labels, CSS classes) — acceptable for internal perf gate script.
+### DW-142: `attachApiListeners` pending-map leak / query-string endpoint merge — pre-existing before PERF-14 refactor.
 
----
+origin: migrated from legacy ledger ("Deferred from: code review of perf-14-profiling-script-in-app-nav (2026-06-10)"), 2026-08-26
+location: n/a
+reason: `attachApiListeners` pending-map leak / query-string endpoint merge — pre-existing before PERF-14 refactor.
+status: open
 
-## Deferred from: code review of perf-13-dispos-lazy-composition-explainability (2026-06-10)
+### DW-143: `networkidle` timeout swallowed in `waitForReady` — pre-existing; acceptable for dev gate script.
 
-- AC3 FR19/FR24 orgas sans test PERF-13 dédié — couverture via `composition-explainability.spec.ts` et tests event-detail préexistants.
-- AC1 sans test PERF-13 composition Dispos — gate `ensureCompositionLoaded()` couvert par PERF-03 / story 5.9.
-- `ensureChancesLoaded` échec API / rejet promesse — pre-existing ; snack sur `!ok` mais pas de `catch` sur reject (`availability-poll.ts`).
-- Course bootstrap vs `load()` in-flight — pre-existing ; bootstrap peut être écrasé si fetch déjà lancé (`event-dispos-tab.ts`).
-- `bootstrapSummary` stale au changement d'événement — pre-existing ; pas de validation eventId (`event-dispos-tab.ts`).
+origin: migrated from legacy ledger ("Deferred from: code review of perf-14-profiling-script-in-app-nav (2026-06-10)"), 2026-08-26
+location: n/a
+reason: `networkidle` timeout swallowed in `waitForReady` — pre-existing; acceptable for dev gate script.
+status: open
 
-## Deferred from: code review of perf-12-accueil-progressive-render (2026-06-10)
+### DW-144: `isMain` path compare fragile on Windows — pre-existing pattern; team dev on macOS.
 
-- AC4 seuil ≤ 300 ms non mesuré — waiver PERF-14 documenté dans la story ; proxy test DOM seulement.
-- `peekFreshCache` avec `boundUserId === null` — comportement préexistant PERF-02 (`isCacheForBoundUser` retourne true).
-- Promesses async sans annulation post-`ngOnDestroy` — pattern courant Angular hors scope PERF-12.
+origin: migrated from legacy ledger ("Deferred from: code review of perf-14-profiling-script-in-app-nav (2026-06-10)"), 2026-08-26
+location: n/a
+reason: `isMain` path compare fragile on Windows — pre-existing pattern; team dev on macOS.
+status: open
 
----
+### DW-145: No Playwright E2E for `--in-app` flux — manual validation documented in story; out of PERF-14 scope.
 
-## Deferred from: code review of perf-11-me-agenda-api-hot-path (2026-06-09)
+origin: migrated from legacy ledger ("Deferred from: code review of perf-14-profiling-script-in-app-nav (2026-06-10)"), 2026-08-26
+location: n/a
+reason: No Playwright E2E for `--in-app` flux — manual validation documented in story; out of PERF-14 scope.
+status: open
 
-- AC4 profilage wall recette — validation manuelle `profile-web-performance.mjs` recommandée en recette (Completion Notes).
-- syncInitialFilterUrl bloque premier loadAgenda — waterfall résiduel hors scope minimal PERF-11.
-- troupeContext.load fire-and-forget pour edit dispos — trade-off accepté story (filtres API, pas troupe catalog).
-- Gate perf H2 ≠ prod Neon — même pattern que PERF-06.
-- 4 requêtes participation mono-troupe inchangées — EXISTS early exit seulement sans participation.
+### DW-146: UI selector coupling (French tab labels, CSS classes) — acceptable for internal perf gate script.
 
----
+origin: migrated from legacy ledger ("Deferred from: code review of perf-14-profiling-script-in-app-nav (2026-06-10)"), 2026-08-26
+location: n/a
+reason: UI selector coupling (French tab labels, CSS classes) — acceptable for internal perf gate script.
+status: open
 
-## Deferred from: code review of 5-9-dispos-explainability-gate-decouple (2026-06-09)
+### DW-147: AC3 FR19/FR24 orgas sans test PERF-13 dédié — couverture via `composition-explainability.spec.ts` et tests event-detail préexistants.
 
-- Breakdown accessible sur événement archivé via fallback `CompositionExplainabilityAccess` (pas de garde `archived`) — trou pré-existant, rendu visible par l'union Dispos+Équipe sur `resolveShowExplainability`.
-- AC-4 : pas de test « composition publiée non validée → slots Équipe visibles membre » — incertitude runtime reconnue dans l'AC ; hors scope non-goals 5.9.
-- M3-3 : pas de test E2E/composant « tap % → breakdown sheet » sans composition préchargée — dette test UI.
-- OpenAPI `availability.yaml` : pas de doc du 403 explainability vs membership — amélioration doc.
-- Chemins `EVENT_ORGANIZER` / `SEASON_ORGANIZER` pour `canManageComposition` non couverts par tests — pré-existant.
+origin: migrated from legacy ledger ("Deferred from: code review of perf-13-dispos-lazy-composition-explainability (2026-06-10)"), 2026-08-26
+location: n/a
+reason: AC3 FR19/FR24 orgas sans test PERF-13 dédié — couverture via `composition-explainability.spec.ts` et tests event-detail préexistants.
+status: open
 
----
+### DW-148: AC1 sans test PERF-13 composition Dispos — gate `ensureCompositionLoaded()` couvert par PERF-03 / story 5.9.
 
-## Deferred from: code review of perf-08-lazy-routes-angular (2026-06-09)
+origin: migrated from legacy ledger ("Deferred from: code review of perf-13-dispos-lazy-composition-explainability (2026-06-10)"), 2026-08-26
+location: n/a
+reason: AC1 sans test PERF-13 composition Dispos — gate `ensureCompositionLoaded()` couvert par PERF-03 / story 5.9.
+status: open
 
-- Pas de budget `angular.json` sur chunks lazy (hors scope initial bundle PERF-08).
-- Pas de handler erreur chargement chunk / PWA stale chunk — risque amplifié par lazy routes, story perf séparée.
-- Waterfall lazy parent+enfant sur `/compte` — tradeoff accepté pour réduire le bundle initial.
-- Délai spinner sur redirects legacy (`SaisonLegacyRedirect`, onglets compte) — tradeoff perf vs UX immédiate.
-- Pas de wildcard `**` sous `MemberShell` — pré-existant, outlet vide sur URL invalide.
-- Stratégie preload post-login absente — follow-up perf (PERF plan vague 3+).
+### DW-149: `ensureChancesLoaded` échec API / rejet promesse — pre-existing ; snack sur `!ok` mais pas de `catch` sur reject (`availability-poll.ts`).
 
----
+origin: migrated from legacy ledger ("Deferred from: code review of perf-13-dispos-lazy-composition-explainability (2026-06-10)"), 2026-08-26
+location: n/a
+reason: `ensureChancesLoaded` échec API / rejet promesse — pre-existing ; snack sur `!ok` mais pas de `catch` sur reject (`availability-poll.ts`).
+status: open
 
-## Deferred from: code review of perf-07-season-workspace-bootstrap-bff (2026-06-09)
+### DW-150: Course bootstrap vs `load()` in-flight — pre-existing ; bootstrap peut être écrasé si fetch déjà lancé (`event-dispos-tab.ts`).
 
-- Tests intégration 403/404 non couverts — gap pattern similaire à d'autres endpoints BFF.
-- Schémas OpenAPI dupliqués (`SeasonWorkspaceParticipantSelector` vs DTO canonique) — qualité contrat, pas de régression runtime.
-- Aucun test automatisé du budget ≤3 appels AC2 — assertion manuelle dans dev notes.
-- Bascule history→agenda bypass le BFF — follow-up documenté dans dev notes.
-- Fix `enableExplainabilityForChances` hors scope PERF-07 — autre story (19.7).
+origin: migrated from legacy ledger ("Deferred from: code review of perf-13-dispos-lazy-composition-explainability (2026-06-10)"), 2026-08-26
+location: n/a
+reason: Course bootstrap vs `load()` in-flight — pre-existing ; bootstrap peut être écrasé si fetch déjà lancé (`event-dispos-tab.ts`).
+status: open
 
----
+### DW-151: `bootstrapSummary` stale au changement d'événement — pre-existing ; pas de validation eventId (`event-dispos-tab.ts`).
 
-## Deferred from: code review of perf-05-viewer-gender-props (2026-06-09)
+origin: migrated from legacy ledger ("Deferred from: code review of perf-13-dispos-lazy-composition-explainability (2026-06-10)"), 2026-08-26
+location: n/a
+reason: `bootstrapSummary` stale au changement d'événement — pre-existing ; pas de validation eventId (`event-dispos-tab.ts`).
+status: open
 
-- AC1 non couvert par les tests ajoutés — bindings `[viewerGender]` vérifiés en revue code sur les 3 templates ; pas d'assertion DOM dans le diff PERF-05.
-- Race timing parent lent / enfant précoce non testée — atténuée par `await loadViewerGender()` dans `ngOnInit` avant rendu liste ; motivation story non simulée en test.
-- Effet `cacheRevision` non testé sur `user-agenda` / `member-home-todo` — reload genre après invalidation cache ; couverture PERF-01, hors patch minimal PERF-05.
-- Chemins échec `getPreferences` (preload KO → refetch enfant) non testés — au-delà des AC story.
-- Chaîne intégration `season-home` → `season-agenda` non testée — test isolé `SeasonAgenda` couvre le contrat input `viewerGender`.
-- `sprint-status.yaml` : changements collatéraux (`5-8`, `perf-04`) dans le même diff — hors périmètre PERF-05.
+### DW-152: AC4 seuil ≤ 300 ms non mesuré — waiver PERF-14 documenté dans la story ; proxy test DOM seulement.
 
----
+origin: migrated from legacy ledger ("Deferred from: code review of perf-12-accueil-progressive-render (2026-06-10)"), 2026-08-26
+location: n/a
+reason: AC4 seuil ≤ 300 ms non mesuré — waiver PERF-14 documenté dans la story ; proxy test DOM seulement.
+status: open
 
-## Deferred from: code review of perf-04-session-context-cache (2026-06-09)
+### DW-153: `peekFreshCache` avec `boundUserId === null` — comportement préexistant PERF-02 (`isCacheForBoundUser` retourne true).
 
-- Gate S2 non profilé — AC3 non prouvé ; valider manuellement via `node scripts/v2/profile-web-performance.mjs` (serveur dev `--with-push`).
-- `ContextSwitcherDataService` non réinitialisé sur invalidation troupes/session — `initialized` court-circuite `ensureReady` ; état switcher potentiellement stale après switch user ; architectural, hors scope PERF-04.
+origin: migrated from legacy ledger ("Deferred from: code review of perf-12-accueil-progressive-render (2026-06-10)"), 2026-08-26
+location: n/a
+reason: `peekFreshCache` avec `boundUserId === null` — comportement préexistant PERF-02 (`isCacheForBoundUser` retourne true).
+status: open
 
----
+### DW-154: Promesses async sans annulation post-`ngOnDestroy` — pattern courant Angular hors scope PERF-12.
 
-## Deferred from: code review of perf-03-event-detail-tab-gated-load (2026-06-09)
+origin: migrated from legacy ledger ("Deferred from: code review of perf-12-accueil-progressive-render (2026-06-10)"), 2026-08-26
+location: n/a
+reason: Promesses async sans annulation post-`ngOnDestroy` — pattern courant Angular hors scope PERF-12.
+status: open
 
-- Gate AC4 profilage Event Infos ≤ 1,2 s non exécutée — validation manuelle post-merge via `node scripts/v2/profile-web-performance.mjs`.
-- `reloadEvent` silent ne réinitialise pas composition — comportement préexistant ; cache composition peut diverger après reload silencieux sur onglet Équipe (`event-detail.ts:648-657`).
-- Duplication copy guidelines entre `resolveCompositionEquipeStatusFromEvent` et `resolveCompositionEquipeStatus` — dette maintenance, hors scope perf.
+### DW-155: AC4 profilage wall recette — validation manuelle `profile-web-performance.mjs` recommandée en recette (Completion Notes).
 
----
+origin: migrated from legacy ledger ("Deferred from: code review of perf-11-me-agenda-api-hot-path (2026-06-09)"), 2026-08-26
+location: n/a
+reason: AC4 profilage wall recette — validation manuelle `profile-web-performance.mjs` recommandée en recette (Completion Notes).
+status: open
 
-## Deferred from: code review of perf-01-deduplicate-me-preferences (2026-06-09)
+### DW-156: syncInitialFilterUrl bloque premier loadAgenda — waterfall résiduel hors scope minimal PERF-11.
 
-- GET en échec non mis en cache — retry à chaque appel ; pattern d’erreur préexistant, impact marginal avec dedup parent (`me-preferences-api.service.ts`).
-- Pas de sync multi-onglets — cache mémoire process ; limitation navigateur hors scope PERF-01.
-- Échec silencieux `loadViewerGender` — signal reste `undefined`, pas de retry ; pattern préexistant sur les trois pages parentes.
+origin: migrated from legacy ledger ("Deferred from: code review of perf-11-me-agenda-api-hot-path (2026-06-09)"), 2026-08-26
+location: n/a
+reason: syncInitialFilterUrl bloque premier loadAgenda — waterfall résiduel hors scope minimal PERF-11.
+status: open
 
----
+### DW-157: troupeContext.load fire-and-forget pour edit dispos — trade-off accepté story (filtres API, pas troupe catalog).
 
-## Deferred from: code review of 6-24-participation-copy-declinaison-desistement-retrait (2026-06-09)
+origin: migrated from legacy ledger ("Deferred from: code review of perf-11-me-agenda-api-hot-path (2026-06-09)"), 2026-08-26
+location: n/a
+reason: troupeContext.load fire-and-forget pour edit dispos — trade-off accepté story (filtres API, pas troupe catalog).
+status: open
 
-- Dispatch proxy par égalité de `decisionLabel` (fragile si labels changent) — pattern préexistant étendu, pas introduit par 6.24.
-- Clé enum `DECLINE_RESTORED` non renommée — explicit non-goal story (identifiants techniques inchangés).
-- Paramètre optionnel `statusBeforeDecline` sans garde — risque latent faible, call sites actuels corrects.
+### DW-158: Gate perf H2 ≠ prod Neon — même pattern que PERF-06.
 
----
+origin: migrated from legacy ledger ("Deferred from: code review of perf-11-me-agenda-api-hot-path (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Gate perf H2 ≠ prod Neon — même pattern que PERF-06.
+status: open
 
-## Deferred from: code review of 19-7-breakdown-explicabilite-par-facteur (2026-06-07, re-review as-shipped)
+### DW-159: 4 requêtes participation mono-troupe inchangées — EXISTS early exit seulement sans participation.
 
-- Cibles tactiles &lt; 48 dp sur segments pool et trigger % grille — waiver PO documenté `FRONTEND_UI.md` ; follow-up post-release 19.7.
-- Boutons imbriqués dans `composition-slot-picker-dialog` — waiver PO documenté ; dette a11y connue, pattern Dispos corrigé.
-- `indexOf` O(n²) dans boucle facteurs `ChanceBreakdownCalculator` — un seul facteur en prod aujourd’hui.
-- Fallback `javaClass.simpleName` pour facteurs non `LabeledDrawWeightFactor` — registry à prévoir avec futurs facteurs.
-- Seuil vert pool `chancePoolTier` à 75 % vs spec UX « ≥ ~70 % » — écart visuel mineur, recette PO OK.
+origin: migrated from legacy ledger ("Deferred from: code review of perf-11-me-agenda-api-hot-path (2026-06-09)"), 2026-08-26
+location: n/a
+reason: 4 requêtes participation mono-troupe inchangées — EXISTS early exit seulement sans participation.
+status: open
 
----
+### DW-160: Breakdown accessible sur événement archivé via fallback `CompositionExplainabilityAccess` (pas de garde `archived`) — trou pré-existant, rendu visible par l'union Dispos+Équipe sur `resolveShowExplainability`.
 
-## Deferred from: code review of 19-6-facteur-past-participation-v1 (2026-06-07)
+origin: migrated from legacy ledger ("Deferred from: code review of 5-9-dispos-explainability-gate-decouple (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Breakdown accessible sur événement archivé via fallback `CompositionExplainabilityAccess` (pas de garde `archived`) — trou pré-existant, rendu visible par l'union Dispos+Équipe sur `resolveShowExplainability`.
+status: open
 
-- `requiredCount <= 0` sans garde dans `baseWeight` — pré-existant (`legacyBaseWeight` identique).
-- `FACTOR_ID` non asserté en test — couverture prévue story **19.7** (breakdown).
-- Pas de log WARNING sur multiplicateur invalide dans `sanitizeMultiplier` — hors scope V1.
-- Clamp `pastSelectionCount` négatif silencieux dans `PastParticipationFactor` — option défensive acceptée par spec 19.6.
-- Test V1 via base manuelle dans `PastParticipationFactorTest` — chemin intégré couvert par `AvailabilityChanceCalculatorDrawTest`.
+### DW-161: AC-4 : pas de test « composition publiée non validée → slots Équipe visibles membre » — incertitude runtime reconnue dans l'AC ; hors scope non-goals 5.9.
 
----
+origin: migrated from legacy ledger ("Deferred from: code review of 5-9-dispos-explainability-gate-decouple (2026-06-09)"), 2026-08-26
+location: n/a
+reason: AC-4 : pas de test « composition publiée non validée → slots Équipe visibles membre » — incertitude runtime reconnue dans l'AC ; hors scope non-goals 5.9.
+status: open
 
-## Deferred from: code review of 19-5-pipeline-draw-weight-factor (2026-06-07)
+### DW-162: M3-3 : pas de test E2E/composant « tap % → breakdown sheet » sans composition préchargée — dette test UI.
 
-- Garde-fous multiplicateurs pipeline (NaN, négatif, infini) — traiter avec premier facteur réel (**19.6**).
-- `pastSelectionCount` négatif non validé — contrat appelant V1 inchangé.
-- `DrawWeightContext` sans `eventId` — extension Wave B/C (**19.6+**).
-- Spec normative sans section pipeline — comportement identique ; doc story + ADR suffisent pour 19.5.
-- Double calcul poids (`toWeightedCandidates` + `scoreCandidates`) dans `CompositionDrawService` — pré-existant, hors 19.5.
+origin: migrated from legacy ledger ("Deferred from: code review of 5-9-dispos-explainability-gate-decouple (2026-06-09)"), 2026-08-26
+location: n/a
+reason: M3-3 : pas de test E2E/composant « tap % → breakdown sheet » sans composition préchargée — dette test UI.
+status: open
 
----
+### DW-163: OpenAPI `availability.yaml` : pas de doc du 403 explainability vs membership — amélioration doc.
 
-## Deferred from: code review of 17-42-hub-troupe-dashboard-collectif (2026-06-12)
+origin: migrated from legacy ledger ("Deferred from: code review of 5-9-dispos-explainability-gate-decouple (2026-06-09)"), 2026-08-26
+location: n/a
+reason: OpenAPI `availability.yaml` : pas de doc du 403 explainability vs membership — amélioration doc.
+status: open
 
-- Pagination saisons limitée à 50 (`SEASONS_PAGE_SIZE`) — pattern hérité de 17.4 ; troupes avec >50 saisons rares.
-- Tests races async / bottom sheet mobile — couverture happy-path suffisante pour MVP ; scénarios switch rapide à renforcer ultérieurement.
+### DW-164: Chemins `EVENT_ORGANIZER` / `SEASON_ORGANIZER` pour `canManageComposition` non couverts par tests — pré-existant.
 
----
+origin: migrated from legacy ledger ("Deferred from: code review of 5-9-dispos-explainability-gate-decouple (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Chemins `EVENT_ORGANIZER` / `SEASON_ORGANIZER` pour `canManageComposition` non couverts par tests — pré-existant.
+status: open
 
-## Matrice rapide
+### DW-165: Pas de budget `angular.json` sur chunks lazy (hors scope initial bundle PERF-08).
 
-| Tier | Quand agir | IDs (ordre coût/bénéfice) |
-|------|------------|---------------------------|
-| **T0** | — | *(vide)* |
-| **T1** | — | *(vide)* |
-| **T2** | — | *(vide)* |
-| **T3** | Backlog 2.1.0+ | **DW-117** → **DW-116** → **DW-115** → **DW-122** → **DW-123** → **DW-124** → **DW-125** → **DW-121** → **DW-120** |
+origin: migrated from legacy ledger ("Deferred from: code review of perf-08-lazy-routes-angular (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Pas de budget `angular.json` sur chunks lazy (hors scope initial bundle PERF-08).
+status: open
 
----
+### DW-166: Pas de handler erreur chargement chunk / PWA stale chunk — risque amplifié par lazy routes, story perf séparée.
 
-## T3 — Backlog confort (coût vs bénéfice)
+origin: migrated from legacy ledger ("Deferred from: code review of perf-08-lazy-routes-angular (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Pas de handler erreur chargement chunk / PWA stale chunk — risque amplifié par lazy routes, story perf séparée.
+status: open
 
-| # | ID | Coût | Bénéfice | Notes |
-|---|-----|------|----------|-------|
-| 1 | **DW-117** | **XS** | Faible | Token `loadGlance()` sans génération — quick fix |
-| 2 | **DW-116** | **S** | Modéré | Signal UX event picker à 250 résultats |
-| 3 | **DW-115** | **S** | Faible | Race grant organisateur (500 vs 200) — UPSERT |
-| 4 | **DW-122** | **S** | Faible | Prebundling cache dev (`ng serve` e2e) — perf dev only |
-| 5 | **DW-123** | **M** | Modéré | Budget bundle initial prod (~2,33 MB) — impact **large** |
-| 6 | **DW-124** | **M** | Faible | SCSS composants lourds (`member-home-todo`, `member-nav`, …) |
-| 7 | **DW-125** | **M** | Faible | Découpage optionnel `event-equipe-tab` |
-| 8 | **DW-121** | **L** | Faible | Sass `@import` → `@use` (échéance Dart Sass 3.0 lointaine) |
-| 9 | **DW-120** | **L** | Modéré | Suite web globale rouge → **ISSUES.md** / gate CI |
+### DW-167: Waterfall lazy parent+enfant sur `/compte` — tradeoff accepté pour réduire le bundle initial.
 
----
+origin: migrated from legacy ledger ("Deferred from: code review of perf-08-lazy-routes-angular (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Waterfall lazy parent+enfant sur `/compte` — tradeoff accepté pour réduire le bundle initial.
+status: open
 
-### DW-120 — Suite web : baseline actuel et stabilisation
+### DW-168: Délai spinner sur redirects legacy (`SaisonLegacyRedirect`, onglets compte) — tradeoff perf vs UX immédiate.
 
-- **Commande :** `npm run test -w @hatcast/web -- --watch=false`.
-- **Environnement :** `0d77badfb4b49134627c43126db9c96e5e8f76a9` ; Node `v22.12.0` ; npm `10.9.0` ; `package-lock.json` SHA-256 `e29ea70abcd8d15866a29ee14c7898948153b1a1702cc9c4dc2c6024c3d5a11d`.
-- **Exécutions 2026-08-25, toutes avec code de sortie `1` et une erreur non gérée :**
+origin: migrated from legacy ledger ("Deferred from: code review of perf-08-lazy-routes-angular (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Délai spinner sur redirects legacy (`SaisonLegacyRedirect`, onglets compte) — tradeoff perf vs UX immédiate.
+status: open
 
-  | Run | Fichiers | Tests |
-  |---|---:|---:|
-  | 1 | 20 en échec / 169 passants | 89 en échec / 1 595 passants |
-  | 2 | 18 en échec / 171 passants | 78 en échec / 1 606 passants |
-  | 3 | 16 en échec / 173 passants | 76 en échec / 1 608 passants |
+### DW-169: Pas de wildcard `` sous `MemberShell` — pré-existant, outlet vide sur URL invalide.
 
-- **Constat :** la suite est rouge et non déterministe ; ces trois runs sont le baseline courant. Les anciens décomptes dans les stories restent des faits historiques, pas un état de référence.
-- **Clusters à diagnostiquer, dans cet ordre :**
-  1. Doubles troupe/saison incomplets dans `season-home.spec.ts`, `season-card.spec.ts` et `troupes-list.spec.ts` après l’ajout du résolveur ; l’erreur non gérée vient de `troupeContext.findTroupeBySlug` absent du double `SeasonCard`.
-  2. Assertions de routes historiques dans `season-home.spec.ts` ; la route canonique doit rester `/saison/:troupeSlug/:seasonSlug` selon `project-context.md`.
-  3. Attentes d’authentification dans `signup.spec.ts` et `account-change-email-dialog.spec.ts` incompatibles avec la politique `rememberMe` de BUG-014 ; vérifier le contrat avant de modifier test ou code.
-  4. `user-agenda.spec.ts` attend zéro requête après session invalide alors que le bootstrap émet actuellement une requête ; décider si c’est une course runtime ou une attente obsolète.
-- **Critères de sortie :** chaque cluster a un diagnostic explicite, un test ciblé vert, aucune erreur non gérée, puis trois exécutions complètes consécutives vertes. Après chaque baseline, mettre à jour DW-120 seulement si le HEAD, le lockfile, la version Node/npm ou le résultat des trois runs change ; conserver le précédent baseline dans l’archive.
-- **Suivi :** **LIMIT-007** dans `ISSUES.md`. Ne pas recopier de décompte de suite globale dans les notes de revue de stories.
+origin: migrated from legacy ledger ("Deferred from: code review of perf-08-lazy-routes-angular (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Pas de wildcard `` sous `MemberShell` — pré-existant, outlet vide sur URL invalide.
+status: open
 
----
+### DW-170: Stratégie preload post-login absente — follow-up perf (PERF plan vague 3+).
 
-## Deferred from: code review of 19-3-fixtures-orchestration-draw-complet (2026-06-07)
+origin: migrated from legacy ledger ("Deferred from: code review of perf-08-lazy-routes-angular (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Stratégie preload post-login absente — follow-up perf (PERF plan vague 3+).
+status: open
 
-- `computeOpeningChancePercent` réimplémente le filtrage du pool au lieu d'appeler `CompositionParticipantPool.buildRolePool` — acceptable tant que les fixtures restent simples ; réévaluer si le pool runtime gagne des filtres (genre, exclusions).
-- `CompositionDrawIntegrationTest` conserve ses propres helpers au lieu de `DrawTestSupport` — story 19.3 marquait l'extraction optionnelle ; consolidation possible en follow-up.
+### DW-171: Tests intégration 403/404 non couverts — gap pattern similaire à d'autres endpoints BFF.
 
----
+origin: migrated from legacy ledger ("Deferred from: code review of perf-07-season-workspace-bootstrap-bff (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Tests intégration 403/404 non couverts — gap pattern similaire à d'autres endpoints BFF.
+status: open
 
-## Deferred from: code review of 19-4-doc-orga-membre-comprendre-les-cotes (2026-06-07)
+### DW-172: Schémas OpenAPI dupliqués (`SeasonWorkspaceParticipantSelector` vs DTO canonique) — qualité contrat, pas de régression runtime.
 
-- Onglet Équipe : pas de libellé `chanceSource` côté API composition — snapshot appliqué silencieusement sur `chancePercent` ; gap 6.14 vs doc UX.
-- Gate `./gradlew test` non prouvé dans le diff doc-only — infra Gradle locale signalée en Dev Agent Record.
-- Titres de sections vs checklist story — cosmetique (« Pourquoi l’historique compte » vs « Participations passées »).
-- Cas limites doc utilisateur MVP : historiques inégaux multi-places, snapshots partiels, assignation manuelle sans tirage.
+origin: migrated from legacy ledger ("Deferred from: code review of perf-07-season-workspace-bootstrap-bff (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Schémas OpenAPI dupliqués (`SeasonWorkspaceParticipantSelector` vs DTO canonique) — qualité contrat, pas de régression runtime.
+status: open
 
----
+### DW-173: Aucun test automatisé du budget ≤3 appels AC2 — assertion manuelle dans dev notes.
 
-## Deferred from: code review of 19-7-breakdown-explicabilite-par-facteur (2026-06-07)
+origin: migrated from legacy ledger ("Deferred from: code review of perf-07-season-workspace-bootstrap-bff (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Aucun test automatisé du budget ≤3 appels AC2 — assertion manuelle dans dev notes.
+status: open
 
-- `indexOf` dans boucle facteurs O(n²) — un seul facteur en prod ; refactor quand le pipeline grossit.
-- Fallback `javaClass.simpleName` pour facteurs non `LabeledDrawWeightFactor` — registry à prévoir avec futurs facteurs Wave B+.
+### DW-174: Bascule history→agenda bypass le BFF — follow-up documenté dans dev notes.
 
----
+origin: migrated from legacy ledger ("Deferred from: code review of perf-07-season-workspace-bootstrap-bff (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Bascule history→agenda bypass le BFF — follow-up documenté dans dev notes.
+status: open
 
-## Deferred from: code review of 8-7-rappels-automatiques-disponibilite-cadence-5-jours (2026-06-07)
+### DW-175: Fix `enableExplainabilityForChances` hors scope PERF-07 — autre story (19.7).
 
-- Cadence avancée malgré opt-out total push+email — **accepté (PO : B)** : marque = run traité, aligné 8.5 ; pas de pré-filtre prefs avant claim.
-- Marque consommée si dispatch échoue après claim — même pattern que `AssigneePresenceReminderJob` (story 8.5).
-- Course recipient répond entre claim et `afterCommit` dispatch — fenêtre étroite, pas de re-resolve au dispatch.
-- Suite Gradle non entièrement verte (793/796) — échecs hors périmètre 8.7.
-- `@Scheduled` Cloud Run scale-to-zero — documenté dans Dev Notes story 8.7, même limitation que 8.5.
+origin: migrated from legacy ledger ("Deferred from: code review of perf-07-season-workspace-bootstrap-bff (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Fix `enableExplainabilityForChances` hors scope PERF-07 — autre story (19.7).
+status: open
 
----
+### DW-176: AC1 non couvert par les tests ajoutés — bindings `[viewerGender]` vérifiés en revue code sur les 3 templates ; pas d'assertion DOM dans le diff PERF-05.
 
-## Deferred from: code review of 8-2b-preferences-membre-copy-masquage-d6 (2026-06-08, revue #2 as-shipped)
+origin: migrated from legacy ledger ("Deferred from: code review of perf-05-viewer-gender-props (2026-06-09)"), 2026-08-26
+location: n/a
+reason: AC1 non couvert par les tests ajoutés — bindings `[viewerGender]` vérifiés en revue code sur les 3 templates ; pas d'assertion DOM dans le diff PERF-05.
+status: open
 
-- PATCH push debouncé après désactivation globale appareil — fenêtre debounce 300 ms ; guard optionnel MVP.
-- `uiState` enabled pendant `disable()` async — pas de signal busy partagé ; pattern 8.1.
-- Test count 5 lignes explicite absent — filtrage D6 couvert indirectement.
-- Libellés canal mobile `0.7rem` vs token `body-medium` — polish M3.
-- `display: contents` sur wrappers channel desktop — trade-off grille accepté.
-- Fallback copy clé API inconnue — story 8.8.
+### DW-177: Race timing parent lent / enfant précoce non testée — atténuée par `await loadViewerGender()` dans `ngOnInit` avant rendu liste ; motivation story non simulée en test.
 
----
+origin: migrated from legacy ledger ("Deferred from: code review of perf-05-viewer-gender-props (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Race timing parent lent / enfant précoce non testée — atténuée par `await loadViewerGender()` dans `ngOnInit` avant rendu liste ; motivation story non simulée en test.
+status: open
 
-## Deferred from: code review of 10-3b-about-build-metadata (2026-06-14)
+### DW-178: Effet `cacheRevision` non testé sur `user-agenda` / `member-home-todo` — reload genre après invalidation cache ; couverture PERF-01, hors patch minimal PERF-05.
 
-- Requête 404 `/version.local.txt` en prod — trade-off accepté AC3 (local-first puis fallback).
-- Couplage libellés canal sur 4 artefacts (release shell, patch Docker, parser TS, doc) — contrat implicite MVP.
-- Pas de tests `patch-version-txt-channel.mjs` — script CI simple ; couverture parser Angular suffisante pour l’UI.
-- `version.local.txt` stale sans redémarrage `start-dev.sh` — workflow dev documenté DEPLOYMENT_WORKFLOW.md.
+origin: migrated from legacy ledger ("Deferred from: code review of perf-05-viewer-gender-props (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Effet `cacheRevision` non testé sur `user-agenda` / `member-home-todo` — reload genre après invalidation cache ; couverture PERF-01, hors patch minimal PERF-05.
+status: open
 
----
+### DW-179: Chemins échec `getPreferences` (preload KO → refetch enfant) non testés — au-delà des AC story.
 
-## Liens normatifs
+origin: migrated from legacy ledger ("Deferred from: code review of perf-05-viewer-gender-props (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Chemins échec `getPreferences` (preload KO → refetch enfant) non testés — au-delà des AC story.
+status: open
 
-| Sujet | Où tracer |
-|-------|-----------|
-| Bugs confirmés | [`ISSUES.md`](../../ISSUES.md) (ex. BUG-008 push prefs) |
-| Réserve produit historique | PLAN § iso-V1, DW-020–021 (triage mai) |
-| Epic 19 formules tirage | `sprint-status.yaml` — **reporté** post-2.1.0 |
-| Dispatch brouillon partagé | Story **8.4** (hors DW-106 — mapping prefs déjà fait) |
+### DW-180: Chaîne intégration `season-home` → `season-agenda` non testée — test isolé `SeasonAgenda` couvre le contrat input `viewerGender`.
 
----
+origin: migrated from legacy ledger ("Deferred from: code review of perf-05-viewer-gender-props (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Chaîne intégration `season-home` → `season-agenda` non testée — test isolé `SeasonAgenda` couvre le contrat input `viewerGender`.
+status: open
 
-## Deferred from: code review of 8-8-notifications-membre-event-details-et-archivage (2026-06-08)
+### DW-181: `sprint-status.yaml` : changements collatéraux (`5-8`, `perf-04`) dans le même diff — hors périmètre PERF-05.
 
-- **`isActiveEngagedMember` N+1** — `NotificationRecipientResolver.kt` reconstruit le roster complet pour chaque destinataire archive ; correct, optimisation non requise MVP.
-- **URLs 2 segments** — `NotificationPayloadBuilder.kt` ; dette connue, listée dans Non-goals story 8.8.
-- **`ShareRecipientsService` ignore logs guest** — entrées `user_id = null` exclues de l’agrégat « déjà notifié » ; acceptable hors scope.
-- **`AvailabilityPendingReminderJob` `userId ?: continue`** — fix défensif pour `NotificationRecipient` nullable ; support 8.8, non documenté dans story.
+origin: migrated from legacy ledger ("Deferred from: code review of perf-05-viewer-gender-props (2026-06-09)"), 2026-08-26
+location: n/a
+reason: `sprint-status.yaml` : changements collatéraux (`5-8`, `perf-04`) dans le même diff — hors périmètre PERF-05.
+status: open
 
----
+### DW-182: Gate S2 non profilé — AC3 non prouvé ; valider manuellement via `node scripts/v2/profile-web-performance.mjs` (serveur dev `--with-push`).
 
-## Deferred from: code review of 8-9-notification-equipe-confirmee-member (2026-06-08)
+origin: migrated from legacy ledger ("Deferred from: code review of perf-04-session-context-cache (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Gate S2 non profilé — AC3 non prouvé ; valider manuellement via `node scripts/v2/profile-web-performance.mjs` (serveur dev `--with-push`).
+status: open
 
-- **AC4 re-dispatch test** — pas de test pour le second edge `→ COMPLETE` après régression lifecycle ; chemin produit optionnel (AC4 « may »).
-- **Push opt-out unit test** — pas de test dédié `TEAM_COMPLETE_MEMBER` push bloqué ; même chemin dispatcher que les autres intents (email testé).
-- **`./gradlew test` 3 échecs non liés** — `AvailabilityControllerIntegrationTest` ×2, `CompositionDrawIntegrationTest` ×1 (`chancePercent` null) ; pré-existants au périmètre draw/dispos.
+### DW-183: `ContextSwitcherDataService` non réinitialisé sur invalidation troupes/session — `initialized` court-circuite `ensureReady` ; état switcher potentiellement stale après switch user ; architectural, hors scope PERF-04.
 
----
+origin: migrated from legacy ledger ("Deferred from: code review of perf-04-session-context-cache (2026-06-09)"), 2026-08-26
+location: n/a
+reason: `ContextSwitcherDataService` non réinitialisé sur invalidation troupes/session — `initialized` court-circuite `ensureReady` ; état switcher potentiellement stale après switch user ; architectural, hors scope PERF-04.
+status: open
 
-## Deferred from: code review of 8-4-notifications-ops-organisateurs (2026-06-09)
+### DW-184: Gate AC4 profilage Event Infos ≤ 1,2 s non exécutée — validation manuelle post-merge via `node scripts/v2/profile-web-performance.mjs`.
 
-- **`./gradlew test` non vert sur suite complète (838/841)** — 3 échecs `AvailabilityController` / `CompositionDraw` préexistants branche `v2`.
-- **Claim reminder mark avant dispatch empêche retry si envoi échoue** — pattern hérité story 8.7 ; `CompositionIncompleteReminderJob.kt`.
-- **`TEAM_COMPLETE` peut re-fire si lifecycle repasse COMPLETE après déclin** — edge rare, pas de dedupe sur `CompositionLifecycleAuditRecorder`.
-- **Scan hebdo `CompositionIncompleteReminderJob` sans pagination** — perf acceptable court terme.
-- **`minLength(3)` mot de passe global sur login** — scope creep recette dev-seed, hors AC 8.4.
+origin: migrated from legacy ledger ("Deferred from: code review of perf-03-event-detail-tab-gated-load (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Gate AC4 profilage Event Infos ≤ 1,2 s non exécutée — validation manuelle post-merge via `node scripts/v2/profile-web-performance.mjs`.
+status: open
 
----
+### DW-185: `reloadEvent` silent ne réinitialise pas composition — comportement préexistant ; cache composition peut diverger après reload silencieux sur onglet Équipe (`event-detail.ts:648-657`).
 
-## Deferred from: code review of 17-38-category-glossary-api (2026-06-09)
+origin: migrated from legacy ledger ("Deferred from: code review of perf-03-event-detail-tab-gated-load (2026-06-09)"), 2026-08-26
+location: n/a
+reason: `reloadEvent` silent ne réinitialise pas composition — comportement préexistant ; cache composition peut diverger après reload silencieux sur onglet Équipe (`event-detail.ts:648-657`).
+status: open
 
-- **OpenAPI `events.yaml` non mis à jour pour le 400 catégorie inconnue** — hors scope explicite story (AC8 = `categories.yaml` only) ; gap doc pré-existant.
-- **Constantes réservées dupliquées (`RESERVED_SLUGS` vs `HIDDEN_SLUGS`)** — risque de divergence future faible ; partage de constante reporté.
-- **`labelForAutoCreate` code mort post-AC6** — nettoyage cosmétique dans `CategorySlugNormalizer.kt`.
-- **Fenêtre race preview → delete inter-requêtes** — pas de token de confirmation ; comportement UX standard accepté pour v1.
+### DW-186: Duplication copy guidelines entre `resolveCompositionEquipeStatusFromEvent` et `resolveCompositionEquipeStatus` — dette maintenance, hors scope perf.
 
----
+origin: migrated from legacy ledger ("Deferred from: code review of perf-03-event-detail-tab-gated-load (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Duplication copy guidelines entre `resolveCompositionEquipeStatusFromEvent` et `resolveCompositionEquipeStatus` — dette maintenance, hors scope perf.
+status: open
 
-## Deferred from: code review of 17-39-ui-category-selection (2026-06-09)
+### DW-187: GET en échec non mis en cache — retry à chaque appel ; pattern d’erreur préexistant, impact marginal avec dedup parent (`me-preferences-api.service.ts`).
 
-- **`persistCategory` sans garde post-await identité événement** — même pattern que Date/Lieu ; pré-existant.
-- **Échec silencieux `loadGlossary` onglet Infos** — helper inchangé ; pré-existant.
-- **Fallback `categoryLabel` → slug brut si glossaire incomplet** — comportement hérité ; pré-existant.
+origin: migrated from legacy ledger ("Deferred from: code review of perf-01-deduplicate-me-preferences (2026-06-09)"), 2026-08-26
+location: n/a
+reason: GET en échec non mis en cache — retry à chaque appel ; pattern d’erreur préexistant, impact marginal avec dedup parent (`me-preferences-api.service.ts`).
+status: open
 
-## Deferred from: code review of 17-39-ui-category-selection (2026-06-09, v4 chips inline)
+### DW-188: Pas de sync multi-onglets — cache mémoire process ; limitation navigateur hors scope PERF-01.
 
-- **`saving` partagé orga/format/catégorie sans séquencement** — PATCH concurrents possibles ; pattern pré-existant onglet Infos.
-- **Catégorie éditable sur spectacle archivé si `canManageEvents`** — même gate que format ; pas introduit par v4.
+origin: migrated from legacy ledger ("Deferred from: code review of perf-01-deduplicate-me-preferences (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Pas de sync multi-onglets — cache mémoire process ; limitation navigateur hors scope PERF-01.
+status: open
 
----
+### DW-189: Échec silencieux `loadViewerGender` — signal reste `undefined`, pas de retry ; pattern préexistant sur les trois pages parentes.
 
-## Deferred from: code review of 17-40-troupe-settings-categories (2026-06-09)
+origin: migrated from legacy ledger ("Deferred from: code review of perf-01-deduplicate-me-preferences (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Échec silencieux `loadViewerGender` — signal reste `undefined`, pas de retry ; pattern préexistant sur les trois pages parentes.
+status: open
 
-- **Race concurrent delete : `affectedEventCount` peut diverger du preview** — intégrité données OK ; count preview/delete peut être stale sous concurrence ; pattern v1 accepté (cf. 17-38).
+### DW-190: Dispatch proxy par égalité de `decisionLabel` (fragile si labels changent) — pattern préexistant étendu, pas introduit par 6.24.
 
----
+origin: migrated from legacy ledger ("Deferred from: code review of 6-24-participation-copy-declinaison-desistement-retrait (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Dispatch proxy par égalité de `decisionLabel` (fragile si labels changent) — pattern préexistant étendu, pas introduit par 6.24.
+status: open
 
-## Deferred from: code review profil offline dev V2 (2026-06-09)
+### DW-191: Clé enum `DECLINE_RESTORED` non renommée — explicit non-goal story (identifiants techniques inchangés).
 
-- **Aucun test smoke du profil `dev,offline`** — pas de test d’intégration Spring (wiring auth, Flyway H2, seeds Improbots) ; outillage dev, non bloquant.
-- **Verrou H2 si second `bootRun` concurrent** — `.local/hatcast-offline/*.lock.db` peut bloquer le démarrage ; reset manuel documenté.
-- **Chemin H2 `${user.dir}/../../` hors `services/api`** — fonctionne via `start-dev.sh` (cwd garanti) ; `bootRun` manuel depuis un autre répertoire non supporté.
-- **ARCH.md sans mention du mode offline** — couvert par `DEVELOPMENT.md` + `services/api/README.md` ; ARCH normatif V2 runtime inchangé (outil dev local).
+origin: migrated from legacy ledger ("Deferred from: code review of 6-24-participation-copy-declinaison-desistement-retrait (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Clé enum `DECLINE_RESTORED` non renommée — explicit non-goal story (identifiants techniques inchangés).
+status: open
 
----
+### DW-192: Paramètre optionnel `statusBeforeDecline` sans garde — risque latent faible, call sites actuels corrects.
 
-## Deferred from: code review of 6-23-modales-partager-annoncer-manuel-compact (2026-06-09)
+origin: migrated from legacy ledger ("Deferred from: code review of 6-24-participation-copy-declinaison-desistement-retrait (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Paramètre optionnel `statusBeforeDecline` sans garde — risque latent faible, call sites actuels corrects.
+status: open
 
-- **Tooltip WhatsApp via `title` natif** — préexistant story 6.15 ; `matTooltip` non importé ; M3-1 partiellement satisfait.
-- **`::ng-deep` panel menu** — dette technique Angular ; pattern acceptable court terme pour `panelClass`.
+### DW-193: Cibles tactiles &lt; 48 dp sur segments pool et trigger % grille — waiver PO documenté `FRONTEND_UI.md` ; follow-up post-release 19.7.
 
----
+origin: migrated from legacy ledger ("Deferred from: code review of 19-7-breakdown-explicabilite-par-facteur (2026-06-07, re-review as-shipped)"), 2026-08-26
+location: n/a
+reason: Cibles tactiles &lt; 48 dp sur segments pool et trigger % grille — waiver PO documenté `FRONTEND_UI.md` ; follow-up post-release 19.7.
+status: open
 
-## Deferred from: code review of perf-02-inbox-badge-cache (2026-06-09)
+### DW-194: Boutons imbriqués dans `composition-slot-picker-dialog` — waiver PO documenté ; dette a11y connue, pattern Dispos corrigé.
 
-- **Gate S1 ≤ 800 ms non atteinte** (hub 1203 ms, compte 962 ms) — inbox retiré du chemin critique ; goulots auth/troupes adressés par PERF-04.
-- **Pas de test intégration « action inbox → retour /accueil → badge à jour »** — couverture AC2 repose sur tests unitaires + revue code.
-- **Pas d'invalidation serveur (push/WebSocket)** — tradeoff TTL 60 s documenté ; endpoint count envisagé PERF-06 (non livré — cache front suffisant MVP).
+origin: migrated from legacy ledger ("Deferred from: code review of 19-7-breakdown-explicabilite-par-facteur (2026-06-07, re-review as-shipped)"), 2026-08-26
+location: n/a
+reason: Boutons imbriqués dans `composition-slot-picker-dialog` — waiver PO documenté ; dette a11y connue, pattern Dispos corrigé.
+status: open
 
----
+### DW-195: `indexOf` O(n²) dans boucle facteurs `ChanceBreakdownCalculator` — un seul facteur en prod aujourd’hui.
 
-## Deferred from: PERF-06 inbox-api-profiling (2026-06-09)
+origin: migrated from legacy ledger ("Deferred from: code review of 19-7-breakdown-explicabilite-par-facteur (2026-06-07, re-review as-shipped)"), 2026-08-26
+location: n/a
+reason: `indexOf` O(n²) dans boucle facteurs `ChanceBreakdownCalculator` — un seul facteur en prod aujourd’hui.
+status: open
 
-- **`GET /me/inbox/count` endpoint léger** — option plan perf ; non requis AC ; badge PERF-02 utilise réponse complète avec cache 60 s.
-- **Profilage Neon prod / Improbots volumineux** — garde-fou p95 sur H2 fixture minimale ; valider p95 réel sur branche dev avec données représentatives avant release perf.
-- **`NotificationRecipientResolver.isActiveEngagedMember` N+1** — item existant deferred-work 8-8 ; hors chemin `MeInboxService`.
-- **Suite `./gradlew test` 5 échecs préexistants** — composition/availability draw ; voir deferred-work 8-4/8-9 ; aucun lien PERF-06.
+### DW-196: Fallback `javaClass.simpleName` pour facteurs non `LabeledDrawWeightFactor` — registry à prévoir avec futurs facteurs.
 
----
+origin: migrated from legacy ledger ("Deferred from: code review of 19-7-breakdown-explicabilite-par-facteur (2026-06-07, re-review as-shipped)"), 2026-08-26
+location: n/a
+reason: Fallback `javaClass.simpleName` pour facteurs non `LabeledDrawWeightFactor` — registry à prévoir avec futurs facteurs.
+status: open
 
-## Deferred from: code review of perf-06-inbox-api-profiling (2026-06-09)
+### DW-197: Seuil vert pool `chancePoolTier` à 75 % vs spec UX « ≥ ~70 % » — écart visuel mineur, recette PO OK.
 
-- **Pas de delta chiffré avant/après** — plan DoD §5.1 ; baseline RC-8 ~912 ms non reprise dans Completion Notes story.
-- **Fixture perf minimale sans scénario inbox « riche »** — membre seed sans pending confirmations ni horizon rempli ; garde-fou AC1 ne stress pas les chemins RC-8 optimisés.
-- **Risque drift requêtes DISTINCT vs COUNT miroir** — `findParticipatingSeasonIds*` conservées à côté de `existsParticipatingSeason*` ; correction future doit toucher les deux chemins.
+origin: migrated from legacy ledger ("Deferred from: code review of 19-7-breakdown-explicabilite-par-facteur (2026-06-07, re-review as-shipped)"), 2026-08-26
+location: n/a
+reason: Seuil vert pool `chancePoolTier` à 75 % vs spec UX « ≥ ~70 % » — écart visuel mineur, recette PO OK.
+status: open
 
----
+### DW-198: `requiredCount <= 0` sans garde dans `baseWeight` — pré-existant (`legacyBaseWeight` identique).
 
-## Deferred from: code review of perf-09-member-shell-bootstrap-resolver (2026-06-09)
+origin: migrated from legacy ledger ("Deferred from: code review of 19-6-facteur-past-participation-v1 (2026-06-07)"), 2026-08-26
+location: n/a
+reason: `requiredCount <= 0` sans garde dans `baseWeight` — pré-existant (`legacyBaseWeight` identique).
+status: open
 
-- **Guard and logout integration test gaps** — no spec for guard 401/UrlTree or logout → effect → refetch chain.
-- **Navigation spec uses stubs not real EventDetail/UserAgenda** — AC2 proven at router level only; e2e or real-component spec deferred.
-- **Testing helper underused** — `member-shell-bootstrap.testing.ts` exists but page specs duplicate inline mocks.
-- **Remaining shell pages still call ensureHatcastSession** — progressive migration explicit non-goal; season-home, troupe-hub, admin routes still refetch.
-- **Bootstrap memo stale after auth cache invalidation without sessionUser clear** — pre-existing `AuthApiService` 401 path; **partially addressed** in PERF-09 review (clear `sessionUser` on 401).
+### DW-199: `FACTOR_ID` non asserté en test — couverture prévue story 19.7 (breakdown).
 
----
+origin: migrated from legacy ledger ("Deferred from: code review of 19-6-facteur-past-participation-v1 (2026-06-07)"), 2026-08-26
+location: n/a
+reason: `FACTOR_ID` non asserté en test — couverture prévue story 19.7 (breakdown).
+status: open
 
-## Deferred from: code review of perf-09-member-shell-bootstrap-resolver (2026-06-09) — 3-lite follow-up
+### DW-200: Pas de log WARNING sur multiplicateur invalide dans `sanitizeMultiplier` — hors scope V1.
 
-- **Boot network/5xx retry UI** — On bootstrap `status 0` or 5xx, show retry screen instead of redirect to `/connexion` (decision 2+3-lite; auth 401 still redirects with post-login URL restore).
+origin: migrated from legacy ledger ("Deferred from: code review of 19-6-facteur-past-participation-v1 (2026-06-07)"), 2026-08-26
+location: n/a
+reason: Pas de log WARNING sur multiplicateur invalide dans `sanitizeMultiplier` — hors scope V1.
+status: open
 
----
+### DW-201: Clamp `pastSelectionCount` négatif silencieux dans `PastParticipationFactor` — option défensive acceptée par spec 19.6.
 
-## Deferred from: code review of perf-10-event-detail-page-bff (2026-06-09)
+origin: migrated from legacy ledger ("Deferred from: code review of 19-6-facteur-past-participation-v1 (2026-06-07)"), 2026-08-26
+location: n/a
+reason: Clamp `pastSelectionCount` négatif silencieux dans `PastParticipationFactor` — option défensive acceptée par spec 19.6.
+status: open
 
-- **`includeChances` non passé depuis le front** — by design : lazy 5.9 / PERF-13 ; BFF garde `includeChances=false` par défaut comme spécifié.
-- **Fallback `loadComposition` legacy si BFF équipe sans payload** — filet de sécurité hérité de PERF-03 ; risque d’appel supplémentaire marginal.
-- **`ensureMembershipParticipants` sur GET `/page`** — dette acceptée (D2:2, perf-10 review) ; hérité de `listSelectors`/`getComposition` ; fix roster/perf si priorisé.
+### DW-202: Test V1 via base manuelle dans `PastParticipationFactorTest` — chemin intégré couvert par `AvailabilityChanceCalculatorDrawTest`.
 
-## Deferred from: code review of perf-16-db-latency-observability (2026-06-10)
+origin: migrated from legacy ledger ("Deferred from: code review of 19-6-facteur-past-participation-v1 (2026-06-07)"), 2026-08-26
+location: n/a
+reason: Test V1 via base manuelle dans `PastParticipationFactorTest` — chemin intégré couvert par `AvailabilityChanceCalculatorDrawTest`.
+status: open
 
-- **ThreadLocal JDBC metrics sur threads async/scheduled** — seul le filtre HTTP appelle `clear()`/`remove()` ; jobs `@Scheduled` futurs pourraient fuiter ou gonfler les compteurs.
-- **BeanPostProcessor enveloppe tout bean `DataSource`** — risque théorique de double proxy si plusieurs beans ; pratique Spring Boot = un seul DS.
-- **p95 sur n=10 ≈ max** — formule percentile sur 10 échantillons retourne le max ; acceptable pour gate manuel si documenté.
-- **`NeonAgendaPerformanceIntegrationTest` MockMvc in-process** — ne mesure pas le RTT réseau Neon/Cloud Run ; gate documenté comme opt-in manual CI avec waiver.
+### DW-203: Garde-fous multiplicateurs pipeline (NaN, négatif, infini) — traiter avec premier facteur réel (19.6).
 
-## Deferred from: code review of 17-41-nav-shell-ma-troupe (2026-06-12)
+origin: migrated from legacy ledger ("Deferred from: code review of 19-5-pipeline-draw-weight-factor (2026-06-07)"), 2026-08-26
+location: n/a
+reason: Garde-fous multiplicateurs pipeline (NaN, négatif, infini) — traiter avec premier facteur réel (19.6).
+status: open
 
-- **No logout / access-denied slug clear** — story explicitly deferred (season slug not cleared on logout either); `clearLastVisitedTroupeSlug` exported but unused in prod paths.
+### DW-204: `pastSelectionCount` négatif non validé — contrat appelant V1 inchangé.
 
-## Deferred from: code review of 17-43-event-detail-contexte-infos (2026-06-12)
+origin: migrated from legacy ledger ("Deferred from: code review of 19-5-pipeline-draw-weight-factor (2026-06-07)"), 2026-08-26
+location: n/a
+reason: `pastSelectionCount` négatif non validé — contrat appelant V1 inchangé.
+status: open
 
-- **`Location.back()` si `navigationId > 1` peut renvoyer hors HatCast** — conforme ED3 / pattern story ; pas de garde route membre.
-- **Test gap fallback chevron vers `/troupes/:slug`** — allowlist étendue mais `onBack()` non testé sur ce chemin.
-- **Test gap AC8 Saison absente sur 404/403** — pas d’assertion intégration dans `event-detail.spec.ts`.
-- **Badge statut absent pendant spinner chargement onglet Équipe** — acceptable UX de chargement.
-- **Test équipe brouillon ne couvre pas AC 7b** — `event-equipe-tab.spec.ts` n’asserte pas le badge quand `availabilityOpenedAt == null`.
+### DW-205: `DrawWeightContext` sans `eventId` — extension Wave B/C (19.6+).
 
-## Deferred from: code review of 17-44-hub-troupe-mini-chart-saison (2026-06-14)
+origin: migrated from legacy ledger ("Deferred from: code review of 19-5-pipeline-draw-weight-factor (2026-06-07)"), 2026-08-26
+location: n/a
+reason: `DrawWeightContext` sans `eventId` — extension Wave B/C (19.6+).
+status: open
 
-- **E2E helper added but no Playwright spec consumes it** — story marks E2E optional/non-blocking ; `expectTroupeHubSeasonChartVisible` ready for future wiring.
-- **`slug` required on `StatisticsEvent` OpenAPI** — monorepo co-deploy with front ; intentional additive breaking field.
-- **Extra `loadViewsByEventIds` on every stats call** — acceptable story scope ; monitor if perf issue surfaces on large seasons.
+### DW-206: Spec normative sans section pipeline — comportement identique ; doc story + ADR suffisent pour 19.5.
 
-## Deferred from: code review of 19-8-facteur-equity-tag-history-ex-17-9 (2026-06-14)
+origin: migrated from legacy ledger ("Deferred from: code review of 19-5-pipeline-draw-weight-factor (2026-06-07)"), 2026-08-26
+location: n/a
+reason: Spec normative sans section pipeline — comportement identique ; doc story + ADR suffisent pour 19.5.
+status: open
 
-- **Double requête SQL sur explainability** — `buildRolePoolContext` exécute scoped + unscoped par rôle ; trade-off documenté en Dev Notes 19.8.
-- **Branche spéciale `when (CategoryCompartmentFactor)` dans breakdown** — acceptable pour DEFAULT à 2 facteurs ; extensibilité à revoir avec facteurs narratifs futurs.
-- **Pas de test d’intégration bout-en-bout `CompositionExplainabilityService` → delta `equity_tag`** — couvert par tests unitaires + intégration draw compartiment.
+### DW-207: Double calcul poids (`toWeightedCandidates` + `scoreCandidates`) dans `CompositionDrawService` — pré-existant, hors 19.5.
 
-## Deferred from: code review of 19-10-facteur-nombre-demandes-role (2026-06-14)
+origin: migrated from legacy ledger ("Deferred from: code review of 19-5-pipeline-draw-weight-factor (2026-06-07)"), 2026-08-26
+location: n/a
+reason: Double calcul poids (`toWeightedCandidates` + `scoreCandidates`) dans `CompositionDrawService` — pré-existant, hors 19.5.
+status: open
 
-- **Requête role-request relancée par rôle au tirage** — acceptable Wave C tant que facteur hors DEFAULT ; optimiser si activé en prod (19.16+).
-- **DRY compartiment partiel** — `SpectacleCategoryCompartmentJpql` extrait mais requêtes historiques existantes du slot repo inchangées ; refactor opportuniste.
-- **Pas de test mock prouvant z SQL en DEFAULT (AC18)** — chargement conditionnel présent via `includesRoleRequest` ; pattern identique 19.9.
+### DW-208: Pagination saisons limitée à 50 (`SEASONS_PAGE_SIZE`) — pattern hérité de 17.4 ; troupes avec >50 saisons rares.
 
-## Deferred from: code review of 19-15-spec-formules-politiques-adr (2026-06-15)
+origin: migrated from legacy ledger ("Deferred from: code review of 17-42-hub-troupe-dashboard-collectif (2026-06-12)"), 2026-08-26
+location: n/a
+reason: Pagination saisons limitée à 50 (`SEASONS_PAGE_SIZE`) — pattern hérité de 17.4 ; troupes avec >50 saisons rares.
+status: open
 
-- **`formulaId` pour Simuler / preview % (19.17 AC3)** — comportement HTTP/UI reporté à **19.17–19.18**.
-- **Epics 19.16 AC3 (system V1 seul) vs OQ-19-02 (CHOICE + published + system V1)** — epics à realigner au grooming Wave D.
-- **Epics 19.18 titre « admin saison » vs OQ-19-05 TROUPE_ADMIN only** — epics outdated ; spec 19.15 fait foi.
-- **PLAN.md résumé résolution tronqué (sans chemin implicit CHOICE)** — hors scope 19.15 ; MAJ PLAN opportuniste.
+### DW-209: Tests races async / bottom sheet mobile — couverture happy-path suffisante pour MVP ; scénarios switch rapide à renforcer ultérieurement.
 
-## Deferred from: code review of 19-16-persistance-formules-defaut-v1 (2026-06-15)
+origin: migrated from legacy ledger ("Deferred from: code review of 17-42-hub-troupe-dashboard-collectif (2026-06-12)"), 2026-08-26
+location: n/a
+reason: Tests races async / bottom sheet mobile — couverture happy-path suffisante pour MVP ; scénarios switch rapide à renforcer ultérieurement.
+status: open
 
-- **V65 prépare un statement JDBC par troupe** — volume troupes MVP acceptable ; optimiser si backfill massif.
-- **`draw_policies` sans `created_at`** — hors AC1 explicite ; audit historique si besoin futur.
+### DW-210: Backlog confort (coût vs bénéfice)
 
-## Deferred from: code review of 19-19c-ui-admin-editeur-formules (2026-06-17)
+origin: migrated from legacy ledger ("Matrice rapide"), 2026-08-26
+location: n/a
+reason: Backlog confort (coût vs bénéfice)
+status: open
 
-- **Verrouillage optimiste `version` non envoyé au PATCH** — API n'exige pas version client ; risque écrasement concurrent accepté MVP.
-- **`troupeId` input change sans reload** — composant parent stable en pratique ; edge théorique.
-- **Race `reload()` concurrent sans séquence** — pas de déclencheur UI parallèle.
-- **État vide liste sans copy dédiée quand `formulas=[]`** — CTA « Nouvelle formule » suffit MVP.
-- **Pas de bouton retry sur erreur chargement F1** — hors AC.
-- **Badges direction sans tokens error/tertiary distincts** — écart M3 mineur.
+### DW-211: Suite web : baseline actuel et stabilisation
 
-## Deferred from: code review of 19-19b-factor-params-runtime-tests (2026-06-16)
+origin: migrated from legacy ledger ("Matrice rapide"), 2026-08-26
+location: n/a
+reason: Suite web : baseline actuel et stabilisation
+status: open
 
-- **Golden REF-P uniquement `formulaSave`** — chemin `formulaPublish` non couvert par fixtures HTTP ; `validateForPublish` délègue à `validateForSave` donc comportement OK.
-- **Messages FR non assertés en intégration** — `DrawFormulaValidationIntegrationTest` ne vérifie que le status HTTP ; substrings couverts par `DrawFormulaValidatorTest` — couverture unitaire suffisante pour MVP.
-- **Artefact test design absent du dépôt** — `19-19b-factor-params-test-design.md` référencé dans la story mais non versionné ; payloads présents dans golden JSON.
-- **Spec normative 19.19a non mergée sur branche** — `draw-formulas-policies-spec.md` sans `strength`/`malusMultiplier` ; runtime aligné sur table AC story ; merge doc 19.19a séparé.
-- **`@Tag("19.19b")` absent sur `DrawFormulaPipelineGoldenTest`** — fixtures JSON taguées mais pas la classe ; filtrage CI par tags JSON suffisant pour MVP.
+### DW-212: `computeOpeningChancePercent` réimplémente le filtrage du pool au lieu d'appeler `CompositionParticipantPool.buildRolePool` — acceptable tant que les fixtures restent simples ; réévaluer si le pool runtime gagne des filtres (genre, exclusions).
 
-## Deferred from: code review of 19-21-ui-orga-choix-formule-tirage (2026-06-19)
+origin: migrated from legacy ledger ("Deferred from: code review of 19-3-fixtures-orchestration-draw-complet (2026-06-07)"), 2026-08-26
+location: n/a
+reason: `computeOpeningChancePercent` réimplémente le filtrage du pool au lieu d'appeler `CompositionParticipantPool.buildRolePool` — acceptable tant que les fixtures restent simples ; réévaluer si le pool runtime gagne des filtres (genre, exclusions).
+status: open
 
-- **Cible 48×48 dp non codée explicitement sur le bouton ⋮** — défaut Material + pattern existant repo (`event-equipe-tab.scss:189-192`).
-- **Couverture E2E Playwright menu formule / tirage `formulaId`** — artefact séparé `19-21-e2e-formula-choice.md`, hors scope unit tests story.
+### DW-213: `CompositionDrawIntegrationTest` conserve ses propres helpers au lieu de `DrawTestSupport` — story 19.3 marquait l'extraction optionnelle ; consolidation possible en follow-up.
 
-## Deferred from: code review of 11-2-posthog-identify-person-properties-m4-cutover (2026-06-19)
+origin: migrated from legacy ledger ("Deferred from: code review of 19-3-fixtures-orchestration-draw-complet (2026-06-07)"), 2026-08-26
+location: n/a
+reason: `CompositionDrawIntegrationTest` conserve ses propres helpers au lieu de `DrawTestSupport` — story 19.3 marquait l'extraction optionnelle ; consolidation possible en follow-up.
+status: open
 
-- **Dédupe `localStorage` écrite avant `capture()`** — P1 at-most-once ; même pattern que `sessionStorage` FR47 all-confirmations.
-- **Pas de test intégration logout → reset → re-identify** — hors périmètre AC8 ; code AC4 correct (`resetSession` au logout).
-- **Course multi-onglets sur première session** — P1 acceptable pour cutover ~30 users.
-- **Props personne obsolètes si email/name effacés côté API** — cas rare ; PostHog ne reçoit pas d’unset explicite.
-- **`identifyUser` no-op si PostHog pas encore initialisé** — comportement OPS-9 préexistant.
-- **Sémantique `v2_migration_first_session` = premier identify navigateur** — P1 documenté ; choix PO.
+### DW-214: Onglet Équipe : pas de libellé `chanceSource` côté API composition — snapshot appliqué silencieusement sur `chancePercent` ; gap 6.14 vs doc UX.
 
-## Deferred from: code review of 4-4-guides-video-page-connexion (2026-07-11)
+origin: migrated from legacy ledger ("Deferred from: code review of 19-4-doc-orga-membre-comprendre-les-cotes (2026-06-07)"), 2026-08-26
+location: n/a
+reason: Onglet Équipe : pas de libellé `chanceSource` côté API composition — snapshot appliqué silencieusement sur `chancePercent` ; gap 6.14 vs doc UX.
+status: open
 
-- **No isolated unit tests for `guidesFromEnvironment()` edge cases** (`http://`, partial config, whitespace) — login.spec covers happy path + all-empty
-- **M3-1 minor: section title uses custom class** instead of reusing `.auth__heading` / `.auth__tagline` — tokens M3 OK
-- **Tests mutate global `environment` object** — restored in `afterEach`, acceptable pattern for this codebase
+### DW-215: Gate `./gradlew test` non prouvé dans le diff doc-only — infra Gradle locale signalée en Dev Agent Record.
 
-## Deferred from: code review of 17-45-nav-stats-before-troupe (2026-07-12)
+origin: migrated from legacy ledger ("Deferred from: code review of 19-4-doc-orga-membre-comprendre-les-cotes (2026-06-07)"), 2026-08-26
+location: n/a
+reason: Gate `./gradlew test` non prouvé dans le diff doc-only — infra Gradle locale signalée en Dev Agent Record.
+status: open
 
-- **Doc E2E gate stale** — `test-design-e1-cutover-preprod-gate.md:293` mentionne l’ancien ordre des onglets ; les tests E2E ne l’assertent pas (lookup par libellé).
-- **Epic 17.41 AC historique** — `epics.md:2157` conserve l’AC d’origine de 17.41 ; amendé explicitement par story 17.45.
+### DW-216: Titres de sections vs checklist story — cosmetique (« Pourquoi l’historique compte » vs « Participations passées »).
 
-## Deferred from: code review of ops-12-neon-hikari-scale-to-zero (2026-08-04)
+origin: migrated from legacy ledger ("Deferred from: code review of 19-4-doc-orga-membre-comprendre-les-cotes (2026-06-07)"), 2026-08-26
+location: n/a
+reason: Titres de sections vs checklist story — cosmetique (« Pourquoi l’historique compte » vs « Participations passées »).
+status: open
 
-- **Cleanup Spring Session 1×/jour** — sessions expirées / croissance `SPRING_SESSION` jusqu’à ~24 h ; tradeoff volontaire vs wake minute (BUG-013).
-- **Fuseau cron session `0 30 3 * * *`** — UTC vs TZ instance Cloud Run non documenté.
-- **Overrides env Hikari / health.db** — peuvent contourner la politique idle YAML au runtime.
-- **Jobs `@Scheduled` notification** — SQL quotidien réveille Neon (hors cause always-on BUG-013).
-- **PgBouncer + Spring Session JDBC** — interaction endpoint poolé / session store ; architecture préexistante.
+### DW-217: Cas limites doc utilisateur MVP : historiques inégaux multi-places, snapshots partiels, assignation manuelle sans tirage.
 
-- source_spec: `_bmad-output/implementation-artifacts/spec-web-test-suite-baseline.md`
-  summary: Decide whether T3 items remain in the active deferred-work ledger or move to the archive.
-  evidence: The ledger rule limits new review entries to T0–T2 while the active matrix retains nine T3 items.
+origin: migrated from legacy ledger ("Deferred from: code review of 19-4-doc-orga-membre-comprendre-les-cotes (2026-06-07)"), 2026-08-26
+location: n/a
+reason: Cas limites doc utilisateur MVP : historiques inégaux multi-places, snapshots partiels, assignation manuelle sans tirage.
+status: open
+
+### DW-218: `indexOf` dans boucle facteurs O(n²) — un seul facteur en prod ; refactor quand le pipeline grossit.
+
+origin: migrated from legacy ledger ("Deferred from: code review of 19-7-breakdown-explicabilite-par-facteur (2026-06-07)"), 2026-08-26
+location: n/a
+reason: `indexOf` dans boucle facteurs O(n²) — un seul facteur en prod ; refactor quand le pipeline grossit.
+status: open
+
+### DW-219: Fallback `javaClass.simpleName` pour facteurs non `LabeledDrawWeightFactor` — registry à prévoir avec futurs facteurs Wave B+.
+
+origin: migrated from legacy ledger ("Deferred from: code review of 19-7-breakdown-explicabilite-par-facteur (2026-06-07)"), 2026-08-26
+location: n/a
+reason: Fallback `javaClass.simpleName` pour facteurs non `LabeledDrawWeightFactor` — registry à prévoir avec futurs facteurs Wave B+.
+status: open
+
+### DW-220: Cadence avancée malgré opt-out total push+email — accepté (PO : B) : marque = run traité, aligné 8.5 ; pas de pré-filtre prefs avant claim.
+
+origin: migrated from legacy ledger ("Deferred from: code review of 8-7-rappels-automatiques-disponibilite-cadence-5-jours (2026-06-07)"), 2026-08-26
+location: n/a
+reason: Cadence avancée malgré opt-out total push+email — accepté (PO : B) : marque = run traité, aligné 8.5 ; pas de pré-filtre prefs avant claim.
+status: open
+
+### DW-221: Marque consommée si dispatch échoue après claim — même pattern que `AssigneePresenceReminderJob` (story 8.5).
+
+origin: migrated from legacy ledger ("Deferred from: code review of 8-7-rappels-automatiques-disponibilite-cadence-5-jours (2026-06-07)"), 2026-08-26
+location: n/a
+reason: Marque consommée si dispatch échoue après claim — même pattern que `AssigneePresenceReminderJob` (story 8.5).
+status: open
+
+### DW-222: Course recipient répond entre claim et `afterCommit` dispatch — fenêtre étroite, pas de re-resolve au dispatch.
+
+origin: migrated from legacy ledger ("Deferred from: code review of 8-7-rappels-automatiques-disponibilite-cadence-5-jours (2026-06-07)"), 2026-08-26
+location: n/a
+reason: Course recipient répond entre claim et `afterCommit` dispatch — fenêtre étroite, pas de re-resolve au dispatch.
+status: open
+
+### DW-223: Suite Gradle non entièrement verte (793/796) — échecs hors périmètre 8.7.
+
+origin: migrated from legacy ledger ("Deferred from: code review of 8-7-rappels-automatiques-disponibilite-cadence-5-jours (2026-06-07)"), 2026-08-26
+location: n/a
+reason: Suite Gradle non entièrement verte (793/796) — échecs hors périmètre 8.7.
+status: open
+
+### DW-224: `@Scheduled` Cloud Run scale-to-zero — documenté dans Dev Notes story 8.7, même limitation que 8.5.
+
+origin: migrated from legacy ledger ("Deferred from: code review of 8-7-rappels-automatiques-disponibilite-cadence-5-jours (2026-06-07)"), 2026-08-26
+location: n/a
+reason: `@Scheduled` Cloud Run scale-to-zero — documenté dans Dev Notes story 8.7, même limitation que 8.5.
+status: open
+
+### DW-225: PATCH push debouncé après désactivation globale appareil — fenêtre debounce 300 ms ; guard optionnel MVP.
+
+origin: migrated from legacy ledger ("Deferred from: code review of 8-2b-preferences-membre-copy-masquage-d6 (2026-06-08, revue #2 as-shipped)"), 2026-08-26
+location: n/a
+reason: PATCH push debouncé après désactivation globale appareil — fenêtre debounce 300 ms ; guard optionnel MVP.
+status: open
+
+### DW-226: `uiState` enabled pendant `disable()` async — pas de signal busy partagé ; pattern 8.1.
+
+origin: migrated from legacy ledger ("Deferred from: code review of 8-2b-preferences-membre-copy-masquage-d6 (2026-06-08, revue #2 as-shipped)"), 2026-08-26
+location: n/a
+reason: `uiState` enabled pendant `disable()` async — pas de signal busy partagé ; pattern 8.1.
+status: open
+
+### DW-227: Test count 5 lignes explicite absent — filtrage D6 couvert indirectement.
+
+origin: migrated from legacy ledger ("Deferred from: code review of 8-2b-preferences-membre-copy-masquage-d6 (2026-06-08, revue #2 as-shipped)"), 2026-08-26
+location: n/a
+reason: Test count 5 lignes explicite absent — filtrage D6 couvert indirectement.
+status: open
+
+### DW-228: Libellés canal mobile `0.7rem` vs token `body-medium` — polish M3.
+
+origin: migrated from legacy ledger ("Deferred from: code review of 8-2b-preferences-membre-copy-masquage-d6 (2026-06-08, revue #2 as-shipped)"), 2026-08-26
+location: n/a
+reason: Libellés canal mobile `0.7rem` vs token `body-medium` — polish M3.
+status: open
+
+### DW-229: `display: contents` sur wrappers channel desktop — trade-off grille accepté.
+
+origin: migrated from legacy ledger ("Deferred from: code review of 8-2b-preferences-membre-copy-masquage-d6 (2026-06-08, revue #2 as-shipped)"), 2026-08-26
+location: n/a
+reason: `display: contents` sur wrappers channel desktop — trade-off grille accepté.
+status: open
+
+### DW-230: Fallback copy clé API inconnue — story 8.8.
+
+origin: migrated from legacy ledger ("Deferred from: code review of 8-2b-preferences-membre-copy-masquage-d6 (2026-06-08, revue #2 as-shipped)"), 2026-08-26
+location: n/a
+reason: Fallback copy clé API inconnue — story 8.8.
+status: open
+
+### DW-231: Requête 404 `/version.local.txt` en prod — trade-off accepté AC3 (local-first puis fallback).
+
+origin: migrated from legacy ledger ("Deferred from: code review of 10-3b-about-build-metadata (2026-06-14)"), 2026-08-26
+location: n/a
+reason: Requête 404 `/version.local.txt` en prod — trade-off accepté AC3 (local-first puis fallback).
+status: open
+
+### DW-232: Couplage libellés canal sur 4 artefacts (release shell, patch Docker, parser TS, doc) — contrat implicite MVP.
+
+origin: migrated from legacy ledger ("Deferred from: code review of 10-3b-about-build-metadata (2026-06-14)"), 2026-08-26
+location: n/a
+reason: Couplage libellés canal sur 4 artefacts (release shell, patch Docker, parser TS, doc) — contrat implicite MVP.
+status: open
+
+### DW-233: Pas de tests `patch-version-txt-channel.mjs` — script CI simple ; couverture parser Angular suffisante pour l’UI.
+
+origin: migrated from legacy ledger ("Deferred from: code review of 10-3b-about-build-metadata (2026-06-14)"), 2026-08-26
+location: n/a
+reason: Pas de tests `patch-version-txt-channel.mjs` — script CI simple ; couverture parser Angular suffisante pour l’UI.
+status: open
+
+### DW-234: `version.local.txt` stale sans redémarrage `start-dev.sh` — workflow dev documenté DEPLOYMENT_WORKFLOW.md.
+
+origin: migrated from legacy ledger ("Deferred from: code review of 10-3b-about-build-metadata (2026-06-14)"), 2026-08-26
+location: n/a
+reason: `version.local.txt` stale sans redémarrage `start-dev.sh` — workflow dev documenté DEPLOYMENT_WORKFLOW.md.
+status: open
+
+### DW-235: `isActiveEngagedMember` N+1 — `NotificationRecipientResolver.kt` reconstruit le roster complet pour chaque destinataire archive ; correct, optimisation non requise MVP.
+
+origin: migrated from legacy ledger ("Deferred from: code review of 8-8-notifications-membre-event-details-et-archivage (2026-06-08)"), 2026-08-26
+location: n/a
+reason: `isActiveEngagedMember` N+1 — `NotificationRecipientResolver.kt` reconstruit le roster complet pour chaque destinataire archive ; correct, optimisation non requise MVP.
+status: open
+
+### DW-236: URLs 2 segments
+
+origin: migrated from legacy ledger ("Deferred from: code review of 8-8-notifications-membre-event-details-et-archivage (2026-06-08)"), 2026-08-26
+location: n/a
+reason: URLs 2 segments
+status: open
+
+### DW-237: `ShareRecipientsService` ignore logs guest
+
+origin: migrated from legacy ledger ("Deferred from: code review of 8-8-notifications-membre-event-details-et-archivage (2026-06-08)"), 2026-08-26
+location: n/a
+reason: `ShareRecipientsService` ignore logs guest
+status: open
+
+### DW-238: `AvailabilityPendingReminderJob` `userId ?: continue`
+
+origin: migrated from legacy ledger ("Deferred from: code review of 8-8-notifications-membre-event-details-et-archivage (2026-06-08)"), 2026-08-26
+location: n/a
+reason: `AvailabilityPendingReminderJob` `userId ?: continue`
+status: open
+
+### DW-239: AC4 re-dispatch test
+
+origin: migrated from legacy ledger ("Deferred from: code review of 8-9-notification-equipe-confirmee-member (2026-06-08)"), 2026-08-26
+location: n/a
+reason: AC4 re-dispatch test
+status: open
+
+### DW-240: Push opt-out unit test
+
+origin: migrated from legacy ledger ("Deferred from: code review of 8-9-notification-equipe-confirmee-member (2026-06-08)"), 2026-08-26
+location: n/a
+reason: Push opt-out unit test
+status: open
+
+### DW-241: `./gradlew test` 3 échecs non liés
+
+origin: migrated from legacy ledger ("Deferred from: code review of 8-9-notification-equipe-confirmee-member (2026-06-08)"), 2026-08-26
+location: n/a
+reason: `./gradlew test` 3 échecs non liés
+status: open
+
+### DW-242: `./gradlew test` non vert sur suite complète (838/841)
+
+origin: migrated from legacy ledger ("Deferred from: code review of 8-4-notifications-ops-organisateurs (2026-06-09)"), 2026-08-26
+location: n/a
+reason: `./gradlew test` non vert sur suite complète (838/841)
+status: open
+
+### DW-243: Claim reminder mark avant dispatch empêche retry si envoi échoue
+
+origin: migrated from legacy ledger ("Deferred from: code review of 8-4-notifications-ops-organisateurs (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Claim reminder mark avant dispatch empêche retry si envoi échoue
+status: open
+
+### DW-244: `TEAM_COMPLETE` peut re-fire si lifecycle repasse COMPLETE après déclin
+
+origin: migrated from legacy ledger ("Deferred from: code review of 8-4-notifications-ops-organisateurs (2026-06-09)"), 2026-08-26
+location: n/a
+reason: `TEAM_COMPLETE` peut re-fire si lifecycle repasse COMPLETE après déclin
+status: open
+
+### DW-245: Scan hebdo `CompositionIncompleteReminderJob` sans pagination
+
+origin: migrated from legacy ledger ("Deferred from: code review of 8-4-notifications-ops-organisateurs (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Scan hebdo `CompositionIncompleteReminderJob` sans pagination
+status: open
+
+### DW-246: `minLength(3)` mot de passe global sur login
+
+origin: migrated from legacy ledger ("Deferred from: code review of 8-4-notifications-ops-organisateurs (2026-06-09)"), 2026-08-26
+location: n/a
+reason: `minLength(3)` mot de passe global sur login
+status: open
+
+### DW-247: OpenAPI `events.yaml` non mis à jour pour le 400 catégorie inconnue
+
+origin: migrated from legacy ledger ("Deferred from: code review of 17-38-category-glossary-api (2026-06-09)"), 2026-08-26
+location: n/a
+reason: OpenAPI `events.yaml` non mis à jour pour le 400 catégorie inconnue
+status: open
+
+### DW-248: Constantes réservées dupliquées (`RESERVED_SLUGS` vs `HIDDEN_SLUGS`)
+
+origin: migrated from legacy ledger ("Deferred from: code review of 17-38-category-glossary-api (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Constantes réservées dupliquées (`RESERVED_SLUGS` vs `HIDDEN_SLUGS`)
+status: open
+
+### DW-249: `labelForAutoCreate` code mort post-AC6
+
+origin: migrated from legacy ledger ("Deferred from: code review of 17-38-category-glossary-api (2026-06-09)"), 2026-08-26
+location: n/a
+reason: `labelForAutoCreate` code mort post-AC6
+status: open
+
+### DW-250: Fenêtre race preview → delete inter-requêtes
+
+origin: migrated from legacy ledger ("Deferred from: code review of 17-38-category-glossary-api (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Fenêtre race preview → delete inter-requêtes
+status: open
+
+### DW-251: `persistCategory` sans garde post-await identité événement
+
+origin: migrated from legacy ledger ("Deferred from: code review of 17-39-ui-category-selection (2026-06-09)"), 2026-08-26
+location: n/a
+reason: `persistCategory` sans garde post-await identité événement
+status: open
+
+### DW-252: Échec silencieux `loadGlossary` onglet Infos
+
+origin: migrated from legacy ledger ("Deferred from: code review of 17-39-ui-category-selection (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Échec silencieux `loadGlossary` onglet Infos
+status: open
+
+### DW-253: Fallback `categoryLabel` → slug brut si glossaire incomplet
+
+origin: migrated from legacy ledger ("Deferred from: code review of 17-39-ui-category-selection (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Fallback `categoryLabel` → slug brut si glossaire incomplet
+status: open
+
+### DW-254: `saving` partagé orga/format/catégorie sans séquencement
+
+origin: migrated from legacy ledger ("Deferred from: code review of 17-39-ui-category-selection (2026-06-09, v4 chips inline)"), 2026-08-26
+location: n/a
+reason: `saving` partagé orga/format/catégorie sans séquencement
+status: open
+
+### DW-255: Catégorie éditable sur spectacle archivé si `canManageEvents`
+
+origin: migrated from legacy ledger ("Deferred from: code review of 17-39-ui-category-selection (2026-06-09, v4 chips inline)"), 2026-08-26
+location: n/a
+reason: Catégorie éditable sur spectacle archivé si `canManageEvents`
+status: open
+
+### DW-256: Race concurrent delete : `affectedEventCount` peut diverger du preview
+
+origin: migrated from legacy ledger ("Deferred from: code review of 17-40-troupe-settings-categories (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Race concurrent delete : `affectedEventCount` peut diverger du preview
+status: open
+
+### DW-257: Aucun test smoke du profil `dev,offline`
+
+origin: migrated from legacy ledger ("Deferred from: code review profil offline dev V2 (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Aucun test smoke du profil `dev,offline`
+status: open
+
+### DW-258: Verrou H2 si second `bootRun` concurrent
+
+origin: migrated from legacy ledger ("Deferred from: code review profil offline dev V2 (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Verrou H2 si second `bootRun` concurrent
+status: open
+
+### DW-259: Chemin H2 `${user.dir}/../../` hors `services/api`
+
+origin: migrated from legacy ledger ("Deferred from: code review profil offline dev V2 (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Chemin H2 `${user.dir}/../../` hors `services/api`
+status: open
+
+### DW-260: ARCH.md sans mention du mode offline
+
+origin: migrated from legacy ledger ("Deferred from: code review profil offline dev V2 (2026-06-09)"), 2026-08-26
+location: n/a
+reason: ARCH.md sans mention du mode offline
+status: open
+
+### DW-261: Tooltip WhatsApp via `title` natif
+
+origin: migrated from legacy ledger ("Deferred from: code review of 6-23-modales-partager-annoncer-manuel-compact (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Tooltip WhatsApp via `title` natif
+status: open
+
+### DW-262: `::ng-deep` panel menu
+
+origin: migrated from legacy ledger ("Deferred from: code review of 6-23-modales-partager-annoncer-manuel-compact (2026-06-09)"), 2026-08-26
+location: n/a
+reason: `::ng-deep` panel menu
+status: open
+
+### DW-263: Gate S1 ≤ 800 ms non atteinte
+
+origin: migrated from legacy ledger ("Deferred from: code review of perf-02-inbox-badge-cache (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Gate S1 ≤ 800 ms non atteinte
+status: open
+
+### DW-264: Pas de test intégration « action inbox → retour /accueil → badge à jour »
+
+origin: migrated from legacy ledger ("Deferred from: code review of perf-02-inbox-badge-cache (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Pas de test intégration « action inbox → retour /accueil → badge à jour »
+status: open
+
+### DW-265: Pas d'invalidation serveur (push/WebSocket)
+
+origin: migrated from legacy ledger ("Deferred from: code review of perf-02-inbox-badge-cache (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Pas d'invalidation serveur (push/WebSocket)
+status: open
+
+### DW-266: `GET /me/inbox/count` endpoint léger
+
+origin: migrated from legacy ledger ("Deferred from: PERF-06 inbox-api-profiling (2026-06-09)"), 2026-08-26
+location: n/a
+reason: `GET /me/inbox/count` endpoint léger
+status: open
+
+### DW-267: Profilage Neon prod / Improbots volumineux
+
+origin: migrated from legacy ledger ("Deferred from: PERF-06 inbox-api-profiling (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Profilage Neon prod / Improbots volumineux
+status: open
+
+### DW-268: `NotificationRecipientResolver.isActiveEngagedMember` N+1 — item existant deferred-work 8-8 ; hors chemin `MeInboxService`.
+
+origin: migrated from legacy ledger ("Deferred from: PERF-06 inbox-api-profiling (2026-06-09)"), 2026-08-26
+location: n/a
+reason: `NotificationRecipientResolver.isActiveEngagedMember` N+1 — item existant deferred-work 8-8 ; hors chemin `MeInboxService`.
+status: open
+
+### DW-269: Suite `./gradlew test` 5 échecs préexistants
+
+origin: migrated from legacy ledger ("Deferred from: PERF-06 inbox-api-profiling (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Suite `./gradlew test` 5 échecs préexistants
+status: open
+
+### DW-270: Pas de delta chiffré avant/après
+
+origin: migrated from legacy ledger ("Deferred from: code review of perf-06-inbox-api-profiling (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Pas de delta chiffré avant/après
+status: open
+
+### DW-271: Fixture perf minimale sans scénario inbox « riche »
+
+origin: migrated from legacy ledger ("Deferred from: code review of perf-06-inbox-api-profiling (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Fixture perf minimale sans scénario inbox « riche »
+status: open
+
+### DW-272: Risque drift requêtes DISTINCT vs COUNT miroir
+
+origin: migrated from legacy ledger ("Deferred from: code review of perf-06-inbox-api-profiling (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Risque drift requêtes DISTINCT vs COUNT miroir
+status: open
+
+### DW-273: Guard and logout integration test gaps
+
+origin: migrated from legacy ledger ("Deferred from: code review of perf-09-member-shell-bootstrap-resolver (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Guard and logout integration test gaps
+status: open
+
+### DW-274: Navigation spec uses stubs not real EventDetail/UserAgenda
+
+origin: migrated from legacy ledger ("Deferred from: code review of perf-09-member-shell-bootstrap-resolver (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Navigation spec uses stubs not real EventDetail/UserAgenda
+status: open
+
+### DW-275: Testing helper underused
+
+origin: migrated from legacy ledger ("Deferred from: code review of perf-09-member-shell-bootstrap-resolver (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Testing helper underused
+status: open
+
+### DW-276: Remaining shell pages still call ensureHatcastSession
+
+origin: migrated from legacy ledger ("Deferred from: code review of perf-09-member-shell-bootstrap-resolver (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Remaining shell pages still call ensureHatcastSession
+status: open
+
+### DW-277: Bootstrap memo stale after auth cache invalidation without sessionUser clear
+
+origin: migrated from legacy ledger ("Deferred from: code review of perf-09-member-shell-bootstrap-resolver (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Bootstrap memo stale after auth cache invalidation without sessionUser clear
+status: open
+
+### DW-278: Boot network/5xx retry UI
+
+origin: migrated from legacy ledger ("Deferred from: code review of perf-09-member-shell-bootstrap-resolver (2026-06-09) — 3-lite follow-up"), 2026-08-26
+location: n/a
+reason: Boot network/5xx retry UI
+status: open
+
+### DW-279: `includeChances` non passé depuis le front
+
+origin: migrated from legacy ledger ("Deferred from: code review of perf-10-event-detail-page-bff (2026-06-09)"), 2026-08-26
+location: n/a
+reason: `includeChances` non passé depuis le front
+status: open
+
+### DW-280: Fallback `loadComposition` legacy si BFF équipe sans payload
+
+origin: migrated from legacy ledger ("Deferred from: code review of perf-10-event-detail-page-bff (2026-06-09)"), 2026-08-26
+location: n/a
+reason: Fallback `loadComposition` legacy si BFF équipe sans payload
+status: open
+
+### DW-281: `ensureMembershipParticipants` sur GET `/page`
+
+origin: migrated from legacy ledger ("Deferred from: code review of perf-10-event-detail-page-bff (2026-06-09)"), 2026-08-26
+location: n/a
+reason: `ensureMembershipParticipants` sur GET `/page`
+status: open
+
+### DW-282: ThreadLocal JDBC metrics sur threads async/scheduled
+
+origin: migrated from legacy ledger ("Deferred from: code review of perf-16-db-latency-observability (2026-06-10)"), 2026-08-26
+location: n/a
+reason: ThreadLocal JDBC metrics sur threads async/scheduled
+status: open
+
+### DW-283: BeanPostProcessor enveloppe tout bean `DataSource`
+
+origin: migrated from legacy ledger ("Deferred from: code review of perf-16-db-latency-observability (2026-06-10)"), 2026-08-26
+location: n/a
+reason: BeanPostProcessor enveloppe tout bean `DataSource`
+status: open
+
+### DW-284: p95 sur n=10 ≈ max
+
+origin: migrated from legacy ledger ("Deferred from: code review of perf-16-db-latency-observability (2026-06-10)"), 2026-08-26
+location: n/a
+reason: p95 sur n=10 ≈ max
+status: open
+
+### DW-285: `NeonAgendaPerformanceIntegrationTest` MockMvc in-process
+
+origin: migrated from legacy ledger ("Deferred from: code review of perf-16-db-latency-observability (2026-06-10)"), 2026-08-26
+location: n/a
+reason: `NeonAgendaPerformanceIntegrationTest` MockMvc in-process
+status: open
+
+### DW-286: No logout / access-denied slug clear
+
+origin: migrated from legacy ledger ("Deferred from: code review of 17-41-nav-shell-ma-troupe (2026-06-12)"), 2026-08-26
+location: n/a
+reason: No logout / access-denied slug clear
+status: open
+
+### DW-287: `Location.back()` si `navigationId > 1` peut renvoyer hors HatCast
+
+origin: migrated from legacy ledger ("Deferred from: code review of 17-43-event-detail-contexte-infos (2026-06-12)"), 2026-08-26
+location: n/a
+reason: `Location.back()` si `navigationId > 1` peut renvoyer hors HatCast
+status: open
+
+### DW-288: Test gap fallback chevron vers `/troupes/:slug`
+
+origin: migrated from legacy ledger ("Deferred from: code review of 17-43-event-detail-contexte-infos (2026-06-12)"), 2026-08-26
+location: n/a
+reason: Test gap fallback chevron vers `/troupes/:slug`
+status: open
+
+### DW-289: Test gap AC8 Saison absente sur 404/403
+
+origin: migrated from legacy ledger ("Deferred from: code review of 17-43-event-detail-contexte-infos (2026-06-12)"), 2026-08-26
+location: n/a
+reason: Test gap AC8 Saison absente sur 404/403
+status: open
+
+### DW-290: Badge statut absent pendant spinner chargement onglet Équipe
+
+origin: migrated from legacy ledger ("Deferred from: code review of 17-43-event-detail-contexte-infos (2026-06-12)"), 2026-08-26
+location: n/a
+reason: Badge statut absent pendant spinner chargement onglet Équipe
+status: open
+
+### DW-291: Test équipe brouillon ne couvre pas AC 7b
+
+origin: migrated from legacy ledger ("Deferred from: code review of 17-43-event-detail-contexte-infos (2026-06-12)"), 2026-08-26
+location: n/a
+reason: Test équipe brouillon ne couvre pas AC 7b
+status: open
+
+### DW-292: E2E helper added but no Playwright spec consumes it
+
+origin: migrated from legacy ledger ("Deferred from: code review of 17-44-hub-troupe-mini-chart-saison (2026-06-14)"), 2026-08-26
+location: n/a
+reason: E2E helper added but no Playwright spec consumes it
+status: open
+
+### DW-293: `slug` required on `StatisticsEvent` OpenAPI
+
+origin: migrated from legacy ledger ("Deferred from: code review of 17-44-hub-troupe-mini-chart-saison (2026-06-14)"), 2026-08-26
+location: n/a
+reason: `slug` required on `StatisticsEvent` OpenAPI
+status: open
+
+### DW-294: Extra `loadViewsByEventIds` on every stats call
+
+origin: migrated from legacy ledger ("Deferred from: code review of 17-44-hub-troupe-mini-chart-saison (2026-06-14)"), 2026-08-26
+location: n/a
+reason: Extra `loadViewsByEventIds` on every stats call
+status: open
+
+### DW-295: Double requête SQL sur explainability
+
+origin: migrated from legacy ledger ("Deferred from: code review of 19-8-facteur-equity-tag-history-ex-17-9 (2026-06-14)"), 2026-08-26
+location: n/a
+reason: Double requête SQL sur explainability
+status: open
+
+### DW-296: Branche spéciale `when (CategoryCompartmentFactor)` dans breakdown
+
+origin: migrated from legacy ledger ("Deferred from: code review of 19-8-facteur-equity-tag-history-ex-17-9 (2026-06-14)"), 2026-08-26
+location: n/a
+reason: Branche spéciale `when (CategoryCompartmentFactor)` dans breakdown
+status: open
+
+### DW-297: Pas de test d’intégration bout-en-bout `CompositionExplainabilityService` → delta `equity_tag`
+
+origin: migrated from legacy ledger ("Deferred from: code review of 19-8-facteur-equity-tag-history-ex-17-9 (2026-06-14)"), 2026-08-26
+location: n/a
+reason: Pas de test d’intégration bout-en-bout `CompositionExplainabilityService` → delta `equity_tag`
+status: open
+
+### DW-298: Requête role-request relancée par rôle au tirage
+
+origin: migrated from legacy ledger ("Deferred from: code review of 19-10-facteur-nombre-demandes-role (2026-06-14)"), 2026-08-26
+location: n/a
+reason: Requête role-request relancée par rôle au tirage
+status: open
+
+### DW-299: DRY compartiment partiel
+
+origin: migrated from legacy ledger ("Deferred from: code review of 19-10-facteur-nombre-demandes-role (2026-06-14)"), 2026-08-26
+location: n/a
+reason: DRY compartiment partiel
+status: open
+
+### DW-300: Pas de test mock prouvant z SQL en DEFAULT (AC18)
+
+origin: migrated from legacy ledger ("Deferred from: code review of 19-10-facteur-nombre-demandes-role (2026-06-14)"), 2026-08-26
+location: n/a
+reason: Pas de test mock prouvant z SQL en DEFAULT (AC18)
+status: open
+
+### DW-301: `formulaId` pour Simuler / preview % (19.17 AC3)
+
+origin: migrated from legacy ledger ("Deferred from: code review of 19-15-spec-formules-politiques-adr (2026-06-15)"), 2026-08-26
+location: n/a
+reason: `formulaId` pour Simuler / preview % (19.17 AC3)
+status: open
+
+### DW-302: Epics 19.16 AC3 (system V1 seul) vs OQ-19-02 (CHOICE + published + system V1)
+
+origin: migrated from legacy ledger ("Deferred from: code review of 19-15-spec-formules-politiques-adr (2026-06-15)"), 2026-08-26
+location: n/a
+reason: Epics 19.16 AC3 (system V1 seul) vs OQ-19-02 (CHOICE + published + system V1)
+status: open
+
+### DW-303: Epics 19.18 titre « admin saison » vs OQ-19-05 TROUPE_ADMIN only
+
+origin: migrated from legacy ledger ("Deferred from: code review of 19-15-spec-formules-politiques-adr (2026-06-15)"), 2026-08-26
+location: n/a
+reason: Epics 19.18 titre « admin saison » vs OQ-19-05 TROUPE_ADMIN only
+status: open
+
+### DW-304: PLAN.md résumé résolution tronqué (sans chemin implicit CHOICE)
+
+origin: migrated from legacy ledger ("Deferred from: code review of 19-15-spec-formules-politiques-adr (2026-06-15)"), 2026-08-26
+location: n/a
+reason: PLAN.md résumé résolution tronqué (sans chemin implicit CHOICE)
+status: open
+
+### DW-305: V65 prépare un statement JDBC par troupe
+
+origin: migrated from legacy ledger ("Deferred from: code review of 19-16-persistance-formules-defaut-v1 (2026-06-15)"), 2026-08-26
+location: n/a
+reason: V65 prépare un statement JDBC par troupe
+status: open
+
+### DW-306: `draw_policies` sans `created_at`
+
+origin: migrated from legacy ledger ("Deferred from: code review of 19-16-persistance-formules-defaut-v1 (2026-06-15)"), 2026-08-26
+location: n/a
+reason: `draw_policies` sans `created_at`
+status: open
+
+### DW-307: Verrouillage optimiste `version` non envoyé au PATCH
+
+origin: migrated from legacy ledger ("Deferred from: code review of 19-19c-ui-admin-editeur-formules (2026-06-17)"), 2026-08-26
+location: n/a
+reason: Verrouillage optimiste `version` non envoyé au PATCH
+status: open
+
+### DW-308: `troupeId` input change sans reload
+
+origin: migrated from legacy ledger ("Deferred from: code review of 19-19c-ui-admin-editeur-formules (2026-06-17)"), 2026-08-26
+location: n/a
+reason: `troupeId` input change sans reload
+status: open
+
+### DW-309: Race `reload()` concurrent sans séquence
+
+origin: migrated from legacy ledger ("Deferred from: code review of 19-19c-ui-admin-editeur-formules (2026-06-17)"), 2026-08-26
+location: n/a
+reason: Race `reload()` concurrent sans séquence
+status: open
+
+### DW-310: État vide liste sans copy dédiée quand `formulas=[]`
+
+origin: migrated from legacy ledger ("Deferred from: code review of 19-19c-ui-admin-editeur-formules (2026-06-17)"), 2026-08-26
+location: n/a
+reason: État vide liste sans copy dédiée quand `formulas=[]`
+status: open
+
+### DW-311: Pas de bouton retry sur erreur chargement F1
+
+origin: migrated from legacy ledger ("Deferred from: code review of 19-19c-ui-admin-editeur-formules (2026-06-17)"), 2026-08-26
+location: n/a
+reason: Pas de bouton retry sur erreur chargement F1
+status: open
+
+### DW-312: Badges direction sans tokens error/tertiary distincts
+
+origin: migrated from legacy ledger ("Deferred from: code review of 19-19c-ui-admin-editeur-formules (2026-06-17)"), 2026-08-26
+location: n/a
+reason: Badges direction sans tokens error/tertiary distincts
+status: open
+
+### DW-313: Golden REF-P uniquement `formulaSave`
+
+origin: migrated from legacy ledger ("Deferred from: code review of 19-19b-factor-params-runtime-tests (2026-06-16)"), 2026-08-26
+location: n/a
+reason: Golden REF-P uniquement `formulaSave`
+status: open
+
+### DW-314: Messages FR non assertés en intégration
+
+origin: migrated from legacy ledger ("Deferred from: code review of 19-19b-factor-params-runtime-tests (2026-06-16)"), 2026-08-26
+location: n/a
+reason: Messages FR non assertés en intégration
+status: open
+
+### DW-315: Artefact test design absent du dépôt
+
+origin: migrated from legacy ledger ("Deferred from: code review of 19-19b-factor-params-runtime-tests (2026-06-16)"), 2026-08-26
+location: n/a
+reason: Artefact test design absent du dépôt
+status: open
+
+### DW-316: Spec normative 19.19a non mergée sur branche
+
+origin: migrated from legacy ledger ("Deferred from: code review of 19-19b-factor-params-runtime-tests (2026-06-16)"), 2026-08-26
+location: n/a
+reason: Spec normative 19.19a non mergée sur branche
+status: open
+
+### DW-317: `@Tag("19.19b")` absent sur `DrawFormulaPipelineGoldenTest`
+
+origin: migrated from legacy ledger ("Deferred from: code review of 19-19b-factor-params-runtime-tests (2026-06-16)"), 2026-08-26
+location: n/a
+reason: `@Tag("19.19b")` absent sur `DrawFormulaPipelineGoldenTest`
+status: open
+
+### DW-318: Cible 48×48 dp non codée explicitement sur le bouton ⋮
+
+origin: migrated from legacy ledger ("Deferred from: code review of 19-21-ui-orga-choix-formule-tirage (2026-06-19)"), 2026-08-26
+location: n/a
+reason: Cible 48×48 dp non codée explicitement sur le bouton ⋮
+status: open
+
+### DW-319: Couverture E2E Playwright menu formule / tirage `formulaId`
+
+origin: migrated from legacy ledger ("Deferred from: code review of 19-21-ui-orga-choix-formule-tirage (2026-06-19)"), 2026-08-26
+location: n/a
+reason: Couverture E2E Playwright menu formule / tirage `formulaId`
+status: open
+
+### DW-320: Dédupe `localStorage` écrite avant `capture()`
+
+origin: migrated from legacy ledger ("Deferred from: code review of 11-2-posthog-identify-person-properties-m4-cutover (2026-06-19)"), 2026-08-26
+location: n/a
+reason: Dédupe `localStorage` écrite avant `capture()`
+status: open
+
+### DW-321: Pas de test intégration logout → reset → re-identify
+
+origin: migrated from legacy ledger ("Deferred from: code review of 11-2-posthog-identify-person-properties-m4-cutover (2026-06-19)"), 2026-08-26
+location: n/a
+reason: Pas de test intégration logout → reset → re-identify
+status: open
+
+### DW-322: Course multi-onglets sur première session
+
+origin: migrated from legacy ledger ("Deferred from: code review of 11-2-posthog-identify-person-properties-m4-cutover (2026-06-19)"), 2026-08-26
+location: n/a
+reason: Course multi-onglets sur première session
+status: open
+
+### DW-323: Props personne obsolètes si email/name effacés côté API
+
+origin: migrated from legacy ledger ("Deferred from: code review of 11-2-posthog-identify-person-properties-m4-cutover (2026-06-19)"), 2026-08-26
+location: n/a
+reason: Props personne obsolètes si email/name effacés côté API
+status: open
+
+### DW-324: `identifyUser` no-op si PostHog pas encore initialisé
+
+origin: migrated from legacy ledger ("Deferred from: code review of 11-2-posthog-identify-person-properties-m4-cutover (2026-06-19)"), 2026-08-26
+location: n/a
+reason: `identifyUser` no-op si PostHog pas encore initialisé
+status: open
+
+### DW-325: Sémantique `v2_migration_first_session` = premier identify navigateur
+
+origin: migrated from legacy ledger ("Deferred from: code review of 11-2-posthog-identify-person-properties-m4-cutover (2026-06-19)"), 2026-08-26
+location: n/a
+reason: Sémantique `v2_migration_first_session` = premier identify navigateur
+status: open
+
+### DW-326: No isolated unit tests for `guidesFromEnvironment()` edge cases
+
+origin: migrated from legacy ledger ("Deferred from: code review of 4-4-guides-video-page-connexion (2026-07-11)"), 2026-08-26
+location: n/a
+reason: No isolated unit tests for `guidesFromEnvironment()` edge cases
+status: open
+
+### DW-327: M3-1 minor: section title uses custom class
+
+origin: migrated from legacy ledger ("Deferred from: code review of 4-4-guides-video-page-connexion (2026-07-11)"), 2026-08-26
+location: n/a
+reason: M3-1 minor: section title uses custom class
+status: open
+
+### DW-328: Tests mutate global `environment` object
+
+origin: migrated from legacy ledger ("Deferred from: code review of 4-4-guides-video-page-connexion (2026-07-11)"), 2026-08-26
+location: n/a
+reason: Tests mutate global `environment` object
+status: open
+
+### DW-329: Doc E2E gate stale
+
+origin: migrated from legacy ledger ("Deferred from: code review of 17-45-nav-stats-before-troupe (2026-07-12)"), 2026-08-26
+location: n/a
+reason: Doc E2E gate stale
+status: open
+
+### DW-330: Epic 17.41 AC historique
+
+origin: migrated from legacy ledger ("Deferred from: code review of 17-45-nav-stats-before-troupe (2026-07-12)"), 2026-08-26
+location: n/a
+reason: Epic 17.41 AC historique
+status: open
+
+### DW-331: Cleanup Spring Session 1×/jour
+
+origin: migrated from legacy ledger ("Deferred from: code review of ops-12-neon-hikari-scale-to-zero (2026-08-04)"), 2026-08-26
+location: n/a
+reason: Cleanup Spring Session 1×/jour
+status: open
+
+### DW-332: Fuseau cron session `0 30 3 * * *`
+
+origin: migrated from legacy ledger ("Deferred from: code review of ops-12-neon-hikari-scale-to-zero (2026-08-04)"), 2026-08-26
+location: n/a
+reason: Fuseau cron session `0 30 3 * * *`
+status: open
+
+### DW-333: Overrides env Hikari / health.db
+
+origin: migrated from legacy ledger ("Deferred from: code review of ops-12-neon-hikari-scale-to-zero (2026-08-04)"), 2026-08-26
+location: n/a
+reason: Overrides env Hikari / health.db
+status: open
+
+### DW-334: Jobs `@Scheduled` notification
+
+origin: migrated from legacy ledger ("Deferred from: code review of ops-12-neon-hikari-scale-to-zero (2026-08-04)"), 2026-08-26
+location: n/a
+reason: Jobs `@Scheduled` notification
+status: open
+
+### DW-335: PgBouncer + Spring Session JDBC
+
+origin: migrated from legacy ledger ("Deferred from: code review of ops-12-neon-hikari-scale-to-zero (2026-08-04)"), 2026-08-26
+location: n/a
+reason: PgBouncer + Spring Session JDBC
+status: open
+
+### DW-336: Decide whether T3 items remain in the active deferred-work ledger or move to the archive.
+
+origin: migrated from legacy ledger ("Deferred from: code review of ops-12-neon-hikari-scale-to-zero (2026-08-04)"), 2026-08-26
+location: n/a
+reason: Decide whether T3 items remain in the active deferred-work ledger or move to the archive.
+status: open
 
 ### DW-126: A fresh Git clone without its ignored, locally provisioned BMad skills fails the upstream-skills validation before the Loop preflight can pass.
 origin: spec-deferred 5e29daf747f0
