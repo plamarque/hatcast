@@ -82,6 +82,32 @@ approbation de même autorité non expirée. Le script ne crée jamais cette
 autorité et une attestation E2E ne prouve ni une recette humaine ni une
 approbation d'intégration.
 
+### Handoff de smoke humain (Epic 21)
+
+Après `READINESS=ready` et l'attestation E2E antérieure déclarée dans la spec
+de la feature, passée ou avec sa disposition acceptée, préparer un guide JSON
+non secret contenant exactement `route`,
+`account_or_fixture_reference`, `actions` et `expected_observations`. Puis,
+depuis le worktree `feat/{story-key}` :
+
+```bash
+./scripts/v2/story-human-smoke-handoff.sh start --guide docs/v2/smoke/story-guide.json
+```
+
+La sortie fournit `https://localhost:4200`, le guide complété, l'identité de
+branche/baseline et la référence E2E. Elle démarre exclusivement
+`start-dev.sh --no-tailscale` dans son propre groupe de processus. Ce smoke ne
+remplace ni l'E2E isolé, ni une approbation humaine, ni l'autorisation
+d'intégrer. À la fin de la recette, arrêter uniquement cette instance :
+
+```bash
+./scripts/v2/story-human-smoke-handoff.sh stop
+```
+
+`status` réaffiche le handoff seulement si son marqueur de propriété reste
+vérifiable. Le contrôleur refuse tout état existant, stale ou non possédé ; il
+ne recherche ni n'arrête de processus externes.
+
 ## BMad Loop preflight (Epic 21)
 
 Before any Loop command, operate from the clean `v2` integration checkout. This

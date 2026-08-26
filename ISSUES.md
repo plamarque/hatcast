@@ -10,6 +10,46 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Open Issues
 
+### BUG-017 — Human smoke stop did not reach job-control child groups
+- **ID**: BUG-017
+- **Status**: Fixed (2026-08-26)
+- **Severity**: High (owned development stack could remain running)
+- **Affected area**: `scripts/start-dev.sh`; `scripts/v2/story-human-smoke-handoff.sh`
+- **Observed behavior**: A human smoke handoff sent `TERM` to its verified
+  `start-dev.sh` group, but job control had placed Gradle/API and the web
+  process in separate groups. The parent remained waiting and the controller
+  refused to record a clean stop.
+- **Expected behavior**: The verified smoke group contains the stack it owns,
+  and a bounded clean stop records completion only after both reserved ports
+  are free.
+- **Cause**: `start-dev.sh` enabled job control before parsing the dedicated
+  smoke-owner option; the controller also timed out before the API's bounded
+  cleanup period could complete.
+- **Fix**: Disable job control only for the marked human-smoke invocation,
+  extend the bounded stop wait, and safely record a stop that completed after
+  the controller's earlier timeout only when the former PID is verifiably gone.
+- **Repro**: Start a smoke handoff, then run its `stop` command while the API
+  and front development processes are active.
+
+### BUG-016 — Human smoke handoff rejected its declared prior E2E evidence
+- **ID**: BUG-016
+- **Status**: Fixed (2026-08-26)
+- **Severity**: High (delivery smoke blocked)
+- **Affected area**: `scripts/v2/story-human-smoke-handoff.sh` evidence gate
+- **Observed behavior**: The 21.4 handoff derived an E2E evidence path from its
+  own story key, although its Epic contract requires the prior 21.3 attestation.
+  It therefore rejected a valid 21.3 evidence file before starting the stack.
+- **Expected behavior**: The controller consumes the non-secret prior evidence
+  reference declared by the feature spec and verifies that the referenced file
+  matches its own evidence `story_key`.
+- **Cause**: The initial implementation conflated the smoke-handoff story key
+  with the already-validated E2E story key.
+- **Fix**: Add `prior_e2e_evidence` to the feature spec; resolve and validate
+  that declared repository-relative reference in the controller and its
+  hermetic black-box test.
+- **Repro**: From `feat/21-4-human-smoke-handoff`, start with the 21.3
+  attestation present and no synthetic 21.4 attestation.
+
 ### BUG-015 — Targeted E2E attestations lost the selected coverage
 - **ID**: BUG-015
 - **Status**: Fixed (2026-08-26)
