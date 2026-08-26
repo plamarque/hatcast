@@ -239,7 +239,8 @@ status: open
 origin: migrated from legacy ledger ("Deferred from: code review of 5-9-dispos-explainability-gate-decouple (2026-06-09)"), 2026-08-26
 location: n/a
 reason: M3-3 : pas de test E2E/composant « tap % → breakdown sheet » sans composition préchargée — dette test UI.
-status: open
+status: done 2026-08-26
+resolution: already resolved: Verified current code or authoritative specification; see sweep triage evidence.
 
 ### DW-163: OpenAPI `availability.yaml` : pas de doc du 403 explainability vs membership — amélioration doc.
 
@@ -325,14 +326,16 @@ status: open
 origin: migrated from legacy ledger ("Deferred from: code review of perf-07-season-workspace-bootstrap-bff (2026-06-09)"), 2026-08-26
 location: n/a
 reason: Bascule history→agenda bypass le BFF — follow-up documenté dans dev notes.
-status: open
+status: done 2026-08-26
+resolution: already resolved: Verified current code or authoritative specification; see sweep triage evidence.
 
 ### DW-175: Fix `enableExplainabilityForChances` hors scope PERF-07 — autre story (19.7).
 
 origin: migrated from legacy ledger ("Deferred from: code review of perf-07-season-workspace-bootstrap-bff (2026-06-09)"), 2026-08-26
 location: n/a
 reason: Fix `enableExplainabilityForChances` hors scope PERF-07 — autre story (19.7).
-status: open
+status: done 2026-08-26
+resolution: already resolved: Verified current code or authoritative specification; see sweep triage evidence.
 
 ### DW-176: AC1 non couvert par les tests ajoutés — bindings `[viewerGender]` vérifiés en revue code sur les 3 templates ; pas d'assertion DOM dans le diff PERF-05.
 
@@ -368,7 +371,8 @@ status: open
 origin: migrated from legacy ledger ("Deferred from: code review of perf-05-viewer-gender-props (2026-06-09)"), 2026-08-26
 location: n/a
 reason: Chaîne intégration `season-home` → `season-agenda` non testée — test isolé `SeasonAgenda` couvre le contrat input `viewerGender`.
-status: open
+status: done 2026-08-26
+resolution: already resolved: Verified current code or authoritative specification; see sweep triage evidence.
 
 ### DW-181: `sprint-status.yaml` : changements collatéraux (`5-8`, `perf-04`) dans le même diff — hors périmètre PERF-05.
 
@@ -466,7 +470,8 @@ status: open
 origin: migrated from legacy ledger ("Deferred from: code review of 19-7-breakdown-explicabilite-par-facteur (2026-06-07, re-review as-shipped)"), 2026-08-26
 location: n/a
 reason: Boutons imbriqués dans `composition-slot-picker-dialog` — waiver PO documenté ; dette a11y connue, pattern Dispos corrigé.
-status: open
+status: done 2026-08-26
+resolution: already resolved: Verified current code or authoritative specification; see sweep triage evidence.
 
 ### DW-195: `indexOf` O(n²) dans boucle facteurs `ChanceBreakdownCalculator` — un seul facteur en prod aujourd’hui.
 
@@ -1230,21 +1235,24 @@ status: open
 origin: migrated from legacy ledger ("Deferred from: code review of 19-15-spec-formules-politiques-adr (2026-06-15)"), 2026-08-26
 location: n/a
 reason: `formulaId` pour Simuler / preview % (19.17 AC3)
-status: open
+status: done 2026-08-26
+resolution: already resolved: Verified current code or authoritative specification; see sweep triage evidence.
 
 ### DW-302: Epics 19.16 AC3 (system V1 seul) vs OQ-19-02 (CHOICE + published + system V1)
 
 origin: migrated from legacy ledger ("Deferred from: code review of 19-15-spec-formules-politiques-adr (2026-06-15)"), 2026-08-26
 location: n/a
 reason: Epics 19.16 AC3 (system V1 seul) vs OQ-19-02 (CHOICE + published + system V1)
-status: open
+status: done 2026-08-26
+resolution: already resolved: Verified current code or authoritative specification; see sweep triage evidence.
 
 ### DW-303: Epics 19.18 titre « admin saison » vs OQ-19-05 TROUPE_ADMIN only
 
 origin: migrated from legacy ledger ("Deferred from: code review of 19-15-spec-formules-politiques-adr (2026-06-15)"), 2026-08-26
 location: n/a
 reason: Epics 19.18 titre « admin saison » vs OQ-19-05 TROUPE_ADMIN only
-status: open
+status: done 2026-08-26
+resolution: already resolved: Verified current code or authoritative specification; see sweep triage evidence.
 
 ### DW-304: PLAN.md résumé résolution tronqué (sans chemin implicit CHOICE)
 
