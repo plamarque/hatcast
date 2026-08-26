@@ -1481,7 +1481,9 @@ resolution: already resolved: docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md:269-272 d
 origin: migrated from legacy ledger ("Deferred from: code review of ops-12-neon-hikari-scale-to-zero (2026-08-04)"), 2026-08-26
 location: n/a
 reason: Decide whether T3 items remain in the active deferred-work ledger or move to the archive.
-status: open
+status: done 2026-08-26
+resolution: closed by human decision: Move historical T3 reasoning to the archive and reopen only with a current reproducible location.
+decision: 2026-08-26 Archive T3 history — Move historical T3 reasoning to the archive and reopen only with a current reproducible location.
 
 ### DW-126: A fresh Git clone without its ignored, locally provisioned BMad skills fails the upstream-skills validation before the Loop preflight can pass.
 origin: spec-deferred 5e29daf747f0
