@@ -10,6 +10,20 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Open Issues
 
+### BUG-015 — Targeted E2E attestations lost the selected coverage
+- **ID**: BUG-015
+- **Status**: Fixed (2026-08-26)
+- **Severity**: High (verification evidence integrity)
+- **Affected area**: `scripts/v2/story-e2e-evidence.sh` JSON attestation
+- **Observed behavior**: A successful targeted execution wrote an empty
+  `selection` array and duplicated selected entries under `discovered`.
+- **Expected behavior**: The attestation keeps selected coverage separate from
+  the complete discovered coverage list.
+- **Cause**: The Python JSON writer treated both positional separators as the
+  same marker, so it switched to the discovered bucket before reading selection.
+- **Fix**: Use distinct `--selected` and `--discovered` markers and assert both
+  arrays in the hermetic black-box test.
+
 ### LIMIT-008 — BMad Loop local policy does not match versioned Codex integration
 - **ID**: LIMIT-008
 - **Status**: Open
