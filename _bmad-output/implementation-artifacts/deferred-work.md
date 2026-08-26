@@ -8,7 +8,8 @@ location: scripts/v2/story-worktree-bootstrap.sh:46
 source_spec: `21-1-loop-readiness-contract.md`
 severity: medium
 reason: The clean-clone check reported missing bmad-build-auto and legacy review-layer skills; the same check passed after the existing local BMad runtime was provisioned.
-status: open
+status: done 2026-08-27
+resolution: already resolved: scripts/v2/story-worktree-bootstrap.sh:46-88 provisions and validates the pinned ignored runtime; scripts/v2/story-branch.test.sh:24-55 and :114-119 cover clean-clone and installer paths.
 
 ### DW-127: Human smoke handoff should prepare approved runtime prerequisites before asking an operator to start a smoke.
 origin: operator feedback 2026-08-26
