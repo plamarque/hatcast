@@ -575,3 +575,11 @@ source_spec: `21-1-loop-readiness-contract.md`
 severity: medium
 reason: The clean-clone check reported missing bmad-build-auto and legacy review-layer skills; the same check passed after the existing local BMad runtime was provisioned.
 status: open
+
+### DW-127: Human smoke handoff should prepare approved runtime prerequisites before asking an operator to start a smoke.
+origin: operator feedback 2026-08-26
+location: scripts/v2/story-human-smoke-handoff.sh; scripts/v2/story-worktree-runtime.sh
+source_spec: `spec-21-4-human-smoke-handoff.md`
+severity: medium
+reason: A freshly bootstrapped feature worktree can have an explicit `DEPENDENCIES=missing` readiness result. The current handoff then refuses only when the operator starts the smoke, although the approved `prepare` operation can link the local environment and install the bounded runtime prerequisites without a separate human decision.
+status: open
