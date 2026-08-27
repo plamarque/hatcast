@@ -12,6 +12,7 @@ The transition from `human review` to `explicit integration approval` is human-o
 - It accepts only a validated story key and invokes the repository-owned `story-branch.sh start` contract from the clean V2 checkout.
 - It asserts the branch, adjacent worktree registration, and required BMad runtime before returning control to Loop.
 - It is idempotent for a valid existing unit. It fails closed without starting a development session when the unit cannot be prepared.
+- The only authorized exception to the original Epic 21 sequencing is the user-approved launch of 21-6 on 2026-08-27. Its run evidence must name that exception; it does not alter the status or obligations of 21-4 or 21-5.
 
 ## Handoff
 

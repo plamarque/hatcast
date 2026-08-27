@@ -55,7 +55,7 @@ An unattended Loop sweep currently pauses when its required external `feat/{stor
 - Automatic approval, merge, push, remote branch deletion, or local worktree deletion.
 - Changing product behavior, Epic 21 acceptance criteria, deployment, or release workflows.
 - Replacing `bmad-loop` upstream external-worktree semantics or patching its installed package.
-- Dispatching these stories while the existing Epic 21 operator gates (21-4 and 21-5) remain unresolved.
+- Treating the explicit user-authorized 21-6 launch exception as confirmation, integration approval, or closure of the existing Epic 21 operator gates (21-4 and 21-5).
 
 ## Success signal
 
