@@ -10,16 +10,17 @@
     This story may only be dispatched after Epic 21 stories 21-4 and 21-5 have cleared their
     operator gates. Work from a clean v2 integration checkout; do not modify sprint-status.yaml.
 - id: "21-7"
-  title: Add review-gated integration handoff and cleanup control
+  title: Guide human smoke and control integration handoff
   description: >-
-    Implement CAP-2 and CAP-3: durable post-delivery handoffs plus an explicitly approved
-    integration entrypoint that delegates to the existing story-branch integration contract.
-    It must preserve units on every failure and cannot infer human review or approval.
+    Implement CAP-2, CAP-3, and CAP-5: render validated smoke data as a Markdown card and
+    accept only exact smoke OK confirmation before the explicitly approved integration entrypoint.
+    Preserve units on every failure; smoke confirmation cannot infer review or integration approval.
   spec_checkpoint: true
   done_checkpoint: true
   invoke_dev_with: >-
-    Requires 21-6 integrated and a clean v2 checkout. Do not automate human approval, merge,
-    push, remote branch deletion, or cleanup outside scripts/v2/story-branch.sh integrate.
+    Requires 21-6 integrated and a clean v2 checkout. Keep JSON as internal guide data and
+    Markdown as the operator surface. Do not automate code-review approval, merge, push,
+    remote branch deletion, or cleanup outside scripts/v2/story-branch.sh integrate.
 - id: "21-8"
   title: Launch BMad builds only from validated story units
   description: >-

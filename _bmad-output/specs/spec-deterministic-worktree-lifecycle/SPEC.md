@@ -23,12 +23,16 @@ An unattended Loop sweep currently pauses when its required external `feat/{stor
   - **success:** From a clean V2 integration checkout, a missing eligible `feat/{story-key}` unit is created through the repository-owned start contract before Loop evaluates its external-worktree precondition; an existing valid unit is reused, and any invalid state stops with an actionable failure.
 
 - **CAP-2**
-  - **intent:** An operator can receive a deterministic post-delivery handoff that identifies the preserved unit and the next required review or integration action.
-  - **success:** Every completed or paused external unit produces a durable, non-secret handoff containing its story key, branch, worktree path, outcome, verification evidence locations, and the exact explicit command or review action required next.
+  - **intent:** An operator can receive a deterministic, human-readable smoke handoff that identifies the preserved unit and explains exactly how to validate it.
+  - **success:** Every external unit eligible for human smoke produces a durable, non-secret Markdown card containing its story purpose, URL, prerequisites, numbered actions, expected observations, evidence references, and the exact `smoke OK` confirmation; the machine-readable guide remains available only as the validated source data.
 
 - **CAP-3**
   - **intent:** An authorized operator can integrate a reviewed unit and reclaim its local worktree through one controlled command.
   - **success:** The command delegates to the existing integration contract only after explicit operator approval, and reports merge, push, remote-ancestry verification, and local cleanup separately; on any failed condition the unit remains intact for inspection.
+
+- **CAP-5**
+  - **intent:** An operator can confirm successful human smoke with one unambiguous response before deciding whether to approve integration.
+  - **success:** On exact `smoke OK`, the controller revalidates the current evidence and records only a non-secret smoke-confirmed result tied to the story and baseline; it does not claim code-review approval, invoke integration, or remove any worktree.
 
 - **CAP-4**
   - **intent:** A developer can begin `bmad-build` or `bmad-build-auto` only from the validated story unit associated with the requested key.
@@ -41,6 +45,7 @@ An unattended Loop sweep currently pauses when its required external `feat/{stor
 - Loop preparation must use declarative project hooks at `pre_story` and `pre_bundle`, because these run before the Loop external-worktree check.
 - The implementation reuses and strengthens `scripts/v2/story-branch.sh`; it does not duplicate Git branch, merge, remote verification, or cleanup logic.
 - Integration requires an explicit human review and explicit operator approval. No hook, build skill, sweep, or controller may infer either approval.
+- `smoke OK` confirms the human smoke only. Code-review approval and the later integration command remain separate explicit human actions.
 - Local cleanup occurs only after the existing integration command reports a successful push and remote-ancestry verification. Failed, paused, or unreviewed units are preserved.
 - Handoffs and logs contain no secrets and do not copy ignored user configuration between worktrees beyond the established runtime bootstrap contract.
 - The lifecycle changes must be testable with isolated Git fixtures and must not modify unrelated worktrees.

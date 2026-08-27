@@ -16,8 +16,15 @@ The transition from `human review` to `explicit integration approval` is human-o
 ## Handoff
 
 - A post-delivery handoff is evidence, not an approval.
-- It records the story key, branch, derived worktree path, Loop run or bundle identifier when available, outcome, and evidence locations.
-- It states whether the next action is human review, resolving an escalation, or an explicitly approved integration. It must never claim that a review was approved or an integration occurred unless it has evidence.
+- The validated JSON guide remains the internal source contract. The operator receives a generated Markdown smoke card, never raw JSON.
+- The card states the story purpose, branch and baseline identity, clickable URL, prerequisites, numbered actions, expected observations, prior evidence, stop instruction, and the exact response: `smoke OK`.
+- It states whether the next action is smoke, resolving an escalation, code review, or an explicitly approved integration. It must never claim that a review was approved or an integration occurred unless it has evidence.
+
+## Smoke confirmation
+
+- The supported conversational confirmation is the exact text `smoke OK`; free-form approval-like prose is not silently treated as a confirmation.
+- The confirmation bridge revalidates the stopped smoke state, baseline, and prior evidence before recording a portable `smoke-confirmed` result.
+- `smoke OK` has no Git authority: it does not approve code review, call integration, merge, push, or remove a worktree. The next card asks separately for the human review/integration decision.
 
 ## Integration and cleanup
 
@@ -40,6 +47,8 @@ The transition from `human review` to `explicit integration approval` is human-o
 | Valid existing unit | Unit is reused without mutating another worktree. |
 | Invalid unit or dirty V2 | Preparation fails closed with recovery guidance. |
 | Loop/sweep delivery ends | Durable non-secret handoff names the preserved unit and next action. |
+| Eligible human smoke | Operator receives a Markdown card with executable steps, not raw JSON. |
+| Exact `smoke OK` | Current evidence is revalidated and smoke is recorded without Git authority. |
 | No explicit approval | Integration is unavailable; nothing is merged, pushed, or removed. |
 | Integration push/remote check fails | Feature unit remains intact. |
 | Integration succeeds | Local worktree and branch are cleaned by the established command; remote feature branch is retained. |
