@@ -192,7 +192,7 @@ export function enabledMalusBonusSummary(factorConfig: DrawFactorConfigEntry[]):
         case 'past_participation':
           return 'Participations passées'
         case 'immediate_replay':
-          return 'Rejouer immédiatement'
+          return 'Ne pas rejouer immédiatement'
         case 'role_request':
           return 'Aspirations de rôle'
         default:
@@ -247,7 +247,7 @@ export function computeProfileSegments(state: DrawFormulaEditorState): ProfileSe
         factorId === 'past_participation'
           ? 'Participations'
           : factorId === 'immediate_replay'
-            ? 'Rejouer'
+            ? 'Ne pas rejouer'
             : 'Aspirations',
     }
   })

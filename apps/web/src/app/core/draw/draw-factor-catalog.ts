@@ -101,7 +101,7 @@ export const DRAW_FACTOR_CATALOG: DrawFactorCatalogEntry[] = [
   },
   {
     factorId: 'immediate_replay',
-    label: 'Rejouer immédiatement',
+    label: 'Ne pas rejouer immédiatement',
     direction: 'MALUS',
     params: [REPLAY_MODE, REPLAY_MULT],
   },

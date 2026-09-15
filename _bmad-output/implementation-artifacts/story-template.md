@@ -7,7 +7,7 @@ baseline_commit:
 
 Status: backlog
 
-<!-- frontmatter : `feature_branch` + `baseline_commit` renseignés par create-story via `./scripts/v2/story-branch.sh start {story-key}` -->
+<!-- frontmatter: `feature_branch` + `baseline_commit` are supplied by create-story via `./scripts/v2/story-branch.sh start {story-key}` from clean v2. Never add the derived machine-local worktree path. -->
 
 <!-- Copier ce fichier pour une nouvelle story. Commande BMad : /bmad-create-story — inclure ce template si le skill ne le charge pas automatiquement. -->
 

@@ -1,5 +1,11 @@
-<section class="profile-chart" data-testid="draw-formula-profile-chart">
-  <h3 class="profile-chart__title">Composition de la formule</h3>
+<section
+  class="profile-chart"
+  [class.profile-chart--compact]="compact()"
+  data-testid="draw-formula-profile-chart"
+>
+  @if (!compact()) {
+    <h3 class="profile-chart__title">Composition de la formule</h3>
+  }
   <div class="profile-chart__viz">
     <div class="profile-chart__layout">
       <div
@@ -9,34 +15,49 @@
         [style.background]="donutBackground()"
       >
         <div class="profile-chart__donut-hole">
-          <span class="profile-chart__donut-line">3 critères</span>
-          <span class="profile-chart__donut-line profile-chart__donut-line--emphasis">{{ centerLine() }}</span>
+          @if (!compact()) {
+            <span class="profile-chart__donut-line">3 critères</span>
+            <span class="profile-chart__donut-line profile-chart__donut-line--emphasis">{{
+              centerLine()
+            }}</span>
+          }
         </div>
       </div>
-      <ul class="profile-chart__legend" data-testid="draw-formula-profile-legend">
-        @for (segment of segments(); track segment.factorId) {
-          <li
-            class="profile-chart__legend-item"
-            [class.profile-chart__legend-item--off]="!segment.enabled"
-          >
-            <span
-              class="profile-chart__swatch"
-              [style.background]="profileChartColor(segment.factorId, segment.enabled)"
-              aria-hidden="true"
-            ></span>
-            <span class="profile-chart__legend-label">
-              {{ segment.label }}
-            </span>
-            <span class="profile-chart__legend-percent">
-              @if (segment.enabled) {
-                {{ segment.percent }} %
+      @if (legendSegments().length > 0) {
+        <ul class="profile-chart__legend" data-testid="draw-formula-profile-legend">
+          @for (segment of legendSegments(); track segment.factorId) {
+            <li
+              class="profile-chart__legend-item"
+              [class.profile-chart__legend-item--off]="!segment.enabled"
+            >
+              <span
+                class="profile-chart__swatch"
+                [style.background]="profileChartColor(segment.factorId, segment.enabled)"
+                aria-hidden="true"
+              ></span>
+              @if (compact()) {
+                <span class="profile-chart__legend-line">
+                  {{ segment.label }}
+                  @if (segment.enabled) {
+                    <strong>{{ segment.percent }} %</strong>
+                  }
+                </span>
               } @else {
-                <span class="profile-chart__legend-off">off</span>
+                <span class="profile-chart__legend-label">
+                  {{ segment.label }}
+                </span>
+                <span class="profile-chart__legend-percent">
+                  @if (segment.enabled) {
+                    {{ segment.percent }} %
+                  } @else {
+                    <span class="profile-chart__legend-off">off</span>
+                  }
+                </span>
               }
-            </span>
-          </li>
-        }
-      </ul>
+            </li>
+          }
+        </ul>
+      }
     </div>
   </div>
   <ng-content />

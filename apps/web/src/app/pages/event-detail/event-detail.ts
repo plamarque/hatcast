@@ -122,7 +122,7 @@ export class EventDetail implements OnDestroy, OnInit {
   private querySubscription = Subscription.EMPTY
   private loadRequestId = 0
   private compositionLoadInFlight = false
-  private tabBootstrapInFlight: EventPageTab | null = null
+  private tabBootstrapInFlight: { tab: EventPageTab } | null = null
   private lastNotificationLinkCaptureKey = ''
   private tabBootstrapLoaded = signal<Record<EventPageTab, boolean>>({
     infos: false,
@@ -812,7 +812,7 @@ export class EventDetail implements OnDestroy, OnInit {
       this.ensureCompositionLoaded()
       return
     }
-    if (this.tabBootstrapInFlight === pageTab) {
+    if (this.tabBootstrapInFlight != null) {
       return
     }
     const ev = this.event()
@@ -829,10 +829,11 @@ export class EventDetail implements OnDestroy, OnInit {
     routeSegment: string,
     tab: EventPageTab,
   ): Promise<void> {
-    if (this.tabBootstrapInFlight === tab) {
+    if (this.tabBootstrapInFlight != null) {
       return
     }
-    this.tabBootstrapInFlight = tab
+    const bootstrap = { tab }
+    this.tabBootstrapInFlight = bootstrap
     const requestId = this.loadRequestId
     const seasonId = this.seasonId()
     if (!seasonId) {
@@ -865,8 +866,11 @@ export class EventDetail implements OnDestroy, OnInit {
       this.applyEventPageResponse(pageResult.data, tab, { markTabLoaded: tab })
       this.ensureCompositionLoaded()
     } finally {
-      if (this.tabBootstrapInFlight === tab) {
+      if (this.tabBootstrapInFlight === bootstrap) {
         this.tabBootstrapInFlight = null
+        if (this.eventDetailTabToPageTab(this.activeTab()) !== tab) {
+          this.ensureTabBootstrapLoaded()
+        }
       }
     }
   }

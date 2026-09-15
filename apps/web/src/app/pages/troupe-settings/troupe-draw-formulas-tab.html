@@ -1,16 +1,10 @@
 <div class="troupe-draw-formulas-tab" data-testid="draw-formulas-tab">
-  <p class="troupe-draw-formulas-tab__intro">
-    Les formules définissent comment HatCast ajuste les cotes (bonus et malus). Les politiques (par
-    saison ou catégorie) seront configurées ensuite.
-  </p>
-  <a
-    class="troupe-draw-formulas-tab__help-link"
-    [href]="helpPath"
-    target="_blank"
-    rel="noopener noreferrer"
-  >
-    Comprendre les cotes
-  </a>
+  @if (policyLoadWarning()) {
+    <p class="troupe-draw-formulas-tab__policy-warning" role="status">
+      Impossible de charger la politique de tirage. Les assignations par catégorie peuvent être
+      indisponibles.
+    </p>
+  }
 
   @if (loading()) {
     <div class="troupe-draw-formulas-tab__loading" role="status">
@@ -20,64 +14,141 @@
     <p class="troupe-draw-formulas-tab__error">Impossible de charger les formules de tirage.</p>
   } @else {
     <ul class="troupe-draw-formulas-tab__list" aria-label="Formules de tirage">
-      @for (formula of formulas(); track formula.id) {
+      @for (formula of visibleFormulas(); track formula.id) {
         <li
           class="troupe-draw-formulas-tab__row"
           [class.troupe-draw-formulas-tab__row--system]="formula.isSystem"
           [class.troupe-draw-formulas-tab__row--archived]="formula.status === 'ARCHIVED'"
           [attr.data-testid]="'draw-formula-row-' + formula.id"
         >
-          <div class="troupe-draw-formulas-tab__main">
+          <div class="troupe-draw-formulas-tab__header">
             <div class="troupe-draw-formulas-tab__title-row">
-              <span class="troupe-draw-formulas-tab__name">{{ formula.name }}</span>
-              @if (formula.isSystem) {
-                <mat-chip class="troupe-draw-formulas-tab__chip troupe-draw-formulas-tab__chip--system">
-                  Système
-                </mat-chip>
-              } @else {
-                <mat-chip
-                  class="troupe-draw-formulas-tab__chip"
-                  [class.troupe-draw-formulas-tab__chip--archived]="formula.status === 'ARCHIVED'"
-                >
-                  {{ statusLabel(formula.status) }}
-                </mat-chip>
-              }
+              <span
+                class="troupe-draw-formulas-tab__status-icon"
+                [class.troupe-draw-formulas-tab__status-icon--default]="statusKind(formula) === 'default'"
+                [class.troupe-draw-formulas-tab__status-icon--published]="statusKind(formula) === 'published'"
+                [class.troupe-draw-formulas-tab__status-icon--draft]="statusKind(formula) === 'draft'"
+                [class.troupe-draw-formulas-tab__status-icon--archived]="statusKind(formula) === 'archived'"
+                role="img"
+                [attr.aria-label]="statusAriaLabel(formula)"
+              >
+                <mat-icon aria-hidden="true">{{ statusIcon(formula) }}</mat-icon>
+              </span>
+              <span class="troupe-draw-formulas-tab__name">{{ displayName(formula) }}</span>
             </div>
-            <p class="troupe-draw-formulas-tab__summary">{{ factorSummary(formula) }}</p>
+            @if (!formula.isSystem && formula.status !== 'ARCHIVED') {
+              <div class="troupe-draw-formulas-tab__actions">
+                <button
+                  type="button"
+                  mat-icon-button
+                  [attr.aria-label]="'Modifier ' + formula.name"
+                  (click)="openEdit(formula)"
+                >
+                  <mat-icon aria-hidden="true">edit</mat-icon>
+                </button>
+                <button
+                  type="button"
+                  mat-icon-button
+                  [attr.aria-label]="'Archiver ' + formula.name"
+                  (click)="openArchive(formula)"
+                >
+                  <mat-icon aria-hidden="true">archive</mat-icon>
+                </button>
+              </div>
+            }
           </div>
-          @if (!formula.isSystem && formula.status !== 'ARCHIVED') {
-            <div class="troupe-draw-formulas-tab__actions">
-              <button
-                type="button"
-                mat-icon-button
-                [attr.aria-label]="'Modifier ' + formula.name"
-                (click)="openEdit(formula)"
+          <app-troupe-draw-formula-profile-chart
+            [compact]="true"
+            [editorState]="editorStateFor(formula)"
+          />
+          @if (showsSystemFallback(formula)) {
+            <p class="troupe-draw-formulas-tab__fallback" data-testid="draw-formula-applied-system">
+              {{ systemFallbackCopy }}
+            </p>
+          }
+          @if (showsAppliedToEditor(formula)) {
+            <div
+              class="troupe-draw-formulas-tab__apply"
+              [attr.data-testid]="'draw-formula-applied-' + formula.id"
+            >
+              <span class="troupe-draw-formulas-tab__apply-label">Appliquée à</span>
+              <mat-chip-set
+                class="troupe-draw-formulas-tab__category-chips"
+                [attr.aria-label]="'Catégories de ' + formula.name"
               >
-                <mat-icon aria-hidden="true">edit</mat-icon>
-              </button>
-              <button
-                type="button"
-                mat-icon-button
-                [attr.aria-label]="'Archiver ' + formula.name"
-                (click)="openArchive(formula)"
-              >
-                <mat-icon aria-hidden="true">archive</mat-icon>
-              </button>
+                @for (category of chipsFor(formula); track category.slug) {
+                  <mat-chip
+                    [removable]="!policyLoadWarning()"
+                    (removed)="unassignCategory(category.slug)"
+                  >
+                    {{ category.label }}
+                    <button
+                      matChipRemove
+                      type="button"
+                      [disabled]="saving() || policyLoadWarning()"
+                      [attr.aria-label]="'Retirer ' + category.label"
+                      [attr.data-testid]="'draw-formula-unassign-' + category.slug"
+                    >
+                      <mat-icon>cancel</mat-icon>
+                    </button>
+                  </mat-chip>
+                }
+              </mat-chip-set>
+              @if (freeCategories().length > 0) {
+                <button
+                  type="button"
+                  mat-button
+                  class="troupe-draw-formulas-tab__add-category"
+                  [disabled]="saving() || policyLoadWarning()"
+                  [matMenuTriggerFor]="categoryMenu"
+                  [attr.aria-label]="'Ajouter une catégorie à ' + formula.name"
+                  [attr.data-testid]="'draw-formula-add-category-' + formula.id"
+                >
+                  + Catégorie
+                </button>
+                <mat-menu #categoryMenu="matMenu">
+                  @for (category of freeCategories(); track category.slug) {
+                    <button
+                      type="button"
+                      mat-menu-item
+                      [disabled]="saving() || policyLoadWarning()"
+                      [attr.data-testid]="'draw-formula-assign-' + category.slug"
+                      (click)="assignCategory(formula, category.slug)"
+                    >
+                      {{ category.label }}
+                    </button>
+                  }
+                </mat-menu>
+              }
             </div>
           }
         </li>
       }
     </ul>
 
-    <button
-      type="button"
-      mat-stroked-button
-      class="troupe-draw-formulas-tab__add"
-      data-testid="draw-formula-add"
-      (click)="openCreate()"
-    >
-      <mat-icon aria-hidden="true">add</mat-icon>
-      Nouvelle formule
-    </button>
+    <div class="troupe-draw-formulas-tab__footer">
+      <button
+        type="button"
+        mat-stroked-button
+        class="troupe-draw-formulas-tab__add"
+        data-testid="draw-formula-add"
+        (click)="openCreate()"
+      >
+        Nouvelle formule
+      </button>
+      @if (archivedCount() > 0) {
+        <button
+          type="button"
+          mat-button
+          class="troupe-draw-formulas-tab__archived-toggle"
+          [attr.data-testid]="
+            showArchived() ? 'draw-formula-hide-archived' : 'draw-formula-show-archived'
+          "
+          (click)="toggleArchived()"
+        >
+          {{ archivedToggleLabel() }}
+        </button>
+      }
+    </div>
   }
 </div>

@@ -3083,3 +3083,19 @@ afin de **suivre** la répartition des spectacles prestigieux.
 | Affichage fiche / agenda | **20.4**, **20.5** |
 | Agrégat stats | **20.6**, **20.7** |
 | Malus tirage | **19.13** (Epic 19, after **20.6**) |
+
+---
+
+### Epic 21 — Worktree delivery readiness
+
+Manual BMad stories become verifiable in their isolated worktrees before a human is asked to approve integration. The epic retains the existing worktree and explicit integration contract while adding readiness, targeted-E2E evidence, a coverage-gap disposition, and a click-ready smoke handoff.
+
+**Delivery plan and gates:** [epic-worktree-delivery-readiness.md](epic-worktree-delivery-readiness.md).
+
+| Order | Story | Dependency |
+| --- | --- | --- |
+| 21.1 | Loop readiness contract | operator-selected local Codex policy |
+| 21.2 | Worktree runtime readiness | 21.1 |
+| 21.3 | Targeted E2E evidence | 21.2 |
+| 21.4 | Human smoke handoff | 21.2, 21.3 |
+| 21.5 | Delivery gates and integration | 21.1–21.4 |

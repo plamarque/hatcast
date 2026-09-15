@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Maquette 19.20 — Appliquée à (onglet Formules)</title>
+    <style>
+      :root {
+        --bg: #0e0e10;
+        --surface: #131316;
+        --row: #2a2830;
+        --row-system: #1f1e24;
+        --on: #eceaf0;
+        --muted: #b8b3bd;
+        --primary: #c4b5fd;
+        --pill-track: #2c2a32;
+        --pill-on: #7c3aed;
+        --chip-outline: #5c5670;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--on);
+        padding: 1.5rem 1.25rem 3rem;
+      }
+      .page {
+        max-width: 52rem;
+        margin: 0 auto;
+      }
+      .crumb {
+        font-size: 0.82rem;
+        color: var(--muted);
+        margin-bottom: 0.85rem;
+      }
+      h1 {
+        font-size: 1.65rem;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        margin: 0 0 1.1rem;
+      }
+      .tabs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.2rem;
+        background: var(--pill-track);
+        border-radius: 999px;
+        padding: 0.28rem;
+        margin-bottom: 1rem;
+      }
+      .tabs span {
+        text-align: center;
+        padding: 0.7rem 1rem;
+        border-radius: 999px;
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: #9a96a3;
+      }
+      .tabs .on {
+        background: var(--pill-on);
+        color: #fff;
+      }
+      .intro {
+        color: var(--muted);
+        font-size: 0.92rem;
+        line-height: 1.45;
+        margin: 0 0 0.55rem;
+        max-width: 46rem;
+      }
+      .help {
+        color: var(--primary);
+        font-size: 0.92rem;
+        margin: 0 0 1.1rem;
+      }
+      .row {
+        background: var(--row);
+        border-radius: 1rem;
+        padding: 0.85rem 1rem 0.95rem;
+        margin-bottom: 0.45rem;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 0.35rem 0.75rem;
+      }
+      .row.system {
+        background: transparent;
+        border: 1px solid color-mix(in srgb, #7c3aed 35%, transparent);
+      }
+      .name {
+        font-weight: 600;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        align-items: center;
+      }
+      .badge {
+        font-size: 0.75rem;
+        font-weight: 500;
+        border: 1px solid var(--chip-outline);
+        border-radius: 999px;
+        padding: 0.12rem 0.55rem;
+        color: #ddd8e6;
+      }
+      .summary {
+        color: var(--muted);
+        font-size: 0.88rem;
+        margin: 0.15rem 0 0.55rem;
+      }
+      .apply {
+        grid-column: 1 / -1;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.88rem;
+      }
+      .apply .lbl {
+        color: var(--muted);
+      }
+      .cat {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        background: #3b3548;
+        border-radius: 999px;
+        padding: 0.22rem 0.55rem 0.22rem 0.7rem;
+        font-size: 0.82rem;
+      }
+      .cat .x {
+        opacity: 0.7;
+        font-size: 0.95rem;
+        line-height: 1;
+      }
+      .add-cat {
+        border: 1px dashed #6b6578;
+        background: transparent;
+        color: var(--primary);
+        border-radius: 999px;
+        padding: 0.22rem 0.7rem;
+        font: inherit;
+        font-size: 0.82rem;
+      }
+      .rest {
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+      .icons {
+        color: #cfc9d8;
+        font-size: 1.05rem;
+        letter-spacing: 0.65rem;
+        padding-top: 0.15rem;
+      }
+      .cta {
+        margin-top: 0.65rem;
+        border: 1px solid #5a5566;
+        background: transparent;
+        color: var(--primary);
+        border-radius: 999px;
+        padding: 0.55rem 1rem;
+        font: inherit;
+        font-weight: 500;
+      }
+      .note {
+        margin-top: 2rem;
+        font-size: 0.8rem;
+        color: var(--muted);
+        max-width: 46rem;
+        line-height: 1.4;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="crumb">La Malice › Paramètres</div>
+      <h1>Paramètres troupe</h1>
+      <div class="tabs">
+        <span>Catégories</span>
+        <span class="on">Formules de tirage</span>
+      </div>
+      <p class="intro">
+        Les formules définissent comment HatCast ajuste les cotes. Assigne une formule à une
+        catégorie pour l’imposer à tous ses spectacles.
+      </p>
+      <p class="help">Comprendre les cotes</p>
+
+      <div class="row">
+        <div>
+          <div class="name">Aperocks <span class="badge">Publiée</span></div>
+          <p class="summary">Participations passées · Rejouer immédiatement</p>
+        </div>
+        <div class="icons">✎ ⬇</div>
+        <div class="apply">
+          <span class="lbl">Appliquée à</span>
+          <span class="cat">Apérock <span class="x">×</span></span>
+          <button class="add-cat" type="button">+ Catégorie</button>
+        </div>
+      </div>
+
+      <div class="row system">
+        <div>
+          <div class="name">V1 standard (système) <span class="badge">Système</span></div>
+          <p class="summary">Participations passées</p>
+        </div>
+        <div></div>
+        <div class="apply">
+          <span class="lbl">Appliquée à</span>
+          <span class="rest">le reste (spectacles ordinaires et catégories sans formule)</span>
+        </div>
+      </div>
+
+      <button class="cta" type="button">+ Nouvelle formule</button>
+    </div>
+    <p class="note">
+      Une catégorie ne peut être collée qu’à une formule. « + Catégorie » ouvre le glossaire
+      (comme l’onglet Catégories). Pas de 3ᵉ onglet Politiques.
+    </p>
+  </body>
+</html>

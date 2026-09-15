@@ -44,15 +44,17 @@ export async function expectCategoriesTabActive(page: Page): Promise<void> {
 export async function expectSystemFormulaReadOnly(page: Page): Promise<void> {
   const systemRow = page.locator('.troupe-draw-formulas-tab__row--system').first()
   await expect(systemRow).toBeVisible()
-  await expect(systemRow.getByText('Système', { exact: true })).toBeVisible()
+  await expect(systemRow.getByText('Formule standard', { exact: true })).toBeVisible()
+  await expect(systemRow.getByRole('img', { name: 'Formule par défaut' })).toBeVisible()
   await expect(systemRow.getByRole('button', { name: /^Modifier / })).toHaveCount(0)
   await expect(systemRow.getByRole('button', { name: /^Archiver / })).toHaveCount(0)
 }
 
 export async function openFormulaEditorCreate(page: Page): Promise<void> {
   await page.getByTestId('draw-formula-add').click()
-  await expect(page.getByTestId('draw-formula-editor-dialog')).toBeVisible({ timeout: 15_000 })
-  await expect(page.getByTestId('draw-formula-profile-chart')).toBeVisible()
+  const editor = page.getByTestId('draw-formula-editor-dialog')
+  await expect(editor).toBeVisible({ timeout: 15_000 })
+  await expect(editor.getByTestId('draw-formula-profile-chart')).toBeVisible()
 }
 
 export async function fillFormulaName(page: Page, name: string): Promise<void> {
@@ -86,7 +88,7 @@ export async function archiveFormulaByName(page: Page, name: string): Promise<vo
     .getByRole('button', { name: 'Archiver' })
     .click()
   await expect(page.getByTestId('draw-formula-archive-dialog')).toHaveCount(0, { timeout: 15_000 })
-  await expect(page.getByText('Formule archivée')).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByText('Formule archivée', { exact: true })).toBeVisible({ timeout: 15_000 })
 }
 
 export async function findDrawFormulaByName(
@@ -100,4 +102,42 @@ export async function findDrawFormulaByName(
   }
   const list = (await response.json()) as DrawFormulaDto[]
   return list.find((formula) => formula.name === name)
+}
+
+export async function createTroupeCategory(
+  page: Page,
+  label: string,
+  troupeId = E2E_SEED_TROUPE_ID,
+): Promise<{ slug: string; label: string }> {
+  const response = await page.request.post(`/v1/troupes/${troupeId}/categories`, {
+    data: { label },
+  })
+  if (!response.ok()) {
+    throw new Error(`Create category failed (${response.status()}): ${await response.text()}`)
+  }
+  return response.json() as Promise<{ slug: string; label: string }>
+}
+
+export async function getTroupeDrawPolicy(
+  page: Page,
+  troupeId = E2E_SEED_TROUPE_ID,
+): Promise<{
+  status: number
+  body: {
+    defaultRule: { mode: string; allowedFormulaIds?: string[]; mandatoryFormulaId?: string }
+    categoryRules: Array<{
+      category: string | null
+      mode: string
+      mandatoryFormulaId?: string
+    }>
+  } | null
+}> {
+  const response = await page.request.get(`/v1/troupes/${troupeId}/draw-policy`)
+  if (response.status() === 404) {
+    return { status: 404, body: null }
+  }
+  if (!response.ok()) {
+    throw new Error(`Get draw policy failed (${response.status()}): ${await response.text()}`)
+  }
+  return { status: response.status(), body: await response.json() }
 }

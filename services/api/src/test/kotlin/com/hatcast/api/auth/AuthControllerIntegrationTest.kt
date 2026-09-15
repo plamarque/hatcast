@@ -20,7 +20,12 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPat
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import com.hatcast.api.user.UserEntity
 import com.hatcast.api.user.UserRepository
+import org.springframework.session.jdbc.JdbcIndexedSessionRepository
+import org.springframework.session.SessionRepository
+import org.springframework.session.Session
 import java.time.Instant
+import java.util.Base64
+import org.junit.jupiter.api.Assertions.assertEquals
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -32,6 +37,9 @@ class AuthControllerIntegrationTest {
 
     @Autowired
     private lateinit var userRepository: UserRepository
+
+    @Autowired
+    private lateinit var sessionRepository: JdbcIndexedSessionRepository
 
     @MockBean
     private lateinit var googleIdTokenService: GoogleIdTokenService
@@ -66,7 +74,14 @@ class AuthControllerIntegrationTest {
 
         val cookie = result.response.getCookie("HATCAST_SESSION")
         requireNotNull(cookie) { "session cookie expected" }
-
+        assertEquals(2592000, cookie.maxAge)
+        assertEquals(2592000, serverIntervalSeconds(cookie))
+        org.junit.jupiter.api.Assertions.assertTrue(cookie.isHttpOnly)
+        org.junit.jupiter.api.Assertions.assertTrue(
+            result.response.getHeaders("Set-Cookie").any {
+                it.contains("HATCAST_SESSION=") && it.contains("SameSite=lax", ignoreCase = true)
+            },
+        )
         mockMvc
             .perform(get("/v1/auth/me").cookie(cookie))
             .andExpect(status().isOk)
@@ -90,12 +105,62 @@ class AuthControllerIntegrationTest {
                 .build()
         whenever(googleIdTokenService.validateAndParse(any())).thenReturn(jwt)
 
-        mockMvc
+        val result =
+            mockMvc
             .perform(
                 post("/v1/auth/google")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"idToken":"fake-jwt","rememberMe":false}"""),
             ).andExpect(status().isOk)
+                .andReturn()
+
+        val cookie = result.response.getCookie("HATCAST_SESSION")
+        requireNotNull(cookie) { "session cookie expected" }
+        assertEquals(-1, cookie.maxAge)
+        assertEquals(1800, serverIntervalSeconds(cookie))
+    }
+
+    @Test
+    fun `POST google rotates an existing session and reissues a remembered cookie`() {
+        val jwt =
+            Jwt
+                .withTokenValue("header.payload.sig")
+                .header("alg", "RS256")
+                .claim("sub", "google-sub-test-session-rotation")
+                .claim("email", "rotation@example.com")
+                .claim("name", "Session Rotation")
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .issuer("https://accounts.google.com")
+                .build()
+        whenever(googleIdTokenService.validateAndParse(any())).thenReturn(jwt)
+
+        val existingCookie =
+            mockMvc
+                .perform(
+                    post("/v1/auth/google")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"idToken":"fake-jwt","rememberMe":false}"""),
+                ).andExpect(status().isOk)
+                .andReturn()
+                .response
+                .getCookie("HATCAST_SESSION")
+        requireNotNull(existingCookie) { "initial session cookie expected" }
+
+        val result =
+            mockMvc
+                .perform(
+                    post("/v1/auth/google")
+                        .cookie(existingCookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"idToken":"fake-jwt","rememberMe":true}"""),
+                ).andExpect(status().isOk)
+                .andReturn()
+
+        val rememberedCookie = result.response.getCookie("HATCAST_SESSION")
+        requireNotNull(rememberedCookie) { "rotated session cookie expected" }
+        assertEquals(2592000, rememberedCookie.maxAge)
+        org.junit.jupiter.api.Assertions.assertNotEquals(existingCookie.value, rememberedCookie.value)
     }
 
     @Test
@@ -144,11 +209,21 @@ class AuthControllerIntegrationTest {
 
         val cookie = result.response.getCookie("HATCAST_SESSION")
         requireNotNull(cookie) { "session cookie expected" }
+        assertEquals(2592000, cookie.maxAge)
+        org.junit.jupiter.api.Assertions.assertTrue(cookie.isHttpOnly)
+        org.junit.jupiter.api.Assertions.assertTrue(
+            result.response.getHeaders("Set-Cookie").any {
+                it.contains("HATCAST_SESSION=") && it.contains("SameSite=lax", ignoreCase = true)
+            },
+        )
 
-        mockMvc
+        val logoutResult =
+            mockMvc
             .perform(
                 post("/v1/auth/logout").cookie(cookie),
             ).andExpect(status().isNoContent)
+                .andReturn()
+        assertEquals(0, logoutResult.response.getCookie("HATCAST_SESSION")?.maxAge)
 
         mockMvc
             .perform(
@@ -178,6 +253,8 @@ class AuthControllerIntegrationTest {
 
         val cookie = result.response.getCookie("HATCAST_SESSION")
         requireNotNull(cookie) { "session cookie expected" }
+        assertEquals(2592000, cookie.maxAge)
+        assertEquals(2592000, serverIntervalSeconds(cookie))
 
         mockMvc
             .perform(
@@ -196,12 +273,19 @@ class AuthControllerIntegrationTest {
             ),
         )
 
-        mockMvc
-            .perform(
+        val result =
+            mockMvc
+                .perform(
                 post("/v1/auth/idp")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"idToken":"fake-idp-token","rememberMe":false}"""),
-            ).andExpect(status().isOk)
+                ).andExpect(status().isOk)
+                .andReturn()
+
+        val cookie = result.response.getCookie("HATCAST_SESSION")
+        requireNotNull(cookie) { "session cookie expected" }
+        assertEquals(-1, cookie.maxAge)
+        assertEquals(1800, serverIntervalSeconds(cookie))
     }
 
     @Test
@@ -294,5 +378,12 @@ class AuthControllerIntegrationTest {
         val linked = userRepository.findByIdpUid(uid)
         requireNotNull(linked) { "user row expected for idp_uid" }
         org.junit.jupiter.api.Assertions.assertEquals(firstUserId, linked.id.toString())
+    }
+
+    private fun serverIntervalSeconds(cookie: jakarta.servlet.http.Cookie): Long {
+        val sessionId = String(Base64.getDecoder().decode(cookie.value))
+        @Suppress("UNCHECKED_CAST")
+        val repository = sessionRepository as SessionRepository<Session>
+        return repository.findById(sessionId)!!.maxInactiveInterval.seconds
     }
 }

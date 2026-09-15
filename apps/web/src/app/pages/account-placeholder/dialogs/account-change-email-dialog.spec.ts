@@ -17,10 +17,18 @@ import {
   type AccountChangeEmailDialogData,
 } from './account-change-email-dialog'
 
-vi.mock('firebase/auth', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('firebase/auth')>()
+vi.mock('firebase/auth', () => {
+  class GoogleAuthProvider {
+    setCustomParameters = vi.fn()
+  }
   return {
-    ...actual,
+    GoogleAuthProvider,
+    getAuth: vi.fn(),
+    onAuthStateChanged: (_auth: unknown, callback: () => void) => {
+      callback()
+      return () => undefined
+    },
+    signInWithPopup: vi.fn(),
     verifyBeforeUpdateEmail: vi.fn(),
   }
 })
@@ -59,6 +67,7 @@ describe('AccountChangeEmailDialog', () => {
   afterEach(() => {
     vi.clearAllMocks()
     vi.unstubAllGlobals()
+    localStorage.clear()
   })
 
   async function setup(
@@ -93,9 +102,19 @@ describe('AccountChangeEmailDialog', () => {
     cmp.form.patchValue({ newEmail: 'new@example.com' })
     await cmp.submit()
 
-    expect(signInIdp).toHaveBeenCalledWith('id-token')
+    expect(signInIdp).toHaveBeenCalledWith('id-token', false)
     expect(verify).toHaveBeenCalled()
     expect(cmp.sent()).toBe(true)
+  })
+
+  it('réauthentification conserve la préférence rememberMe persistée', async () => {
+    localStorage.setItem('hatcastRememberMe', '1')
+    verify.mockResolvedValue(undefined)
+    const { cmp } = await setup()
+    cmp.form.patchValue({ newEmail: 'new@example.com' })
+    await cmp.submit()
+
+    expect(signInIdp).toHaveBeenCalledWith('id-token', true)
   })
 
   it('session Firebase absente → état reconnexion', async () => {

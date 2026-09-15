@@ -1,0 +1,18 @@
+{
+  "command": "HATCAST_E2E_NO_BROWSER_INSTALL=1 PLAYWRIGHT_REUSE_SERVERS=0 scripts/run_e2e.sh -- --project=chromium-3-19 e2e/recette-3.19.spec.ts",
+  "discovered": [
+    "project:chromium-3-19",
+    "spec:apps/web/e2e/recette-3.19.spec.ts"
+  ],
+  "disposition": "run",
+  "outcome": "passed",
+  "rationale": "Retrait roster saison",
+  "report_reference": "apps/web/playwright-report/index.html",
+  "schema": "hatcast.story-e2e-evidence.v1",
+  "selection": [
+    "project:chromium-3-19",
+    "spec:apps/web/e2e/recette-3.19.spec.ts"
+  ],
+  "story_key": "21-3-targeted-e2e-evidence",
+  "target": "3-19"
+}

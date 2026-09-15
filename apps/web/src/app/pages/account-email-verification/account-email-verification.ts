@@ -12,6 +12,7 @@ import { AuthApiService } from '../../core/auth/auth-api.service'
 import { userMessageForEmailVerificationComplete } from '../../core/auth/auth-user-message'
 import { waitForFirebaseAuthReady } from '../../core/auth/firebase-auth-session'
 import { FirebaseAuthService } from '../../core/auth/firebase-auth.service'
+import { getHatcastRememberMePreference } from '../../core/auth/hatcast-remember-me-storage'
 import { rememberPendingPostLoginRedirect } from '../../core/navigation/post-login-redirect-storage'
 
 type VerificationPhase = 'loading' | 'reconnect' | 'no-config' | 'invalid' | 'success'
@@ -76,7 +77,7 @@ export class AccountEmailVerification implements OnInit {
     }
     await user.reload()
     const idToken = await user.getIdToken(true)
-    const exchanged = await this.authApi.signInWithIdentityPlatformIdToken(idToken)
+    const exchanged = await this.authApi.signInWithIdentityPlatformIdToken(idToken, getHatcastRememberMePreference())
     if (!exchanged.ok) {
       return false
     }

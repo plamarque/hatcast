@@ -70,6 +70,9 @@ describe('draw-formula-payload', () => {
     state.immediate_replay.enabled = false
     state.role_request.enabled = false
     const segments = computeProfileSegments(state)
+    expect(segments.find((segment) => segment.factorId === 'immediate_replay')?.label).toBe(
+      'Ne pas rejouer',
+    )
     expect(segments.find((segment) => segment.factorId === 'past_participation')?.percent).toBe(100)
     expect(segments.find((segment) => segment.factorId === 'immediate_replay')?.percent).toBe(0)
     expect(segments.find((segment) => segment.factorId === 'role_request')?.percent).toBe(0)

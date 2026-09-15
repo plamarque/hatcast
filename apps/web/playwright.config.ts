@@ -120,6 +120,15 @@ export default defineConfig({
       dependencies: ['setup-admin', 'setup-member'],
     },
     {
+      name: 'chromium-19-20',
+      testMatch: /recette-19-20\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'e2e/.auth/admin.json',
+      },
+      dependencies: ['setup-admin'],
+    },
+    {
       name: 'chromium-19-21',
       testMatch: /draw-formula-choice\.spec\.ts/,
       use: {

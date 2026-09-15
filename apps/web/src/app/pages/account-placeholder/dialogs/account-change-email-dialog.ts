@@ -30,6 +30,7 @@ import {
 import { AuthApiService } from '../../../core/auth/auth-api.service'
 import { ensureFirebaseCurrentUser } from '../../../core/auth/firebase-auth-session'
 import { FirebaseAuthService } from '../../../core/auth/firebase-auth.service'
+import { getHatcastRememberMePreference } from '../../../core/auth/hatcast-remember-me-storage'
 
 export interface AccountChangeEmailDialogData {
   currentEmail: string
@@ -109,7 +110,7 @@ export class AccountChangeEmailDialog {
       }
 
       const idToken = await firebaseUser.getIdToken(true)
-      await this.authApi.signInWithIdentityPlatformIdToken(idToken)
+      await this.authApi.signInWithIdentityPlatformIdToken(idToken, getHatcastRememberMePreference())
 
       const newEmail = this.form.controls.newEmail.value.trim()
       await verifyBeforeUpdateEmail(firebaseUser, newEmail, verifyBeforeUpdateEmailSettings())

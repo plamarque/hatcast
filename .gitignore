@@ -79,3 +79,7 @@ _bmad/config.user.toml
 
 # Cursor agent skills lockfile (local pin per machine)
 skills-lock.json
+.bmad-loop/runs/
+.bmad-loop/cache/
+.bmad-loop/policy.toml
+_bmad/render/

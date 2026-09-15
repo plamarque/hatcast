@@ -1630,6 +1630,87 @@ describe('EventDetail', () => {
     expect(getComposition).not.toHaveBeenCalled()
   })
 
+  it('serializes rapid tab bootstraps and loads the latest tab once (PERF-03)', async () => {
+    fixture.detectChanges()
+    await vi.waitFor(() => expect(getEventPage).toHaveBeenCalledTimes(1))
+
+    let resolveDispos: ((value: unknown) => void) | undefined
+    getEventPage.mockImplementation(async (_seasonId: string, _ref: string, options: { tab?: string } = {}) => {
+      const tab = (options.tab as 'infos' | 'dispos' | 'equipe') ?? 'infos'
+      if (tab === 'dispos') {
+        return new Promise((resolve) => {
+          resolveDispos = resolve
+        })
+      }
+      return {
+        ok: true,
+        status: 200,
+        data: buildEventPage(
+          ev('event-2', { title: 'Équipe à jour' }),
+          tab,
+          { permissions: pagePermissions },
+        ),
+      }
+    })
+
+    const cmp = fixture.componentInstance as unknown as {
+      activeTab: () => string
+      composition: () => CompositionResponse | null
+      event: () => EventResponse | null
+      onTabChange(index: number): void
+      visibleTabs: () => string[]
+    }
+    const disposIndex = cmp.visibleTabs().indexOf('dispos')
+    const equipeIndex = cmp.visibleTabs().indexOf('equipe')
+    cmp.onTabChange(disposIndex)
+    fixture.detectChanges()
+    await vi.waitFor(() =>
+      expect(getEventPage).toHaveBeenCalledWith(
+        'season-1',
+        'event-2',
+        expect.objectContaining({ tab: 'dispos' }),
+      ),
+    )
+
+    cmp.onTabChange(equipeIndex)
+    fixture.detectChanges()
+    expect(getEventPage).toHaveBeenCalledTimes(2)
+
+    expect(resolveDispos).toBeDefined()
+    resolveDispos!({
+      ok: true,
+      status: 200,
+      data: buildEventPage(
+        ev('event-2', { title: 'Dispos obsolète' }),
+        'dispos',
+        { permissions: pagePermissions },
+      ),
+    })
+
+    await vi.waitFor(() =>
+      expect(getEventPage).toHaveBeenCalledWith(
+        'season-1',
+        'event-2',
+        expect.objectContaining({ tab: 'equipe' }),
+      ),
+    )
+    expect(getEventPage).toHaveBeenCalledTimes(3)
+    await vi.waitFor(() => {
+      expect(cmp.activeTab()).toBe('equipe')
+      expect(cmp.event()?.title).toBe('Équipe à jour')
+      expect(cmp.composition()).not.toBeNull()
+    })
+
+    cmp.onTabChange(disposIndex)
+    fixture.detectChanges()
+    await vi.waitFor(() => expect(getEventPage).toHaveBeenCalledTimes(4))
+    expect(getEventPage).toHaveBeenLastCalledWith(
+      'season-1',
+      'event-2',
+      expect.objectContaining({ tab: 'dispos' }),
+    )
+  })
+
   it('does not prefetch dispos summary on Infos; Dispos tab fetches via child (PERF-03 AC3)', async () => {
     mockEventPageResponse(ev('event-2', {
         availabilityOpenedAt: '2026-01-01T00:00:00.000Z',

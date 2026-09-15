@@ -10,6 +10,100 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Open Issues
 
+### BUG-017 — Human smoke stop did not reach job-control child groups
+- **ID**: BUG-017
+- **Status**: Fixed (2026-08-26)
+- **Severity**: High (owned development stack could remain running)
+- **Affected area**: `scripts/start-dev.sh`; `scripts/v2/story-human-smoke-handoff.sh`
+- **Observed behavior**: A human smoke handoff sent `TERM` to its verified
+  `start-dev.sh` group, but job control had placed Gradle/API and the web
+  process in separate groups. The parent remained waiting and the controller
+  refused to record a clean stop.
+- **Expected behavior**: The verified smoke group contains the stack it owns,
+  and a bounded clean stop records completion only after both reserved ports
+  are free.
+- **Cause**: `start-dev.sh` enabled job control before parsing the dedicated
+  smoke-owner option; the controller also timed out before the API's bounded
+  cleanup period could complete.
+- **Fix**: Disable job control only for the marked human-smoke invocation,
+  extend the bounded stop wait, and safely record a stop that completed after
+  the controller's earlier timeout only when the former PID is verifiably gone.
+- **Repro**: Start a smoke handoff, then run its `stop` command while the API
+  and front development processes are active.
+
+### BUG-016 — Human smoke handoff rejected its declared prior E2E evidence
+- **ID**: BUG-016
+- **Status**: Fixed (2026-08-26)
+- **Severity**: High (delivery smoke blocked)
+- **Affected area**: `scripts/v2/story-human-smoke-handoff.sh` evidence gate
+- **Observed behavior**: The 21.4 handoff derived an E2E evidence path from its
+  own story key, although its Epic contract requires the prior 21.3 attestation.
+  It therefore rejected a valid 21.3 evidence file before starting the stack.
+- **Expected behavior**: The controller consumes the non-secret prior evidence
+  reference declared by the feature spec and verifies that the referenced file
+  matches its own evidence `story_key`.
+- **Cause**: The initial implementation conflated the smoke-handoff story key
+  with the already-validated E2E story key.
+- **Fix**: Add `prior_e2e_evidence` to the feature spec; resolve and validate
+  that declared repository-relative reference in the controller and its
+  hermetic black-box test.
+- **Repro**: From `feat/21-4-human-smoke-handoff`, start with the 21.3
+  attestation present and no synthetic 21.4 attestation.
+
+### BUG-015 — Targeted E2E attestations lost the selected coverage
+- **ID**: BUG-015
+- **Status**: Fixed (2026-08-26)
+- **Severity**: High (verification evidence integrity)
+- **Affected area**: `scripts/v2/story-e2e-evidence.sh` JSON attestation
+- **Observed behavior**: A successful targeted execution wrote an empty
+  `selection` array and duplicated selected entries under `discovered`.
+- **Expected behavior**: The attestation keeps selected coverage separate from
+  the complete discovered coverage list.
+- **Cause**: The Python JSON writer treated both positional separators as the
+  same marker, so it switched to the discovered bucket before reading selection.
+- **Fix**: Use distinct `--selected` and `--discovered` markers and assert both
+  arrays in the hermetic black-box test.
+
+### LIMIT-008 — BMad Loop local policy does not match versioned Codex integration
+- **ID**: LIMIT-008
+- **Status**: Open
+- **Severity**: Medium (workflow automation unavailable)
+- **Affected area**: BMad Loop 0.11.1 local policy, CLI adapter and skill registration
+- **Observed behavior**: `bmad-loop validate --project . --json` selects Claude for dev/review/triage, but `claude`, `.claude` hooks and required `.claude/skills` are absent. The repository instead versions Codex hooks. `.bmad-loop/policy.toml` is ignored and absent.
+- **Expected behavior**: The operator-selected adapter, hooks and required skills agree, and Loop preflight is green before a real run.
+- **Notes/context**: This is the first prerequisite in `_bmad-output/planning-artifacts/epic-worktree-delivery-readiness.md`; policy must not contain secrets.
+
+### LIMIT-007 — V2 web unit suite is red and non-deterministic
+- **ID**: LIMIT-007
+- **Status**: Open
+- **Severity**: Medium (development confidence / CI readiness)
+- **Affected area**: V2 Angular/Vitest unit suite (`apps/web`)
+- **Observed behavior**: On the same commit and dependency lock, three executions of `npm run test -w @hatcast/web -- --watch=false` failed with different aggregates: 20/89, 18/78, then 16/76 failed files/tests. Each run also reported one unhandled error.
+- **Expected behavior**: The suite is reproducible on unchanged inputs and eventually green before it becomes a CI gate. A failure must identify either a product regression or the stale test/mock that needs updating.
+- **Evidence**: Baseline and remediation order: `_bmad-output/implementation-artifacts/deferred-work.md` (DW-120). The observed clusters include incomplete troupe/season resolver doubles, canonical-route expectations, authentication expectations after BUG-014, and member bootstrap expectations.
+- **Notes/context**: Run at `0d77badfb4b49134627c43126db9c96e5e8f76a9` with Node `v22.12.0`, npm `10.9.0`, and root `package-lock.json` SHA-256 `e29ea70abcd8d15866a29ee14c7898948153b1a1702cc9c4dc2c6024c3d5a11d`.
+
+### LIMIT-006 — Fresh Git worktrees need live validation of BMad provisioning
+- **ID**: LIMIT-006
+- **Status**: Fixed (2026-08-25; live provisioning installed and verified the required skills)
+- **Severity**: Medium (development workflow / parallel story isolation)
+- **Affected area**: BMad local installation and fresh Git worktrees
+- **Observed behavior**: A worktree created from `v2` contains tracked BMad customizations but not ignored local skills, so its runtime could not be verified reproducibly.
+- **Expected behavior**: A dedicated story worktree can validate the project-standard manual BMad runtime without copying an untracked developer installation by hand.
+- **Cause**: A fresh Git worktree contains the tracked BMad manifest, so BMad 6.11.0 treats it as an existing installation. The bootstrap passed `--action install`, which that state rejects before writing the ignored IDE skill files.
+- **Fix**: `scripts/v2/story-worktree-bootstrap.sh` invokes the pinned `bmad-method` installer only in the requested clean unit and verifies the real `bmad-create-story`, `bmad-dev-story`, and `bmad-code-review` skills with `_bmad/scripts/memlog.py` and tracked custom policy. It uses BMad's update flow for a worktree containing the tracked manifest, then restores only the tracked `_bmad/` files so the ignored IDE skills are added without rewriting project-owned runtime configuration. A network download requires explicit `HATCAST_BMAD_ALLOW_NETWORK=1`; tests inject a local provisioner. `story-branch.sh start` preserves the unit for inspection if bootstrap fails. A live approved run on 2026-08-25 passed BMad 6.11.0 verification.
+
+### BUG-014 — Mobile remembered session lost when the browser closes
+- **ID**: BUG-014
+- **Status**: Fixed (2026-08-24)
+- **Severity**: High (authentication — returning mobile user)
+- **Affected area**: V2 API Spring Session JDBC / `HATCAST_SESSION`; Angular Google and Identity Platform recovery paths
+- **Observed behavior**: `rememberMe=true` selected the 30-day server inactivity interval but emitted a browser-session `HATCAST_SESSION` cookie. Closing a mobile browser removed the only Google GIS authentication handle, so `/v1/auth/me` could not restore the session.
+- **Expected behavior**: A remembered Google or Identity Platform connection keeps a secure HttpOnly handle with `Max-Age=30 days` from its issuance or reissue; reopening within that still-valid cookie window restores the session when the sliding 30-day server inactivity limit has not expired. A non-remembered connection keeps its 30-minute server interval and browser-session cookie (no `Max-Age` / `Expires`). Browser session restoration can retain that latter cookie across a restart; HatCast does not add a client-side forced logout merely to override this user-agent behaviour.
+- **Cause**: Spring Session cookie configuration had no per-sign-in persistence decision; the front-end boolean is not a credential and Google GIS intentionally does not establish a Firebase client session.
+- **Fix**: `HatcastSessionCookieSerializer` uses the existing `rememberMe` request decision to issue `Max-Age=2592000` only for remembered sign-ins, while preserving `HttpOnly`, `SameSite=Lax`, and Cloud `Secure`. Omitted `rememberMe` remains `true`. Identity Platform can still re-exchange an existing Firebase user token after a missing cookie; Google relies on the persistent HatCast cookie and otherwise signs in again. Web Push delivery remains subscription-based, not session-based.
+- **Evidence**: API integration and serializer tests assert both Google/IdP intervals and cookie attributes; Angular tests distinguish Google’s no-Firebase fallback from the Identity Platform fallback; `WebPushNotificationSenderTest` verifies the sender reads `user_push_subscriptions` by user ID without an `HttpSession`.
+
 ### BUG-013 — Neon Launch bill ~$78/mo while scale-to-zero enabled (Hikari pool)
 - **ID**: BUG-013
 - **Status**: Fixed (2026-08-04 — OPS-12)
@@ -260,4 +354,3 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
   - API refuse `MEMBER` → `EXTERNE` via `PATCH` membre et via import CSV membre : *« Utilisez l'ajout Externe pour les entrées carnet. »* ([`TroupeMembershipService.kt`](services/api/src/main/kotlin/com/hatcast/api/troupe/TroupeMembershipService.kt), [`TroupeMemberCsvImportService.kt`](services/api/src/main/kotlin/com/hatcast/api/troupe/TroupeMemberCsvImportService.kt)).
   - UI édition membre : pas de changement de rôle vers Externe ([`edit-troupe-member-dialog.ts`](apps/web/src/app/pages/admin-membres/edit-troupe-member-dialog.ts)).
 - **Notes/context** : Investigation 2026-07-12 → [member-externe-conversion-investigation.md](_bmad-output/implementation-artifacts/investigations/member-externe-conversion-investigation.md). **Décision produit :** conversion bidirectionnelle + **mode de participation par saison** ([ADR-0022](docs/adr/0022-season-participation-mode-role-lifecycle.md)). **Livré :** story **2.26** (recette OK 2026-07-12).
-
