@@ -65,19 +65,40 @@
   overflow-wrap: anywhere;
 }
 
-.troupe-draw-formulas-tab__badge {
-  border: 1px solid color-mix(in srgb, var(--mat-sys-on-surface) 38%, transparent);
+.troupe-draw-formulas-tab__status-icon {
+  align-items: center;
   border-radius: 999px;
-  color: color-mix(in srgb, var(--mat-sys-on-surface) 88%, transparent);
-  font-size: 0.75rem;
-  font-weight: 500;
-  line-height: 1.2;
-  padding: 0.12rem 0.55rem;
-  white-space: nowrap;
+  display: inline-flex;
+  flex-shrink: 0;
+  height: 1.75rem;
+  justify-content: center;
+  width: 1.75rem;
+
+  mat-icon {
+    font-size: 1.15rem;
+    height: 1.15rem;
+    width: 1.15rem;
+  }
 }
 
-.troupe-draw-formulas-tab__badge--archived {
-  opacity: 0.85;
+.troupe-draw-formulas-tab__status-icon--default {
+  background: color-mix(in srgb, var(--mat-sys-primary) 18%, transparent);
+  color: var(--mat-sys-primary);
+}
+
+.troupe-draw-formulas-tab__status-icon--published {
+  background: color-mix(in srgb, var(--mat-sys-tertiary) 18%, transparent);
+  color: var(--mat-sys-tertiary);
+}
+
+.troupe-draw-formulas-tab__status-icon--draft {
+  background: color-mix(in srgb, var(--mat-sys-secondary) 18%, transparent);
+  color: var(--mat-sys-secondary);
+}
+
+.troupe-draw-formulas-tab__status-icon--archived {
+  background: color-mix(in srgb, var(--mat-sys-on-surface) 12%, transparent);
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 68%, transparent);
 }
 
 .troupe-draw-formulas-tab__actions {
@@ -139,12 +160,27 @@
   padding: 0.35rem 0.7rem;
 }
 
+.troupe-draw-formulas-tab__footer {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: space-between;
+  margin-top: 0.2rem;
+}
+
+.troupe-draw-formulas-tab__archived-toggle {
+  color: var(--mat-sys-primary);
+  font-size: 0.88rem;
+  margin-left: auto;
+  min-height: 3rem;
+  padding-inline: 0.15rem;
+}
+
 .troupe-draw-formulas-tab__add {
   border-radius: 999px;
   color: var(--mat-sys-primary);
   font-weight: 500;
-  justify-self: start;
-  margin-top: 0.2rem;
   min-height: 3rem;
   padding-inline: 1rem;
 }

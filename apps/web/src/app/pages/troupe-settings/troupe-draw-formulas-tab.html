@@ -14,7 +14,7 @@
     <p class="troupe-draw-formulas-tab__error">Impossible de charger les formules de tirage.</p>
   } @else {
     <ul class="troupe-draw-formulas-tab__list" aria-label="Formules de tirage">
-      @for (formula of formulas(); track formula.id) {
+      @for (formula of visibleFormulas(); track formula.id) {
         <li
           class="troupe-draw-formulas-tab__row"
           [class.troupe-draw-formulas-tab__row--system]="formula.isSystem"
@@ -23,17 +23,18 @@
         >
           <div class="troupe-draw-formulas-tab__header">
             <div class="troupe-draw-formulas-tab__title-row">
+              <span
+                class="troupe-draw-formulas-tab__status-icon"
+                [class.troupe-draw-formulas-tab__status-icon--default]="statusKind(formula) === 'default'"
+                [class.troupe-draw-formulas-tab__status-icon--published]="statusKind(formula) === 'published'"
+                [class.troupe-draw-formulas-tab__status-icon--draft]="statusKind(formula) === 'draft'"
+                [class.troupe-draw-formulas-tab__status-icon--archived]="statusKind(formula) === 'archived'"
+                role="img"
+                [attr.aria-label]="statusAriaLabel(formula)"
+              >
+                <mat-icon aria-hidden="true">{{ statusIcon(formula) }}</mat-icon>
+              </span>
               <span class="troupe-draw-formulas-tab__name">{{ displayName(formula) }}</span>
-              @if (formula.isSystem) {
-                <span class="troupe-draw-formulas-tab__badge">Par défaut</span>
-              } @else {
-                <span
-                  class="troupe-draw-formulas-tab__badge"
-                  [class.troupe-draw-formulas-tab__badge--archived]="formula.status === 'ARCHIVED'"
-                >
-                  {{ statusLabel(formula.status) }}
-                </span>
-              }
             </div>
             @if (!formula.isSystem && formula.status !== 'ARCHIVED') {
               <div class="troupe-draw-formulas-tab__actions">
@@ -125,14 +126,29 @@
       }
     </ul>
 
-    <button
-      type="button"
-      mat-stroked-button
-      class="troupe-draw-formulas-tab__add"
-      data-testid="draw-formula-add"
-      (click)="openCreate()"
-    >
-      + Nouvelle formule
-    </button>
+    <div class="troupe-draw-formulas-tab__footer">
+      <button
+        type="button"
+        mat-stroked-button
+        class="troupe-draw-formulas-tab__add"
+        data-testid="draw-formula-add"
+        (click)="openCreate()"
+      >
+        Nouvelle formule
+      </button>
+      @if (archivedCount() > 0) {
+        <button
+          type="button"
+          mat-button
+          class="troupe-draw-formulas-tab__archived-toggle"
+          [attr.data-testid]="
+            showArchived() ? 'draw-formula-hide-archived' : 'draw-formula-show-archived'
+          "
+          (click)="toggleArchived()"
+        >
+          {{ archivedToggleLabel() }}
+        </button>
+      }
+    </div>
   }
 </div>

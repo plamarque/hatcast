@@ -35,16 +35,25 @@
                 [style.background]="profileChartColor(segment.factorId, segment.enabled)"
                 aria-hidden="true"
               ></span>
-              <span class="profile-chart__legend-label">
-                {{ segment.label }}
-              </span>
-              <span class="profile-chart__legend-percent">
-                @if (segment.enabled) {
-                  {{ segment.percent }} %
-                } @else {
-                  <span class="profile-chart__legend-off">off</span>
-                }
-              </span>
+              @if (compact()) {
+                <span class="profile-chart__legend-line">
+                  {{ segment.label }}
+                  @if (segment.enabled) {
+                    <strong>{{ segment.percent }} %</strong>
+                  }
+                </span>
+              } @else {
+                <span class="profile-chart__legend-label">
+                  {{ segment.label }}
+                </span>
+                <span class="profile-chart__legend-percent">
+                  @if (segment.enabled) {
+                    {{ segment.percent }} %
+                  } @else {
+                    <span class="profile-chart__legend-off">off</span>
+                  }
+                </span>
+              }
             </li>
           }
         </ul>

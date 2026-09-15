@@ -45,7 +45,7 @@ export async function expectSystemFormulaReadOnly(page: Page): Promise<void> {
   const systemRow = page.locator('.troupe-draw-formulas-tab__row--system').first()
   await expect(systemRow).toBeVisible()
   await expect(systemRow.getByText('Formule standard', { exact: true })).toBeVisible()
-  await expect(systemRow.getByText('Par défaut', { exact: true })).toBeVisible()
+  await expect(systemRow.getByRole('img', { name: 'Formule par défaut' })).toBeVisible()
   await expect(systemRow.getByRole('button', { name: /^Modifier / })).toHaveCount(0)
   await expect(systemRow.getByRole('button', { name: /^Archiver / })).toHaveCount(0)
 }

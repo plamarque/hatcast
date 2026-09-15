@@ -15,9 +15,13 @@ import {
   TroupeDrawFormulasTab,
   SYSTEM_FALLBACK_COPY,
   SYSTEM_FORMULA_DISPLAY_NAME,
+  archivedDrawFormulaCount,
+  formulaStatusAriaLabel,
+  formulaStatusIcon,
   freeGlossaryCategories,
   implicitChoiceDefaultRule,
   mandatoryChipsForFormula,
+  visibleDrawFormulas,
   withMandatoryCategory,
   withoutCategoryRule,
 } from './troupe-draw-formulas-tab'
@@ -122,6 +126,23 @@ describe('draw formula policy invert helpers', () => {
         { id: 'pub-a', name: 'Aperocks', isSystem: false, status: 'PUBLISHED' } as DrawFormula,
       ]),
     ).toEqual({ mode: 'CHOICE', allowedFormulaIds: ['pub-a', 'pub-z', 'sys-1'] })
+  })
+})
+
+describe('visibleDrawFormulas', () => {
+  const sample: DrawFormula[] = [
+    { id: 'a', status: 'PUBLISHED' } as DrawFormula,
+    { id: 'b', status: 'ARCHIVED' } as DrawFormula,
+    { id: 'c', status: 'DRAFT' } as DrawFormula,
+  ]
+
+  it('excludes archived formulas by default', () => {
+    expect(visibleDrawFormulas(sample, false).map((formula) => formula.id)).toEqual(['a', 'c'])
+    expect(archivedDrawFormulaCount(sample)).toBe(1)
+  })
+
+  it('includes archived formulas when expanded', () => {
+    expect(visibleDrawFormulas(sample, true).map((formula) => formula.id)).toEqual(['a', 'b', 'c'])
   })
 })
 
@@ -310,9 +331,18 @@ describe('TroupeDrawFormulasTab', () => {
     expect(systemRow.textContent).toContain(SYSTEM_FORMULA_DISPLAY_NAME)
     expect(systemRow.textContent).not.toContain('V1')
     expect(text).toContain('Ma formule')
-    expect(systemRow.textContent).toContain('Par défaut')
+    expect(systemRow.querySelector('[aria-label="Formule par défaut"]')).toBeTruthy()
+    expect(systemRow.querySelector('mat-icon')?.textContent?.trim()).toBe(
+      formulaStatusIcon(formulas[0]!),
+    )
     expect(text).not.toContain('Système')
-    expect(text).toContain('Brouillon')
+    expect(text).not.toContain('Publiée')
+    expect(text).not.toContain('Brouillon')
+    const draftRow = fixture.nativeElement.querySelector(
+      '[data-testid="draw-formula-row-custom-1"]',
+    ) as HTMLElement
+    expect(draftRow.querySelector('[aria-label="Formule brouillon"]')).toBeTruthy()
+    expect(formulaStatusAriaLabel(formulas[1]!)).toBe('Formule brouillon')
   })
 
   it('omits intro, help link, and Politiques tab', async () => {
@@ -345,7 +375,7 @@ describe('TroupeDrawFormulasTab', () => {
   it('shows compact charts without heading, hole counts, off legend, or factor summary', async () => {
     const { fixture } = await setup()
     const charts = fixture.nativeElement.querySelectorAll('[data-testid="draw-formula-profile-chart"]')
-    expect(charts.length).toBe(formulas.length)
+    expect(charts.length).toBe(visibleDrawFormulas(formulas, false).length)
     const first = charts[0] as HTMLElement
     expect(first.querySelector('.profile-chart__title')).toBeNull()
     expect(first.textContent).not.toContain('3 critères')
@@ -411,11 +441,36 @@ describe('TroupeDrawFormulasTab', () => {
         '[data-testid="draw-formula-row-custom-1"] [data-testid="draw-formula-profile-chart"]',
       ),
     ).toBeTruthy()
-    expect(
-      fixture.nativeElement.querySelector(
-        '[data-testid="draw-formula-row-custom-arch"] [data-testid="draw-formula-profile-chart"]',
-      ),
-    ).toBeTruthy()
+    expect(fixture.nativeElement.querySelector('[data-testid="draw-formula-row-custom-arch"]')).toBeNull()
+  })
+
+  it('hides archived formulas by default and reveals them on demand', async () => {
+    const { fixture } = await setup()
+    expect(fixture.nativeElement.querySelector('[data-testid="draw-formula-row-custom-arch"]')).toBeNull()
+    expect(fixture.nativeElement.textContent).not.toContain('Ancienne')
+    const showBtn = fixture.nativeElement.querySelector(
+      '[data-testid="draw-formula-show-archived"]',
+    ) as HTMLButtonElement
+    expect(showBtn.textContent).toContain('Afficher 1 formule archivée')
+    showBtn.click()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('[data-testid="draw-formula-row-custom-arch"]')).toBeTruthy()
+    expect(fixture.nativeElement.textContent).toContain('Ancienne')
+    const hideBtn = fixture.nativeElement.querySelector(
+      '[data-testid="draw-formula-hide-archived"]',
+    ) as HTMLButtonElement
+    expect(hideBtn.textContent).toContain('Masquer les formules archivées')
+    hideBtn.click()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('[data-testid="draw-formula-row-custom-arch"]')).toBeNull()
+  })
+
+  it('omits archived toggle when there are no archived formulas', async () => {
+    const { fixture } = await setup({
+      formulas: formulas.filter((formula) => formula.status !== 'ARCHIVED'),
+    })
+    expect(fixture.nativeElement.querySelector('[data-testid="draw-formula-show-archived"]')).toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-testid="draw-formula-hide-archived"]')).toBeNull()
   })
 
   it('assigns a free category with immediate PUT and shows the chip', async () => {
@@ -605,7 +660,7 @@ describe('TroupeDrawFormulasTab', () => {
     )
     expect(
       fixture.nativeElement.querySelectorAll('[data-testid="draw-formula-profile-chart"]').length,
-    ).toBe(formulas.length)
+    ).toBe(visibleDrawFormulas(formulas, false).length)
     expect(
       fixture.nativeElement.querySelector('[data-testid="draw-formula-add-category-custom-pub"]'),
     ).toBeTruthy()

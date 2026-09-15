@@ -1,4 +1,4 @@
-import { Component, inject, input, OnInit, signal } from '@angular/core'
+import { Component, computed, inject, input, OnInit, signal } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { MatChipsModule } from '@angular/material/chips'
 import { MatDialog } from '@angular/material/dialog'
@@ -119,6 +119,58 @@ export function withoutCategoryRule(
   }
 }
 
+export function archivedDrawFormulaCount(formulas: DrawFormula[]): number {
+  return formulas.filter((formula) => formula.status === 'ARCHIVED').length
+}
+
+export function visibleDrawFormulas(
+  formulas: DrawFormula[],
+  showArchived: boolean,
+): DrawFormula[] {
+  if (showArchived) {
+    return formulas
+  }
+  return formulas.filter((formula) => formula.status !== 'ARCHIVED')
+}
+
+export type FormulaStatusKind = 'default' | 'published' | 'draft' | 'archived'
+
+export function formulaStatusKind(formula: DrawFormula): FormulaStatusKind {
+  if (formula.isSystem) {
+    return 'default'
+  }
+  switch (formula.status) {
+    case 'PUBLISHED':
+      return 'published'
+    case 'DRAFT':
+      return 'draft'
+    case 'ARCHIVED':
+      return 'archived'
+    default:
+      return 'published'
+  }
+}
+
+export function formulaStatusIcon(formula: DrawFormula): string {
+  switch (formulaStatusKind(formula)) {
+    case 'default':
+      return 'tune'
+    case 'published':
+      return 'check_circle'
+    case 'draft':
+      return 'edit_note'
+    case 'archived':
+      return 'inventory_2'
+  }
+}
+
+export function formulaStatusAriaLabel(formula: DrawFormula): string {
+  if (formula.isSystem) {
+    return 'Formule par défaut'
+  }
+  return `Formule ${formulaStatusLabel(formula.status).toLowerCase()}`
+}
+
 @Component({
   selector: 'app-troupe-draw-formulas-tab',
   imports: [
@@ -149,6 +201,13 @@ export class TroupeDrawFormulasTab implements OnInit {
   protected readonly glossary = signal<TroupeCategory[]>([])
   protected readonly policy = signal<TroupeDrawPolicy | null>(null)
   protected readonly saving = signal(false)
+  protected readonly showArchived = signal(false)
+
+  protected readonly archivedCount = computed(() => archivedDrawFormulaCount(this.formulas()))
+
+  protected readonly visibleFormulas = computed(() =>
+    visibleDrawFormulas(this.formulas(), this.showArchived()),
+  )
 
   protected readonly systemFallbackCopy = SYSTEM_FALLBACK_COPY
 
@@ -156,8 +215,16 @@ export class TroupeDrawFormulasTab implements OnInit {
     await this.reload()
   }
 
-  protected statusLabel(status: DrawFormula['status']): string {
-    return formulaStatusLabel(status)
+  protected statusIcon(formula: DrawFormula): string {
+    return formulaStatusIcon(formula)
+  }
+
+  protected statusKind(formula: DrawFormula): FormulaStatusKind {
+    return formulaStatusKind(formula)
+  }
+
+  protected statusAriaLabel(formula: DrawFormula): string {
+    return formulaStatusAriaLabel(formula)
   }
 
   protected displayName(formula: DrawFormula): string {
@@ -174,6 +241,20 @@ export class TroupeDrawFormulasTab implements OnInit {
 
   protected showsSystemFallback(formula: DrawFormula): boolean {
     return formula.isSystem
+  }
+
+  protected archivedToggleLabel(): string {
+    if (this.showArchived()) {
+      return 'Masquer les formules archivées'
+    }
+    const count = this.archivedCount()
+    return count === 1
+      ? 'Afficher 1 formule archivée'
+      : `Afficher ${count} formules archivées`
+  }
+
+  protected toggleArchived(): void {
+    this.showArchived.update((visible) => !visible)
   }
 
   protected chipsFor(formula: DrawFormula): TroupeCategory[] {
