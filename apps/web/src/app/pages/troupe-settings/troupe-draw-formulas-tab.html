@@ -1,7 +1,6 @@
 <div class="troupe-draw-formulas-tab" data-testid="draw-formulas-tab">
   <p class="troupe-draw-formulas-tab__intro">
-    Les formules définissent comment HatCast ajuste les cotes (bonus et malus). Les politiques (par
-    saison ou catégorie) seront configurées ensuite.
+    {{ introCopy }}
   </p>
   <a
     class="troupe-draw-formulas-tab__help-link"
@@ -11,6 +10,13 @@
   >
     Comprendre les cotes
   </a>
+
+  @if (policyLoadWarning()) {
+    <p class="troupe-draw-formulas-tab__policy-warning" role="status">
+      Impossible de charger la politique de tirage. Les assignations par catégorie peuvent être
+      indisponibles.
+    </p>
+  }
 
   @if (loading()) {
     <div class="troupe-draw-formulas-tab__loading" role="status">
@@ -31,16 +37,14 @@
             <div class="troupe-draw-formulas-tab__title-row">
               <span class="troupe-draw-formulas-tab__name">{{ formula.name }}</span>
               @if (formula.isSystem) {
-                <mat-chip class="troupe-draw-formulas-tab__chip troupe-draw-formulas-tab__chip--system">
-                  Système
-                </mat-chip>
+                <span class="troupe-draw-formulas-tab__badge">Système</span>
               } @else {
-                <mat-chip
-                  class="troupe-draw-formulas-tab__chip"
-                  [class.troupe-draw-formulas-tab__chip--archived]="formula.status === 'ARCHIVED'"
+                <span
+                  class="troupe-draw-formulas-tab__badge"
+                  [class.troupe-draw-formulas-tab__badge--archived]="formula.status === 'ARCHIVED'"
                 >
                   {{ statusLabel(formula.status) }}
-                </mat-chip>
+                </span>
               }
             </div>
             <p class="troupe-draw-formulas-tab__summary">{{ factorSummary(formula) }}</p>
@@ -65,6 +69,68 @@
               </button>
             </div>
           }
+          @if (showsSystemFallback(formula)) {
+            <div class="troupe-draw-formulas-tab__apply" data-testid="draw-formula-applied-system">
+              <span class="troupe-draw-formulas-tab__apply-label">Appliquée à</span>
+              <span class="troupe-draw-formulas-tab__apply-rest">{{ systemFallbackCopy }}</span>
+            </div>
+          }
+          @if (showsAppliedToEditor(formula)) {
+            <div
+              class="troupe-draw-formulas-tab__apply"
+              [attr.data-testid]="'draw-formula-applied-' + formula.id"
+            >
+              <span class="troupe-draw-formulas-tab__apply-label">Appliquée à</span>
+              <mat-chip-set
+                class="troupe-draw-formulas-tab__category-chips"
+                [attr.aria-label]="'Catégories de ' + formula.name"
+              >
+                @for (category of chipsFor(formula); track category.slug) {
+                  <mat-chip
+                    [removable]="!policyLoadWarning()"
+                    (removed)="unassignCategory(category.slug)"
+                  >
+                    {{ category.label }}
+                    <button
+                      matChipRemove
+                      type="button"
+                      [disabled]="saving() || policyLoadWarning()"
+                      [attr.aria-label]="'Retirer ' + category.label"
+                      [attr.data-testid]="'draw-formula-unassign-' + category.slug"
+                    >
+                      <mat-icon>cancel</mat-icon>
+                    </button>
+                  </mat-chip>
+                }
+              </mat-chip-set>
+              @if (freeCategories().length > 0) {
+                <button
+                  type="button"
+                  mat-button
+                  class="troupe-draw-formulas-tab__add-category"
+                  [disabled]="saving() || policyLoadWarning()"
+                  [matMenuTriggerFor]="categoryMenu"
+                  [attr.aria-label]="'Ajouter une catégorie à ' + formula.name"
+                  [attr.data-testid]="'draw-formula-add-category-' + formula.id"
+                >
+                  + Catégorie
+                </button>
+                <mat-menu #categoryMenu="matMenu">
+                  @for (category of freeCategories(); track category.slug) {
+                    <button
+                      type="button"
+                      mat-menu-item
+                      [disabled]="saving() || policyLoadWarning()"
+                      [attr.data-testid]="'draw-formula-assign-' + category.slug"
+                      (click)="assignCategory(formula, category.slug)"
+                    >
+                      {{ category.label }}
+                    </button>
+                  }
+                </mat-menu>
+              }
+            </div>
+          }
         </li>
       }
     </ul>
@@ -76,8 +142,7 @@
       data-testid="draw-formula-add"
       (click)="openCreate()"
     >
-      <mat-icon aria-hidden="true">add</mat-icon>
-      Nouvelle formule
+      + Nouvelle formule
     </button>
   }
 </div>

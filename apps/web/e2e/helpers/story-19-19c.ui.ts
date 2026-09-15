@@ -101,3 +101,41 @@ export async function findDrawFormulaByName(
   const list = (await response.json()) as DrawFormulaDto[]
   return list.find((formula) => formula.name === name)
 }
+
+export async function createTroupeCategory(
+  page: Page,
+  label: string,
+  troupeId = E2E_SEED_TROUPE_ID,
+): Promise<{ slug: string; label: string }> {
+  const response = await page.request.post(`/v1/troupes/${troupeId}/categories`, {
+    data: { label },
+  })
+  if (!response.ok()) {
+    throw new Error(`Create category failed (${response.status()}): ${await response.text()}`)
+  }
+  return response.json() as Promise<{ slug: string; label: string }>
+}
+
+export async function getTroupeDrawPolicy(
+  page: Page,
+  troupeId = E2E_SEED_TROUPE_ID,
+): Promise<{
+  status: number
+  body: {
+    defaultRule: { mode: string; allowedFormulaIds?: string[]; mandatoryFormulaId?: string }
+    categoryRules: Array<{
+      category: string | null
+      mode: string
+      mandatoryFormulaId?: string
+    }>
+  } | null
+}> {
+  const response = await page.request.get(`/v1/troupes/${troupeId}/draw-policy`)
+  if (response.status() === 404) {
+    return { status: 404, body: null }
+  }
+  if (!response.ok()) {
+    throw new Error(`Get draw policy failed (${response.status()}): ${await response.text()}`)
+  }
+  return { status: response.status(), body: await response.json() }
+}
