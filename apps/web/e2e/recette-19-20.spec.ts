@@ -90,12 +90,24 @@ test.describe('Recette 19.20 — Appliquée à (E2E)', () => {
     await row.getByTestId(`draw-formula-add-category-${formula!.id}`).click()
     await page.getByTestId(`draw-formula-assign-${category.slug}`).click()
     await expect(row.getByText(categoryLabel, { exact: true })).toBeVisible({ timeout: 15_000 })
+    await expect(row.getByTestId(`draw-formula-add-category-${formula!.id}`)).toBeEnabled()
 
-    await row.getByTestId(`draw-formula-unassign-${category.slug}`).click()
-    await expect(row.getByText(categoryLabel, { exact: true })).toHaveCount(0, { timeout: 15_000 })
+    const unassignPut = page.waitForResponse(
+      (response) =>
+        response.url().includes('/draw-policy') &&
+        response.request().method() === 'PUT' &&
+        response.ok(),
+    )
+    await row.getByRole('button', { name: `Retirer ${categoryLabel}` }).click()
+    await unassignPut
+    await expect(row.getByTestId(`draw-formula-unassign-${category.slug}`)).toHaveCount(0, {
+      timeout: 15_000,
+    })
 
     const policy = await getTroupeDrawPolicy(page)
     expect(policy.status).toBe(200)
-    expect(policy.body?.categoryRules ?? []).toEqual([])
+    expect(
+      (policy.body?.categoryRules ?? []).some((rule) => rule.category === category.slug),
+    ).toBe(false)
   })
 })

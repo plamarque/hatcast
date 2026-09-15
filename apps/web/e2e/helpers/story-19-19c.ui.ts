@@ -88,7 +88,7 @@ export async function archiveFormulaByName(page: Page, name: string): Promise<vo
     .getByRole('button', { name: 'Archiver' })
     .click()
   await expect(page.getByTestId('draw-formula-archive-dialog')).toHaveCount(0, { timeout: 15_000 })
-  await expect(page.getByText('Formule archivée')).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByText('Formule archivée', { exact: true })).toBeVisible({ timeout: 15_000 })
 }
 
 export async function findDrawFormulaByName(
