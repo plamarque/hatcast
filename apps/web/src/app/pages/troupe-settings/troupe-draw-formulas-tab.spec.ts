@@ -13,8 +13,8 @@ import { TroupeDrawFormulaArchiveDialog } from './troupe-draw-formula-archive-di
 import { TroupeDrawFormulaEditorDialog } from './troupe-draw-formula-editor-dialog'
 import {
   TroupeDrawFormulasTab,
-  FORMULAS_INTRO_COPY,
   SYSTEM_FALLBACK_COPY,
+  SYSTEM_FORMULA_DISPLAY_NAME,
   freeGlossaryCategories,
   implicitChoiceDefaultRule,
   mandatoryChipsForFormula,
@@ -190,13 +190,18 @@ describe('TroupeDrawFormulasTab', () => {
   async function setup(
     options: {
       dialogResult?: unknown
+      formulas?: DrawFormula[]
       policy?: unknown
       policyGetOk?: boolean
       categoriesGetOk?: boolean
       putResult?: { ok: boolean; status: number; data?: unknown; errorMessage?: string }
     } = {},
   ) {
-    const list = vi.fn().mockResolvedValue({ ok: true, status: 200, data: formulas })
+    const list = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: options.formulas ?? formulas,
+    })
     const listCategories = vi.fn().mockResolvedValue(
       options.categoriesGetOk === false
         ? { ok: false, status: 500 }
@@ -281,7 +286,8 @@ describe('TroupeDrawFormulasTab', () => {
           'Impossible de charger les formules de tirage.',
         )
       } else {
-        expect(fixture.nativeElement.textContent).toContain('Ma formule')
+        expect(fixture.nativeElement.querySelector('[data-testid="draw-formulas-tab"]')).toBeTruthy()
+        expect(fixture.nativeElement.querySelector('.troupe-draw-formulas-tab__loading')).toBeNull()
       }
     })
     return {
@@ -298,29 +304,99 @@ describe('TroupeDrawFormulasTab', () => {
   it('renders formula rows from API', async () => {
     const { fixture } = await setup()
     const text = fixture.nativeElement.textContent ?? ''
-    expect(text).toContain('V1')
+    const systemRow = fixture.nativeElement.querySelector(
+      '[data-testid="draw-formula-row-sys-1"]',
+    ) as HTMLElement
+    expect(systemRow.textContent).toContain(SYSTEM_FORMULA_DISPLAY_NAME)
+    expect(systemRow.textContent).not.toContain('V1')
     expect(text).toContain('Ma formule')
-    expect(text).toContain('Système')
+    expect(systemRow.textContent).toContain('Par défaut')
+    expect(text).not.toContain('Système')
     expect(text).toContain('Brouillon')
   })
 
-  it('uses mock intro copy and has no third Politiques tab', async () => {
+  it('omits intro, help link, and Politiques tab', async () => {
     const { fixture } = await setup()
     const text = fixture.nativeElement.textContent ?? ''
-    expect(text).toContain(FORMULAS_INTRO_COPY)
+    expect(text).not.toContain('Les formules définissent comment HatCast ajuste les cotes')
+    expect(text).not.toContain('Comprendre les cotes')
     expect(text).not.toContain('politiques seront configurées ensuite')
     expect(text).not.toContain('Politiques')
     expect(fixture.nativeElement.querySelectorAll('[role="tab"]').length).toBe(0)
+    expect(fixture.nativeElement.querySelector('.troupe-draw-formulas-tab__intro')).toBeNull()
   })
 
-  it('shows V1 rest-copy without chips or + Catégorie', async () => {
+  it('shows system fallback sentence without Appliquée à or + Catégorie', async () => {
     const { fixture } = await setup()
+    const systemRow = fixture.nativeElement.querySelector(
+      '[data-testid="draw-formula-row-sys-1"]',
+    ) as HTMLElement
     const systemApply = fixture.nativeElement.querySelector(
       '[data-testid="draw-formula-applied-system"]',
     ) as HTMLElement
     expect(systemApply.textContent).toContain(SYSTEM_FALLBACK_COPY)
+    expect(systemRow.textContent).not.toContain('Appliquée à')
     expect(systemApply.querySelector('.troupe-draw-formulas-tab__category-chips')).toBeNull()
     expect(fixture.nativeElement.querySelector('[data-testid="draw-formula-add-category-sys-1"]')).toBeNull()
+    expect(systemRow.querySelector('[aria-label^="Modifier "]')).toBeNull()
+    expect(systemRow.querySelector('[aria-label^="Archiver "]')).toBeNull()
+  })
+
+  it('shows compact charts without heading, hole counts, off legend, or factor summary', async () => {
+    const { fixture } = await setup()
+    const charts = fixture.nativeElement.querySelectorAll('[data-testid="draw-formula-profile-chart"]')
+    expect(charts.length).toBe(formulas.length)
+    const first = charts[0] as HTMLElement
+    expect(first.querySelector('.profile-chart__title')).toBeNull()
+    expect(first.textContent).not.toContain('3 critères')
+    expect(first.textContent).not.toContain('actif')
+    expect(first.textContent).not.toContain('off')
+    expect(fixture.nativeElement.textContent).not.toContain('Aucun critère malus/bonus actif')
+    expect(first.textContent).not.toContain('Participations passées')
+  })
+
+  it('lists only contributing criteria on the compact chart', async () => {
+    const { fixture } = await setup()
+    const legend = fixture.nativeElement.querySelector(
+      '[data-testid="draw-formula-row-sys-1"] [data-testid="draw-formula-profile-legend"]',
+    ) as HTMLElement
+    expect(legend.textContent).toContain('Participations')
+    expect(legend.querySelectorAll('.profile-chart__legend-item').length).toBe(1)
+  })
+
+  it('renders an empty donut with no legend when all malus/bonus are off', async () => {
+    const emptyConfig: DrawFormula['factorConfig'] = [
+      { factorId: 'equity_tag', enabled: true },
+      { factorId: 'past_participation', enabled: false },
+      { factorId: 'immediate_replay', enabled: false },
+      { factorId: 'role_request', enabled: false },
+    ]
+    const { fixture } = await setup({
+      formulas: [{ ...formulas[0]!, factorConfig: emptyConfig }],
+    })
+    const chart = fixture.nativeElement.querySelector(
+      '[data-testid="draw-formula-profile-chart"]',
+    ) as HTMLElement
+    expect(chart.querySelector('.profile-chart__donut')).toBeTruthy()
+    expect(chart.querySelector('[data-testid="draw-formula-profile-legend"]')).toBeNull()
+    expect(chart.textContent).not.toContain('off')
+  })
+
+  it('labels immediate replay as Ne pas rejouer on the compact chart', async () => {
+    const replayOn: DrawFormula['factorConfig'] = [
+      { factorId: 'equity_tag', enabled: true },
+      { factorId: 'past_participation', enabled: false },
+      { factorId: 'immediate_replay', enabled: true },
+      { factorId: 'role_request', enabled: false },
+    ]
+    const { fixture } = await setup({
+      formulas: [{ ...formulas[0]!, factorConfig: replayOn }],
+    })
+    const legend = fixture.nativeElement.querySelector(
+      '[data-testid="draw-formula-profile-legend"]',
+    ) as HTMLElement
+    expect(legend.textContent).toContain('Ne pas rejouer')
+    expect(legend.textContent).not.toContain('Rejouer immédiatement')
   })
 
   it('hides Appliquée à editor for draft and archived formulas', async () => {
@@ -330,6 +406,16 @@ describe('TroupeDrawFormulasTab', () => {
       fixture.nativeElement.querySelector('[data-testid="draw-formula-applied-custom-arch"]'),
     ).toBeNull()
     expect(fixture.nativeElement.querySelector('[data-testid="draw-formula-applied-custom-pub"]')).toBeTruthy()
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="draw-formula-row-custom-1"] [data-testid="draw-formula-profile-chart"]',
+      ),
+    ).toBeTruthy()
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="draw-formula-row-custom-arch"] [data-testid="draw-formula-profile-chart"]',
+      ),
+    ).toBeTruthy()
   })
 
   it('assigns a free category with immediate PUT and shows the chip', async () => {
@@ -517,6 +603,19 @@ describe('TroupeDrawFormulasTab', () => {
     expect(fixture.nativeElement.textContent).toContain(
       'Impossible de charger la politique de tirage.',
     )
+    expect(
+      fixture.nativeElement.querySelectorAll('[data-testid="draw-formula-profile-chart"]').length,
+    ).toBe(formulas.length)
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="draw-formula-add-category-custom-pub"]'),
+    ).toBeTruthy()
+    expect(
+      (
+        fixture.nativeElement.querySelector(
+          '[data-testid="draw-formula-add-category-custom-pub"]',
+        ) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true)
   })
 
   it('shows load error when glossary GET fails', async () => {

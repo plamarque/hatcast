@@ -15,6 +15,7 @@ import {
 })
 export class TroupeDrawFormulaProfileChart {
   readonly editorState = input.required<DrawFormulaEditorState>()
+  readonly compact = input(false)
 
   protected readonly segments = computed(() => computeProfileSegments(this.editorState()))
   protected readonly activeCount = computed(() => activeMalusBonusCount(this.editorState()))
@@ -25,6 +26,10 @@ export class TroupeDrawFormulaProfileChart {
 
   protected readonly chartSegments = computed(() =>
     this.segments().filter((segment) => segment.enabled && segment.percent > 0),
+  )
+
+  protected readonly legendSegments = computed(() =>
+    this.compact() ? this.chartSegments() : this.segments(),
   )
 
   protected readonly ariaLabel = computed(() => {

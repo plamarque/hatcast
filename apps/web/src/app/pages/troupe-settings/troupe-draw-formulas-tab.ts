@@ -10,8 +10,9 @@ import { firstValueFrom } from 'rxjs'
 
 import { DrawFormulaApiService } from '../../core/draw/draw-formula-api.service'
 import {
-  enabledMalusBonusSummary,
+  editorStateFromFactorConfig,
   type DrawFormula,
+  type DrawFormulaEditorState,
 } from '../../core/draw/draw-formula-payload'
 import { formulaStatusLabel } from '../../core/draw/draw-factor-catalog'
 import {
@@ -22,7 +23,6 @@ import {
 } from '../../core/draw/draw-policy-api.service'
 import { TroupeApiService, type TroupeCategory } from '../../core/troupes/troupe-api.service'
 import { DEFAULT_CATEGORY_SLUG } from '../event-detail/event-category.constants'
-import { DRAW_CHANCES_HELP_PATH } from '../../shared/composition/chance-breakdown.constants'
 import {
   TroupeDrawFormulaArchiveDialog,
   type TroupeDrawFormulaArchiveDialogResult,
@@ -31,12 +31,11 @@ import {
   TroupeDrawFormulaEditorDialog,
   type TroupeDrawFormulaEditorDialogResult,
 } from './troupe-draw-formula-editor-dialog'
+import { TroupeDrawFormulaProfileChart } from './troupe-draw-formula-profile-chart'
 
-export const SYSTEM_FALLBACK_COPY =
-  'le reste (spectacles ordinaires et catégories sans formule)'
+export const SYSTEM_FALLBACK_COPY = 'Spectacles et catégories sans formule dédiée'
 
-export const FORMULAS_INTRO_COPY =
-  'Les formules définissent comment HatCast ajuste les cotes. Assigne une formule à une catégorie pour l’imposer à tous ses spectacles.'
+export const SYSTEM_FORMULA_DISPLAY_NAME = 'Formule standard'
 
 const POLICY_SAVE_ERROR = 'Impossible d’enregistrer la politique de tirage.'
 const POLICY_LOAD_BLOCKED =
@@ -129,6 +128,7 @@ export function withoutCategoryRule(
     MatMenuModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
+    TroupeDrawFormulaProfileChart,
   ],
   templateUrl: './troupe-draw-formulas-tab.html',
   styleUrl: './troupe-draw-formulas-tab.scss',
@@ -150,8 +150,6 @@ export class TroupeDrawFormulasTab implements OnInit {
   protected readonly policy = signal<TroupeDrawPolicy | null>(null)
   protected readonly saving = signal(false)
 
-  protected readonly helpPath = DRAW_CHANCES_HELP_PATH
-  protected readonly introCopy = FORMULAS_INTRO_COPY
   protected readonly systemFallbackCopy = SYSTEM_FALLBACK_COPY
 
   async ngOnInit(): Promise<void> {
@@ -162,8 +160,12 @@ export class TroupeDrawFormulasTab implements OnInit {
     return formulaStatusLabel(status)
   }
 
-  protected factorSummary(formula: DrawFormula): string {
-    return enabledMalusBonusSummary(formula.factorConfig) || 'Aucun critère malus/bonus actif'
+  protected displayName(formula: DrawFormula): string {
+    return formula.isSystem ? SYSTEM_FORMULA_DISPLAY_NAME : formula.name
+  }
+
+  protected editorStateFor(formula: DrawFormula): DrawFormulaEditorState {
+    return editorStateFromFactorConfig(formula.factorConfig)
   }
 
   protected showsAppliedToEditor(formula: DrawFormula): boolean {

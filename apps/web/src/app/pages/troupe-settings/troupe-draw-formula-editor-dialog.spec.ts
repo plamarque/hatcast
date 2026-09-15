@@ -39,6 +39,21 @@ describe('TroupeDrawFormulaEditorDialog', () => {
     return { fixture, create, patch }
   }
 
+  it('keeps the full profile chart heading, hole counts, and off legend rows', async () => {
+    const { fixture } = await setup()
+    const chart = fixture.nativeElement.querySelector(
+      '[data-testid="draw-formula-profile-chart"]',
+    ) as HTMLElement
+    expect(chart).toBeTruthy()
+    expect(chart.querySelector('.profile-chart__title')?.textContent).toContain(
+      'Composition de la formule',
+    )
+    expect(chart.textContent).toContain('3 critères')
+    expect(chart.textContent).toContain('off')
+    expect(chart.textContent).toContain('Ne pas rejouer')
+    expect(fixture.nativeElement.textContent).toContain('Ne pas rejouer immédiatement')
+  })
+
   it('builds default payload with equity_tag and past_participation enabled', async () => {
     const { fixture } = await setup()
     const instance = fixture.componentInstance as unknown as {

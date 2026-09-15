@@ -44,15 +44,17 @@ export async function expectCategoriesTabActive(page: Page): Promise<void> {
 export async function expectSystemFormulaReadOnly(page: Page): Promise<void> {
   const systemRow = page.locator('.troupe-draw-formulas-tab__row--system').first()
   await expect(systemRow).toBeVisible()
-  await expect(systemRow.getByText('Système', { exact: true })).toBeVisible()
+  await expect(systemRow.getByText('Formule standard', { exact: true })).toBeVisible()
+  await expect(systemRow.getByText('Par défaut', { exact: true })).toBeVisible()
   await expect(systemRow.getByRole('button', { name: /^Modifier / })).toHaveCount(0)
   await expect(systemRow.getByRole('button', { name: /^Archiver / })).toHaveCount(0)
 }
 
 export async function openFormulaEditorCreate(page: Page): Promise<void> {
   await page.getByTestId('draw-formula-add').click()
-  await expect(page.getByTestId('draw-formula-editor-dialog')).toBeVisible({ timeout: 15_000 })
-  await expect(page.getByTestId('draw-formula-profile-chart')).toBeVisible()
+  const editor = page.getByTestId('draw-formula-editor-dialog')
+  await expect(editor).toBeVisible({ timeout: 15_000 })
+  await expect(editor.getByTestId('draw-formula-profile-chart')).toBeVisible()
 }
 
 export async function fillFormulaName(page: Page, name: string): Promise<void> {

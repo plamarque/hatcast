@@ -23,20 +23,19 @@ test.describe('Recette 19.20 — Appliquée à (E2E)', () => {
     await prepareE2ePage(page)
   })
 
-  test('19-20-E2E-01 — intro, V1 reste, pas d’onglet Politiques', async ({ page }) => {
+  test('19-20-E2E-01 — Formule standard, pas d’onglet Politiques', async ({ page }) => {
     await openTroupeSettings(page, 'formulas')
     await expectFormulasTabReady(page)
     await expectSystemFormulaReadOnly(page)
     await expect(page.getByRole('tab', { name: 'Politiques' })).toHaveCount(0)
     await expect(page.getByRole('tab')).toHaveCount(2)
+    await expect(page.getByText('Comprendre les cotes')).toHaveCount(0)
     await expect(
       page.getByText(
         'Les formules définissent comment HatCast ajuste les cotes. Assigne une formule à une catégorie pour l’imposer à tous ses spectacles.',
       ),
-    ).toBeVisible()
-    await expect(
-      page.getByText('le reste (spectacles ordinaires et catégories sans formule)'),
-    ).toBeVisible()
+    ).toHaveCount(0)
+    await expect(page.getByText('Spectacles et catégories sans formule dédiée')).toBeVisible()
     await expect(page.getByText('politiques seront configurées ensuite')).toHaveCount(0)
   })
 

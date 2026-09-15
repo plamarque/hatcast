@@ -98,3 +98,32 @@
 .profile-chart__legend-percent {
   font-variant-numeric: tabular-nums;
 }
+
+.profile-chart--compact {
+  background: transparent;
+  border: 0;
+  padding: 0.15rem 0 0;
+}
+
+.profile-chart--compact .profile-chart__layout {
+  gap: 0.55rem;
+
+  @media (min-width: 360px) {
+    grid-template-columns: auto 1fr;
+  }
+}
+
+.profile-chart--compact .profile-chart__donut {
+  height: 5.25rem;
+  width: 5.25rem;
+}
+
+.profile-chart--compact .profile-chart__donut-hole {
+  background: var(--mat-sys-surface-container-low);
+  height: 3.15rem;
+  width: 3.15rem;
+}
+
+.profile-chart--compact .profile-chart__legend-item {
+  font-size: 0.75rem;
+}

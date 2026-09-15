@@ -1,16 +1,4 @@
 <div class="troupe-draw-formulas-tab" data-testid="draw-formulas-tab">
-  <p class="troupe-draw-formulas-tab__intro">
-    {{ introCopy }}
-  </p>
-  <a
-    class="troupe-draw-formulas-tab__help-link"
-    [href]="helpPath"
-    target="_blank"
-    rel="noopener noreferrer"
-  >
-    Comprendre les cotes
-  </a>
-
   @if (policyLoadWarning()) {
     <p class="troupe-draw-formulas-tab__policy-warning" role="status">
       Impossible de charger la politique de tirage. Les assignations par catégorie peuvent être
@@ -33,11 +21,11 @@
           [class.troupe-draw-formulas-tab__row--archived]="formula.status === 'ARCHIVED'"
           [attr.data-testid]="'draw-formula-row-' + formula.id"
         >
-          <div class="troupe-draw-formulas-tab__main">
+          <div class="troupe-draw-formulas-tab__header">
             <div class="troupe-draw-formulas-tab__title-row">
-              <span class="troupe-draw-formulas-tab__name">{{ formula.name }}</span>
+              <span class="troupe-draw-formulas-tab__name">{{ displayName(formula) }}</span>
               @if (formula.isSystem) {
-                <span class="troupe-draw-formulas-tab__badge">Système</span>
+                <span class="troupe-draw-formulas-tab__badge">Par défaut</span>
               } @else {
                 <span
                   class="troupe-draw-formulas-tab__badge"
@@ -47,33 +35,35 @@
                 </span>
               }
             </div>
-            <p class="troupe-draw-formulas-tab__summary">{{ factorSummary(formula) }}</p>
+            @if (!formula.isSystem && formula.status !== 'ARCHIVED') {
+              <div class="troupe-draw-formulas-tab__actions">
+                <button
+                  type="button"
+                  mat-icon-button
+                  [attr.aria-label]="'Modifier ' + formula.name"
+                  (click)="openEdit(formula)"
+                >
+                  <mat-icon aria-hidden="true">edit</mat-icon>
+                </button>
+                <button
+                  type="button"
+                  mat-icon-button
+                  [attr.aria-label]="'Archiver ' + formula.name"
+                  (click)="openArchive(formula)"
+                >
+                  <mat-icon aria-hidden="true">archive</mat-icon>
+                </button>
+              </div>
+            }
           </div>
-          @if (!formula.isSystem && formula.status !== 'ARCHIVED') {
-            <div class="troupe-draw-formulas-tab__actions">
-              <button
-                type="button"
-                mat-icon-button
-                [attr.aria-label]="'Modifier ' + formula.name"
-                (click)="openEdit(formula)"
-              >
-                <mat-icon aria-hidden="true">edit</mat-icon>
-              </button>
-              <button
-                type="button"
-                mat-icon-button
-                [attr.aria-label]="'Archiver ' + formula.name"
-                (click)="openArchive(formula)"
-              >
-                <mat-icon aria-hidden="true">archive</mat-icon>
-              </button>
-            </div>
-          }
+          <app-troupe-draw-formula-profile-chart
+            [compact]="true"
+            [editorState]="editorStateFor(formula)"
+          />
           @if (showsSystemFallback(formula)) {
-            <div class="troupe-draw-formulas-tab__apply" data-testid="draw-formula-applied-system">
-              <span class="troupe-draw-formulas-tab__apply-label">Appliquée à</span>
-              <span class="troupe-draw-formulas-tab__apply-rest">{{ systemFallbackCopy }}</span>
-            </div>
+            <p class="troupe-draw-formulas-tab__fallback" data-testid="draw-formula-applied-system">
+              {{ systemFallbackCopy }}
+            </p>
           }
           @if (showsAppliedToEditor(formula)) {
             <div
