@@ -1,0 +1,14 @@
+{
+  "version": "2.4.6",
+  "date": "__BUILD_DATE__",
+  "source": "curated-release",
+  "notes": "v2.4.6 — session remember-me (BUG-014) + formules par catégorie — skill hatcast-v2-release",
+  "changes": [
+    "🐛 Connexion — tu restes connecté après fermeture du navigateur si tu as coché « Se souvenir de moi »",
+    "✨ Tirage — évite de sélectionner un comédien deux fois d'affilée pour les Aperocké"
+  ],
+  "changes_en": [
+    "🐛 Sign-in — you stay signed in after closing the browser if you checked “Remember me”",
+    "✨ Draw — avoids picking the same actor twice in a row for Aperocké shows"
+  ]
+}
