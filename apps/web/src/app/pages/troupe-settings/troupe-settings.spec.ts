@@ -6,6 +6,9 @@ import { BehaviorSubject } from 'rxjs'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
+import { DrawFormulaApiService } from '../../core/draw/draw-formula-api.service'
+import { DrawPolicyApiService } from '../../core/draw/draw-policy-api.service'
+import { TroupeApiService } from '../../core/troupes/troupe-api.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { TroupeSettings } from './troupe-settings'
 
@@ -74,6 +77,20 @@ describe('TroupeSettings', () => {
             selectTroupe: vi.fn(),
           },
         },
+        {
+          provide: DrawFormulaApiService,
+          useValue: { list: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }) },
+        },
+        {
+          provide: DrawPolicyApiService,
+          useValue: {
+            getTroupeDrawPolicy: vi.fn().mockResolvedValue({ ok: true, status: 404, data: null }),
+          },
+        },
+        {
+          provide: TroupeApiService,
+          useValue: { listCategories: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }) },
+        },
       ],
     })
       .overrideProvider(MatSnackBar, { useValue: snack })
@@ -140,6 +157,11 @@ describe('TroupeSettings', () => {
     }
     expect(instance.selectedTabIndex()).toBe(1)
     expect(fixture.nativeElement.textContent).toContain('Formules de tirage')
+    expect(fixture.nativeElement.textContent).not.toContain('Politiques')
+    const tabLabels = Array.from(
+      fixture.nativeElement.querySelectorAll('.mdc-tab__text-label') as NodeListOf<HTMLElement>,
+    ).map((el) => el.textContent?.trim())
+    expect(tabLabels).toEqual(['Catégories', 'Formules de tirage'])
   })
 
   it('defaults to categories tab without query param', async () => {

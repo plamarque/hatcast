@@ -1,5 +1,11 @@
 # Deferred Work
 
+## Deferred from: code review of spec-19-20-ui-admin-politiques-tirage (2026-09-15)
+
+- E2E AC9 Formules→Équipe : repose sur couverture 19.21 (`event-equipe-tab.spec.ts`, `draw-formula-choice.spec.ts`) ; pas de chaîne E2E assign UI 19.20 → Équipe dans ce diff.
+- Note UX maquette (footnote « une catégorie = une formule ») : non listée dans les AC story 19.20.
+- `defaultRule.allowedFormulaIds` non realigné après publish d’une nouvelle formule sans re-GET politique : follow-up produit.
+
 Active queue for Epic 21 only. Historical and non-Epic-21 entries are preserved in `deferred-work-backlog.md`; promote an entry here only when it is ready for an Epic 21 delivery sweep.
 
 ### DW-126: A fresh Git clone without its ignored, locally provisioned BMad skills fails the upstream-skills validation before the Loop preflight can pass.
