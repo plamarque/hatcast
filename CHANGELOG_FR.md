@@ -1,5 +1,10 @@
 # Journal des modifications (FR)
 
+## [2.4.6] - 2026-09-16
+
+> Journal technique aligné sur CHANGELOG.md (entrée anglaise pour cette version).
+
+
 ## [2.4.5] - 2026-08-04
 
 > Journal technique aligné sur CHANGELOG.md (entrée anglaise pour cette version).

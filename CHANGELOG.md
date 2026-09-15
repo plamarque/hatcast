@@ -1,5 +1,70 @@
 # Changelog
 
+## [2.4.6] - 2026-09-16
+
+### ✨ New Features
+- feat(story): merge 19-20-ui-admin-politiques-tirage
+- feat(web): Add category formula assignment on Formulas tab
+- feat(story): merge 21-5-delivery-gates-integration
+- feat(story): merge 21-4-human-smoke-handoff
+- feat(story): merge 21-3-targeted-e2e-evidence
+- feat(e2e): Add targeted evidence gate
+- feat(e2e): Add targeted evidence gate
+- feat(worktree): Add runtime readiness
+- feat(story): merge perf-03-event-detail-tab-gated-load
+- feat(workflow): Automate story integration
+- feat(workflow): Automate story integration
+- feat(workflow): Isolate manual story worktrees
+- feat(workflow): Isolate manual story worktrees
+
+### 🐛 Bug Fixes
+- fix(web): Add status icons and archived toggle on Formulas tab
+- fix(web): Simplify Formulas tab list UX
+- fix(smoke): Stabilize port release
+- fix(smoke): Stop owned process groups
+- fix(smoke): Use declared E2E evidence
+- fix(e2e): Harden targeted evidence gate
+- fix(web): Serialize event tab bootstraps
+- fix(workflow): Harden BMad worktree bootstrap
+- fix(auth): Persist remembered sessions
+
+### 📝 Other Changes
+- chore(v2): promote v2 to staging-v2
+- test(e2e): Fix Formulas tab E2E locators
+- docs(release): Add v2.4.6 user changelog cutover
+- docs(story): Add epic 19 context artifact
+- docs(loop): Authorize 21-6 launch
+- docs(loop): Guide human smoke handoff
+- docs(loop): Specify worktree lifecycle
+- chore(sweep): close resolved deferred-work entries
+- chore(sweep): Scope Epic 21 deferred work
+- chore(sweep): Isolate Epic 21 deferred work
+- chore(sweep): close resolved deferred-work entries
+- chore(sweep): record deferred-work decisions
+- chore(sweep): close resolved deferred-work entries
+- chore(sweep): migrate legacy deferred-work entries to DW format
+- story 21-5-delivery-gates-integration: implemented and reviewed via bmad-loop (awaiting operator)
+- docs: Record shared worktree location
+- docs: Defer smoke runtime preparation
+- story 21-4-human-smoke-handoff: implemented and reviewed via bmad-loop (awaiting operator)
+- story 21-3-targeted-e2e-evidence: implemented and reviewed via bmad-loop
+- chore(bmad): Allow external loop state
+- chore(operator): Confirm runtime readiness
+- story 21-2-worktree-runtime-readiness: implemented and reviewed via bmad-loop (awaiting operator)
+- chore(operator): confirm 21-1-loop-readiness-contract
+- story 21-1-loop-readiness-contract: implemented and reviewed via bmad-loop (awaiting operator)
+- docs(workflow): Serialize readiness stories
+- docs(workflow): Queue delivery readiness
+- docs(workflow): Capture readiness epic
+- docs(test): Record web suite baseline
+- docs(backlog): Archive stale deferred work
+- docs(auth): Add session investigation
+- docs(auth): Record mobile session finding
+- chore(bmad): Upgrade BMad and Loop
+- chore(v2): sync release v2.4.5-rc.1 artifacts to v2
+
+---
+
 ## [2.4.5] - 2026-08-04
 
 ### ✨ New Features

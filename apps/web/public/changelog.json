@@ -1,5 +1,13 @@
 [
   {
+    "version": "2.4.6",
+    "date": "2026-09-16",
+    "changes": [
+      "🐛 Connexion — tu restes connecté après fermeture du navigateur si tu as coché « Se souvenir de moi »",
+      "✨ Tirage — évite de sélectionner un comédien deux fois d'affilée pour les Aperocké"
+    ]
+  },
+  {
     "version": "2.4.5",
     "date": "2026-08-04",
     "changes": []
