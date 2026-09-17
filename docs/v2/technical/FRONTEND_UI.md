@@ -216,7 +216,7 @@ Alias : `-stat-bg`, `-chart-fill`, `-surface` → `-gradient-strong`.
 **Régressions connues à éviter :**
 
 - Double indent mobile (`padding-inline-start` + `margin-inline-start` sur le pool-trigger).
-- Pré-cochage multi-rôles au premier clic (un toggle = un rôle).
+- Pré-cochage de rôles optionnels au premier clic. Exception autorisée : bénévole est inclus dans toute nouvelle réponse disponible si l’événement propose des places bénévoles ; son contrôle est verrouillé avec aide adjacente tactile et clavier. Une action explicite permet d’effacer la réponse.
 - Bandeau proxy gris (`on-surface`) ou empilé verticalement en mobile.
 - Désactivation des rôles quand « Pas disponible » est coché (as-built : rôles restent éditables sauf read-only / archivé).
 

@@ -1,6 +1,6 @@
 {
   "route": "/accueil",
-  "account_or_fixture_reference": "Compte membre habituel, spectacle proposant des roles pour lequel tu ne fais pas encore partie de l equipe.",
+  "account_or_fixture_reference": "Compte membre habituel, spectacle proposant des roles sans places benevoles pour lequel tu ne fais pas encore partie de l equipe.",
   "actions": [
     "Depuis Accueil, cliquer sur la vignette de disponibilite du prochain spectacle.",
     "Choisir Dispo sans role et essayer Enregistrer.",
@@ -10,7 +10,7 @@
   ],
   "expected_observations": [
     "Meme modale depuis Accueil et Mon agenda.",
-    "Cases cochees explicites ; au moins un role exige lorsque des roles sont proposes.",
+    "Cases cochees explicites ; au moins un role exige lorsque des roles sont proposes sans benevole. Avec benevole propose, il est coche automatiquement et suffit seul.",
     "Enregistrer reste visible et conserve statut, roles et commentaire ensemble.",
     "Annuler ne modifie pas la reponse sauvegardee.",
     "Le corps de la carte ouvre le detail du spectacle."

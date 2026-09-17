@@ -6,7 +6,6 @@ import {
   type RoleSlots,
 } from '../events/event-types'
 
-const PLAY_ROLE_KEYS = new Set<RoleKey>(['player'])
 const VOLUNTEER: RoleKey = 'volunteer'
 
 export function candidateRolesForEvent(roleSlots: RoleSlots): RoleKey[] {
@@ -20,6 +19,7 @@ export function mandatoryVolunteerCoverage(roleSlots: RoleSlots): boolean {
 export function normalizeCandidateRoleKeys(
   roleSlots: RoleSlots,
   requestedKeys: readonly string[] | null | undefined,
+  // False is reserved for historical reads; available writes always use true.
   applyVolunteerRule = true,
 ): RoleKey[] {
   const required = new Set(candidateRolesForEvent(roleSlots))
@@ -33,7 +33,6 @@ export function normalizeCandidateRoleKeys(
   if (
     applyVolunteerRule &&
     mandatoryVolunteerCoverage(roleSlots) &&
-    selected.some((role) => PLAY_ROLE_KEYS.has(role)) &&
     required.has(VOLUNTEER) &&
     !selected.includes(VOLUNTEER)
   ) {

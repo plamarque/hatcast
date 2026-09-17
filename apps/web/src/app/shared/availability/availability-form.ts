@@ -13,6 +13,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatInputModule } from '@angular/material/input'
+import { MatIconModule } from '@angular/material/icon'
 import { MatSnackBar } from '@angular/material/snack-bar'
 
 import { ProductAnalyticsService } from '../../core/analytics/product-analytics.service'
@@ -47,6 +48,7 @@ export type AvailabilityFormSavedPayload = {
     MatFormFieldModule,
     MatInputModule,
     MatCheckboxModule,
+    MatIconModule,
   ],
   templateUrl: './availability-form.html',
   styleUrl: './availability-form.scss',
@@ -96,8 +98,7 @@ export class AvailabilityForm {
   })
 
   protected readonly roleChoiceKeys = computed(() => candidateRolesForEvent(this.roleSlots()))
-  private volunteerExplicitlyUnchecked = false
-  protected volunteerMandatoryHint = false
+  protected readonly volunteerHelpOpen = signal(false)
   private skipInputEffect = false
 
   constructor() {
@@ -111,8 +112,7 @@ export class AvailabilityForm {
       }
       this.selected.set(status)
       this.savedStatus.set(status)
-      this.selectedRoleKeys.set(roles)
-      this.reconcileVolunteerOptOut(roles)
+      this.selectedRoleKeys.set(this.draftRoles(status, roles))
       this.savedRoleKeys.set(roles)
       this.commentText.set(comment)
       this.savedComment.set(comment)
@@ -135,8 +135,7 @@ export class AvailabilityForm {
     this.savedRoleKeys.set(roles)
     this.savedComment.set(commentValue)
     if (!preserveDraft) {
-      this.selectedRoleKeys.set(roles)
-      this.reconcileVolunteerOptOut(roles)
+      this.selectedRoleKeys.set(this.draftRoles(status, roles))
       this.commentText.set(commentValue)
     }
     this.commentError.set(null)
@@ -171,10 +170,6 @@ export class AvailabilityForm {
     return this.selected() !== 'unknown' || !!this.commentText().trim()
   }
 
-  protected shouldShowVolunteerMandatoryHint(): boolean {
-    return this.volunteerMandatoryHint
-  }
-
   protected onCommentInput(value: string): void {
     if (this.readOnly() || this.archived()) return
     this.commentText.set(value)
@@ -190,6 +185,7 @@ export class AvailabilityForm {
   protected async choose(status: AvailabilityStatus): Promise<void> {
     if (this.saving() || this.readOnly() || this.archived()) return
     this.selected.set(status)
+    if (status === 'available') this.selectedRoleKeys.set(normalizeCandidateRoleKeys(this.roleSlots(), this.selectedRoleKeys()))
     this.error.set(null)
   }
 
@@ -201,28 +197,10 @@ export class AvailabilityForm {
     if (this.saving() || this.readOnly() || this.archived() || this.selected() !== 'available') {
       return
     }
+    if (roleKey === 'volunteer' && !checked) return
     const current = this.selectedRoleKeys()
-    let next = checked ? [...current, roleKey] : current.filter((key) => key !== roleKey)
-    if (roleKey === 'volunteer') {
-      this.volunteerExplicitlyUnchecked = !checked
-      this.volunteerMandatoryHint = false
-    }
-    if (roleKey === 'player' && checked) {
-      this.volunteerExplicitlyUnchecked = false
-    }
-    const hadVolunteer = current.includes('volunteer')
-    next = normalizeCandidateRoleKeys(
-      this.roleSlots(),
-      next,
-      this.shouldApplyVolunteerRule(next),
-    )
-    if (roleKey === 'player' && checked && !hadVolunteer && next.includes('volunteer')) {
-      this.volunteerMandatoryHint = true
-    }
-    if (!next.includes('player')) {
-      this.volunteerMandatoryHint = false
-    }
-    this.selectedRoleKeys.set(next)
+    const next = checked ? [...current, roleKey] : current.filter(key => key !== roleKey)
+    this.selectedRoleKeys.set(normalizeCandidateRoleKeys(this.roleSlots(), next))
     this.error.set(null)
   }
 
@@ -240,17 +218,10 @@ export class AvailabilityForm {
     return !this.externalSubmit() && !this.readOnly() && !this.archived()
   }
 
-  private reconcileVolunteerOptOut(roles: RoleKey[]): void {
-    this.volunteerExplicitlyUnchecked = roles.includes('player') && !roles.includes('volunteer')
-    this.volunteerMandatoryHint = false
-  }
-
-  private shouldApplyVolunteerRule(roleKeys = this.selectedRoleKeys()): boolean {
-    return !(
-      this.volunteerExplicitlyUnchecked &&
-      roleKeys.includes('player') &&
-      !roleKeys.includes('volunteer')
-    )
+  private draftRoles(status: AvailabilityStatus, roles: RoleKey[]): RoleKey[] {
+    return status === 'available' && !this.readOnly() && !this.archived()
+      ? normalizeCandidateRoleKeys(this.roleSlots(), roles)
+      : roles
   }
 
   private normalizedComment(): string | null {
@@ -279,7 +250,7 @@ export class AvailabilityForm {
     const body = {
       status,
       roleKeys,
-      applyVolunteerRule: this.shouldApplyVolunteerRule(roleKeys),
+      applyVolunteerRule: true,
       comment: this.normalizedComment(),
     }
     let r
@@ -315,7 +286,6 @@ export class AvailabilityForm {
     this.savedStatus.set(data.status)
     this.savedRoleKeys.set(serverRoles)
     this.savedComment.set(serverComment)
-    this.reconcileVolunteerOptOut(serverRoles)
     this.selectedRoleKeys.set(serverRoles)
     this.commentText.set(serverComment)
   }

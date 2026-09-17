@@ -3,6 +3,8 @@
   flex-direction: column;
   gap: 0.65rem;
   min-width: min(100vw - 3rem, 22rem);
+  // Keep the first control clear of the dialog title on compact mobile sheets.
+  padding-top: 0.75rem;
 }
 
 .availability-dialog__context {

@@ -12,18 +12,26 @@
         disableRipple
         color="primary"
         [checked]="checked()"
-        [disabled]="disabled() || saving()"
+        [disabled]="disabled() || saving() || mandatory()"
         (change)="onCheckboxChange($event.checked)"
       >
         <span class="poll-row__label" [class.poll-row__label--muted]="disabled()">
           @if (emoji()) {
             <span class="poll-row__emoji" aria-hidden="true">{{ emoji() }}</span>
           }
-          {{ label() }}
+          {{ label() }}@if (mandatory()) { (obligatoire) }
         </span>
       </mat-checkbox>
+      @if (mandatory()) {
+        <button mat-icon-button type="button" aria-label="Pourquoi bénévole est obligatoire" [attr.aria-expanded]="helpOpen()" (click)="helpOpen.set(!helpOpen())">
+          <mat-icon aria-hidden="true">help_outline</mat-icon>
+        </button>
+      }
     </div>
 
+    @if (mandatory() && helpOpen()) {
+      <p class="poll-row__volunteer-help" role="status">Quand tu es disponible, tu es aussi disponible comme bénévole.</p>
+    }
     <div class="poll-row__gauge-row">
       <button
         type="button"

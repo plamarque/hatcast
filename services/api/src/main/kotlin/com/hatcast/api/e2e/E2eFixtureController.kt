@@ -41,8 +41,10 @@ class E2eFixtureController(
 
     /** Resets agenda participation status cell E2E (unknown dispo, pending confirm, historique). */
     @PostMapping("/agenda-participation-cell/reset")
-    fun resetAgendaParticipationCell(): AgendaParticipationCellFixtureResponse =
-        agendaParticipationCellFixtureService.resetAgendaParticipationCell()
+    fun resetAgendaParticipationCell(
+        @org.springframework.web.bind.annotation.RequestParam(defaultValue = "cabaret") roles: String,
+    ): AgendaParticipationCellFixtureResponse =
+        agendaParticipationCellFixtureService.resetAgendaParticipationCell(roles)
 
     /** Removes a Story 1.8 signup test user from H2 (email/password E2E cleanup). */
     @PostMapping("/story-1-8/cleanup")

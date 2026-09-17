@@ -79,6 +79,20 @@ async function setupForm(options: {
 }
 
 describe('AvailabilityForm', () => {
+  it('locks volunteer in proxy drafts and includes it in the proxy payload', async () => {
+    const { fixture, setMyAvailability, setParticipantAvailability } = await setupForm({ proxyMode: true, initialRoleKeys: [] })
+    fixture.componentRef.setInput('roleSlots', ROLE_TEMPLATES.match)
+    fixture.detectChanges()
+    draft(fixture).toggleRole('volunteer', false)
+    fixture.detectChanges()
+    const box = [...fixture.nativeElement.querySelectorAll('mat-checkbox')].find((el: any) => el.textContent.includes('Bénévole')) as HTMLElement
+    expect(box.querySelector('input')!.disabled).toBe(true)
+    expect(box.querySelector('input')!.checked).toBe(true)
+    await fixture.componentInstance.submit()
+    expect(setMyAvailability).not.toHaveBeenCalled()
+    expect(setParticipantAvailability).toHaveBeenLastCalledWith('season-1', 'event-1', 'p-other', expect.objectContaining({ roleKeys: ['volunteer'], applyVolunteerRule: true }))
+  })
+
   function draft(fixture: Awaited<ReturnType<typeof setupForm>>['fixture']) {
     return fixture.componentInstance as unknown as {
       choose(status: string): Promise<void>
@@ -181,24 +195,34 @@ describe('AvailabilityForm', () => {
     expect(setMyAvailability).not.toHaveBeenCalled()
   })
 
-  it('preserves volunteer addition and explicit opt-out', async () => {
-    const { fixture } = await setupForm({ initialRoleKeys: [] })
+  it('starts available drafts with volunteer, locks removal and explains the control', async () => {
+    const { fixture, setMyAvailability } = await setupForm({ initialStatus: 'unknown', initialRoleKeys: [] })
     fixture.componentRef.setInput('roleSlots', { ...ROLE_TEMPLATES.cabaret, volunteer: 1 })
     fixture.detectChanges()
-    draft(fixture).toggleRole('player', true)
-    expect(fixture.componentInstance.currentState().roleKeys).toEqual(['player', 'volunteer'])
+    await draft(fixture).choose('available')
+    fixture.detectChanges()
+    expect(fixture.componentInstance.currentState().roleKeys).toEqual(['volunteer'])
     draft(fixture).toggleRole('volunteer', false)
-    expect(fixture.componentInstance.currentState().roleKeys).toEqual(['player'])
+    expect(fixture.componentInstance.currentState().roleKeys).toEqual(['volunteer'])
+    const checkbox = [...fixture.nativeElement.querySelectorAll('mat-checkbox')].find((el: any) => el.textContent.includes('Bénévole')) as HTMLElement
+    expect(checkbox.querySelector('input')!.disabled).toBe(true)
+    fixture.nativeElement.querySelector('button[aria-label="Pourquoi bénévole est obligatoire"]').click()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('Quand tu es disponible, tu es aussi disponible comme bénévole.')
+    expect(setMyAvailability).not.toHaveBeenCalled()
+    await fixture.componentInstance.submit()
+    expect(setMyAvailability).toHaveBeenLastCalledWith('season-1', 'event-1', expect.objectContaining({ roleKeys: ['volunteer'], applyVolunteerRule: true }))
   })
-  it('keeps a persisted volunteer opt-out on reopen and server reconciliation', async () => {
-    const { fixture, setMyAvailability } = await setupForm({ initialRoleKeys: ['player'] })
+
+  it.each([{ roles: [] as string[] }, { roles: ['player'] }])('normalizes historic available draft %j only on explicit save', async ({ roles }) => {
+    const { fixture, setMyAvailability } = await setupForm({ initialRoleKeys: roles })
     fixture.componentRef.setInput('roleSlots', { ...ROLE_TEMPLATES.cabaret, volunteer: 1 })
     fixture.detectChanges()
+    expect(fixture.componentInstance.currentState().roleKeys).toEqual([...roles, 'volunteer'])
+    expect(fixture.componentInstance.detailsDirty()).toBe(true)
+    expect(setMyAvailability).not.toHaveBeenCalled()
     await fixture.componentInstance.submit()
-    expect(setMyAvailability).toHaveBeenLastCalledWith('season-1', 'event-1', expect.objectContaining({ roleKeys: ['player'], applyVolunteerRule: false }))
-    draft(fixture).toggleRole('mc', true)
-    await fixture.componentInstance.submit()
-    expect(setMyAvailability).toHaveBeenLastCalledWith('season-1', 'event-1', expect.objectContaining({ roleKeys: ['player', 'mc'], applyVolunteerRule: false }))
+    expect(setMyAvailability).toHaveBeenLastCalledWith('season-1', 'event-1', expect.objectContaining({ roleKeys: [...roles, 'volunteer'], applyVolunteerRule: true }))
   })
 
   it('retains role draft across temporary status choices but submits empty roles for unavailable', async () => {

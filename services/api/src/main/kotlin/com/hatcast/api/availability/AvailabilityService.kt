@@ -805,7 +805,6 @@ class AvailabilityService(
         val roles = AvailabilityRoleRules.normalizeRoleKeys(
             event.roleSlots,
             body.roleKeys,
-            applyVolunteerRule = body.applyVolunteerRule ?: true,
         )
         if (roles.isEmpty() && AvailabilityRoleRules.rolesRequiredForEvent(event.roleSlots).isNotEmpty()) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Choisis au moins un rôle pour cet événement.")
