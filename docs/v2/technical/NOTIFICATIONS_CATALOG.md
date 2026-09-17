@@ -88,7 +88,7 @@ flowchart LR
   MUI -.->|hors dispatcher| MC[Contact manuel orga]
 ```
 
-**Note (6.23) :** la modale web **`ShareAnnounceDialog`** n’appelle plus `MAPI` ; elle lit GET `share-recipients` pour la ligne compacte *déjà notifiés / reste à prévenir*, puis **Copier / WhatsApp** uniquement.
+**Note :** la modale web utilise Copier / WhatsApp pour les partages habituels. Pour **Relance dispos**, Notifier ouvre une confirmation des destinataires et canaux autorisés, puis appelle `MAPI` avec une empreinte de l’aperçu.
 
 
 
@@ -685,7 +685,8 @@ Audience **engagée** = dispo `available`/`unavailable` **ou** participation com
 | Intent                       | État runtime                                                           | Copy déjà définie (payload builder)                                                                                                                                          | Piste livraison                                                               |
 | ---------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | `TEAM_VALIDATED_FYI`         | Listener sans publisher (`TeamValidatedFyiRequestedEvent` jamais émis) | Push title `✅ Équipe validée` · body `L'équipe pour {eventTitle} le {eventDate} a été validée.` · subject `✅ Équipe validée · {eventTitle} ({eventDate})` · link `?tab=equipe` | Dead path — **ne pas réactiver** ; G-012 livré via `**TEAM_COMPLETE_MEMBER`** |
-| Share `draw` / `composition` / `event` / `availability_nudge` (UI web) | Pas d’appel dispatcher depuis la modale (**6.23**) — Copier / WhatsApp seulement | Textes : `share-announce-messages.ts` | GET `share-recipients` pour transparence ; POST notify **deprecated UI** |
+| Share `draw` / `composition` / `event` (UI web) | Copier / WhatsApp seulement | Textes : `share-announce-messages.ts` | GET `share-recipients` pour transparence |
+| Relance `availability_nudge` (UI web) | Confirmation puis demande individuelle email/push selon préférences | Textes : `share-announce-messages.ts` | GET + empreinte puis POST notify ; acceptation ≠ livraison |
 | Share `event` / `availability_nudge` (API POST) | Dispatch actif si appel direct | Idem `MANUAL_AVAILABILITY_*` | Hors UI web ; conservé pour callers API |
 
 

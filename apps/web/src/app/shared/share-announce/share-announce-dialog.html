@@ -30,18 +30,31 @@
       (click)="copyMessage()"
     >
       <mat-icon>content_copy</mat-icon>
-      Copier
+      <span class="share-announce-dialog__action-label">Copier</span>
     </button>
     <button
       type="button"
       mat-button
       (click)="openWhatsApp()"
       title="Ouvre WhatsApp avec ce message"
+      aria-label="Envoyer par WhatsApp"
     >
       <mat-icon>chat</mat-icon>
-      WhatsApp
+      <span class="share-announce-dialog__action-label">WhatsApp</span>
     </button>
+    @if (data.intent === 'availability_nudge') {
+      <button type="button" mat-button aria-label="Notifier" (click)="openNotificationConfirmation()" [disabled]="sendingReminder() || loadingRecipients() || recipientsError() || !hasNotifiableRecipient()">
+        <mat-icon>notifications</mat-icon><span class="share-announce-dialog__action-label">Notifier</span>
+      </button>
+    }
   </div>
+
+  @if (data.intent === 'availability_nudge' && lastManualNotifyAt()) {
+    <p class="share-announce-dialog__reminder-warning" role="status">
+      Une relance a déjà été demandée le {{ formatReminderDate(lastManualNotifyAt()!) }}.
+      @if (guardDays()) { Période de référence : {{ guardDays() }} jours. }
+    </p>
+  }
 
   @if (loadingRecipients()) {
     <mat-progress-bar mode="indeterminate" aria-busy="true" />

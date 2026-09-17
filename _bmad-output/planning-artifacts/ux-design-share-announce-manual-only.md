@@ -241,6 +241,10 @@ L’orga n’a **jamais** à choisir entre « envoi app » et « envoi manuel »
 | POST dispatch réel `event` / nudge | Pas d’appel POST depuis l’UI |
 | Garde anti-spam ConfirmDialog | Retirée (plus de bulk send) |
 
+## Amendment — availability reminder notification (2026-09-17)
+
+For `availability_nudge` only, the approved flow adds **Notifier** beside Copier and WhatsApp. It opens a Material confirmation showing the current unanswered people, their enabled email/device channels, and a separate manual-contact section for opt-outs or unavailable channels. The server rejects a preview that changed before confirmation; accepted requests are not presented as delivered messages. Other share intents retain M1.
+
 ---
 
 ## Story d'implémentation

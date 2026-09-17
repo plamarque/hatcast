@@ -11,6 +11,8 @@ data class NotificationDispatchContext(
     val actorUserId: UUID? = null,
     val assigneeParticipantIds: List<UUID> = emptyList(),
     val recipientUserIds: List<UUID> = emptyList(),
+    /** Explicit preview-confirmed channels, used only by manual availability reminders. */
+    val recipientChannels: Map<UUID, Set<NotificationChannel>> = emptyMap(),
     val roleKey: String? = null,
     val slotIndex: Int? = null,
     val reminderWindow: NotificationReminderWindow? = null,

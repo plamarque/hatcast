@@ -1,8 +1,9 @@
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
+import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { describe, expect, it, vi } from 'vitest'
+import { of } from 'rxjs'
 
 import { buildWhatsAppSendUrl } from '../../core/messaging/share-announce-messages'
 import { ShareAnnounceApiService } from '../../core/share-announce/share-announce-api.service'
@@ -55,8 +56,11 @@ async function configureDialog(
   data: ShareAnnounceDialogData,
   options?: {
     getRecipients?: ReturnType<typeof vi.fn>
+    sendNotifications?: ReturnType<typeof vi.fn>
+    dialog?: { open: ReturnType<typeof vi.fn> }
   },
 ): Promise<ComponentFixture<ShareAnnounceDialog>> {
+  const dialog = options?.dialog ?? { open: vi.fn().mockReturnValue({ afterClosed: () => of(undefined) }) }
   await TestBed.configureTestingModule({
     imports: [ShareAnnounceDialog, NoopAnimationsModule],
     providers: [
@@ -66,6 +70,7 @@ async function configureDialog(
         provide: ShareAnnounceApiService,
         useValue: {
           getRecipients: options?.getRecipients ?? vi.fn().mockResolvedValue(recipientsMock),
+          sendNotifications: options?.sendNotifications ?? vi.fn(),
         },
       },
       {
@@ -73,6 +78,8 @@ async function configureDialog(
         useValue: { open: vi.fn() },
       },
     ],
+  }).overrideComponent(ShareAnnounceDialog, {
+    set: { providers: [{ provide: MatDialog, useValue: dialog }] },
   }).compileComponents()
   const fixture = TestBed.createComponent(ShareAnnounceDialog)
   fixture.detectChanges()
@@ -186,6 +193,34 @@ describe('ShareAnnounceDialog', () => {
       expect(textarea?.value).toContain('?tab=dispos')
     })
     expect(fixture.nativeElement.textContent).toContain('Rappel disponibilité')
+  })
+
+  it('opens one confirmation and sends only its selected recipients', async () => {
+    const getRecipients = vi.fn().mockResolvedValue({
+      ...recipientsMock,
+      data: { ...recipientsMock.data, confirmationFingerprint: 'preview-1' },
+    })
+    const sendNotifications = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: { accepted: true, notifiedCount: 0, manualCount: 1, acceptedCount: 1, intent: 'availability_nudge' },
+    })
+    const dialog = { open: vi.fn().mockReturnValue({ afterClosed: () => of(['p-1']) }) }
+    const fixture = await configureDialog(
+      { ...baseDialogData, intent: 'availability_nudge' },
+      { getRecipients, sendNotifications, dialog },
+    )
+
+    await vi.waitFor(() => expect(fixture.nativeElement.textContent).toContain('Notifier'))
+    fixture.componentInstance['openNotificationConfirmation']()
+    fixture.componentInstance['openNotificationConfirmation']()
+
+    await vi.waitFor(() => {
+      expect(dialog.open).toHaveBeenCalledTimes(1)
+      expect(sendNotifications).toHaveBeenCalledWith(
+        'season-1', 'event-1', 'availability_nudge', expect.any(String), 'preview-1', ['p-1'],
+      )
+    })
   })
 
   it('shows event intent title Annonce de spectacle', async () => {

@@ -118,8 +118,9 @@ class NotificationDispatcher(
                     reminderWindow = context.reminderWindow,
                     relativeUrl = payload.url,
                 )
-            deliverPush(recipient.userId, category, payload, context.intent, context.eventId)
-            deliverEmail(recipient.userId, category, emailSubject, htmlBody, context.intent, context.eventId)
+            val confirmedChannels = context.recipientChannels[recipient.userId]
+            deliverPush(recipient.userId, category, payload, context.intent, context.eventId, confirmedChannels)
+            deliverEmail(recipient.userId, category, emailSubject, htmlBody, context.intent, context.eventId, confirmedChannels)
         } catch (ex: Exception) {
             log.error(
                 "notification_recipient_unexpected_error intent={} userId={} eventId={} error={}",
@@ -232,7 +233,11 @@ class NotificationDispatcher(
             ->
                 recipientResolver.resolveConcernedRosterRecipients(context.seasonId, context.eventId)
             NotificationIntent.MANUAL_AVAILABILITY_NUDGE ->
-                recipientResolver.resolveUnknownAvailabilityRecipients(context.seasonId, context.eventId)
+                if (context.recipientUserIds.isNotEmpty()) {
+                    recipientsFromExplicitUserIds(context.recipientUserIds)
+                } else {
+                    recipientResolver.resolveUnknownAvailabilityRecipients(context.seasonId, context.eventId)
+                }
             NotificationIntent.AVAILABILITY_PENDING_REMINDER ->
                 if (context.recipientUserIds.isNotEmpty()) {
                     recipientsFromExplicitUserIds(context.recipientUserIds)
@@ -353,7 +358,9 @@ class NotificationDispatcher(
         payload: NotificationPayload,
         intent: NotificationIntent,
         eventId: UUID,
+        confirmedChannels: Set<NotificationChannel>? = null,
     ) {
+        if (confirmedChannels != null && NotificationChannel.PUSH !in confirmedChannels) return
         if (!pushEligibilityPort.isPushAllowedForCategory(userId, category)) {
             persistDeliveryLogSafely(
                 intent,
@@ -399,7 +406,9 @@ class NotificationDispatcher(
         htmlBody: String,
         intent: NotificationIntent,
         eventId: UUID,
+        confirmedChannels: Set<NotificationChannel>? = null,
     ) {
+        if (confirmedChannels != null && NotificationChannel.EMAIL !in confirmedChannels) return
         if (!isChannelAllowed(userId, category, NotificationChannel.EMAIL)) {
             persistDeliveryLogSafely(
                 intent,
@@ -455,6 +464,7 @@ class NotificationDispatcher(
             )
         }
     }
+
 
     private fun persistDeliveryLogSafely(
         intent: NotificationIntent,

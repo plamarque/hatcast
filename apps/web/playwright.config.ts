@@ -52,6 +52,15 @@ export default defineConfig({
       dependencies: ['setup-admin'],
     },
     {
+      name: 'e1-mobile-orga',
+      testMatch: /e1\/orga-availability-reminder\.mobile\.spec\.ts/,
+      use: {
+        ...devices['Pixel 5'],
+        storageState: 'e2e/.auth/admin.json',
+      },
+      dependencies: ['setup-admin'],
+    },
+    {
       name: 'migration-mobile-member',
       testMatch: /migration\/.*\.mobile\.spec\.ts/,
       use: {

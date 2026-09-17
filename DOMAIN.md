@@ -302,15 +302,15 @@ La zone spectacles affiche les participations par mois. Chaque mois est une colo
 Product owner definition (2026-06-04):
 
 1. **Publication** may trigger an **automatic** availability notification (`AVAILABILITY_OPENED`) when availability opens — members are informed without opening the share dialog.
-2. The organizer may then open the **same share dialog** (message + **Copier / WhatsApp**) for availability-related communication — **no bulk Notifier** from the web app (story **6.23**).
+2. The organizer may open the same share dialog. For an **availability reminder** only, **Notifier** opens a confirmation of the current unanswered people and their enabled email / device-notification channels before individual requests are sent. Other availability communication remains Copier / WhatsApp.
 3. The **first** such manual outreach on an event (after publication) is an **availability announcement** (*annonce*) from the organizer’s perspective (custom message shared manually).
 4. Any **later** manual outreach on the **same event** for the same business purpose is a **availability reminder** (*relance*) — **not** a different product action: same dialog workflow; **title and default message template** may differ to signal “reminder”.
 5. **Recipient transparency:** For every dialog intent (availability, draw share, composition announce, …), organizers see a **compact line**: count/link for people **already notified** automatically + chips for people **still to reach** manually. Per-channel eligibility and `lastNotifiedAt` remain in GET API; **dates are not shown** in the dialog UI (**6.23**).
-6. **Manual contact:** Recipients who still need outreach appear as chips under *Reste à prévenir*; the organizer shares via Copier / WhatsApp.
+6. **Manual contact:** Recipients with no eligible channel, including people who opted out, are clearly identified so the organizer can use Copier / WhatsApp.
 
 **Audience (decided 2026-06-04):** Two UI entry points remain intentional (UX **D12**). **Annoncer** (`event`) targets the **full** active season roster. **Relance dispos** (`availability_nudge`) targets only participants with **`unknown`** availability. Same modal shell; different audience, title, and default template.
 
-**Runtime:** GET `share-recipients` maps delivery logs per intent (extended **6.23** — see [_ux-design-share-announce-manual-only.md_](_bmad-output/planning-artifacts/ux-design-share-announce-manual-only.md)). API POST `share-recipients/notify` may dispatch `MANUAL_AVAILABILITY_ANNOUNCE` / `MANUAL_AVAILABILITY_NUDGE` (**6.17**) but is **not called by the web UI** (**6.23**). Historical API/UI detail: [_tech-spec-share-announce-transparency-6-17.md_](_bmad-output/planning-artifacts/tech-spec-share-announce-transparency-6-17.md).
+**Runtime:** GET `share-recipients` maps delivery logs per intent. For `availability_nudge`, its confirmation fingerprint prevents a changed audience or channel preference from being sent silently. API POST dispatches `MANUAL_AVAILABILITY_NUDGE` only after this confirmation; it reports acceptance, not final transport delivery.
 
 ---
 

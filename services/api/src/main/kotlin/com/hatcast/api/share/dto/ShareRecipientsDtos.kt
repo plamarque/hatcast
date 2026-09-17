@@ -7,6 +7,8 @@ import java.util.UUID
 
 data class ShareRecipientChannelStatusDto(
     val eligible: Boolean,
+    /** Why this channel cannot be used; never contains an address. */
+    val unavailableReason: String? = null,
     val notified: Boolean,
     val lastNotifiedAt: Instant? = null,
 )
@@ -31,6 +33,8 @@ data class ShareRecipientsResponseDto(
     val recipients: List<ShareRecipientDto>,
     val lastManualNotifyAt: Instant? = null,
     val guardDays: Int? = null,
+    /** Required by availability_nudge POST so a changed audience is never sent silently. */
+    val confirmationFingerprint: String? = null,
 )
 
 data class ShareNotifyRequestDto(
@@ -38,6 +42,8 @@ data class ShareNotifyRequestDto(
     @field:NotBlank
     @field:Size(max = 500)
     val messageText: String,
+    val confirmationFingerprint: String? = null,
+    val recipientParticipantIds: List<UUID>? = null,
 )
 
 data class ShareNotifyResponseDto(
@@ -45,4 +51,5 @@ data class ShareNotifyResponseDto(
     val notifiedCount: Int = 0,
     val manualCount: Int = 0,
     val intent: String = "",
+    val acceptedCount: Int = 0,
 )

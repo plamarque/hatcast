@@ -12,12 +12,12 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ### BUG-022 — Aperçu des relances : éligibilité email sans préférence
 - **ID**: BUG-022
-- **Status**: Open — constat par lecture du code local le 2026-09-17
+- **Status**: Fixed (2026-09-17)
 - **Severity**: Medium
 - **Affected area**: `ShareRecipientsService.buildResponse`, GET `share-recipients` et compteurs du POST `share-recipients/notify`.
 - **Observed behavior**: `channels.email.eligible` dépend uniquement de la présence d'une adresse participant. La préférence email de la catégorie `AVAILABILITY_REQUEST` n'est pas consultée dans cet aperçu, alors que le dispatcher vérifie les préférences pour les utilisateurs liés. `notifiableCount` peut donc inclure des personnes qui ont désactivé ce canal ; le POST reprend ce nombre comme `notifiedCount`, sans preuve de livraison.
 - **Expected behavior**: Un aperçu destiné à confirmer un envoi doit refléter les règles effectives de sélection et de canal ; distinguer demande acceptée et livraison constatée.
-- **Notes/context**: Découvert pendant l'étude du retour de Nicolas sur les relances. L'interface actuelle propose Copier / WhatsApp et n'appelle pas le POST. Aucun contournement des préférences à l'envoi démontré. Réintroduire un bouton Notifier reste une évolution produit à cadrer ; SPEC et DOMAIN documentent actuellement le partage manuel seul (6.23).
+- **Notes/context**: Corrigé par la relance avec confirmation : l’aperçu et le POST utilisent désormais le compte lié, ses préférences de disponibilité et les canaux réellement disponibles. Les changements entre aperçu et confirmation produisent un conflit sans envoi.
 
 ### BUG-023 — Home can retain a stale badge after saved response
 - **ID**: BUG-023

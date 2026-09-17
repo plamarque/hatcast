@@ -461,15 +461,12 @@ paths:
 
   /seasons/{seasonId}/events/{eventId}/share-recipients/notify:
     post:
-      deprecated: true
       tags: [Composition]
       summary: Envoyer les notifications manuelles
       description: >
-        **Deprecated for web UI (story 6.23)** — l'application web n'appelle plus cet endpoint ;
-        partage manuel via Copier / WhatsApp uniquement. Endpoint conservé pour appels API directs
-        ou callers futurs.
         Dispatch `MANUAL_AVAILABILITY_ANNOUNCE` pour `event`, `MANUAL_AVAILABILITY_NUDGE`
-        pour `availability_nudge` ; `draw` / `composition` restent stub (notifiedCount=0).
+        pour `availability_nudge`. Un fingerprint d'aperçu est obligatoire pour ce rappel ;
+        un aperçu périmé est refusé avant le dispatch.
         Requiert `canManageComposition`.
       security:
         - cookieAuth: []
@@ -741,6 +738,9 @@ components:
           type: string
           format: date-time
           nullable: true
+        unavailableReason:
+          type: string
+          nullable: true
 
     ShareRecipient:
       type: object
@@ -778,6 +778,14 @@ components:
         guardDays:
           type: integer
           nullable: true
+        confirmationFingerprint:
+          type: string
+        recipientParticipantIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          nullable: true
 
     ShareNotifyRequest:
       type: object
@@ -789,16 +797,20 @@ components:
         messageText:
           type: string
           maxLength: 500
+        confirmationFingerprint:
+          type: string
 
     ShareNotifyResponse:
       type: object
-      required: [accepted, notifiedCount, manualCount, intent]
+      required: [accepted, notifiedCount, manualCount, acceptedCount, intent]
       properties:
         accepted:
           type: boolean
         notifiedCount:
           type: integer
         manualCount:
+          type: integer
+        acceptedCount:
           type: integer
         intent:
           type: string
