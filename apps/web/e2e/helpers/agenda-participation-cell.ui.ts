@@ -66,7 +66,7 @@ export async function expectStaticParticipationCell(page: Page, eventTitle: stri
 
 export async function expectAvailabilityDialog(page: Page): Promise<void> {
   const dialog = page.getByRole('dialog')
-  await expect(dialog.getByRole('heading', { name: /Disponibilité de/i })).toBeVisible({
+  await expect(dialog.getByRole('heading', { name: 'Indique tes disponibilités' })).toBeVisible({
     timeout: 15_000,
   })
   await expect(dialog.getByLabel('Choix de disponibilité')).toBeVisible({ timeout: 15_000 })

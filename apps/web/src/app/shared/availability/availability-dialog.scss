@@ -28,11 +28,16 @@
 mat-dialog-actions button { min-height: 3rem; }
 
 .availability-dialog__dirty-hint {
-  flex-basis: 100%;
-  margin: 0 0 0.5rem;
-  text-align: end;
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0 0.75rem 0 0;
+  text-align: start;
   color: var(--mat-sys-on-surface-variant);
   font: var(--mat-sys-body-small);
 }
 
-.availability-dialog__error { color: var(--mat-sys-error); text-align: start; }
+.availability-dialog__error {
+  flex-basis: 100%;
+  margin: 0 0 0.5rem;
+  color: var(--mat-sys-error);
+}

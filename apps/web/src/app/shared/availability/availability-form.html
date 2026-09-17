@@ -31,12 +31,6 @@
     </mat-button-toggle>
   </mat-button-toggle-group>
 
-  @if (!readOnly() && !archived() && !proxyMode()) {
-    <p class="availability-form__status-hint">
-      Choisis tes rôles, puis enregistre ta disponibilité.
-    </p>
-  }
-
   @if (feedbackText(); as feedback) {
     <p class="availability-form__feedback">{{ feedback }}</p>
   }

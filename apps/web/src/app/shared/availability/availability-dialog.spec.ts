@@ -88,7 +88,7 @@ describe('AvailabilityDialog', () => {
 
   it('shows event context and persistent submit outside scrollable content', async () => {
     const { fixture } = await setup()
-    expect(fixture.nativeElement.textContent).toContain('Disponibilité de Patrice')
+    expect(fixture.nativeElement.textContent).toContain('Indique tes disponibilités')
     expect(fixture.nativeElement.textContent).toContain('Match du samedi')
     expect(fixture.nativeElement.querySelector('mat-dialog-actions').textContent).toContain('Enregistrer')
     expect(fixture.nativeElement.querySelector('mat-dialog-content button.availability-form__details-save')).toBeNull()
