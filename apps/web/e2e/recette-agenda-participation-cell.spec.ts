@@ -264,7 +264,7 @@ test.describe('Recette — agenda participation status cell (APC-E2E)', () => {
   })
 
   for (const colorScheme of ['light', 'dark'] as const) {
-    test(`BUG-022 — mandatory volunteer, optional roles, cancel and accessible help (${colorScheme})`, async ({ page, request }, testInfo) => {
+    test(`BUG-024 — mandatory volunteer, optional roles, cancel and accessible help (${colorScheme})`, async ({ page, request }, testInfo) => {
       await page.setViewportSize({ width: 360, height: 800 })
       await page.emulateMedia({ colorScheme })
       fx = await resetAgendaParticipationCellFixture(request, 'all')

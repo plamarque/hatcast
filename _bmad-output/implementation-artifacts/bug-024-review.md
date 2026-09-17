@@ -1,4 +1,4 @@
-# BUG-022 integrated review
+# BUG-024 integrated review
 
 Three independent context-free reviews inspected the full tracked/untracked diff from the recorded baseline. Findings were deduplicated by claim and required action.
 

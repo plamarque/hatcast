@@ -6,7 +6,7 @@
   ],
   "disposition": "run",
   "outcome": "passed",
-  "rationale": "BUG-022 reviewed keyboard focus and mandatory volunteer persistence",
+  "rationale": "BUG-024 reviewed keyboard focus and mandatory volunteer persistence",
   "report_reference": "apps/web/playwright-report/index.html",
   "schema": "hatcast.story-e2e-evidence.v1",
   "selection": [
