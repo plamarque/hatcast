@@ -85,6 +85,7 @@ function buildEventPage(
     categories: tab === 'infos' ? [] : undefined,
     availabilitySummary: tab === 'dispos' ? disposSummary([]) : undefined,
     composition: tab === 'equipe' ? { visibility: 'none', slots: [] } : undefined,
+    hasUnknownAvailability: false,
     ...overrides,
   }
 }
@@ -480,25 +481,8 @@ describe('EventDetail', () => {
   })
 
   it('includes Relance dispos after Annoncer when unknown participants exist', async () => {
-    mockEventPageResponse(ev('event-2', { availabilityOpenedAt: '2026-01-01T00:00:00.000Z' }))
-    getEventAvailabilitySummary.mockResolvedValue({
-      ok: true,
-      data: {
-        eventId: 'event-2',
-        roleSlots: {},
-        roles: [],
-        participants: [
-          {
-            participantId: 'p1',
-            userId: 'user-1',
-            displayName: 'Patrice',
-            avatarUrl: null,
-            status: 'unknown',
-            roleKeys: [],
-            comment: null,
-          },
-        ],
-      },
+    mockEventPageResponse(ev('event-2', { availabilityOpenedAt: '2026-01-01T00:00:00.000Z' }), {
+      hasUnknownAvailability: true,
     })
     pagePermissions = {
         isTroupeAdmin: false,
@@ -517,37 +501,59 @@ describe('EventDetail', () => {
 
     const cmp = fixture.componentInstance as unknown as {
       eventAdminItems: () => Array<{ label: string }>
-      onDisposSummaryChanged: (summary: EventAvailabilitySummary) => void
     }
     await vi.waitFor(() => {
-      expect(getEventPage).toHaveBeenCalled()
+      expect(cmp.eventAdminItems().map((i) => i.label)).toEqual([
+        'Modifier',
+        'Annoncer',
+        'Relance dispos',
+        'Participants',
+        'Désactiver',
+      ])
     })
-    cmp.onDisposSummaryChanged(
-      disposSummary([
-        {
-          participantId: 'p1',
-          userId: 'user-1',
-          displayName: 'Patrice',
-          avatarUrl: null,
-          status: 'unknown',
-          roleKeys: [],
-          comment: null,
-        },
-      ]),
-    )
-    fixture.detectChanges()
     expect(getEventAvailabilitySummary).not.toHaveBeenCalled()
-    expect(cmp.eventAdminItems().map((i) => i.label)).toEqual([
-      'Modifier',
-      'Annoncer',
-      'Relance dispos',
-      'Participants',
-      'Désactiver',
-    ])
+  })
+
+  it('includes Relance dispos on équipe tab when hasUnknownAvailability is true', async () => {
+    queryParamMap$.next(convertToParamMap({ tab: 'equipe' }))
+    mockEventPageResponse(ev('event-2', { availabilityOpenedAt: '2026-01-01T00:00:00.000Z' }), {
+      hasUnknownAvailability: true,
+    })
+    pagePermissions = {
+        isTroupeAdmin: false,
+        isSeasonOrganizer: false,
+        eventOrganizerFor: ['event-2'],
+        canManageEvents: true,
+        canManageSeasonParticipants: true,
+        canManageSeasonOrganizers: true,
+        canManageMembers: true,
+        canManageEventOrganizers: true,
+        canManageEventParticipants: true,
+        canManageSeasons: true,
+        eventParticipantAdminFor: [],
+      }
+    fixture.detectChanges()
+
+    const cmp = fixture.componentInstance as unknown as {
+      eventAdminItems: () => Array<{ label: string }>
+    }
+    await vi.waitFor(() => {
+      expect(getEventPage).toHaveBeenCalledWith(
+        'season-1',
+        'event-2',
+        expect.objectContaining({ tab: 'equipe' }),
+      )
+    })
+    await vi.waitFor(() => {
+      expect(cmp.eventAdminItems().map((i) => i.label)).toContain('Relance dispos')
+    })
+    expect(getEventAvailabilitySummary).not.toHaveBeenCalled()
   })
 
   it('hides Relance dispos when no unknown participants', async () => {
-    mockEventPageResponse(ev('event-2', { availabilityOpenedAt: '2026-01-01T00:00:00.000Z' }))
+    mockEventPageResponse(ev('event-2', { availabilityOpenedAt: '2026-01-01T00:00:00.000Z' }), {
+      hasUnknownAvailability: false,
+    })
     getEventAvailabilitySummary.mockResolvedValue({
       ok: true,
       data: {
@@ -604,6 +610,50 @@ describe('EventDetail', () => {
     )
     fixture.detectChanges()
     expect(getEventAvailabilitySummary).not.toHaveBeenCalled()
+    expect(cmp.eventAdminItems().map((i) => i.label)).not.toContain('Relance dispos')
+  })
+
+  it('hides Relance dispos after Dispos summary has no unknowns even if page flag was true', async () => {
+    mockEventPageResponse(ev('event-2', { availabilityOpenedAt: '2026-01-01T00:00:00.000Z' }), {
+      hasUnknownAvailability: true,
+    })
+    pagePermissions = {
+        isTroupeAdmin: false,
+        isSeasonOrganizer: false,
+        eventOrganizerFor: ['event-2'],
+        canManageEvents: true,
+        canManageSeasonParticipants: true,
+        canManageSeasonOrganizers: true,
+        canManageMembers: true,
+        canManageEventOrganizers: true,
+        canManageEventParticipants: true,
+        canManageSeasons: true,
+        eventParticipantAdminFor: [],
+      }
+    fixture.detectChanges()
+
+    const cmp = fixture.componentInstance as unknown as {
+      eventAdminItems: () => Array<{ label: string }>
+      onDisposSummaryChanged: (summary: EventAvailabilitySummary) => void
+    }
+    await vi.waitFor(() => {
+      expect(cmp.eventAdminItems().map((i) => i.label)).toContain('Relance dispos')
+    })
+
+    cmp.onDisposSummaryChanged(
+      disposSummary([
+        {
+          participantId: 'p1',
+          userId: 'user-1',
+          displayName: 'Patrice',
+          avatarUrl: null,
+          status: 'available',
+          roleKeys: ['player'],
+          comment: null,
+        },
+      ]),
+    )
+    fixture.detectChanges()
     expect(cmp.eventAdminItems().map((i) => i.label)).not.toContain('Relance dispos')
   })
 
@@ -692,25 +742,8 @@ describe('EventDetail', () => {
   })
 
   it('opens nudge dialog from Relance dispos admin menu action', async () => {
-    mockEventPageResponse(ev('event-2', { availabilityOpenedAt: '2026-01-01T00:00:00.000Z' }))
-    getEventAvailabilitySummary.mockResolvedValue({
-      ok: true,
-      data: {
-        eventId: 'event-2',
-        roleSlots: {},
-        roles: [],
-        participants: [
-          {
-            participantId: 'p1',
-            userId: 'user-1',
-            displayName: 'Patrice',
-            avatarUrl: null,
-            status: 'unknown',
-            roleKeys: [],
-            comment: null,
-          },
-        ],
-      },
+    mockEventPageResponse(ev('event-2', { availabilityOpenedAt: '2026-01-01T00:00:00.000Z' }), {
+      hasUnknownAvailability: true,
     })
     pagePermissions = {
         isTroupeAdmin: false,
@@ -729,27 +762,11 @@ describe('EventDetail', () => {
 
     const cmp = fixture.componentInstance as unknown as {
       eventAdminItems: () => Array<{ label: string; action: () => void }>
-      onDisposSummaryChanged: (summary: EventAvailabilitySummary) => void
     }
     await vi.waitFor(() => {
-      expect(getEventPage).toHaveBeenCalled()
+      expect(cmp.eventAdminItems().find((i) => i.label === 'Relance dispos')).toBeTruthy()
     })
-    cmp.onDisposSummaryChanged(
-      disposSummary([
-        {
-          participantId: 'p1',
-          userId: 'user-1',
-          displayName: 'Patrice',
-          avatarUrl: null,
-          status: 'unknown',
-          roleKeys: [],
-          comment: null,
-        },
-      ]),
-    )
-    fixture.detectChanges()
     expect(getEventAvailabilitySummary).not.toHaveBeenCalled()
-    expect(cmp.eventAdminItems().find((i) => i.label === 'Relance dispos')).toBeTruthy()
     const relance = cmp.eventAdminItems().find((i) => i.label === 'Relance dispos')
     relance?.action()
     expect(dialogOpen).toHaveBeenCalledWith(

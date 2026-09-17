@@ -169,6 +169,7 @@ export class EventDetail implements OnDestroy, OnInit {
   protected readonly infosOrganizers = signal<OrganizerResponse[] | null>(null)
   protected readonly infosCategories = signal<TroupeCategory[] | null>(null)
   protected readonly disposBootstrapSummary = signal<EventAvailabilitySummary | null>(null)
+  protected readonly hasUnknownAvailability = signal(false)
 
   protected readonly canManageEvents = computed(() =>
     canManageEventsForSeason(this.seasonPermissions(), { platformAdmin: this.platformAdmin() }),
@@ -272,10 +273,10 @@ export class EventDetail implements OnDestroy, OnInit {
       return false
     }
     const summary = this.disposSummary()
-    if (!summary) {
-      return false
+    if (summary) {
+      return summary.participants.some((p) => p.status === 'unknown')
     }
-    return summary.participants.some((p) => p.status === 'unknown')
+    return this.hasUnknownAvailability()
   })
   protected readonly canValidateComposition = computed(() =>
     resolveCanValidateComposition({
@@ -491,6 +492,7 @@ export class EventDetail implements OnDestroy, OnInit {
 
   protected onDisposSummaryChanged(summary: EventAvailabilitySummary): void {
     this.disposSummary.set(summary)
+    this.hasUnknownAvailability.set(summary.participants.some((p) => p.status === 'unknown'))
   }
 
   private applyEventDetailUpdate(before: EventResponse, after: EventResponse): void {
@@ -676,6 +678,7 @@ export class EventDetail implements OnDestroy, OnInit {
       this.compositionLoadInFlight = false
       this.disposSummary.set(null)
       this.disposBootstrapSummary.set(null)
+      this.hasUnknownAvailability.set(false)
       this.infosOrganizers.set(null)
       this.infosCategories.set(null)
       this.tabBootstrapLoaded.set({ infos: false, dispos: false, equipe: false })
@@ -782,6 +785,7 @@ export class EventDetail implements OnDestroy, OnInit {
         : null
     this.linkedParticipantId.set(linked?.id ?? null)
     this.linkedParticipantName.set(linked?.displayName ?? null)
+    this.hasUnknownAvailability.set(page.hasUnknownAvailability === true)
 
     if (tab === 'infos') {
       if (page.organizers != null) {
@@ -935,6 +939,7 @@ export class EventDetail implements OnDestroy, OnInit {
     }
     if (isEventDraft(event) || event.archived || event.availabilityOpenedAt == null) {
       this.disposSummary.set(null)
+      this.hasUnknownAvailability.set(false)
       return
     }
     const requestId = this.loadRequestId
@@ -943,6 +948,9 @@ export class EventDetail implements OnDestroy, OnInit {
       return
     }
     this.disposSummary.set(result.ok && result.data ? result.data : null)
+    if (result.ok && result.data) {
+      this.hasUnknownAvailability.set(result.data.participants.some((p) => p.status === 'unknown'))
+    }
   }
 
   private async loadComposition(seasonId: string, eventId: string): Promise<void> {

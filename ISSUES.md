@@ -10,6 +10,59 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Open Issues
 
+### BUG-021 — Agenda : rôles sélectionnés peu lisibles et sauvegarde distincte
+- **ID**: BUG-021
+- **Status**: Open — retour utilisateur ; cause de l'affectation DJ non établie
+- **Severity**: Medium
+- **Affected area**: V2 `AvailabilityDialog`, `AvailabilityForm`, `RoleToggleChipSet` ; agendas personnel et saison.
+- **Observed behavior**: Retour transmis le 2026-09-17 : un membre souhaitait être comédien pour CCAS mais rapporte une affectation DJ. La capture montre la modale « Disponibilité de … » au-dessus de « Mon agenda », avec Comédien·ne rempli et DJ/MC en contour. Le code utilise `[highlighted]` sans coche visible ; les rôles restent un brouillon jusqu'au bouton « Enregistrer rôles et commentaire », placé après le commentaire dans le contenu défilant. « Fermer » ferme sans sauvegarder ce brouillon ni avertir. Le statut Dispo, lui, est enregistré immédiatement.
+- **Expected behavior**: Rendre sans ambiguïté les rôles choisis et leur état d'enregistrement ; éviter qu'une fermeture soit comprise comme une validation. Solution UX à décider, sans changement des règles métier à ce stade.
+- **Repro**: Mon agenda → badge personnel de disponibilité d'un spectacle pour lequel le membre actif n'est pas dans l'équipe et n'a pas un état de retrait → Dispo → modifier un rôle → Fermer sans utiliser le bouton d'enregistrement. Le clic sur le titre ouvre le détail spectacle, dont l'onglet Dispos utilise un sondage différent avec sauvegarde au clic sur les rôles.
+- **Notes/context**: Parcours identifié dans le code local (`user-agenda.ts`, `open-agenda-availability-dialog.ts`, `availability-form.ts`, `availability-dialog.ts`), également appelé par `season-home.ts`. Pas de distinction administrateur/membre pour choisir la modale personnelle. Sur la capture, le rendu indique Comédien·ne sélectionné dans le formulaire, sans preuve de sauvegarde. Ni historique serveur de CCAS ni reproduction en production : aucune inversion DJ/comédien ou cause d'affectation n'est démontrée. Préserver la distinction disponibilité déclarée / affectation dans l'équipe.
+
+### BUG-020 — Relance dispos hidden until Dispos tab is opened
+- **ID**: BUG-020
+- **Status**: Fixed (2026-09-16)
+- **Severity**: Medium (orga cannot relance from Infos)
+- **Affected area**: Event detail gear menu — `event-detail` `canRelanceDispos` + PERF-03 tab-gated `availability/summary`
+- **Observed behavior**: On Infos, gear shows Modifier / Annoncer / Participants / Désactiver. **Relance dispos** appears only after visiting the Dispos tab (summary then loaded).
+- **Expected behavior**: Story **6.10c** AC1 — Relance dispos visible on every event-detail tab when published + `canManageComposition` + ≥1 unknown, without requiring a prior Dispos visit.
+- **Cause**: PERF-03 gated summary load to Dispos; menu visibility required `disposSummary()`.
+- **Fix**: Event page BFF `hasUnknownAvailability` on all tabs (no full summary on Infos); menu uses that flag until a live summary is present.
+- **Repro**: Published event with unanswered members → Infos → gear (2026-09-16, Apérock café).
+
+### BUG-019 — Dispos « Pas disponible » : dépliage vide (noms invisibles)
+- **ID**: BUG-019
+- **Status**: Open
+- **Severity**: Medium (orga cannot see who is unavailable; roles still expand)
+- **Affected area**: Onglet Dispos — `availability-poll` / `availability-poll-row` (spectacle publié, explainability on)
+- **Observed behavior**: Tap on the « Pas disponible » gauge, counter, or avatars expands the row but shows no names. Role rows (Arbitre, MC, …) do expand with names.
+- **Expected behavior**: Expanding « Pas disponible » lists the unavailable members by name (same as the compact avatar stack).
+- **Cause**: Neutral name chips render only when `explainabilityEnabled` is false (`unavailablePoolShowNeutral`). On a published event, explainability is on, and unavailable people have no `chancePercent`, so none of the three pool branches (`chance preview` / `neutral` / `chances unavailable`) match — empty body.
+- **Repro**: Event detail → Dispos → tap avatars/gauge on « Pas disponible » (screenshot orga Impro, 2026-09-16).
+- **Reported by**: Organizer feedback (Nicolas Nasciet) via Patrice.
+
+### LIMIT-009 — Dispos V2 : plus d’entrée « Tous » ni liste des non-répondants
+- **ID**: LIMIT-009
+- **Status**: Open
+- **Severity**: Medium (orga cannot scan the full troupe for one date)
+- **Affected area**: Onglet Dispos — `availability-subject-selector` + sondage unifié (story 5.8)
+- **Observed behavior**: The Participant pulldown lists individuals only (proxy edit). There is no « Tous ». The poll shows role/unavailable gauges + 3 avatars; members with status `unknown` do not appear. Organizers cannot see who has not answered.
+- **Expected behavior (V1)**: Pulldown first option « Tous » (`selectedTeamPlayer.id === 'all'`) rendered `EventRoleGroupingView` — named candidates per role. Combined with the season grid, orgs could also see unanswered cells.
+- **Notes**: Story 5.8 D1 removed Moi/Tous in favor of a WhatsApp-style poll (saisie + collective on one screen). Named unavailable list was an explicit non-goal (MVP+). Relance dispos (cog menu) still targets `unknown` but does not display the list. Organizer request 2026-09-16: restore a troupe overview, especially unanswered members.
+- **Reported by**: Organizer feedback (Nicolas Nasciet) via Patrice.
+
+### BUG-018 — Staging Cloud Run traffic stuck on a named revision
+- **ID**: BUG-018
+- **Status**: Open (workaround 2026-09-16 — traffic moved to `hatcast-v2-staging-00107-brq`)
+- **Severity**: High (staging served stale 2.4.4 while CI deploys succeeded)
+- **Affected area**: Cloud Run `hatcast-v2-staging` (`europe-west9`)
+- **Observed behavior**: After `gcloud run deploy` from GitHub Actions, new revisions (`00104`–`00107`) were created then Retired. 100% of traffic stayed on `hatcast-v2-staging-00103-mr9` (2.4.4, 2026-07-12). `/version.txt` and the Formules UI stayed on that build. 2.4.5 never received live traffic.
+- **Expected behavior**: A successful staging deploy serves the new revision at `https://hatcast-v2-staging-730278491306.europe-west9.run.app`.
+- **Cause**: Traffic allocated to a **named** revision, not `LATEST`. Cloud Run then leaves existing split unchanged on deploy.
+- **Fix / workaround**: `gcloud run services update-traffic hatcast-v2-staging --region=europe-west9 --project=impro-selector --to-revisions=hatcast-v2-staging-00107-brq=100` (or `--to-latest` after the new revision is Ready). Durable fix: stop pinning named revisions, or add `--to-latest` in CI after deploy.
+- **Evidence**: Recette 2.4.6-rc.1 ; CI deploy jobs green while live `version.txt` still showed `2.4.4` / `010452ce`.
+
 ### BUG-017 — Human smoke stop did not reach job-control child groups
 - **ID**: BUG-017
 - **Status**: Fixed (2026-08-26)

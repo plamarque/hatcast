@@ -16,4 +16,6 @@ data class EventPageResponseDto(
     val categories: List<TroupeCategoryDto>? = null,
     val availabilitySummary: EventAvailabilitySummaryResponse? = null,
     val composition: CompositionResponseDto? = null,
+    /** True when at least one eligible participant has not answered yet (Relance dispos gear). */
+    val hasUnknownAvailability: Boolean = false,
 )

@@ -203,6 +203,30 @@ class AvailabilityService(
     }
 
     @Transactional(readOnly = true)
+    fun hasUnknownAvailability(
+        seasonId: UUID,
+        eventId: UUID,
+        principal: SessionUserPrincipal,
+    ): Boolean {
+        val event = loadAuthorizedEvent(seasonId, eventId, principal)
+        requireAvailabilitySummaryReadable(event, seasonId, principal)
+        if (event.archived || !event.isAvailabilityOpen()) {
+            return false
+        }
+        val eligible = loadEligibleParticipants(seasonId, event.id)
+        if (eligible.isEmpty()) {
+            return false
+        }
+        val availabilityIndex =
+            availabilityRepository
+                .findByEvent_IdWithAssociations(event.id)
+                .toAvailabilityIndex()
+        return eligible.any { row ->
+            availabilityIndex.forParticipant(row.participantId, row.userId) == null
+        }
+    }
+
+    @Transactional(readOnly = true)
     fun getSummary(
         seasonId: UUID,
         eventId: UUID,
