@@ -4,6 +4,7 @@ type: 'bugfix'
 created: '2026-09-17'
 status: 'done'
 review_loop_iteration: 0
+prior_e2e_evidence: _bmad-output/implementation-artifacts/e2e-evidence/bug-021-availability-consistency.json
 feature_branch: feat/bug-021-availability-consistency
 baseline_commit: aaf7dbb4c6e2da395e9baeb4c91e2dec03b28a6c
 context:
@@ -115,3 +116,11 @@ Review patches: persisted volunteer opt-out, first-response analytics, draft sta
 
 - Read final counts and the unchanged baseline test limitation.
   [bug-021-implementation-report.md:1](bug-021-implementation-report.md#L1)
+
+## Human smoke follow-up — compact round role selection
+
+The user rejected the initial single-column square checkbox layout during local smoke. Use the poll's round checkbox visuals with multiple selection, two role columns, tighter spacing and a two-row comment field. Keep validation feedback in the persistent footer, replacing the dirty hint while an error is present. This explicitly updates the approved visual direction without changing submission rules.
+
+Verification: 27 targeted form/dialog/poll-row tests passed. Live Chrome inspection of the six-role match confirmed three role rows, two simultaneous checked circles, no content scrolling at the user's current desktop viewport, and a visible footer error before any write. No valid availability submission was performed during this inspection. Earlier E2E evidence predates this visual follow-up and has not been rerun while human smoke is active.
+
+Human visual acceptance: user confirmed the compact round-selector correction works and authorized its local commit. Full E2E rerun after this visual follow-up remains pending; this acceptance does not authorize integration.

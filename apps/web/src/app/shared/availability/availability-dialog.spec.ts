@@ -75,6 +75,17 @@ describe('AvailabilityDialog', () => {
     button.click()
   }
 
+  it('shows required-role errors in the fixed footer instead of the dirty hint', async () => {
+    const { fixture, setMyAvailability } = await setup({ initialStatus: 'available' })
+    await form(fixture).submit()
+    fixture.detectChanges()
+    const footer = fixture.nativeElement.querySelector('mat-dialog-actions')
+    expect(footer.querySelector('[role="alert"]').textContent).toContain('Choisis au moins un rôle')
+    expect(footer.textContent).not.toContain('Modifications non enregistrées')
+    expect(fixture.nativeElement.querySelector('mat-dialog-content [role="alert"]')).toBeNull()
+    expect(setMyAvailability).not.toHaveBeenCalled()
+  })
+
   it('shows event context and persistent submit outside scrollable content', async () => {
     const { fixture } = await setup()
     expect(fixture.nativeElement.textContent).toContain('Disponibilité de Patrice')

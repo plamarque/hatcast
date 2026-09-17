@@ -85,6 +85,8 @@ export class AvailabilityForm {
   protected readonly savedComment = signal('')
   protected readonly commentError = signal<string | null>(null)
 
+  readonly validationMessage = computed(() => this.commentError() ?? this.error())
+
   readonly detailsDirty = computed(() => {
     if (this.selected() !== this.savedStatus()) return true
     if (!roleKeysEqual(this.selectedRoleKeys(), this.savedRoleKeys())) {

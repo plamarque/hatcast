@@ -246,3 +246,7 @@ M3 HatCast — revue UI
 ### Formulaire de disponibilité — Accueil et agenda
 
 `AgendaEventCard` et `AgendaEventActionsService` partagent le rendu et les actions. Statut, rôles et commentaire forment un brouillon validé par **Enregistrer**, dans le footer du dialogue hors de la zone défilante. **Annuler** abandonne le brouillon. Les rôles utilisent `mat-checkbox` (état coché accessible, cible 48 px), sans présélection des préférences. Une erreur reste visible et le brouillon reste éditable. La disponibilité exige un rôle si des rôles sont proposés. Cette interaction concerne le formulaire ; le sondage garde l'autosave des votes valides et les préférences compte gardent leurs chips.
+
+### Availability dialog role selection — BUG-021 smoke refinement
+
+The availability dialog uses the same round Material checkbox styling as the poll, shared through `shared/availability/_round-vote-checkbox.scss`. These controls retain checkbox semantics and support multiple selections. Role options use two compact columns. Validation errors occupy the fixed dialog footer in place of the unsaved-changes hint; standalone form consumers retain inline errors.

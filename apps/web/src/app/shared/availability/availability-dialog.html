@@ -24,7 +24,9 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  @if (form()?.detailsDirty()) {
+  @if (form()?.validationMessage(); as message) {
+    <p class="availability-dialog__dirty-hint availability-dialog__error" role="alert">{{ message }}</p>
+  } @else if (form()?.detailsDirty()) {
     <p class="availability-dialog__dirty-hint" role="status">Modifications non enregistrées</p>
   }
   <app-hatcast-dialog-dismiss label="annuler" [disabled]="form()?.saving() ?? false" (clicked)="close()" />

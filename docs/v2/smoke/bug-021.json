@@ -1,0 +1,18 @@
+{
+  "route": "/accueil",
+  "account_or_fixture_reference": "Compte membre habituel, spectacle proposant des roles pour lequel tu ne fais pas encore partie de l equipe.",
+  "actions": [
+    "Depuis Accueil, cliquer sur la vignette de disponibilite du prochain spectacle.",
+    "Choisir Dispo sans role et essayer Enregistrer.",
+    "Cocher un ou plusieurs roles, enregistrer puis rouvrir depuis Mon agenda.",
+    "Modifier la reponse puis Annuler ; rouvrir et verifier la reponse precedente.",
+    "Verifier sur mobile et en theme sombre ; cliquer sur le corps de la carte pour ouvrir le detail."
+  ],
+  "expected_observations": [
+    "Meme modale depuis Accueil et Mon agenda.",
+    "Cases cochees explicites ; au moins un role exige lorsque des roles sont proposes.",
+    "Enregistrer reste visible et conserve statut, roles et commentaire ensemble.",
+    "Annuler ne modifie pas la reponse sauvegardee.",
+    "Le corps de la carte ouvre le detail du spectacle."
+  ]
+}
