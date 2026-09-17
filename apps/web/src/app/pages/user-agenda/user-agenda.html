@@ -100,42 +100,11 @@
         </div>
 
         @for (ev of group.events; track ev.eventId) {
-          <article class="agenda-card agenda-card--row" [class.agenda-card--draft]="isEventDraft(ev)">
-            <div
-              class="agenda-card__clickable"
-              role="button"
-              tabindex="0"
-              [attr.aria-label]="'Ouvrir ' + ev.title"
-              (click)="openEvent(ev)"
-              (keydown.enter)="openEvent(ev)"
-              (keydown.space)="openEvent(ev); $event.preventDefault()"
-            >
-              <div class="agenda-card__date">
-                <span class="agenda-card__day">{{ ev.dayNumber }}</span>
-                <span class="agenda-card__weekday">{{ ev.dayName }}</span>
-                <span class="agenda-card__time">{{ timeLabel(ev) }}</span>
-              </div>
-              <div class="agenda-card__body">
-                <h2 class="agenda-card__title">{{ ev.title }}</h2>
-                @if (ev.teamStatusBadge) {
-                  <div class="agenda-card__badges">
-                    <app-composition-status-badge [badge]="ev.teamStatusBadge" />
-                  </div>
-                }
-              </div>
-            </div>
-            <div class="agenda-card__status">
-              <app-agenda-participation-status
-                [myAvailabilityStatus]="ev.myAvailabilityStatus"
-                [participantFocus]="ev.participantFocus"
-                [viewerGender]="viewerGender()"
-                [canEditAvailability]="canEditAvailabilityForItem(ev)"
-                [canConfirmParticipation]="canConfirmParticipationForItem(ev)"
-                (availabilityClick)="openAvailability(ev, $event.status)"
-                (participationClick)="openParticipation(ev)"
-              />
-            </div>
-          </article>
+          <app-agenda-event-card [item]="ev" [viewerGender]="viewerGender()"
+            [canEditAvailability]="canEditAvailabilityForItem(ev)"
+            [canConfirmParticipation]="canConfirmParticipationForItem(ev)"
+            (openEvent)="openEvent(ev)" (availabilityClick)="openAvailability(ev)"
+            (participationClick)="openParticipation(ev)" />
         }
       </section>
     }

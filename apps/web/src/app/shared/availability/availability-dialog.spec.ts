@@ -67,202 +67,69 @@ async function setup(data: Partial<AvailabilityDialogData> = {}) {
 }
 
 describe('AvailabilityDialog', () => {
-  it('renders title with subject display name and event context', async () => {
-    const { fixture } = await setup()
-    const el = fixture.nativeElement as HTMLElement
-    expect(el.textContent).toContain('Disponibilité de Patrice')
-    expect(el.textContent).toContain('Match du samedi')
+  function form(fixture: Awaited<ReturnType<typeof setup>>['fixture']): AvailabilityForm {
+    return fixture.debugElement.query(d => d.componentInstance instanceof AvailabilityForm).componentInstance
+  }
+  function click(fixture: Awaited<ReturnType<typeof setup>>['fixture'], text: string) {
+    const button = [...fixture.nativeElement.querySelectorAll('button')].find((b: any) => b.textContent.includes(text)) as HTMLButtonElement
+    button.click()
+  }
+
+  it('shows required-role errors in the fixed footer instead of the dirty hint', async () => {
+    const { fixture, setMyAvailability } = await setup({ initialStatus: 'available' })
+    await form(fixture).submit()
+    fixture.detectChanges()
+    const footer = fixture.nativeElement.querySelector('mat-dialog-actions')
+    expect(footer.querySelector('[role="alert"]').textContent).toContain('Choisis au moins un rôle')
+    expect(footer.textContent).not.toContain('Modifications non enregistrées')
+    expect(fixture.nativeElement.querySelector('mat-dialog-content [role="alert"]')).toBeNull()
+    expect(setMyAvailability).not.toHaveBeenCalled()
   })
 
-  it('shows three status toggles', async () => {
+  it('shows event context and persistent submit outside scrollable content', async () => {
     const { fixture } = await setup()
-    const toggles = fixture.nativeElement.querySelectorAll('mat-button-toggle')
-    expect(toggles.length).toBe(3)
-    expect(fixture.nativeElement.textContent).toContain('Dispo')
-    expect(fixture.nativeElement.textContent).toContain('Pas dispo')
-    expect(fixture.nativeElement.textContent).toContain('Non renseigné')
+    expect(fixture.nativeElement.textContent).toContain('Disponibilité de Patrice')
+    expect(fixture.nativeElement.textContent).toContain('Match du samedi')
+    expect(fixture.nativeElement.querySelector('mat-dialog-actions').textContent).toContain('Enregistrer')
+    expect(fixture.nativeElement.querySelector('mat-dialog-content button.availability-form__details-save')).toBeNull()
   })
 
-  it('calls API on available choice without auto-closing', async () => {
-    const { fixture, setMyAvailability, close } = await setup()
-    const form = fixture.debugElement.query((d) => d.componentInstance instanceof AvailabilityForm)
-      ?.componentInstance as AvailabilityForm
-    await (form as unknown as { choose: (s: string) => Promise<void> }).choose('available')
+  it('cancels draft status roles and comment without request or result', async () => {
+    const { fixture, close, setMyAvailability } = await setup()
+    const editor = form(fixture) as any
+    await editor.choose('available')
+    editor.toggleRole('mc', true)
+    editor.onCommentInput('Brouillon')
+    click(fixture, 'Annuler')
+    expect(setMyAvailability).not.toHaveBeenCalled()
+    expect(close).toHaveBeenCalledExactlyOnceWith()
+  })
+
+  it('returns server state only after submitting successfully', async () => {
+    const { fixture, close, setMyAvailability } = await setup({ initialStatus: 'available', initialRoleKeys: ['mc'] })
+    setMyAvailability.mockResolvedValue({ ok: true, status: 200, data: { status: 'available', roleKeys: ['mc'], comment: 'Persisté' } })
+    click(fixture, 'Enregistrer')
     await fixture.whenStable()
+    expect(close).toHaveBeenCalledExactlyOnceWith({ status: 'available', roleKeys: ['mc'], comment: 'Persisté' })
+  })
 
-    expect(setMyAvailability).toHaveBeenCalledWith('season-1', 'event-1', {
-      status: 'available',
-      roleKeys: [],
-      applyVolunteerRule: true,
-      comment: null,
-    })
+  it('keeps failed draft open and permits retry', async () => {
+    const { fixture, close, setMyAvailability } = await setup({ initialStatus: 'available', initialRoleKeys: ['mc'] })
+    setMyAvailability.mockResolvedValueOnce({ ok: false, status: 500 })
+    click(fixture, 'Enregistrer')
+    await fixture.whenStable()
+    fixture.detectChanges()
     expect(close).not.toHaveBeenCalled()
-  })
-
-  it('shows feedback for unavailable selection', async () => {
-    const { fixture } = await setup({ initialStatus: 'unavailable' })
-    expect(fixture.nativeElement.textContent).toContain(
-      'Tu n\'es pas disponible pour cet événement.',
-    )
-  })
-
-  it('shows role chips only when available and roles exist', async () => {
-    const { fixture } = await setup({ initialStatus: 'available', initialRoleKeys: ['player'] })
-    const el = fixture.nativeElement as HTMLElement
-
-    expect(el.textContent).toContain('Choisis les rôles pour lesquels tu es disponible')
-    expect(el.querySelector('app-role-toggle-chip-set')).toBeTruthy()
-    expect(el.textContent).toContain('Comédien·ne')
-    expect(el.textContent).toContain('MC')
-  })
-
-  it('pre-checks preferred roles when switching to available', async () => {
-    const { fixture, getPreferredRoles, setMyAvailability } = await setup()
-    const form = fixture.debugElement.query((d) => d.componentInstance instanceof AvailabilityForm)
-      ?.componentInstance as AvailabilityForm
-    await (form as unknown as { choose: (s: string) => Promise<void> }).choose('available')
+    expect(fixture.nativeElement.textContent).toContain('Enregistrement impossible')
+    expect(form(fixture).currentState().roleKeys).toEqual(['mc'])
+    click(fixture, 'Enregistrer')
     await fixture.whenStable()
-
-    expect(getPreferredRoles).toHaveBeenCalledWith('troupe-1')
-    expect(setMyAvailability).toHaveBeenCalledWith('season-1', 'event-1', {
-      status: 'available',
-      roleKeys: [],
-      applyVolunteerRule: true,
-      comment: null,
-    })
-    const formEl = fixture.nativeElement as HTMLElement
-    expect(formEl.textContent).toContain('Comédien·ne')
-    expect(formEl.textContent).toContain('MC')
+    expect(close).toHaveBeenCalledTimes(1)
   })
 
-  it('does not pre-check on reopen when available with empty saved roles', async () => {
-    const { getPreferredRoles } = await setup({
-      initialStatus: 'available',
-      initialRoleKeys: [],
-    })
-
+  it('reopens with persisted explicit roles and no preferred precheck', async () => {
+    const { fixture, getPreferredRoles } = await setup({ initialStatus: 'available', initialRoleKeys: ['mc', 'dj'], initialComment: 'À 19h' })
+    expect(form(fixture).currentState()).toEqual({ status: 'available', roleKeys: ['mc', 'dj'], comment: 'À 19h' })
     expect(getPreferredRoles).not.toHaveBeenCalled()
-  })
-
-  it('saves empty roles when preferred roles API fails', async () => {
-    const getPreferredRoles = vi.fn().mockResolvedValue({ ok: false, status: 500 })
-    const setMyAvailability = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      data: { status: 'available', roleKeys: [] },
-    })
-
-    await TestBed.configureTestingModule({
-      imports: [AvailabilityDialog, NoopAnimationsModule],
-      providers: [
-        { provide: MatDialogRef, useValue: { close: vi.fn() } },
-        { provide: MAT_DIALOG_DATA, useValue: { ...dialogData, initialStatus: 'unknown' } },
-        { provide: AvailabilityApiService, useValue: { setMyAvailability } },
-        { provide: MemberProfileApiService, useValue: { getPreferredRoles } },
-        { provide: MatSnackBar, useValue: { open: vi.fn() } },
-      ],
-    }).compileComponents()
-
-    const fixture = TestBed.createComponent(AvailabilityDialog)
-    fixture.detectChanges()
-
-    const form = fixture.debugElement.query((d) => d.componentInstance instanceof AvailabilityForm)
-      ?.componentInstance as AvailabilityForm
-    await (form as unknown as { choose: (s: string) => Promise<void> }).choose('available')
-    await fixture.whenStable()
-
-    expect(setMyAvailability).toHaveBeenCalledWith('season-1', 'event-1', {
-      status: 'available',
-      roleKeys: [],
-      applyVolunteerRule: true,
-      comment: null,
-    })
-  })
-
-  it('saves role toggles via the details save button', async () => {
-    const { fixture, setMyAvailability } = await setup({
-      initialStatus: 'available',
-      initialRoleKeys: ['player'],
-    })
-
-    const form = fixture.debugElement.query((d) => d.componentInstance instanceof AvailabilityForm)
-      ?.componentInstance as AvailabilityForm
-    ;(form as unknown as { toggleRole: (k: string, c: boolean) => void }).toggleRole('mc', true)
-    fixture.detectChanges()
-    expect(setMyAvailability).not.toHaveBeenCalled()
-
-    await (form as unknown as { saveDetails: () => Promise<void> }).saveDetails()
-    await fixture.whenStable()
-
-    expect(setMyAvailability).toHaveBeenCalledWith('season-1', 'event-1', {
-      status: 'available',
-      roleKeys: ['player', 'mc'],
-      applyVolunteerRule: true,
-      comment: null,
-    })
-  })
-
-  it('hides role block and clears roles when selecting Pas dispo', async () => {
-    const { fixture, setMyAvailability } = await setup({
-      initialStatus: 'available',
-      initialRoleKeys: ['player', 'mc'],
-    })
-    setMyAvailability.mockResolvedValue({
-      ok: true,
-      status: 200,
-      data: { status: 'unavailable', roleKeys: [] },
-    })
-
-    const form = fixture.debugElement.query((d) => d.componentInstance instanceof AvailabilityForm)
-      ?.componentInstance as AvailabilityForm
-    await (form as unknown as { choose: (s: string) => Promise<void> }).choose('unavailable')
-    await fixture.whenStable()
-    fixture.detectChanges()
-
-    const el = fixture.nativeElement as HTMLElement
-    expect(el.textContent).not.toContain('Choisis les rôles pour lesquels tu es disponible')
-    expect(setMyAvailability).toHaveBeenCalledWith('season-1', 'event-1', {
-      status: 'unavailable',
-      roleKeys: [],
-      applyVolunteerRule: true,
-      comment: null,
-    })
-  })
-
-  it('does not show role block when the event has no required roles', async () => {
-    const { fixture } = await setup({
-      initialStatus: 'available',
-      roleSlots: ROLE_TEMPLATES.survey,
-      initialRoleKeys: [],
-    })
-    const el = fixture.nativeElement as HTMLElement
-
-    expect(el.textContent).not.toContain('Choisis les rôles pour lesquels tu es disponible')
-  })
-
-  it('persists role chip toggle after explicit save', async () => {
-    const { fixture, setMyAvailability } = await setup({
-      initialStatus: 'available',
-      initialRoleKeys: ['player'],
-    })
-
-    const mcChip = [...fixture.nativeElement.querySelectorAll('mat-chip')].find((el: Element) =>
-      el.textContent?.includes('MC'),
-    ) as HTMLElement
-    mcChip.click()
-    fixture.detectChanges()
-    expect(setMyAvailability).not.toHaveBeenCalled()
-
-    const form = fixture.debugElement.query((d) => d.componentInstance instanceof AvailabilityForm)
-      ?.componentInstance as AvailabilityForm
-    await (form as unknown as { saveDetails: () => Promise<void> }).saveDetails()
-    await fixture.whenStable()
-
-    expect(setMyAvailability).toHaveBeenCalledWith('season-1', 'event-1', {
-      status: 'available',
-      roleKeys: ['player', 'mc'],
-      applyVolunteerRule: true,
-      comment: null,
-    })
   })
 })

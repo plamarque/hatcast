@@ -430,6 +430,10 @@ export class AvailabilityPoll {
 
     const subject = this.subject()
     const roleKeys = checkedRoleKeysFromSubject(this.roleSlots(), subject)
+    if (subject.status === 'available' && this.hasRoles() && roleKeys.length === 0) {
+      this.commentError.set('Choisis au moins un rôle avant de modifier cette disponibilité.')
+      return
+    }
     this.savingComment.set(true)
     const result = await this.persist.saveCommentOnly({
       seasonId: this.seasonId(),
@@ -446,7 +450,7 @@ export class AvailabilityPoll {
     if (!result.ok || !result.data) {
       if (result.status === 400) {
         this.commentError.set(
-          `Le commentaire ne peut pas dépasser ${AVAILABILITY_COMMENT_MAX_LENGTH} caractères.`,
+          'Réponse invalide. Vérifie les rôles et le commentaire.',
         )
       }
       return

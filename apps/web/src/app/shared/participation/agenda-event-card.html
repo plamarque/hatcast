@@ -1,0 +1,34 @@
+<article class="agenda-card agenda-card--row" [class.agenda-card--featured]="featured()" [class.agenda-card--draft]="isEventDraft(item())">
+  <div class="agenda-card__clickable" role="button" tabindex="0"
+    [attr.aria-label]="'Ouvrir ' + item().title + ' dans ' + item().seasonTitle"
+    (click)="openEvent.emit()" (keydown.enter)="openEvent.emit()"
+    (keydown.space)="openEvent.emit(); $event.preventDefault()">
+    <div class="agenda-card__date">
+      <span class="agenda-card__day">{{ date().dayNumber }}</span>
+      <span class="agenda-card__weekday">{{ date().dayName }}</span>
+      <span class="agenda-card__time">{{ time() }}</span>
+    </div>
+    <div class="agenda-card__body">
+      @if (featured()) { <h3 class="agenda-card__title">{{ item().title }}</h3> }
+      @else { <h2 class="agenda-card__title">{{ item().title }}</h2> }
+      @if (item().teamStatusBadge; as badge) {
+        <div class="agenda-card__badges"><app-composition-status-badge [badge]="badge" /></div>
+      }
+      @if (item().description?.trim() || item().location?.trim()) {
+        <div class="agenda-card__details">
+          @if (item().description?.trim(); as description) { <p class="agenda-card__meta-desc">{{ description }}</p> }
+          @if (item().location?.trim(); as location) {
+            <p class="agenda-card__meta-loc"><mat-icon aria-hidden="true">place</mat-icon><span>{{ location }}</span></p>
+          }
+        </div>
+      }
+    </div>
+  </div>
+  <div class="agenda-card__status">
+    <app-agenda-participation-status
+      [myAvailabilityStatus]="item().myAvailabilityStatus" [participantFocus]="item().participantFocus"
+      [viewerGender]="viewerGender()" [canEditAvailability]="canEditAvailability()"
+      [canConfirmParticipation]="canConfirmParticipation()"
+      (availabilityClick)="availabilityClick.emit()" (participationClick)="participationClick.emit()" />
+  </div>
+</article>

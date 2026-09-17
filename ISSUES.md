@@ -21,13 +21,16 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ### BUG-021 — Agenda : rôles sélectionnés peu lisibles et sauvegarde distincte
 - **ID**: BUG-021
-- **Status**: Open — retour utilisateur ; cause de l'affectation DJ non établie
+- **Status**: Correctif implémenté et vérifié (API 29/29, E2E 10/10), revue et validation humaine restantes — cause de l’affectation DJ non établie
 - **Severity**: Medium
 - **Affected area**: V2 `AvailabilityDialog`, `AvailabilityForm`, `RoleToggleChipSet` ; agendas personnel et saison.
 - **Observed behavior**: Retour transmis le 2026-09-17 : un membre souhaitait être comédien pour CCAS mais rapporte une affectation DJ. La capture montre la modale « Disponibilité de … » au-dessus de « Mon agenda », avec Comédien·ne rempli et DJ/MC en contour. Le code utilise `[highlighted]` sans coche visible ; les rôles restent un brouillon jusqu'au bouton « Enregistrer rôles et commentaire », placé après le commentaire dans le contenu défilant. « Fermer » ferme sans sauvegarder ce brouillon ni avertir. Le statut Dispo, lui, est enregistré immédiatement.
-- **Expected behavior**: Rendre sans ambiguïté les rôles choisis et leur état d'enregistrement ; éviter qu'une fermeture soit comprise comme une validation. Solution UX à décider, sans changement des règles métier à ce stade.
-- **Repro**: Mon agenda → badge personnel de disponibilité d'un spectacle pour lequel le membre actif n'est pas dans l'équipe et n'a pas un état de retrait → Dispo → modifier un rôle → Fermer sans utiliser le bouton d'enregistrement. Le clic sur le titre ouvre le détail spectacle, dont l'onglet Dispos utilise un sondage différent avec sauvegarde au clic sur les rôles.
+- **Expected behavior**: Rendre sans ambiguïté les rôles choisis et leur état d'enregistrement ; éviter qu'une fermeture soit comprise comme une validation. Solution autorisée : cases à cocher, validation groupée explicite, annulation du brouillon et rôle requis pour les nouvelles écritures disponibles proposant des rôles.
+- **Correction**: Carte/actions partagées Accueil et agenda ; formulaire à brouillon, cases explicites, footer Enregistrer persistant ; annulation sans résultat ; échec conservant le brouillon. API self/proxy : rôle normalisé obligatoire si proposé, avant mutation. Historique vide préservé.
+- **Repro initiale**: Mon agenda → badge personnel de disponibilité d'un spectacle pour lequel le membre actif n'est pas dans l'équipe et n'a pas un état de retrait → Dispo → modifier un rôle → Fermer sans utiliser le bouton d'enregistrement. Le clic sur le titre ouvre le détail spectacle, dont l'onglet Dispos utilise un sondage différent avec sauvegarde au clic sur les rôles.
 - **Notes/context**: Parcours identifié dans le code local (`user-agenda.ts`, `open-agenda-availability-dialog.ts`, `availability-form.ts`, `availability-dialog.ts`), également appelé par `season-home.ts`. Pas de distinction administrateur/membre pour choisir la modale personnelle. Sur la capture, le rendu indique Comédien·ne sélectionné dans le formulaire, sans preuve de sauvegarde. Ni historique serveur de CCAS ni reproduction en production : aucune inversion DJ/comédien ou cause d'affectation n'est démontrée. Préserver la distinction disponibilité déclarée / affectation dans l'équipe.
+
+- **Human smoke follow-up (2026-09-17)**: Initial single-column square checkboxes required excessive scrolling on a six-role match; errors appeared below the scroll. Changed to the poll's round multiple-selection checkmarks in two columns, with errors replacing the fixed-footer dirty hint. Verified visually in the local Chrome match dialog and with 27 targeted tests; full E2E rerun pending after this visual adjustment.
 
 ### BUG-020 — Relance dispos hidden until Dispos tab is opened
 - **ID**: BUG-020
@@ -416,3 +419,8 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
   - API refuse `MEMBER` → `EXTERNE` via `PATCH` membre et via import CSV membre : *« Utilisez l'ajout Externe pour les entrées carnet. »* ([`TroupeMembershipService.kt`](services/api/src/main/kotlin/com/hatcast/api/troupe/TroupeMembershipService.kt), [`TroupeMemberCsvImportService.kt`](services/api/src/main/kotlin/com/hatcast/api/troupe/TroupeMemberCsvImportService.kt)).
   - UI édition membre : pas de changement de rôle vers Externe ([`edit-troupe-member-dialog.ts`](apps/web/src/app/pages/admin-membres/edit-troupe-member-dialog.ts)).
 - **Notes/context** : Investigation 2026-07-12 → [member-externe-conversion-investigation.md](_bmad-output/implementation-artifacts/investigations/member-externe-conversion-investigation.md). **Décision produit :** conversion bidirectionnelle + **mode de participation par saison** ([ADR-0022](docs/adr/0022-season-participation-mode-role-lifecycle.md)). **Livré :** story **2.26** (recette OK 2026-07-12).
+
+### LIMIT-007 — Complément de preuve : attente de test agenda antérieure au chargement parallèle
+- **Status**: Open (2026-09-17)
+- **Observed behavior**: `user-agenda.spec.ts` attend zéro appel agenda en cas de session invalide, tandis que `ngOnInit` lance session, agenda et préférences dans `Promise.all`. Le test et ce bloc sont identiques au baseline `aaf7dbb4c6e2da395e9baeb4c91e2dec03b28a6c`. Vérification ciblée sous Node 26 avec `NODE_OPTIONS=--no-experimental-webstorage` : seule cette attente échoue ; le reste des tests pages passe.
+- **Scope**: Décider séparément si le bootstrap doit attendre la session ou si le test doit accepter la requête anticipée. Aucun test désactivé dans BUG-021.

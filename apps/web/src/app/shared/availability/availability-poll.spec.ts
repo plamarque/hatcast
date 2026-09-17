@@ -366,4 +366,21 @@ describe('AvailabilityPoll', () => {
       }),
     )
   })
+  it('autosaves unknown when the final explicit role is unchecked', async () => {
+    const { fixture, setMyAvailability } = await setupPoll({ initialStatus: 'available', initialRoleKeys: ['dj'] })
+    await (fixture.componentInstance as any).onRoleToggle('dj', false)
+    expect(setMyAvailability).toHaveBeenCalledWith('season-1', 'event-1', expect.objectContaining({ status: 'unknown', roleKeys: [] }))
+  })
+
+  it('requires an explicit role before saving a comment on a legacy general response', async () => {
+    const { fixture, setMyAvailability } = await setupPoll({ initialStatus: 'available', initialRoleKeys: [] })
+    const component = fixture.componentInstance as any
+    component.onCommentInput('Brouillon conservé')
+    await component.saveComment()
+    fixture.detectChanges()
+    expect(setMyAvailability).not.toHaveBeenCalled()
+    expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain('Choisis au moins un rôle')
+    expect(component.commentText()).toBe('Brouillon conservé')
+  })
+
 })

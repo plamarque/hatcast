@@ -432,7 +432,7 @@ class AvailabilityControllerIntegrationTest {
                 put(base)
                     .cookie(cookie)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"status":"available"}""")
+                    .content("""{"status":"available","roleKeys":["player"]}""")
                     .with(csrf()),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.status").value("available"))
@@ -504,7 +504,7 @@ class AvailabilityControllerIntegrationTest {
                 put(base)
                     .cookie(outsider)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"status":"available"}""")
+                    .content("""{"status":"available","roleKeys":["player"]}""")
                     .with(csrf()),
             ).andExpect(status().isForbidden)
     }
@@ -648,14 +648,14 @@ class AvailabilityControllerIntegrationTest {
                     .with(csrf()),
             ).andExpect(status().isOk)
 
-        mockMvc
-            .perform(
-                put("/v1/seasons/$seasonId/events/$eventId/availability/me")
-                    .cookie(member)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"status":"available"}""")
-                    .with(csrf()),
-            ).andExpect(status().isOk)
+        val legacyUser = userRepository.findByGoogleSub("sub-avail-summary-member")!!
+        availabilityRepository.save(EventAvailabilityEntity(
+            event = eventRepository.findById(eventId).orElseThrow(),
+            user = legacyUser,
+            status = StoredAvailabilityStatus.AVAILABLE,
+            roleKeys = emptyList(),
+            now = Instant.now(),
+        ))
 
         syncSeasonParticipants(seasonId)
 
@@ -935,7 +935,7 @@ class AvailabilityControllerIntegrationTest {
                 put(proxyPath)
                     .cookie(member)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"status":"available"}""")
+                    .content("""{"status":"available","roleKeys":["player"]}""")
                     .with(csrf()),
             ).andExpect(status().isForbidden)
     }
@@ -1056,7 +1056,7 @@ class AvailabilityControllerIntegrationTest {
                 put(mePath)
                     .cookie(admin)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"status":"available"}""")
+                    .content("""{"status":"available","roleKeys":["player"]}""")
                     .with(csrf()),
             ).andExpect(status().isForbidden)
 
@@ -1068,7 +1068,7 @@ class AvailabilityControllerIntegrationTest {
                 put(proxyPath)
                     .cookie(admin)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"status":"available"}""")
+                    .content("""{"status":"available","roleKeys":["player"]}""")
                     .with(csrf()),
             ).andExpect(status().isForbidden)
     }
@@ -1170,7 +1170,7 @@ class AvailabilityControllerIntegrationTest {
                 put("/v1/seasons/$seasonId/events/$eventId/availability/me")
                     .cookie(member)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"status":"available"}""")
+                    .content("""{"status":"available","roleKeys":["player"]}""")
                     .with(csrf()),
             ).andExpect(status().isForbidden)
 
@@ -1185,7 +1185,7 @@ class AvailabilityControllerIntegrationTest {
                 put("/v1/seasons/$seasonId/events/$eventId/availability/me")
                     .cookie(member)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"status":"available"}""")
+                    .content("""{"status":"available","roleKeys":["player"]}""")
                     .with(csrf()),
             ).andExpect(status().isOk)
     }
@@ -1200,7 +1200,7 @@ class AvailabilityControllerIntegrationTest {
                 put("/v1/seasons/$seasonId/events/$eventId/availability/me")
                     .cookie(admin)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"status":"available"}""")
+                    .content("""{"status":"available","roleKeys":["player"]}""")
                     .with(csrf()),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.status").value("available"))
@@ -1209,6 +1209,60 @@ class AvailabilityControllerIntegrationTest {
             .perform(get("/v1/seasons/$seasonId/events/$eventId/availability/summary").cookie(admin))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.availabilityOpenedAt").doesNotExist())
+    }
+
+    @Test
+    fun `self and proxy reject missing empty and blank roles without changing storage`() {
+        val admin = memberCookie("sub-explicit-roles")
+        val (seasonId, eventId) = createSeasonAndEvent(admin)
+        val user = userRepository.findByGoogleSub("sub-explicit-roles")!!
+        val participantId = createSeasonParticipant(seasonId, "Explicit roles proxy")
+        val self = "/v1/seasons/$seasonId/events/$eventId/availability/me"
+        val proxy = "/v1/seasons/$seasonId/events/$eventId/availability/participants/$participantId"
+        val invalidRoles = listOf("", ",\"roleKeys\":[]", ",\"roleKeys\":[\"  \",\"\"]")
+        for (path in listOf(self, proxy)) {
+            for (roles in invalidRoles) {
+                mockMvc.perform(put(path).cookie(admin).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"available"$roles,"comment":"rejected"}"""))
+                    .andExpect(status().isBadRequest)
+            }
+        }
+        org.junit.jupiter.api.Assertions.assertNull(availabilityRepository.findByEvent_IdAndUser_Id(eventId, user.id))
+        org.junit.jupiter.api.Assertions.assertNull(availabilityRepository.findByEvent_IdAndSeasonParticipant_Id(eventId, participantId))
+        for (path in listOf(self, proxy)) {
+            mockMvc.perform(put(path).cookie(admin).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("""{"status":"available","roleKeys":[" mc ","mc","dj"],"comment":"keep"}"""))
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.roleKeys.length()").value(2))
+            for (roles in invalidRoles) {
+                mockMvc.perform(put(path).cookie(admin).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"available"$roles,"comment":"rejected"}"""))
+                    .andExpect(status().isBadRequest)
+            }
+        }
+        val rows = listOf(
+            availabilityRepository.findByEvent_IdAndUser_Id(eventId, user.id)!!,
+            availabilityRepository.findByEvent_IdAndSeasonParticipant_Id(eventId, participantId)!!,
+        )
+        rows.forEach {
+            org.junit.jupiter.api.Assertions.assertEquals(listOf("mc", "dj"), it.roleKeys)
+            org.junit.jupiter.api.Assertions.assertEquals("keep", it.comment)
+        }
+    }
+
+    @Test
+    fun `events without roles accept general availability for self and proxy`() {
+        val admin = memberCookie("sub-roleless-write")
+        val (seasonId, eventId) = createSeasonAndEvent(admin,
+            """{"title":"Roleless", "startsAt":"2031-03-20T19:00:00Z", "templateType":"survey", "roleSlots":{}}""")
+        val participantId = createSeasonParticipant(seasonId, "Roleless proxy")
+        for (suffix in listOf("me", "participants/$participantId")) {
+            mockMvc.perform(put("/v1/seasons/$seasonId/events/$eventId/availability/$suffix")
+                .cookie(admin).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("""{"status":"available","roleKeys":[]}"""))
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.roleKeys").isEmpty)
+        }
     }
 
     private fun setAvailabilityForMember(
