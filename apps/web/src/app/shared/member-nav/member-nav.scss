@@ -173,7 +173,9 @@
   z-index: 20;
   min-height: var(--member-nav-bottom-height);
   box-sizing: border-box;
-  padding-bottom: env(safe-area-inset-bottom, 0);
+  /* Chrome Android does not always expose a bottom safe-area inset. Keep a
+     small breathing space below the labels in that case as well. */
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
   background: var(--mat-sys-surface-container);
   border-block-start: 1px solid
     color-mix(in srgb, var(--mat-sys-outline-variant) 55%, transparent);
