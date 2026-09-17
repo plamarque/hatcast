@@ -800,16 +800,18 @@ class AvailabilityService(
         event: EventEntity,
         stored: StoredAvailabilityStatus,
         body: SetMyAvailabilityRequest,
-    ): List<String> =
-        if (stored == StoredAvailabilityStatus.AVAILABLE) {
-            AvailabilityRoleRules.normalizeRoleKeys(
-                event.roleSlots,
-                body.roleKeys,
-                applyVolunteerRule = body.applyVolunteerRule ?: true,
-            )
-        } else {
-            emptyList()
+    ): List<String> {
+        if (stored != StoredAvailabilityStatus.AVAILABLE) return emptyList()
+        val roles = AvailabilityRoleRules.normalizeRoleKeys(
+            event.roleSlots,
+            body.roleKeys,
+            applyVolunteerRule = body.applyVolunteerRule ?: true,
+        )
+        if (roles.isEmpty() && AvailabilityRoleRules.rolesRequiredForEvent(event.roleSlots).isNotEmpty()) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Choisis au moins un rôle pour cet événement.")
         }
+        return roles
+    }
 
     private data class EligibleParticipantRow(
         val participantId: UUID,

@@ -1,4 +1,4 @@
-import { Component, inject, viewChild } from '@angular/core'
+import { Component, effect, inject, viewChild } from '@angular/core'
 import { A11yModule } from '@angular/cdk/a11y'
 import { MatButtonModule } from '@angular/material/button'
 import {
@@ -9,7 +9,7 @@ import {
 
 import { HatcastDialogDismiss } from '../dialog-chrome/hatcast-dialog-dismiss'
 import { AGENDA_TIME_ZONE } from '../../pages/season-home/season-events.utils'
-import { AvailabilityForm } from './availability-form'
+import { AvailabilityForm, type AvailabilityFormSavedPayload } from './availability-form'
 import type { AvailabilityDialogData, AvailabilityDialogResult } from './availability-dialog.types'
 
 export type { AvailabilityDialogData, AvailabilityDialogResult } from './availability-dialog.types'
@@ -23,21 +23,22 @@ export type { AvailabilityDialogData, AvailabilityDialogResult } from './availab
 export class AvailabilityDialog {
   private readonly dialogRef = inject(MatDialogRef<AvailabilityDialog, AvailabilityDialogResult>)
   readonly data = inject<AvailabilityDialogData>(MAT_DIALOG_DATA)
-  private readonly form = viewChild(AvailabilityForm)
+  protected readonly form = viewChild(AvailabilityForm)
+
+  constructor() {
+    effect(() => { this.dialogRef.disableClose = this.form()?.saving() ?? false })
+  }
 
   protected readonly formattedDate = formatEventDate(this.data.eventStartsAt)
 
   protected close(): void {
-    const state = this.form()?.currentState() ?? {
-      status: this.data.initialStatus,
-      roleKeys: this.data.initialRoleKeys ?? [],
-    }
-    this.dialogRef.close(state)
+    if (!this.form()?.saving()) this.dialogRef.close()
   }
 
-  protected onSaved(): void {
-    // Persist is handled by the form; dialog stays open until explicit close.
+  protected onSaved(result: AvailabilityFormSavedPayload): void {
+    this.dialogRef.close({ status: result.status, roleKeys: result.roleKeys, comment: result.comment })
   }
+
 }
 
 function formatEventDate(iso: string): string {

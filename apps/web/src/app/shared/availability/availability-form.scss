@@ -11,7 +11,7 @@
   mat-button-toggle {
     flex: 1;
     min-width: 0;
-    min-height: 2.5rem;
+    min-height: 3rem;
     font-size: 0.8125rem;
   }
 
@@ -116,11 +116,30 @@
 }
 
 .availability-form__details-save {
-  min-height: 2.5rem;
+  min-height: 3rem;
 }
 
 @media (max-width: 480px) {
   .availability-form__status-toggle mat-button-toggle {
-    min-height: 2.5rem;
+    min-height: 3rem;
   }
+}
+
+.availability-form__roles mat-checkbox { min-height: 3rem; }
+
+// Expand the actual label click surface, not only the checkbox host.
+:host ::ng-deep .availability-form__roles .mat-internal-form-field {
+  width: 100%;
+  min-height: 3rem;
+}
+
+:host ::ng-deep .availability-form__roles .mdc-label {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-height: 3rem;
+}
+
+:host ::ng-deep .availability-form__status-toggle .mat-button-toggle-button {
+  min-height: 3rem;
 }

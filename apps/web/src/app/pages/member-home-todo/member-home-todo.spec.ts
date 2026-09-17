@@ -22,6 +22,7 @@ import type { SeasonResponse } from '../../core/seasons/season-api.service'
 import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
 import { AgendaParticipationStatus } from '../../shared/participation/agenda-participation-status'
 import { MemberHomeTodo } from './member-home-todo'
+import { AgendaEventActionsService } from '../../shared/participation/agenda-event-actions.service'
 
 async function settle(fixture: ComponentFixture<MemberHomeTodo>): Promise<void> {
   fixture.detectChanges()
@@ -680,6 +681,20 @@ describe('MemberHomeTodo', () => {
     expect(verbs[0]).toContain('Confirme ta présence')
     expect(verbs[1]).toContain('Donne ta dispo')
   })
+  it.each(['openAvailability', 'openParticipation'] as const)('refreshes only after a saved %s action', async action => {
+    await settle(fixture)
+    const service = TestBed.inject(AgendaEventActionsService)
+    const open = vi.spyOn(service, action).mockResolvedValue(false)
+    const reload = vi.spyOn(fixture.componentInstance as any, 'loadInbox').mockResolvedValue(undefined)
+    const item = agendaItem('edited', 'Edited event', '2030-01-01T18:00:00Z')
+    await (fixture.componentInstance as any)[action](item)
+    expect(reload).not.toHaveBeenCalled()
+    open.mockResolvedValue({ kind: 'saved', item: { ...item, myAvailabilityStatus: 'available' } })
+    await (fixture.componentInstance as any)[action](item)
+    expect(reload).toHaveBeenCalledTimes(1)
+    expect(navigateSpy).not.toHaveBeenCalledWith(expect.arrayContaining(['saison']))
+  })
+
 })
 
 function inboxResponse(

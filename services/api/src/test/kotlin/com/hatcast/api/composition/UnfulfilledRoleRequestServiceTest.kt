@@ -1,5 +1,8 @@
 package com.hatcast.api.composition
 
+import com.hatcast.api.availability.EventAvailabilityEntity
+import com.hatcast.api.availability.EventAvailabilityRepository
+import com.hatcast.api.availability.StoredAvailabilityStatus
 import com.hatcast.api.auth.GoogleIdTokenService
 import com.hatcast.api.auth.IdpIdTokenVerifier
 import com.hatcast.api.event.EventRepository
@@ -53,6 +56,9 @@ class UnfulfilledRoleRequestServiceTest {
 
     @Autowired
     private lateinit var eventRepository: EventRepository
+
+    @Autowired
+    private lateinit var availabilityRepository: EventAvailabilityRepository
 
     @Autowired
     private lateinit var unfulfilledRoleRequestService: UnfulfilledRoleRequestService
@@ -139,7 +145,14 @@ class UnfulfilledRoleRequestServiceTest {
 
         val pastId =
             support.createEvent(adminCookie, seasonId, Instant.parse("2031-03-01T19:00:00Z"))
-        support.setAvailability(member, seasonId, pastId, emptyList())
+        // This legacy record remains eligible for all roles; new writes require an explicit role.
+        availabilityRepository.save(EventAvailabilityEntity(
+            event = eventRepository.findById(pastId).orElseThrow(),
+            user = userRepository.findByGoogleSub("sub-urr-empty-member")!!,
+            status = StoredAvailabilityStatus.AVAILABLE,
+            roleKeys = emptyList(),
+            now = Instant.now(),
+        ))
         support.setAvailability(peer, seasonId, pastId, listOf("dj"))
         support.assignSlot(adminCookie, seasonId, pastId, peerId)
         support.validateComposition(pastId)

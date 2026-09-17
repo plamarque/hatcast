@@ -24,3 +24,13 @@
   color: color-mix(in srgb, var(--mat-sys-on-surface) 85%, transparent);
   text-transform: capitalize;
 }
+
+mat-dialog-actions button { min-height: 3rem; }
+
+.availability-dialog__dirty-hint {
+  flex-basis: 100%;
+  margin: 0 0 0.5rem;
+  text-align: end;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+}

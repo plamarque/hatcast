@@ -2,7 +2,7 @@
   <mat-button-toggle-group
     class="availability-form__status-toggle"
     [value]="selected()"
-    [disabled]="savingStatus() || readOnly() || archived()"
+    [disabled]="saving() || readOnly() || archived()"
     hideSingleSelectionIndicator
     aria-label="Choix de disponibilité"
   >
@@ -33,8 +33,7 @@
 
   @if (!readOnly() && !archived() && !proxyMode()) {
     <p class="availability-form__status-hint">
-      Le statut s'enregistre tout de suite. Les rôles et le commentaire se valident avec le bouton
-      ci-dessous.
+      Le statut, les rôles et le commentaire sont enregistrés ensemble après validation.
     </p>
   }
 
@@ -51,16 +50,13 @@
           Choisis les rôles pour lesquels tu es disponible
         }
       </p>
-      <app-role-toggle-chip-set
-        class="availability-form__roles-chips"
-        ariaLabel="Rôles disponibles pour cet événement"
-        [selectedKeys]="selectedRoleKeys()"
-        [roleKeys]="roleChoiceKeys()"
-        [gender]="roleSelectionGender()"
-        [lockVolunteer]="false"
-        [disabled]="savingDetails() || readOnly() || archived()"
-        (chipToggled)="toggleRole($event.key, $event.checked)"
-      />
+      @for (key of roleChoiceKeys(); track key) {
+        <mat-checkbox
+          [checked]="selectedRoleKeys().includes(key)"
+          [disabled]="saving() || readOnly() || archived()"
+          (change)="toggleRole(key, $event.checked)"
+        >{{ roleLabel(key) }}</mat-checkbox>
+      }
       @if (shouldShowVolunteerMandatoryHint()) {
         <p class="availability-form__volunteer-hint" aria-live="polite">
           Bénévole (obligatoire) — requis avec le rôle comédien·ne sur ce format.
@@ -76,20 +72,24 @@
         matInput
         rows="3"
         [value]="commentText()"
-        [readonly]="readOnly() || archived() || savingDetails()"
+        [readonly]="readOnly() || archived() || saving()"
         maxlength="500"
-        [attr.aria-readonly]="readOnly() || archived() || savingDetails()"
+        [attr.aria-readonly]="readOnly() || archived() || saving()"
         (input)="onCommentInput($any($event.target).value)"
       ></textarea>
       @if (!readOnly() && !archived()) {
         <mat-hint align="end">{{ commentText().length }} / 500</mat-hint>
       }
-      @if (commentError(); as err) {
-        <mat-error>{{ err }}</mat-error>
-      }
+
     </mat-form-field>
   }
 
+  @if (commentError(); as commentMessage) {
+    <p class="availability-form__details-hint" role="alert">{{ commentMessage }}</p>
+  }
+  @if (error(); as message) {
+    <p class="availability-form__details-hint" role="alert">{{ message }}</p>
+  }
   @if (shouldShowDetailsSave()) {
     <div class="availability-form__details-actions">
       @if (detailsDirty()) {
@@ -99,13 +99,13 @@
         mat-flat-button
         type="button"
         class="availability-form__details-save"
-        [disabled]="!detailsDirty() || savingDetails() || savingStatus()"
-        (click)="saveDetails()"
+        [disabled]="saving()"
+        (click)="submit()"
       >
-        @if (savingDetails()) {
+        @if (saving()) {
           Enregistrement…
         } @else {
-          Enregistrer rôles et commentaire
+          Enregistrer
         }
       </button>
     </div>

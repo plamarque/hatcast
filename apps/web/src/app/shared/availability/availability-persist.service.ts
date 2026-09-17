@@ -152,7 +152,7 @@ export class AvailabilityPersistService {
   private showSaveError(status: number): void {
     if (status === 400) {
       this.snack.open(
-        `Le commentaire ne peut pas dépasser ${AVAILABILITY_COMMENT_MAX_LENGTH} caractères.`,
+        'Réponse invalide. Vérifie les rôles et le commentaire.',
         'OK',
         { duration: 5000 },
       )

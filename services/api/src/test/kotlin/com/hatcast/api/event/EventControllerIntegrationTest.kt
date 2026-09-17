@@ -361,7 +361,7 @@ class EventControllerIntegrationTest {
                 put("/v1/seasons/$seasonId/events/$pastEventId/availability/me")
                     .cookie(cookie)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"status":"available"}""")
+                    .content("""{"status":"available","roleKeys":["player"]}""")
                     .with(csrf()),
             ).andExpect(status().isOk)
 

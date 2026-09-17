@@ -67,7 +67,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/MyAvailabilityResponse'
         '400':
-          description: status invalide ou roleKeys hors des rôles requis
+          description: status invalide, commentaire invalide, roleKeys hors des rôles requis ou vides pour available sur un événement proposant des rôles
         '401':
           description: Non authentifié
         '403':
@@ -110,7 +110,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/MyAvailabilityResponse'
         '400':
-          description: status invalide ou roleKeys hors des rôles requis
+          description: status invalide, commentaire invalide, roleKeys hors des rôles requis ou vides pour available sur un événement proposant des rôles
         '401':
           description: Non authentifié
         '403':
@@ -229,6 +229,8 @@ components:
           description: >
             Rôles à persister quand `status = available`. Les clés doivent faire
             partie des rôles requis de l'événement avec un nombre de slots > 0.
+            Pour available, au moins un rôle normalisé est requis si l'événement propose des rôles ;
+            une liste absente, vide ou composée d'espaces est rejetée avec 400 avant mutation.
             Ignoré et vidé pour unavailable/unknown.
           items:
             type: string

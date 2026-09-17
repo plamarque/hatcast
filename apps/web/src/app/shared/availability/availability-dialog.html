@@ -1,4 +1,4 @@
-<h2 mat-dialog-title cdkFocusInitial>
+<h2 mat-dialog-title cdkFocusInitial tabindex="-1">
   Disponibilité de {{ data.subjectDisplayName }}
 </h2>
 
@@ -9,6 +9,7 @@
   </div>
 
   <app-availability-form
+    [externalSubmit]="true"
     [seasonId]="data.seasonId"
     [eventId]="data.eventId"
     [troupeId]="data.troupeId"
@@ -18,10 +19,16 @@
     [initialRoleKeys]="data.initialRoleKeys"
     [initialComment]="data.initialComment"
     [availabilityOpenedAt]="data.availabilityOpenedAt ?? null"
-    (saved)="onSaved()"
+    (saved)="onSaved($event)"
   />
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <app-hatcast-dialog-dismiss label="fermer" (clicked)="close()" />
+  @if (form()?.detailsDirty()) {
+    <p class="availability-dialog__dirty-hint" role="status">Modifications non enregistrées</p>
+  }
+  <app-hatcast-dialog-dismiss label="annuler" [disabled]="form()?.saving() ?? false" (clicked)="close()" />
+  <button mat-flat-button type="button" [disabled]="form()?.saving()" (click)="form()?.submit()">
+    {{ form()?.saving() ? 'Enregistrement…' : 'Enregistrer' }}
+  </button>
 </mat-dialog-actions>
