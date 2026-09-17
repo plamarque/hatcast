@@ -72,7 +72,7 @@ When GET `share-recipients` succeeds, a **single compact line** appears below Co
 - Bulk **Notifier** button, expansion-panel channel pills, or post-close dispatch snacks in the web UI (removed **6.23**).
 - Display of per-channel dates in the share dialog (API retains `lastNotifiedAt`).
 
-**Runtime note (story 6.23):** Web UI — **Copier / WhatsApp only** for all dialog intents (`draw`, `composition`, `event`, `availability_nudge`). API POST `share-recipients/notify` remains for direct/API callers (`MANUAL_AVAILABILITY_ANNOUNCE` / `MANUAL_AVAILABILITY_NUDGE`) but is **deprecated for web UI**. GET mapping includes `COMPOSITION_SHARED` (draw), `CONFIRMATION_REQUEST` / `RECONFIRMATION_REQUEST` (composition), and `AVAILABILITY_PENDING_REMINDER` (nudge).
+**Runtime note:** Web UI keeps **Copier / WhatsApp only** for `draw`, `composition`, and `event`. For `availability_nudge`, **Notifier** opens a confirmation that lists the current unanswered recipients and their eligible email/push channels; the POST revalidates that preview before dispatch. It accepts individual reminder requests, never promises delivery, and never overrides preferences. GET mapping includes `COMPOSITION_SHARED` (draw), `CONFIRMATION_REQUEST` / `RECONFIRMATION_REQUEST` (composition), and `AVAILABILITY_PENDING_REMINDER` (nudge).
 
 ---
 

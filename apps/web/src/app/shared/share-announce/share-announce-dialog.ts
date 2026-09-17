@@ -5,6 +5,7 @@ import { MatButtonModule } from '@angular/material/button'
 import { MatChipsModule } from '@angular/material/chips'
 import {
   MAT_DIALOG_DATA,
+  MatDialog,
   MatDialogModule,
   MatDialogRef,
 } from '@angular/material/dialog'
@@ -17,6 +18,7 @@ import { MatSnackBar } from '@angular/material/snack-bar'
 
 import { HatcastDialogDismiss } from '../dialog-chrome/hatcast-dialog-dismiss'
 import { ShareAnnounceApiService } from '../../core/share-announce/share-announce-api.service'
+import { AvailabilityReminderConfirmDialog } from './availability-reminder-confirm-dialog'
 import {
   buildDefaultShareMessage,
   buildWhatsAppSendUrl,
@@ -80,6 +82,7 @@ export class ShareAnnounceDialog {
   private readonly ref = inject(MatDialogRef<ShareAnnounceDialog, void>)
   private readonly api = inject(ShareAnnounceApiService)
   private readonly snack = inject(MatSnackBar)
+  private readonly dialog = inject(MatDialog)
   protected readonly data = inject<ShareAnnounceDialogData>(MAT_DIALOG_DATA)
 
   protected readonly dialogTitleId = 'share-announce-dialog-title'
@@ -118,6 +121,14 @@ export class ShareAnnounceDialog {
   protected readonly loadingRecipients = signal(true)
   protected readonly recipientsError = signal(false)
   protected readonly recipientCards = signal<RecipientCard[]>([])
+  private readonly reminderFingerprint = signal<string | null>(null)
+  protected readonly sendingReminder = signal(false)
+  private readonly confirmationOpen = signal(false)
+  protected readonly lastManualNotifyAt = signal<string | null>(null)
+  protected readonly guardDays = signal<number | null>(null)
+  protected readonly hasNotifiableRecipient = computed(() =>
+    this.recipientCards().some((r) => r.channels.email.eligible || r.channels.push.eligible),
+  )
 
   protected readonly alreadyNotifiedRecipients = computed(() =>
     this.recipientCards()
@@ -183,6 +194,37 @@ export class ShareAnnounceDialog {
     }
   }
 
+  protected openNotificationConfirmation(): void {
+    if (this.confirmationOpen() || this.sendingReminder() || this.loadingRecipients() || this.recipientsError() || !this.reminderFingerprint() || !this.hasNotifiableRecipient()) return
+    this.confirmationOpen.set(true)
+    const ref = this.dialog.open(AvailabilityReminderConfirmDialog, { data: { recipients: this.recipientCards(), messageText: this.messageText }, autoFocus: 'dialog', restoreFocus: true })
+    ref.afterClosed().subscribe((participantIds) => {
+      this.confirmationOpen.set(false)
+      if (participantIds) void this.sendReminder(participantIds)
+    })
+  }
+
+  protected formatReminderDate(value: string): string {
+    return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeStyle: 'short' }).format(new Date(value))
+  }
+
+  private async sendReminder(recipientParticipantIds: string[]): Promise<void> {
+    if (this.sendingReminder()) return
+    this.sendingReminder.set(true)
+    try {
+      const result = await this.api.sendNotifications(this.data.seasonId, this.data.eventId, 'availability_nudge', this.messageText, this.reminderFingerprint(), recipientParticipantIds)
+      if (result.ok) {
+        this.snack.open('Demande de rappel prise en compte', 'OK', { duration: 4000 })
+        void this.loadRecipients()
+      } else if (result.status === 409) {
+        this.snack.open('Les destinataires ont changé. Vérifie à nouveau.', 'OK', { duration: 5000 })
+        void this.loadRecipients()
+      } else this.snack.open('Envoi impossible. Réessaie plus tard.', 'OK', { duration: 5000 })
+    } finally {
+      this.sendingReminder.set(false)
+    }
+  }
+
   protected retryLoadRecipients(): void {
     if (this.loadingRecipients()) {
       return
@@ -214,5 +256,8 @@ export class ShareAnnounceDialog {
         channels: r.channels,
       })),
     )
+    this.reminderFingerprint.set(result.data.confirmationFingerprint ?? null)
+    this.lastManualNotifyAt.set(result.data.lastManualNotifyAt ?? null)
+    this.guardDays.set(result.data.guardDays ?? null)
   }
 }

@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test
 import org.mockito.kotlin.argThat
 import org.mockito.kotlin.reset
 import org.mockito.kotlin.verify
+import org.mockito.kotlin.verifyNoInteractions
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
@@ -184,7 +185,7 @@ class ManualAvailabilityNudgeIntegrationTest {
                 put("/v1/seasons/$seasonId/events/$eventId/availability/me")
                     .cookie(cookie)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"status":"$status","roleKeys":[],"comment":null}""")
+                    .content("""{"status":"$status","roleKeys":["player"],"comment":null}""")
                     .with(csrf()),
             ).andExpect(status().isOk)
     }
@@ -278,6 +279,28 @@ class ManualAvailabilityNudgeIntegrationTest {
         val eventId = createEvent(admin, seasonId)
         openAvailability(admin, seasonId, eventId)
 
+        val preview =
+            mapper.readTree(
+                mockMvc
+                    .perform(
+                        get("/v1/seasons/$seasonId/events/$eventId/share-recipients")
+                            .param("intent", "availability_nudge")
+                            .cookie(admin),
+                    ).andExpect(status().isOk)
+                    .andReturn()
+                    .response.contentAsString,
+            )
+        val fingerprint = preview.get("confirmationFingerprint").asText()
+        val selectedParticipantId =
+            preview
+                .get("recipients")
+                .first { recipient ->
+                    recipient.get("channels").get("email").get("eligible").asBoolean() ||
+                        recipient.get("channels").get("push").get("eligible").asBoolean()
+                }
+                .get("participantId")
+                .asText()
+
         val message = "⏰ Rappel test dispos"
 
         mockMvc
@@ -286,11 +309,12 @@ class ManualAvailabilityNudgeIntegrationTest {
                     .cookie(admin)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(
-                        """{"intent":"availability_nudge","messageText":"$message"}""",
+                        """{"intent":"availability_nudge","messageText":"$message","confirmationFingerprint":"$fingerprint","recipientParticipantIds":["$selectedParticipantId"]}""",
                     ).with(csrf()),
             )            .andExpect(status().isOk)
             .andExpect(jsonPath("$.accepted").value(true))
             .andExpect(jsonPath("$.notifiedCount").isNumber)
+            .andExpect(jsonPath("$.acceptedCount").value(1))
             .andExpect(jsonPath("$.intent").value("availability_nudge"))
 
         verify(notificationDispatcher).dispatch(
@@ -298,7 +322,8 @@ class ManualAvailabilityNudgeIntegrationTest {
                 ctx.intent == NotificationIntent.MANUAL_AVAILABILITY_NUDGE &&
                     ctx.eventId == eventId &&
                     ctx.seasonId == seasonId &&
-                    ctx.customMessageBody == message
+                    ctx.customMessageBody == message &&
+                    ctx.recipientUserIds.size == 1
             },
         )
 
@@ -315,6 +340,63 @@ class ManualAvailabilityNudgeIntegrationTest {
                     .cookie(admin),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.lastManualNotifyAt").exists())
+    }
+
+    @Test
+    @Tag("FR31")
+    fun `POST availability_nudge rejects an empty selection without side effects`() {
+        val admin = adminCookie("sub-nudge-empty-selection")
+        memberCookie("sub-nudge-empty-selection-member")
+        val seasonId = createSeason(admin)
+        ensureRoster(seasonId)
+        val eventId = createEvent(admin, seasonId)
+        openAvailability(admin, seasonId, eventId)
+        val fingerprint =
+            mapper.readTree(
+                mockMvc.perform(get("/v1/seasons/$seasonId/events/$eventId/share-recipients").param("intent", "availability_nudge").cookie(admin))
+                    .andExpect(status().isOk).andReturn().response.contentAsString,
+            ).get("confirmationFingerprint").asText()
+
+        reset(notificationDispatcher)
+        mockMvc.perform(
+            post("/v1/seasons/$seasonId/events/$eventId/share-recipients/notify").cookie(admin)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"intent":"availability_nudge","messageText":"Rappel","confirmationFingerprint":"$fingerprint","recipientParticipantIds":[]}""")
+                .with(csrf()),
+        ).andExpect(status().isBadRequest)
+
+        verifyNoInteractions(notificationDispatcher)
+        org.junit.jupiter.api.Assertions.assertNull(manualShareNotifyRepository.findById(EventManualShareNotifyId(eventId, "availability_nudge")).orElse(null))
+    }
+
+    @Test
+    @Tag("FR31")
+    fun `POST availability_nudge rejects a stale preview without side effects`() {
+        val admin = adminCookie("sub-nudge-stale-preview")
+        val member = memberCookie("sub-nudge-stale-preview-member")
+        val seasonId = createSeason(admin)
+        ensureRoster(seasonId)
+        val eventId = createEvent(admin, seasonId)
+        openAvailability(admin, seasonId, eventId)
+        val preview =
+            mapper.readTree(
+                mockMvc.perform(get("/v1/seasons/$seasonId/events/$eventId/share-recipients").param("intent", "availability_nudge").cookie(admin))
+                    .andExpect(status().isOk).andReturn().response.contentAsString,
+            )
+        val fingerprint = preview.get("confirmationFingerprint").asText()
+        val participantId = preview.get("recipients").first().get("participantId").asText()
+        setMyAvailability(member, seasonId, eventId, "available")
+
+        reset(notificationDispatcher)
+        mockMvc.perform(
+            post("/v1/seasons/$seasonId/events/$eventId/share-recipients/notify").cookie(admin)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"intent":"availability_nudge","messageText":"Rappel","confirmationFingerprint":"$fingerprint","recipientParticipantIds":["$participantId"]}""")
+                .with(csrf()),
+        ).andExpect(status().isConflict)
+
+        verifyNoInteractions(notificationDispatcher)
+        org.junit.jupiter.api.Assertions.assertNull(manualShareNotifyRepository.findById(EventManualShareNotifyId(eventId, "availability_nudge")).orElse(null))
     }
 
     @Test

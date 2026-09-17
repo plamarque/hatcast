@@ -32,11 +32,15 @@ import com.hatcast.api.share.dto.ShareRecipientsResponseDto
 import com.hatcast.api.troupe.TroupeAccessService
 import com.hatcast.api.troupe.TroupeMembershipStatus
 import org.springframework.http.HttpStatus
+import org.springframework.beans.factory.ObjectProvider
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.server.ResponseStatusException
 import java.time.Instant
 import java.util.UUID
+import java.security.MessageDigest
+import com.hatcast.api.notification.NotificationPreferenceEligibilityPort
+import com.hatcast.api.user.UserRepository
 
 enum class ShareRecipientIntent {
     DRAW,
@@ -74,6 +78,8 @@ class ShareRecipientsService(
     private val pushEligibilityPort: PushNotificationEligibilityPort,
     private val manualNudgeProperties: ManualAvailabilityNudgeProperties,
     private val deliveryLogRepository: NotificationDeliveryLogRepository,
+    private val preferenceEligibilityPort: ObjectProvider<NotificationPreferenceEligibilityPort>,
+    private val userRepository: UserRepository,
 ) {
     @Transactional(readOnly = true)
     fun getRecipients(
@@ -109,19 +115,39 @@ class ShareRecipientsService(
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Message vide")
         }
         val previewResponse = buildResponse(eventId, participantIds, intent)
+        if (intent == ShareRecipientIntent.AVAILABILITY_NUDGE &&
+            (body.confirmationFingerprint.isNullOrBlank() || body.confirmationFingerprint != previewResponse.confirmationFingerprint)
+        ) {
+            throw ResponseStatusException(HttpStatus.CONFLICT, "L'aperçu des destinataires a changé")
+        }
+        val userIdByParticipant = loadParticipantRows(eventId, participantIds).associate { it.participantId to it.userId }
+        val selectedParticipantIds = body.recipientParticipantIds?.toSet()
+        val confirmedChannels = previewResponse.recipients.mapNotNull { recipient ->
+            if (selectedParticipantIds != null && recipient.participantId !in selectedParticipantIds) return@mapNotNull null
+            val channels = buildSet {
+                if (recipient.channels.email.eligible) add(NotificationChannel.EMAIL)
+                if (recipient.channels.push.eligible) add(NotificationChannel.PUSH)
+            }
+            val userId = userIdByParticipant[recipient.participantId]
+            if (channels.isEmpty() || userId == null) null else userId to channels
+        }.toMap()
+        if (intent == ShareRecipientIntent.AVAILABILITY_NUDGE && confirmedChannels.isEmpty()) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Aucun destinataire sélectionné")
+        }
         notificationPort.requestManualAnnouncement(
             eventId = eventId,
             seasonId = seasonId,
             intent = intentApiValue(intent),
             messagePreview = preview,
             actorUserId = principal.userId,
+            recipientChannels = if (intent == ShareRecipientIntent.AVAILABILITY_NUDGE) confirmedChannels else emptyMap(),
         )
         recordManualNotify(eventId, intent, principal.userId)
         val notifiedCount =
             when (intent) {
                 ShareRecipientIntent.AVAILABILITY_NUDGE,
                 ShareRecipientIntent.EVENT,
-                -> previewResponse.notifiableCount
+                -> if (intent == ShareRecipientIntent.AVAILABILITY_NUDGE) 0 else previewResponse.notifiableCount
                 ShareRecipientIntent.DRAW,
                 ShareRecipientIntent.COMPOSITION,
                 -> 0
@@ -131,6 +157,7 @@ class ShareRecipientsService(
             notifiedCount = notifiedCount,
             manualCount = previewResponse.manualCount,
             intent = intentApiValue(intent),
+            acceptedCount = if (intent == ShareRecipientIntent.AVAILABILITY_NUDGE) confirmedChannels.size else 0,
         )
     }
 
@@ -276,6 +303,7 @@ class ShareRecipientsService(
             )
         }
         val rows = loadParticipantRows(eventId, participantIds)
+        val usersById = userRepository.findAllById(rows.mapNotNull { it.userId }.toSet()).associateBy { it.id }
         val availabilityPushIntent =
             intent == ShareRecipientIntent.EVENT || intent == ShareRecipientIntent.AVAILABILITY_NUDGE
         val pushCategory = NotificationCategory.AVAILABILITY_REQUEST
@@ -285,15 +313,31 @@ class ShareRecipientsService(
             rows
                 .sortedByFrenchDisplayName { it.displayName }
                 .map { row ->
-                    val hasEmail = !row.email.isNullOrBlank()
+                    val account = row.userId?.let(usersById::get)
+                    val isReminderPreview = intent == ShareRecipientIntent.AVAILABILITY_NUDGE
+                    val pushPreferenceAllowed =
+                        !isReminderPreview || isAllowed(row.userId, NotificationChannel.PUSH)
+                    val emailPreferenceAllowed =
+                        !isReminderPreview || isAllowed(row.userId, NotificationChannel.EMAIL)
+                    val hasEmail =
+                        if (isReminderPreview) {
+                            account?.email?.isNotBlank() == true &&
+                                emailPreferenceAllowed
+                        } else {
+                            !row.email.isNullOrBlank()
+                        }
                     val hasPush =
                         availabilityPushIntent &&
                             row.userId != null &&
-                            pushEligibilityPort.isPushAllowedForCategory(row.userId, pushCategory)
+                            pushEligibilityPort.isPushAllowedForCategory(row.userId, pushCategory) &&
+                            pushPreferenceAllowed
                     ShareRecipientDto(
                         participantId = row.participantId,
                         displayName = row.displayName,
-                        emailObfuscated = EmailObfuscation.obfuscate(row.email),
+                        emailObfuscated =
+                            EmailObfuscation.obfuscate(
+                                if (isReminderPreview) account?.email else row.email,
+                            ),
                         channels =
                             ShareRecipientChannelsDto(
                                 email =
@@ -302,6 +346,11 @@ class ShareRecipientsService(
                                         NotificationChannel.EMAIL,
                                         hasEmail,
                                         channelDelivery,
+                                        if (!isReminderPreview) null
+                                        else if (row.userId == null) "missing_account"
+                                        else if (!emailPreferenceAllowed) "preference_disabled"
+                                        else if (account?.email.isNullOrBlank()) "missing_email"
+                                        else null,
                                     ),
                                 push =
                                     channelStatusFor(
@@ -309,6 +358,11 @@ class ShareRecipientsService(
                                         NotificationChannel.PUSH,
                                         hasPush,
                                         channelDelivery,
+                                        if (!isReminderPreview) null
+                                        else if (row.userId == null) "missing_account"
+                                        else if (!pushPreferenceAllowed) "preference_disabled"
+                                        else if (!hasPush) "push_unavailable"
+                                        else null,
                                     ),
                             ),
                     )
@@ -325,6 +379,7 @@ class ShareRecipientsService(
             recipients = recipients,
             lastManualNotifyAt = lastManualNotifyAt,
             guardDays = guardDays,
+            confirmationFingerprint = fingerprint(recipients, rows, usersById, lastManualNotifyAt),
         )
     }
 
@@ -404,12 +459,14 @@ class ShareRecipientsService(
         channel: NotificationChannel,
         eligible: Boolean,
         channelDelivery: Map<NotifiedChannelKey, ChannelDeliveryState>,
+        unavailableReason: String?,
     ): ShareRecipientChannelStatusDto {
         if (userId == null) {
             return ShareRecipientChannelStatusDto(
                 eligible = eligible,
                 notified = false,
                 lastNotifiedAt = null,
+                unavailableReason = unavailableReason,
             )
         }
         val state = channelDelivery[NotifiedChannelKey(userId, channel)]
@@ -417,7 +474,26 @@ class ShareRecipientsService(
             eligible = eligible,
             notified = state?.notified == true,
             lastNotifiedAt = state?.lastNotifiedAt,
+            unavailableReason = unavailableReason,
         )
+    }
+
+    private fun isAllowed(userId: UUID?, channel: NotificationChannel): Boolean =
+        userId != null && (preferenceEligibilityPort.ifAvailable?.isAllowed(userId, NotificationCategory.AVAILABILITY_REQUEST, channel) ?: true)
+
+    private fun fingerprint(
+        recipients: List<ShareRecipientDto>,
+        rows: List<ParticipantRow>,
+        usersById: Map<UUID, com.hatcast.api.user.UserEntity>,
+        lastManualNotifyAt: Instant?,
+    ): String {
+        val rowsByParticipant = rows.associateBy { it.participantId }
+        val source = recipients.sortedBy { it.participantId }.joinToString("|") { recipient ->
+            val row = rowsByParticipant.getValue(recipient.participantId)
+            val account = row.userId?.let(usersById::get)
+            "${recipient.participantId}:${row.userId}:${account?.email}:${recipient.channels.email.eligible}:${recipient.channels.push.eligible}"
+        }
+        return MessageDigest.getInstance("SHA-256").digest("$lastManualNotifyAt|$source".toByteArray()).joinToString("") { "%02x".format(it) }
     }
 
     private fun recordManualNotify(
