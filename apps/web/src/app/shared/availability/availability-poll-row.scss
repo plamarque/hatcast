@@ -325,3 +325,6 @@
     margin-inline-start: 0;
   }
 }
+
+.poll-row__vote-line button { min-width: 3rem; min-height: 3rem; flex-shrink: 0; }
+.poll-row__volunteer-help { grid-column: 1 / -1; margin: 0; font: var(--mat-sys-body-small); color: var(--mat-sys-on-surface); }

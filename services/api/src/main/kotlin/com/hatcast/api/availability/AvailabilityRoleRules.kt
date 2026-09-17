@@ -5,7 +5,6 @@ import org.springframework.http.HttpStatus
 import org.springframework.web.server.ResponseStatusException
 
 object AvailabilityRoleRules {
-    val PLAY_ROLE_KEYS: Set<String> = setOf("player")
     private const val VOLUNTEER = "volunteer"
 
     fun rolesRequiredForEvent(roleSlots: Map<String, Int>): List<String> =
@@ -14,7 +13,7 @@ object AvailabilityRoleRules {
     fun normalizeRoleKeys(
         roleSlots: Map<String, Int>,
         requestedKeys: List<String>?,
-        applyVolunteerRule: Boolean = true,
+        @Suppress("UNUSED_PARAMETER") applyVolunteerRule: Boolean = true,
     ): List<String> {
         val required = rolesRequiredForEvent(roleSlots).toSet()
         val normalized =
@@ -30,14 +29,12 @@ object AvailabilityRoleRules {
                 "Rôle invalide pour cet événement : $invalid",
             )
         }
-        if (!applyVolunteerRule || !mandatoryVolunteerCoverage(roleSlots)) {
+        if (!mandatoryVolunteerCoverage(roleSlots)) {
             return normalized
         }
-        val hasPlayRole = normalized.any { it in PLAY_ROLE_KEYS }
-        if (!hasPlayRole || VOLUNTEER !in required || VOLUNTEER in normalized) {
+        if (VOLUNTEER !in required || VOLUNTEER in normalized) {
             return normalized
         }
-        // TODO FR14: replace this interim rule with an explicit event-type flag.
         return normalized + VOLUNTEER
     }
 

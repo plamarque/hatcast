@@ -1,0 +1,18 @@
+{
+  "command": "HATCAST_E2E_NO_BROWSER_INSTALL=1 PLAYWRIGHT_REUSE_SERVERS=0 scripts/run_e2e.sh -- --project=chromium-agenda-participation e2e/recette-agenda-participation-cell.spec.ts",
+  "discovered": [
+    "project:chromium-agenda-participation",
+    "spec:apps/web/e2e/recette-agenda-participation-cell.spec.ts"
+  ],
+  "disposition": "run",
+  "outcome": "passed",
+  "rationale": "BUG-022 reviewed keyboard focus and mandatory volunteer persistence",
+  "report_reference": "apps/web/playwright-report/index.html",
+  "schema": "hatcast.story-e2e-evidence.v1",
+  "selection": [
+    "project:chromium-agenda-participation",
+    "spec:apps/web/e2e/recette-agenda-participation-cell.spec.ts"
+  ],
+  "story_key": "fix-availability-mandatory-volunteer",
+  "target": "agenda-participation"
+}

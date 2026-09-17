@@ -48,7 +48,7 @@ class AvailabilityRoleRulesTest {
     }
 
     @Test
-    fun `normalizeRoleKeys honors explicit volunteer omit`() {
+    fun `normalizeRoleKeys ignores legacy opt out`() {
         val normalized =
             AvailabilityRoleRules.normalizeRoleKeys(
                 RoleTemplates.slotsFor("match"),
@@ -56,7 +56,16 @@ class AvailabilityRoleRulesTest {
                 applyVolunteerRule = false,
             )
 
-        assertEquals(listOf("player"), normalized)
+        assertEquals(listOf("player", "volunteer"), normalized)
+    }
+
+    @Test
+    fun `all optional roles and empty selection include offered volunteer`() {
+        for (role in listOf("player", "mc", "dj", "referee", "assistant_referee", "coach", "stage_manager", "lighting")) {
+            assertEquals(listOf(role, "volunteer"), AvailabilityRoleRules.normalizeRoleKeys(mapOf(role to 1, "volunteer" to 1), listOf(role), false))
+        }
+        assertEquals(listOf("volunteer"), AvailabilityRoleRules.normalizeRoleKeys(mapOf("volunteer" to 1), emptyList(), false))
+        assertEquals(emptyList<String>(), AvailabilityRoleRules.normalizeRoleKeys(emptyMap(), emptyList(), false))
     }
 
     @Test

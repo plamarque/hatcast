@@ -153,3 +153,20 @@
   ::ng-deep .mat-mdc-checkbox-touch-target { width: 3rem; height: 3rem; }
   ::ng-deep .mdc-checkbox__native-control { width: 3rem; height: 3rem; top: -13px; left: -13px; }
 }
+
+.availability-form__role-option {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  min-width: 0;
+  .availability-form__role-check { flex: 1; min-width: 0; }
+  button { width: 3rem; height: 3rem; flex-shrink: 0; }
+}
+.availability-form__volunteer-help {
+  flex-basis: 100%;
+  margin: 0;
+  font: var(--mat-sys-body-small);
+  color: var(--mat-sys-on-surface);
+}
+
+.availability-form__role-option--volunteer { grid-column: 1 / -1; }

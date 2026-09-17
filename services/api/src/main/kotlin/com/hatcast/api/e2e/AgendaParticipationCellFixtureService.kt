@@ -40,7 +40,7 @@ class AgendaParticipationCellFixtureService(
     private val membershipSync: SeasonParticipantMembershipSync,
 ) {
     @Transactional
-    fun resetAgendaParticipationCell(): AgendaParticipationCellFixtureResponse {
+    fun resetAgendaParticipationCell(roles: String = "cabaret"): AgendaParticipationCellFixtureResponse {
         val troupe =
             troupeRepository.findById(SEED_TROUPE_ID).orElseThrow {
                 ResponseStatusException(HttpStatus.NOT_FOUND, "Seed troupe missing")
@@ -62,6 +62,13 @@ class AgendaParticipationCellFixtureService(
         val historyEvent = loadEvent(EVENT_HISTORY_ID, season.id)
 
         rollEventDates(unknownDispoEvent, pendingEvent, historyEvent)
+        unknownDispoEvent.roleSlots = when (roles) {
+            "volunteer" -> mapOf("volunteer" to 1)
+            "all" -> listOf("player", "mc", "dj", "referee", "assistant_referee", "coach", "lighting", "stage_manager", "volunteer").associateWith { 1 }
+            "cabaret" -> com.hatcast.api.event.RoleTemplates.slotsFor("cabaret")
+            else -> throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown fixture roles")
+        }
+        eventRepository.save(unknownDispoEvent)
         prepareUnknownDispoEvent(unknownDispoEvent, participant.id)
         resetPendingParticipation(pendingEvent, participant.id)
 

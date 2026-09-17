@@ -45,9 +45,8 @@ paths:
         `unknown` supprime toute ligne existante (Non renseigné).
         PUT idempotent pour available/unavailable. Quand `status = available`,
         `roleKeys` contient les rôles requis sur lesquels le membre se propose.
-        Si la couverture bénévole obligatoire s'applique et que `player` est
-        envoyé, `volunteer` est ajouté sauf si `applyVolunteerRule` vaut `false`
-        pour refléter une décochage explicite côté client.
+        Si l'événement propose des places bénévoles, `volunteer` est toujours ajouté,
+        même sans autre rôle et même si `applyVolunteerRule` vaut `false`.
       security:
         - cookieAuth: []
       parameters:
@@ -230,7 +229,7 @@ components:
             Rôles à persister quand `status = available`. Les clés doivent faire
             partie des rôles requis de l'événement avec un nombre de slots > 0.
             Pour available, au moins un rôle normalisé est requis si l'événement propose des rôles ;
-            une liste absente, vide ou composée d'espaces est rejetée avec 400 avant mutation.
+            une liste vide est complétée par volunteer si proposé, sinon rejetée avec 400 avant mutation.
             Ignoré et vidé pour unavailable/unknown.
           items:
             type: string
@@ -238,9 +237,8 @@ components:
           type: boolean
           default: true
           description: >
-            Applique l'auto-ajout de `volunteer` quand un rôle de jeu est coché
-            et que l'événement requiert des bénévoles. Passer `false` uniquement
-            quand l'utilisateur a explicitement décoché `volunteer`.
+            Champ historique conservé pour compatibilité et ignoré à l'écriture.
+            Ne permet pas de désactiver le bénévolat obligatoire.
         comment:
           type: string
           nullable: true

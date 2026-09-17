@@ -10,6 +10,7 @@ data class SetMyAvailabilityRequest(
     @field:NotBlank
     val status: String,
     val roleKeys: List<String>? = null,
+    /** Legacy wire field; cannot bypass mandatory volunteer availability. */
     val applyVolunteerRule: Boolean? = null,
     @field:Size(max = 500, message = "Le commentaire ne peut pas dépasser 500 caractères")
     val comment: String? = null,

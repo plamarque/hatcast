@@ -583,7 +583,7 @@ class AvailabilityControllerIntegrationTest {
     }
 
     @Test
-    fun `volunteer role is auto-added for match player unless explicitly omitted`() {
+    fun `volunteer role is mandatory despite legacy false flag`() {
         val cookie = memberCookie("sub-avail-volunteer")
         val (seasonId, eventId) =
             createSeasonAndEvent(
@@ -617,8 +617,48 @@ class AvailabilityControllerIntegrationTest {
                     .content("""{"status":"available","roleKeys":["player"],"applyVolunteerRule":false}""")
                     .with(csrf()),
             ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.roleKeys.length()").value(1))
+            .andExpect(jsonPath("$.roleKeys.length()").value(2))
             .andExpect(jsonPath("$.roleKeys[0]").value("player"))
+            .andExpect(jsonPath("$.roleKeys[1]").value("volunteer"))
+    }
+
+    @Test
+    fun `self and proxy available writes include volunteer for empty and optional roles`() {
+        val admin = memberCookie("sub-mandatory-volunteer")
+        val (seasonId, eventId) = createSeasonAndEvent(admin,
+            """{"title":"Volunteer", "startsAt":"2031-03-20T19:00:00Z", "templateType":"match"}""")
+        val participantId = createSeasonParticipant(seasonId, "Volunteer proxy")
+        for (suffix in listOf("me", "participants/$participantId")) {
+            val path = "/v1/seasons/$seasonId/events/$eventId/availability/$suffix"
+            for (roles in listOf("[]", "[\"mc\"]")) {
+                mockMvc.perform(put(path).cookie(admin).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"available","roleKeys":$roles,"applyVolunteerRule":false,"comment":"Preserved"}"""))
+                    .andExpect(status().isOk)
+                    .andExpect(jsonPath("$.roleKeys").value(org.hamcrest.Matchers.hasItem("volunteer")))
+            }
+            mockMvc.perform(put(path).cookie(admin).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("""{"status":"available","roleKeys":["invalid"],"applyVolunteerRule":false}"""))
+                .andExpect(status().isBadRequest)
+            if (suffix == "me") {
+                mockMvc.perform(get(path).cookie(admin))
+                    .andExpect(status().isOk)
+                    .andExpect(jsonPath("$.status").value("available"))
+                    .andExpect(jsonPath("$.roleKeys").value(org.hamcrest.Matchers.contains("mc", "volunteer")))
+                    .andExpect(jsonPath("$.comment").value("Preserved"))
+            } else {
+                mockMvc.perform(get("/v1/seasons/$seasonId/events/$eventId/availability/summary").cookie(admin))
+                    .andExpect(status().isOk)
+                    .andExpect(jsonPath("$.participants[?(@.participantId == '$participantId')].status").value(org.hamcrest.Matchers.contains("available")))
+                    .andExpect(jsonPath("$.participants[?(@.participantId == '$participantId')].roleKeys").value(org.hamcrest.Matchers.contains(listOf("mc", "volunteer"))))
+                    .andExpect(jsonPath("$.participants[?(@.participantId == '$participantId')].comment").value(org.hamcrest.Matchers.contains("Preserved")))
+            }
+            for (state in listOf("unavailable", "unknown")) {
+                mockMvc.perform(put(path).cookie(admin).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"$state","roleKeys":["volunteer"]}"""))
+                    .andExpect(status().isOk)
+                    .andExpect(jsonPath("$.roleKeys").isEmpty)
+            }
+        }
     }
 
     @Test

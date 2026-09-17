@@ -15,6 +15,7 @@ export interface MyAvailabilityResponse {
 export interface SetMyAvailabilityBody {
   status: AvailabilityStatus
   roleKeys?: string[]
+  /** Legacy wire field; false cannot bypass mandatory volunteer availability. */
   applyVolunteerRule?: boolean
   comment?: string | null
 }

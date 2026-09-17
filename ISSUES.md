@@ -19,6 +19,26 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 - **Expected behavior**: Un aperçu destiné à confirmer un envoi doit refléter les règles effectives de sélection et de canal ; distinguer demande acceptée et livraison constatée.
 - **Notes/context**: Découvert pendant l'étude du retour de Nicolas sur les relances. L'interface actuelle propose Copier / WhatsApp et n'appelle pas le POST. Aucun contournement des préférences à l'envoi démontré. Réintroduire un bouton Notifier reste une évolution produit à cadrer ; SPEC et DOMAIN documentent actuellement le partage manuel seul (6.23).
 
+### BUG-023 — Home can retain a stale badge after saved response
+- **ID**: BUG-023
+- **Status**: Open — found during BUG-024 review; outside volunteer-rule scope
+- **Severity**: Medium
+- **Affected area**: V2 `member-home-todo.ts` availability/participation actions.
+- **Observed behavior**: Code review shows `openAvailability` and `openParticipation` discard the returned updated item and only reload inbox. If that refresh fails after a successful save, `fetchInbox` retains the previously loaded card.
+- **Expected behavior**: Keep the successful saved result visible even if the subsequent inbox refresh fails.
+- **Evidence**: `member-home-todo.ts:309-314` and its `fetchInbox` loaded-error path. This behavior exists in the incorporated BUG-021 dependency before the volunteer correction; no live production reproduction claimed.
+
+### BUG-024 — Available participants can opt out of volunteer availability
+- **ID**: BUG-024
+- **Status**: Fixed locally — verification recorded; pending human smoke and integration
+- **Severity**: Medium
+- **Affected area**: V2 availability dialog/form, availability poll, shared role rules and self/proxy availability API.
+- **Observed behavior**: The tested dialog starts an available draft without selected roles. Selecting player adds volunteer and displays a player-specific explanatory paragraph. Volunteer can then be unchecked and saved. Other roles do not trigger the rule. The screenshot matches the checkbox dialog in the BUG-021 worktree, not the current integration baseline.
+- **Expected behavior**: User requests volunteer to be selected and non-removable as soon as availability is selected, with all other roles optional and volunteer-only availability allowed. Explain the rule beside the volunteer control with touch/keyboard-accessible help, replacing the player-specific paragraph. User confirmed on 2026-09-17: apply this rule only when volunteer is offered by the event; never add it to events that exclude it.
+- **Cause**: `AvailabilityForm` and `AvailabilityPoll` retain explicit volunteer opt-out state. Both TypeScript and Kotlin normalizers only add volunteer for player when volunteer slots are positive; the API accepts `applyVolunteerRule=false`. This implements the former PRD FR16 opt-out contract, which the user now requests to replace.
+- **Repro**: Open own availability for an event offering player and volunteer → select Dispo → select player → uncheck volunteer → save.
+- **Notes/context**: Preserve BUG-021 checkbox/unified-save changes at commit `531256812b212a3145085236302169b857daf924`. Historical empty-role availability has wildcard candidacy semantics; no bulk migration or silent read-time narrowing is authorized. Correction adds mandatory offered volunteer to available writes and explicit drafts; verification recorded in the BUG-024 implementation report.
+
 ### BUG-021 — Agenda : rôles sélectionnés peu lisibles et sauvegarde distincte
 - **ID**: BUG-021
 - **Status**: Correctif implémenté et vérifié (API 29/29, E2E 10/10), revue et validation humaine restantes — cause de l’affectation DJ non établie
