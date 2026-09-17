@@ -6,7 +6,7 @@
   ],
   "disposition": "run",
   "outcome": "passed",
-  "rationale": "BUG-021 review patches including dismissal and touch targets",
+  "rationale": "Final verification after accepted compact round role selection",
   "report_reference": "apps/web/playwright-report/index.html",
   "schema": "hatcast.story-e2e-evidence.v1",
   "selection": [

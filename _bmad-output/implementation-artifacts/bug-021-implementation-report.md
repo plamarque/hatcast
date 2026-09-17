@@ -93,3 +93,7 @@ Final API command from services/api:
 Result: **75/75 passed** (29 availability, 18 events, 5 season deletion, 16 notification matrix, 7 unfulfilled roles), zero failures. Initial patch run identified the legacy helper still using the newly rejected endpoint; final run passes after direct historical seeding.
 
 Final full targeted Angular command above: **111/112**, only the unchanged LIMIT-007 bootstrap assertion fails. No tests skipped or disabled. Final build passes with existing warnings. Final Playwright: **12/12**, attestation parsed as passed with the expected project/spec. Updated light/dark capture retains readable labels, visible dirty hint and footer. Runtime inspect after E2E: both ports free and READINESS=ready. Parent review artifact was not modified.
+
+## Final integration verification — 2026-09-17
+
+After the accepted compact round-selector change, all 12 targeted Playwright tests passed (52.7 seconds). Canonical evidence: `e2e-evidence/bug-021-availability-consistency.json`. Delivery re-verification passed with valid evidence and owned smoke state stopped. The user approved the visual result and subsequently authorized integration and publication. Earlier pending-E2E notes above are superseded by this final run. No application code changed after the run.

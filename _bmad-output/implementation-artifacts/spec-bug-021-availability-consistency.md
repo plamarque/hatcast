@@ -124,3 +124,7 @@ The user rejected the initial single-column square checkbox layout during local 
 Verification: 27 targeted form/dialog/poll-row tests passed. Live Chrome inspection of the six-role match confirmed three role rows, two simultaneous checked circles, no content scrolling at the user's current desktop viewport, and a visible footer error before any write. No valid availability submission was performed during this inspection. Earlier E2E evidence predates this visual follow-up and has not been rerun while human smoke is active.
 
 Human visual acceptance: user confirmed the compact round-selector correction works and authorized its local commit. Full E2E rerun after this visual follow-up remains pending; this acceptance does not authorize integration.
+
+## Final integration verification — 2026-09-17
+
+After the accepted compact round-selector change, all 12 targeted Playwright tests passed (52.7 seconds). Canonical evidence: `e2e-evidence/bug-021-availability-consistency.json`. Delivery re-verification passed with valid evidence and owned smoke state stopped. The user approved the visual result and subsequently authorized integration and publication. Earlier pending-E2E notes above are superseded by this final run. No application code changed after the run.
