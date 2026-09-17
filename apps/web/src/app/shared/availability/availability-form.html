@@ -46,14 +46,17 @@
       </p>
       <div class="availability-form__role-grid">
       @for (key of roleChoiceKeys(); track key) {
-        <div class="availability-form__role-option" [class.availability-form__role-option--volunteer]="key === 'volunteer'">
+        <div
+          class="availability-form__role-option"
+          [class.availability-form__role-option--wide]="key === 'volunteer' || key === 'stage_manager'"
+        >
         <mat-checkbox class="availability-form__role-check" disableRipple
           [checked]="selectedRoleKeys().includes(key)"
           [disabled]="saving() || readOnly() || archived() || key === 'volunteer'"
           (change)="toggleRole(key, $event.checked)"
         ><span>{{ roleLabel(key) }}@if (key === 'volunteer' && selectedRoleKeys().includes(key)) { (obligatoire) }</span></mat-checkbox>
         @if (key === 'volunteer' && selectedRoleKeys().includes(key)) {
-          <button mat-icon-button type="button" aria-label="Pourquoi bénévole est obligatoire"
+          <button class="availability-form__volunteer-help-button" mat-icon-button type="button" aria-label="Pourquoi bénévole est obligatoire"
             [attr.aria-expanded]="volunteerHelpOpen()" (click)="volunteerHelpOpen.set(!volunteerHelpOpen())">
             <mat-icon aria-hidden="true">help_outline</mat-icon>
           </button>
