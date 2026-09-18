@@ -2,6 +2,7 @@
   /* M3 navigation rail default width ≈ 80dp */
   --member-nav-rail-width: 5rem;
   --member-nav-bottom-height: 4.5rem;
+  --member-nav-bottom-content-offset: 10px;
   display: contents;
 }
 
@@ -173,7 +174,7 @@
   z-index: 20;
   min-height: var(--member-nav-bottom-height);
   box-sizing: border-box;
-  padding-bottom: env(safe-area-inset-bottom, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   background: var(--mat-sys-surface-container);
   border-block-start: 1px solid
     color-mix(in srgb, var(--mat-sys-outline-variant) 55%, transparent);
@@ -225,6 +226,9 @@
   min-height: 3rem;
   min-width: 3rem;
   width: 100%;
+  /* Material stretches tab links to the bar height. Offset only their visual
+     group, retaining the full tab touch target. */
+  transform: translateY(calc(-1 * var(--member-nav-bottom-content-offset)));
 }
 
 .member-nav__bottom-icon-wrap {

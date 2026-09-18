@@ -72,7 +72,7 @@ When GET `share-recipients` succeeds, a **single compact line** appears below Co
 - Bulk **Notifier** button, expansion-panel channel pills, or post-close dispatch snacks in the web UI (removed **6.23**).
 - Display of per-channel dates in the share dialog (API retains `lastNotifiedAt`).
 
-**Runtime note (story 6.23):** Web UI — **Copier / WhatsApp only** for all dialog intents (`draw`, `composition`, `event`, `availability_nudge`). API POST `share-recipients/notify` remains for direct/API callers (`MANUAL_AVAILABILITY_ANNOUNCE` / `MANUAL_AVAILABILITY_NUDGE`) but is **deprecated for web UI**. GET mapping includes `COMPOSITION_SHARED` (draw), `CONFIRMATION_REQUEST` / `RECONFIRMATION_REQUEST` (composition), and `AVAILABILITY_PENDING_REMINDER` (nudge).
+**Runtime note:** Web UI keeps **Copier / WhatsApp only** for `draw`, `composition`, and `event`. For `availability_nudge`, **Notifier** opens a confirmation that lists the current unanswered recipients and their eligible email/push channels; the POST revalidates that preview before dispatch. It accepts individual reminder requests, never promises delivery, and never overrides preferences. GET mapping includes `COMPOSITION_SHARED` (draw), `CONFIRMATION_REQUEST` / `RECONFIRMATION_REQUEST` (composition), and `AVAILABILITY_PENDING_REMINDER` (nudge).
 
 ---
 
@@ -410,3 +410,12 @@ This section specifies the **event details as full screen** slice in full. It de
 - **OPEN QUESTION:** Whether GitHub Pages is still a supported deploy target or legacy; deployment authority is Firebase Hosting per CI and firebase.json.
 - **Resolved (2026-06-04):** Availability reminder audience = non-responders (`unknown`) only; announcement = full roster — see DOMAIN.md and tech spec **6.17**.
 - **ASSUMPTION (V2 share/announce):** Multiple organizers on the same event share the same visibility into delivery log / last-send state; no per-organizer private send history.
+
+## V2 — Saisie de disponibilité depuis les cartes événement
+
+Accueil et Mon agenda utilisent la même carte et les mêmes actions : le corps ouvre le détail du spectacle, le badge ouvre le formulaire de disponibilité autorisé ou le parcours de participation existant pour un membre de l'équipe. Un échec de chargement empêche l'ouverture du formulaire et affiche une erreur.
+
+Dans le formulaire, statut, rôles et commentaire restent un brouillon jusqu'au bouton **Enregistrer**. Les rôles sont des cases à cocher multiples, sans présélection issue des préférences. Le bouton reste visible dans le pied du dialogue pendant le défilement. Annuler ou fermer sans validation abandonne les changements ; un échec API conserve le brouillon et affiche l'erreur. Une réponse disponible exige au moins un rôle si l'événement en propose, pour soi comme en saisie déléguée. Sans rôle proposé, la disponibilité générale reste possible. Les anciennes réponses disponibles sans rôle conservent leur interprétation jusqu'à une validation explicite. Les règles bénévoles, permissions, restrictions archivées et parcours de participation restent applicables. Le sondage conserve son enregistrement automatique des votes valides.
+
+
+Toute réponse disponible enregistrée pour un événement proposant des places `volunteer` inclut ce rôle obligatoire, même sans rôle optionnel. Le formulaire le coche dès Dispo et empêche son retrait ; une aide adjacente activable au toucher et au clavier explique : « Quand tu es disponible, tu es aussi disponible comme bénévole. » Les autres rôles restent facultatifs. Sans bénévole proposé, aucun bénévole n'est ajouté ; sans rôle proposé, la disponibilité générale reste possible. La règle vaut pour soi et en saisie déléguée, même avec le champ historique `applyVolunteerRule=false`. Les statuts indisponible et non renseigné enregistrent une liste vide. Les anciennes réponses disponibles sans rôle gardent leur candidature à tous les rôles jusqu'à un enregistrement explicite ; ouvrir ou annuler ne modifie aucune donnée.

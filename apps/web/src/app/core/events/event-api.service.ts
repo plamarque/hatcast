@@ -82,6 +82,8 @@ export interface EventPageResponse {
   categories?: TroupeCategory[]
   availabilitySummary?: EventAvailabilitySummary | null
   composition?: CompositionResponse
+  /** True when at least one eligible participant has not answered (Relance dispos). */
+  hasUnknownAvailability?: boolean
 }
 
 export type EventMutationResult = {

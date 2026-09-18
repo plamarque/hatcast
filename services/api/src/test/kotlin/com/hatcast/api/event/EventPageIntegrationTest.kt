@@ -19,6 +19,7 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.time.Instant
@@ -76,6 +77,7 @@ class EventPageIntegrationTest {
             .andExpect(jsonPath("$.categories").isArray)
             .andExpect(jsonPath("$.availabilitySummary").doesNotExist())
             .andExpect(jsonPath("$.composition").doesNotExist())
+            .andExpect(jsonPath("$.hasUnknownAvailability").value(true))
     }
 
     @Test
@@ -92,6 +94,7 @@ class EventPageIntegrationTest {
             .andExpect(jsonPath("$.event.id").value(eventId))
             .andExpect(jsonPath("$.availabilitySummary.eventId").value(eventId))
             .andExpect(jsonPath("$.availabilitySummary.participants").isArray)
+            .andExpect(jsonPath("$.hasUnknownAvailability").value(true))
             .andExpect(jsonPath("$.organizers").doesNotExist())
             .andExpect(jsonPath("$.categories").doesNotExist())
             .andExpect(jsonPath("$.composition").doesNotExist())
@@ -112,6 +115,58 @@ class EventPageIntegrationTest {
             .andExpect(jsonPath("$.composition.visibility").exists())
             .andExpect(jsonPath("$.composition.slots").isArray)
             .andExpect(jsonPath("$.availabilitySummary").doesNotExist())
+            .andExpect(jsonPath("$.hasUnknownAvailability").value(true))
+    }
+
+    @Test
+    fun `GET page tab infos hides unknown availability hint when everyone responded`() {
+        val cookie = memberCookie("sub-event-page-all-answered-1")
+        val eventId = createPublishedEvent(cookie, "event-page-all-answered")
+        val mapper = com.fasterxml.jackson.databind.ObjectMapper()
+
+        val summaryRes =
+            mockMvc
+                .perform(
+                    get("/v1/seasons/$seedSeasonId/events/$eventId/availability/summary")
+                        .cookie(cookie),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val participants = mapper.readTree(summaryRes.response.contentAsString).get("participants")
+        for (node in participants) {
+            val participantId = node.get("participantId").asText()
+            mockMvc
+                .perform(
+                    put("/v1/seasons/$seedSeasonId/events/$eventId/availability/participants/$participantId")
+                        .cookie(cookie)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"status":"available","roleKeys":["player"],"comment":null}"""),
+                ).andExpect(status().isOk)
+        }
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seedSeasonId/events/$eventId/page")
+                    .param("tab", "infos")
+                    .cookie(cookie),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.availabilitySummary").doesNotExist())
+            .andExpect(jsonPath("$.hasUnknownAvailability").value(false))
+    }
+
+    @Test
+    fun `GET page tab infos hides unknown availability hint for draft events`() {
+        val cookie = memberCookie("sub-event-page-draft-1")
+        val eventId = createDraftEvent(cookie, "event-page-draft")
+
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seedSeasonId/events/$eventId/page")
+                    .param("tab", "infos")
+                    .cookie(cookie),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.availabilitySummary").doesNotExist())
+            .andExpect(jsonPath("$.hasUnknownAvailability").value(false))
     }
 
     @Test
@@ -204,6 +259,20 @@ class EventPageIntegrationTest {
         cookie: jakarta.servlet.http.Cookie,
         slug: String,
     ): String {
+        val eventId = createDraftEvent(cookie, slug)
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seedSeasonId/events/$eventId/actions/open-availability")
+                    .cookie(cookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+        return eventId
+    }
+
+    private fun createDraftEvent(
+        cookie: jakarta.servlet.http.Cookie,
+        slug: String,
+    ): String {
         val createRes =
             mockMvc
                 .perform(
@@ -223,20 +292,10 @@ class EventPageIntegrationTest {
                 ).andExpect(status().isOk)
                 .andReturn()
 
-        val eventId =
-            com.fasterxml.jackson.databind
-                .ObjectMapper()
-                .readTree(createRes.response.contentAsString)
-                .get("id")
-                .asText()
-
-        mockMvc
-            .perform(
-                post("/v1/seasons/$seedSeasonId/events/$eventId/actions/open-availability")
-                    .cookie(cookie)
-                    .with(csrf()),
-            ).andExpect(status().isOk)
-
-        return eventId
+        return com.fasterxml.jackson.databind
+            .ObjectMapper()
+            .readTree(createRes.response.contentAsString)
+            .get("id")
+            .asText()
     }
 }

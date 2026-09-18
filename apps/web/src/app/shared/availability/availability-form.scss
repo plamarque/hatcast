@@ -1,7 +1,9 @@
+@use './round-vote-checkbox' as vote;
+
 .availability-form {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.65rem;
 }
 
 .availability-form__status-toggle {
@@ -11,7 +13,7 @@
   mat-button-toggle {
     flex: 1;
     min-width: 0;
-    min-height: 2.5rem;
+    min-height: 3rem;
     font-size: 0.8125rem;
   }
 
@@ -56,13 +58,6 @@
   }
 }
 
-.availability-form__status-hint {
-  margin: 0;
-  text-align: center;
-  font-size: 0.78rem;
-  color: color-mix(in srgb, var(--mat-sys-on-surface) 70%, transparent);
-}
-
 .availability-form__feedback {
   margin: 0;
   text-align: center;
@@ -73,8 +68,8 @@
 .availability-form__roles {
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
-  padding: 0.85rem;
+  gap: 0.25rem;
+  padding: 0.5rem 0.65rem;
   border: 1px solid var(--hatcast-availability-border);
   border-radius: 0.65rem;
   background: var(--hatcast-availability-surface);
@@ -116,11 +111,71 @@
 }
 
 .availability-form__details-save {
-  min-height: 2.5rem;
+  min-height: 3rem;
 }
 
 @media (max-width: 480px) {
   .availability-form__status-toggle mat-button-toggle {
-    min-height: 2.5rem;
+    min-height: 3rem;
   }
 }
+
+.availability-form__roles mat-checkbox { min-height: 3rem; }
+
+// Expand the actual label click surface, not only the checkbox host.
+:host ::ng-deep .availability-form__roles .mat-internal-form-field {
+  width: 100%;
+  min-height: 3rem;
+}
+
+:host ::ng-deep .availability-form__roles .mdc-label {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-height: 3rem;
+}
+
+:host ::ng-deep .availability-form__status-toggle .mat-button-toggle-button {
+  min-height: 3rem;
+}
+
+.availability-form__role-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 0.5rem;
+}
+.availability-form__role-check {
+  @include vote.control;
+  min-height: 3rem;
+  font-size: 0.8125rem;
+  ::ng-deep .mat-internal-form-field { gap: 0.4rem; min-height: 3rem; }
+  ::ng-deep .mdc-label { line-height: 1.2; white-space: nowrap; }
+  ::ng-deep .mat-mdc-checkbox-touch-target { width: 3rem; height: 3rem; }
+  ::ng-deep .mdc-checkbox__native-control { width: 3rem; height: 3rem; top: -13px; left: -13px; }
+}
+
+.availability-form__role-option {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  min-width: 0;
+  .availability-form__role-check { flex: 1; min-width: 0; }
+  button { width: 3rem; height: 3rem; flex-shrink: 0; }
+}
+
+.availability-form__volunteer-help-button {
+  ::ng-deep .mat-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    font-size: 1.25rem;
+    line-height: 1.25rem;
+  }
+}
+.availability-form__volunteer-help {
+  flex-basis: 100%;
+  margin: 0;
+  font: var(--mat-sys-body-small);
+  color: var(--mat-sys-on-surface);
+}
+
+.availability-form__role-option--wide { grid-column: 1 / -1; }

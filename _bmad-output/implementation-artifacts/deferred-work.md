@@ -32,3 +32,11 @@ source_spec: `21-2-worktree-runtime-readiness`
 severity: medium
 reason: New HatCast worktrees are currently created beside the repository, which scatters delivery units across `/Users/patrice/GitHub`. Define and enforce `/Users/patrice/GitHub/worktrees` as their common parent for both repository scripts and BMad Loop external-worktree runs; preserve the safety, cleanup, and runtime-provisioning contracts.
 status: open
+
+- source_spec: `spec-bug-024-mandatory-volunteer.md`
+  summary: BUG-023 - Preserve saved Home card state if inbox refresh fails.
+  evidence: Existing BUG-021 dependency member-home-todo.ts openAvailability/openParticipation discard result.item and fetchInbox retains prior state on refresh failure.
+
+- source_spec: none
+  summary: Fix E2E-WD-07 so distinct draw formulas produce distinct preview chances when their rules differ.
+  evidence: Split from the staging-release gate because the draw formula calculation failure is independently shippable from the mobile availability-reminder failure.

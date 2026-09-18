@@ -26,6 +26,7 @@ import { getPendingPostLoginRedirect } from '../../core/navigation/post-login-re
 import { AgendaParticipationStatus } from '../../shared/participation/agenda-participation-status'
 import type { UserSummary } from '../../core/auth/auth-api.service'
 import { UserAgenda } from './user-agenda'
+import { AgendaEventActionsService } from '../../shared/participation/agenda-event-actions.service'
 
 const TROUPE_A = 'a0000001-0000-4000-8000-000000000001'
 const SEASON_A = 'b0000001-0000-4000-8000-000000000001'
@@ -720,6 +721,43 @@ describe('UserAgenda', () => {
 
     expect(agendaApi.listAgenda).toHaveBeenCalledWith({ page: 0, size: 50, scope: 'upcoming' })
   })
+  it.each(['openAvailability', 'openParticipation'] as const)('refreshes only after a saved %s action', async action => {
+    await settle(fixture)
+    const service = TestBed.inject(AgendaEventActionsService)
+    const open = vi.spyOn(service, action).mockResolvedValue(false)
+    const reload = vi.spyOn(fixture.componentInstance as any, 'loadAgenda').mockResolvedValue(undefined)
+    const item = agendaItem('edited', 'Edited event', '2030-01-01T18:00:00Z')
+    await (fixture.componentInstance as any)[action](item)
+    expect(reload).not.toHaveBeenCalled()
+    open.mockResolvedValue({ kind: 'saved', item: { ...item, myAvailabilityStatus: 'available' } })
+    await (fixture.componentInstance as any)[action](item)
+    expect(reload).toHaveBeenCalledTimes(1)
+    expect(navigateSpy).not.toHaveBeenCalledWith(expect.arrayContaining(['saison']))
+  })
+
+  it('keeps the saved card and list if refresh fails after saving', async () => {
+    await settle(fixture)
+    const before = fixture.componentInstance['items']()
+    const item = before[0]
+    vi.spyOn(TestBed.inject(AgendaEventActionsService), 'openAvailability').mockResolvedValue({ kind: 'saved', item: { ...item, myAvailabilityStatus: 'available' } })
+    agendaApi.listAgenda.mockResolvedValue({ ok: false, status: 500 })
+    await fixture.componentInstance['openAvailability'](item)
+    fixture.detectChanges()
+    expect(fixture.componentInstance['items']()).toHaveLength(before.length)
+    expect(fixture.componentInstance['items']()[0].myAvailabilityStatus).toBe('available')
+    expect(fixture.componentInstance['loadError']()).toBe(false)
+    expect(snack.open).toHaveBeenLastCalledWith(expect.stringContaining("n'a pas pu être actualisé"), 'OK', expect.anything())
+  })
+
+  it('refreshes a stale participation card without an availability save', async () => {
+    await settle(fixture)
+    const item = fixture.componentInstance['items']()[0]
+    vi.spyOn(TestBed.inject(AgendaEventActionsService), 'openAvailability').mockResolvedValue({ kind: 'refresh', item: { ...item, participantFocus: { inTeam: true, compositionRoleKey: 'player', availabilityStatus: 'available' } } })
+    agendaApi.listAgenda.mockResolvedValue({ ok: false, status: 500 })
+    await fixture.componentInstance['openAvailability'](item)
+    expect(fixture.componentInstance['items']()[0].participantFocus?.inTeam).toBe(true)
+  })
+
 })
 
 function sampleParticipationFilters(): UserAgendaParticipationFilters {

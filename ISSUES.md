@@ -10,6 +10,91 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Open Issues
 
+### BUG-022 — Aperçu des relances : éligibilité email sans préférence
+- **ID**: BUG-022
+- **Status**: Fixed (2026-09-17)
+- **Severity**: Medium
+- **Affected area**: `ShareRecipientsService.buildResponse`, GET `share-recipients` et compteurs du POST `share-recipients/notify`.
+- **Observed behavior**: `channels.email.eligible` dépend uniquement de la présence d'une adresse participant. La préférence email de la catégorie `AVAILABILITY_REQUEST` n'est pas consultée dans cet aperçu, alors que le dispatcher vérifie les préférences pour les utilisateurs liés. `notifiableCount` peut donc inclure des personnes qui ont désactivé ce canal ; le POST reprend ce nombre comme `notifiedCount`, sans preuve de livraison.
+- **Expected behavior**: Un aperçu destiné à confirmer un envoi doit refléter les règles effectives de sélection et de canal ; distinguer demande acceptée et livraison constatée.
+- **Notes/context**: Corrigé par la relance avec confirmation : l’aperçu et le POST utilisent désormais le compte lié, ses préférences de disponibilité et les canaux réellement disponibles. Les changements entre aperçu et confirmation produisent un conflit sans envoi.
+
+### BUG-023 — Home can retain a stale badge after saved response
+- **ID**: BUG-023
+- **Status**: Open — found during BUG-024 review; outside volunteer-rule scope
+- **Severity**: Medium
+- **Affected area**: V2 `member-home-todo.ts` availability/participation actions.
+- **Observed behavior**: Code review shows `openAvailability` and `openParticipation` discard the returned updated item and only reload inbox. If that refresh fails after a successful save, `fetchInbox` retains the previously loaded card.
+- **Expected behavior**: Keep the successful saved result visible even if the subsequent inbox refresh fails.
+- **Evidence**: `member-home-todo.ts:309-314` and its `fetchInbox` loaded-error path. This behavior exists in the incorporated BUG-021 dependency before the volunteer correction; no live production reproduction claimed.
+
+### BUG-024 — Available participants can opt out of volunteer availability
+- **ID**: BUG-024
+- **Status**: Fixed locally — verification recorded; pending human smoke and integration
+- **Severity**: Medium
+- **Affected area**: V2 availability dialog/form, availability poll, shared role rules and self/proxy availability API.
+- **Observed behavior**: The tested dialog starts an available draft without selected roles. Selecting player adds volunteer and displays a player-specific explanatory paragraph. Volunteer can then be unchecked and saved. Other roles do not trigger the rule. The screenshot matches the checkbox dialog in the BUG-021 worktree, not the current integration baseline.
+- **Expected behavior**: User requests volunteer to be selected and non-removable as soon as availability is selected, with all other roles optional and volunteer-only availability allowed. Explain the rule beside the volunteer control with touch/keyboard-accessible help, replacing the player-specific paragraph. User confirmed on 2026-09-17: apply this rule only when volunteer is offered by the event; never add it to events that exclude it.
+- **Cause**: `AvailabilityForm` and `AvailabilityPoll` retain explicit volunteer opt-out state. Both TypeScript and Kotlin normalizers only add volunteer for player when volunteer slots are positive; the API accepts `applyVolunteerRule=false`. This implements the former PRD FR16 opt-out contract, which the user now requests to replace.
+- **Repro**: Open own availability for an event offering player and volunteer → select Dispo → select player → uncheck volunteer → save.
+- **Notes/context**: Preserve BUG-021 checkbox/unified-save changes at commit `531256812b212a3145085236302169b857daf924`. Historical empty-role availability has wildcard candidacy semantics; no bulk migration or silent read-time narrowing is authorized. Correction adds mandatory offered volunteer to available writes and explicit drafts; verification recorded in the BUG-024 implementation report.
+
+### BUG-021 — Agenda : rôles sélectionnés peu lisibles et sauvegarde distincte
+- **ID**: BUG-021
+- **Status**: Correctif implémenté et vérifié (API 29/29, E2E 10/10), revue et validation humaine restantes — cause de l’affectation DJ non établie
+- **Severity**: Medium
+- **Affected area**: V2 `AvailabilityDialog`, `AvailabilityForm`, `RoleToggleChipSet` ; agendas personnel et saison.
+- **Observed behavior**: Retour transmis le 2026-09-17 : un membre souhaitait être comédien pour CCAS mais rapporte une affectation DJ. La capture montre la modale « Disponibilité de … » au-dessus de « Mon agenda », avec Comédien·ne rempli et DJ/MC en contour. Le code utilise `[highlighted]` sans coche visible ; les rôles restent un brouillon jusqu'au bouton « Enregistrer rôles et commentaire », placé après le commentaire dans le contenu défilant. « Fermer » ferme sans sauvegarder ce brouillon ni avertir. Le statut Dispo, lui, est enregistré immédiatement.
+- **Expected behavior**: Rendre sans ambiguïté les rôles choisis et leur état d'enregistrement ; éviter qu'une fermeture soit comprise comme une validation. Solution autorisée : cases à cocher, validation groupée explicite, annulation du brouillon et rôle requis pour les nouvelles écritures disponibles proposant des rôles.
+- **Correction**: Carte/actions partagées Accueil et agenda ; formulaire à brouillon, cases explicites, footer Enregistrer persistant ; annulation sans résultat ; échec conservant le brouillon. API self/proxy : rôle normalisé obligatoire si proposé, avant mutation. Historique vide préservé.
+- **Repro initiale**: Mon agenda → badge personnel de disponibilité d'un spectacle pour lequel le membre actif n'est pas dans l'équipe et n'a pas un état de retrait → Dispo → modifier un rôle → Fermer sans utiliser le bouton d'enregistrement. Le clic sur le titre ouvre le détail spectacle, dont l'onglet Dispos utilise un sondage différent avec sauvegarde au clic sur les rôles.
+- **Notes/context**: Parcours identifié dans le code local (`user-agenda.ts`, `open-agenda-availability-dialog.ts`, `availability-form.ts`, `availability-dialog.ts`), également appelé par `season-home.ts`. Pas de distinction administrateur/membre pour choisir la modale personnelle. Sur la capture, le rendu indique Comédien·ne sélectionné dans le formulaire, sans preuve de sauvegarde. Ni historique serveur de CCAS ni reproduction en production : aucune inversion DJ/comédien ou cause d'affectation n'est démontrée. Préserver la distinction disponibilité déclarée / affectation dans l'équipe.
+
+- **Human smoke follow-up (2026-09-17)**: Initial single-column square checkboxes required excessive scrolling on a six-role match; errors appeared below the scroll. Changed to the poll's round multiple-selection checkmarks in two columns, with errors replacing the fixed-footer dirty hint. Verified visually in the local Chrome match dialog and with 27 targeted tests; full E2E rerun pending after this visual adjustment.
+
+### BUG-020 — Relance dispos hidden until Dispos tab is opened
+- **ID**: BUG-020
+- **Status**: Fixed (2026-09-16)
+- **Severity**: Medium (orga cannot relance from Infos)
+- **Affected area**: Event detail gear menu — `event-detail` `canRelanceDispos` + PERF-03 tab-gated `availability/summary`
+- **Observed behavior**: On Infos, gear shows Modifier / Annoncer / Participants / Désactiver. **Relance dispos** appears only after visiting the Dispos tab (summary then loaded).
+- **Expected behavior**: Story **6.10c** AC1 — Relance dispos visible on every event-detail tab when published + `canManageComposition` + ≥1 unknown, without requiring a prior Dispos visit.
+- **Cause**: PERF-03 gated summary load to Dispos; menu visibility required `disposSummary()`.
+- **Fix**: Event page BFF `hasUnknownAvailability` on all tabs (no full summary on Infos); menu uses that flag until a live summary is present.
+- **Repro**: Published event with unanswered members → Infos → gear (2026-09-16, Apérock café).
+
+### BUG-019 — Dispos « Pas disponible » : dépliage vide (noms invisibles)
+- **ID**: BUG-019
+- **Status**: Open
+- **Severity**: Medium (orga cannot see who is unavailable; roles still expand)
+- **Affected area**: Onglet Dispos — `availability-poll` / `availability-poll-row` (spectacle publié, explainability on)
+- **Observed behavior**: Tap on the « Pas disponible » gauge, counter, or avatars expands the row but shows no names. Role rows (Arbitre, MC, …) do expand with names.
+- **Expected behavior**: Expanding « Pas disponible » lists the unavailable members by name (same as the compact avatar stack).
+- **Cause**: Neutral name chips render only when `explainabilityEnabled` is false (`unavailablePoolShowNeutral`). On a published event, explainability is on, and unavailable people have no `chancePercent`, so none of the three pool branches (`chance preview` / `neutral` / `chances unavailable`) match — empty body.
+- **Repro**: Event detail → Dispos → tap avatars/gauge on « Pas disponible » (screenshot orga Impro, 2026-09-16).
+- **Reported by**: Organizer feedback (Nicolas Nasciet) via Patrice.
+
+### LIMIT-009 — Dispos V2 : plus d’entrée « Tous » ni liste des non-répondants
+- **ID**: LIMIT-009
+- **Status**: Open
+- **Severity**: Medium (orga cannot scan the full troupe for one date)
+- **Affected area**: Onglet Dispos — `availability-subject-selector` + sondage unifié (story 5.8)
+- **Observed behavior**: The Participant pulldown lists individuals only (proxy edit). There is no « Tous ». The poll shows role/unavailable gauges + 3 avatars; members with status `unknown` do not appear. Organizers cannot see who has not answered.
+- **Expected behavior (V1)**: Pulldown first option « Tous » (`selectedTeamPlayer.id === 'all'`) rendered `EventRoleGroupingView` — named candidates per role. Combined with the season grid, orgs could also see unanswered cells.
+- **Notes**: Story 5.8 D1 removed Moi/Tous in favor of a WhatsApp-style poll (saisie + collective on one screen). Named unavailable list was an explicit non-goal (MVP+). Relance dispos (cog menu) still targets `unknown` but does not display the list. Organizer request 2026-09-16: restore a troupe overview, especially unanswered members.
+- **Reported by**: Organizer feedback (Nicolas Nasciet) via Patrice.
+
+### BUG-018 — Staging Cloud Run traffic stuck on a named revision
+- **ID**: BUG-018
+- **Status**: Open (workaround 2026-09-16 — traffic moved to `hatcast-v2-staging-00107-brq`)
+- **Severity**: High (staging served stale 2.4.4 while CI deploys succeeded)
+- **Affected area**: Cloud Run `hatcast-v2-staging` (`europe-west9`)
+- **Observed behavior**: After `gcloud run deploy` from GitHub Actions, new revisions (`00104`–`00107`) were created then Retired. 100% of traffic stayed on `hatcast-v2-staging-00103-mr9` (2.4.4, 2026-07-12). `/version.txt` and the Formules UI stayed on that build. 2.4.5 never received live traffic.
+- **Expected behavior**: A successful staging deploy serves the new revision at `https://hatcast-v2-staging-730278491306.europe-west9.run.app`.
+- **Cause**: Traffic allocated to a **named** revision, not `LATEST`. Cloud Run then leaves existing split unchanged on deploy.
+- **Fix / workaround**: `gcloud run services update-traffic hatcast-v2-staging --region=europe-west9 --project=impro-selector --to-revisions=hatcast-v2-staging-00107-brq=100` (or `--to-latest` after the new revision is Ready). Durable fix: stop pinning named revisions, or add `--to-latest` in CI after deploy.
+- **Evidence**: Recette 2.4.6-rc.1 ; CI deploy jobs green while live `version.txt` still showed `2.4.4` / `010452ce`.
+
 ### BUG-017 — Human smoke stop did not reach job-control child groups
 - **ID**: BUG-017
 - **Status**: Fixed (2026-08-26)
@@ -354,3 +439,8 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
   - API refuse `MEMBER` → `EXTERNE` via `PATCH` membre et via import CSV membre : *« Utilisez l'ajout Externe pour les entrées carnet. »* ([`TroupeMembershipService.kt`](services/api/src/main/kotlin/com/hatcast/api/troupe/TroupeMembershipService.kt), [`TroupeMemberCsvImportService.kt`](services/api/src/main/kotlin/com/hatcast/api/troupe/TroupeMemberCsvImportService.kt)).
   - UI édition membre : pas de changement de rôle vers Externe ([`edit-troupe-member-dialog.ts`](apps/web/src/app/pages/admin-membres/edit-troupe-member-dialog.ts)).
 - **Notes/context** : Investigation 2026-07-12 → [member-externe-conversion-investigation.md](_bmad-output/implementation-artifacts/investigations/member-externe-conversion-investigation.md). **Décision produit :** conversion bidirectionnelle + **mode de participation par saison** ([ADR-0022](docs/adr/0022-season-participation-mode-role-lifecycle.md)). **Livré :** story **2.26** (recette OK 2026-07-12).
+
+### LIMIT-007 — Complément de preuve : attente de test agenda antérieure au chargement parallèle
+- **Status**: Open (2026-09-17)
+- **Observed behavior**: `user-agenda.spec.ts` attend zéro appel agenda en cas de session invalide, tandis que `ngOnInit` lance session, agenda et préférences dans `Promise.all`. Le test et ce bloc sont identiques au baseline `aaf7dbb4c6e2da395e9baeb4c91e2dec03b28a6c`. Vérification ciblée sous Node 26 avec `NODE_OPTIONS=--no-experimental-webstorage` : seule cette attente échoue ; le reste des tests pages passe.
+- **Scope**: Décider séparément si le bootstrap doit attendre la session ou si le test doit accepter la requête anticipée. Aucun test désactivé dans BUG-021.

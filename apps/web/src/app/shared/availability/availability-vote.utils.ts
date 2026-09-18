@@ -69,12 +69,12 @@ export function toggleRoleCheck(
   currentKeys: RoleKey[],
   roleKey: RoleKey,
   checked: boolean,
-  applyVolunteerRule: boolean,
+  _legacyApplyVolunteerRule: boolean,
 ): RoleKey[] {
   const next = checked
     ? [...currentKeys, roleKey]
     : currentKeys.filter((key) => key !== roleKey)
-  return normalizeCandidateRoleKeys(roleSlots, next, applyVolunteerRule)
+  return normalizeCandidateRoleKeys(roleSlots, next, true)
 }
 
 export function preferredRolesForPrecheck(
@@ -125,8 +125,8 @@ function patchRoleCandidates(
   nextRoleKeys: RoleKey[],
 ): SummaryRole {
   const wasCandidate =
-    previous.status === 'available' && previous.roleKeys.includes(role.roleKey)
-  const isCandidate = nextStatus === 'available' && nextRoleKeys.includes(role.roleKey as RoleKey)
+    previous.status === 'available' && (previous.roleKeys.length === 0 || previous.roleKeys.includes(role.roleKey))
+  const isCandidate = nextStatus === 'available' && (nextRoleKeys.length === 0 || nextRoleKeys.includes(role.roleKey as RoleKey))
 
   if (wasCandidate === isCandidate) {
     return role

@@ -1,0 +1,45 @@
+<h2 mat-dialog-title class="availability-reminder-confirm__title">
+  <mat-icon aria-hidden="true">notifications</mat-icon>
+  Confirmer le rappel
+</h2>
+<mat-dialog-content class="availability-reminder-confirm__content">
+  <p class="availability-reminder-confirm__intro">Les notifications seront demandées uniquement pour les personnes et canaux ci-dessous.</p>
+  <div class="availability-reminder-confirm__recipients">
+    <div class="availability-reminder-confirm__select-all">
+      <mat-checkbox [checked]="allSelected()" [indeterminate]="someSelected()" (change)="toggleAll($event.checked)">Tout sélectionner</mat-checkbox>
+    </div>
+    @for (recipient of notifications; track recipient.participantId) {
+      <div class="availability-reminder-confirm__recipient">
+        <mat-checkbox [checked]="selectedParticipantIds().has(recipient.participantId)" (change)="toggleRecipient(recipient.participantId, $event.checked)" [aria-label]="'Notifier ' + recipient.displayName" />
+        <span class="availability-reminder-confirm__avatar" aria-hidden="true">{{ initials(recipient.displayName) }}</span>
+        <div class="availability-reminder-confirm__recipient-copy">
+          <strong>{{ recipient.displayName }}</strong>
+        </div>
+        <div class="availability-reminder-confirm__channels" aria-label="Canaux de notification">
+          @if (recipient.channels.email.eligible) { <mat-icon aria-label="E-mail">mail</mat-icon> }
+          @if (recipient.channels.push.eligible) { <mat-icon aria-label="Notification sur appareil">smartphone</mat-icon> }
+        </div>
+      </div>
+    }
+  </div>
+  @if (optedOut.length) {
+    <section class="availability-reminder-confirm__manual availability-reminder-confirm__manual--warning">
+      <div class="availability-reminder-confirm__manual-heading"><mat-icon aria-hidden="true">notifications_off</mat-icon><strong>Notifications désactivées</strong></div>
+      <mat-chip-set>
+        @for (recipient of optedOut; track recipient.displayName) { <mat-chip>{{ recipient.displayName }}</mat-chip> }
+      </mat-chip-set>
+      <p>Ces personnes ont choisi de ne pas recevoir ces notifications. Utilise Copier ou WhatsApp pour les prévenir autrement.</p>
+    </section>
+  }
+  @if (manual.length) {
+    <section class="availability-reminder-confirm__manual">
+      <div class="availability-reminder-confirm__manual-heading"><mat-icon aria-hidden="true">person_off</mat-icon><strong>À contacter autrement</strong></div>
+      <mat-chip-set>
+        @for (recipient of manual; track recipient.displayName) { <mat-chip>{{ recipient.displayName }}</mat-chip> }
+      </mat-chip-set>
+      <p>Aucun canal de notification utilisable n’est configuré pour ces personnes.</p>
+    </section>
+  }
+  <p class="availability-reminder-confirm__summary">{{ selectedCount() }} personne{{ selectedCount() > 1 ? 's' : '' }} seront notifiées · envois individuels</p>
+</mat-dialog-content>
+<mat-dialog-actions align="end" class="availability-reminder-confirm__footer"><button mat-button (click)="ref.close(false)">Annuler</button><button mat-flat-button cdkFocusInitial [disabled]="selectedCount() === 0" (click)="confirm()">Envoyer à {{ selectedCount() }} personne{{ selectedCount() > 1 ? 's' : '' }}</button></mat-dialog-actions>

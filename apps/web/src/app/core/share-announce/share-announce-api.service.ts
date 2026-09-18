@@ -5,6 +5,7 @@ import type { ShareAnnounceIntent } from '../messaging/share-announce-messages'
 
 export interface ShareRecipientChannelStatus {
   eligible: boolean
+  unavailableReason?: string | null
   notified: boolean
   lastNotifiedAt?: string | null
 }
@@ -28,6 +29,7 @@ export interface ShareRecipientsResponse {
   recipients: ShareRecipient[]
   lastManualNotifyAt?: string | null
   guardDays?: number | null
+  confirmationFingerprint?: string | null
 }
 
 /** Accepts nested DTO (6.16+) or legacy flat booleans from a stale API. */
@@ -36,7 +38,12 @@ export function normalizeShareRecipientChannelStatus(value: unknown): ShareRecip
     return { eligible: value, notified: false, lastNotifiedAt: null }
   }
   if (value && typeof value === 'object') {
-    const obj = value as { eligible?: unknown; notified?: unknown; lastNotifiedAt?: unknown }
+    const obj = value as {
+      eligible?: unknown
+      notified?: unknown
+      lastNotifiedAt?: unknown
+      unavailableReason?: unknown
+    }
     const lastNotifiedAt =
       typeof obj.lastNotifiedAt === 'string' && obj.lastNotifiedAt.length > 0
         ? obj.lastNotifiedAt
@@ -45,6 +52,10 @@ export function normalizeShareRecipientChannelStatus(value: unknown): ShareRecip
       eligible: obj.eligible === true,
       notified: obj.notified === true,
       lastNotifiedAt,
+      unavailableReason:
+        typeof obj.unavailableReason === 'string' && obj.unavailableReason.length > 0
+          ? obj.unavailableReason
+          : null,
     }
   }
   return { eligible: false, notified: false, lastNotifiedAt: null }
@@ -78,6 +89,7 @@ export interface ShareNotifyResponse {
   notifiedCount: number
   manualCount: number
   intent: ShareAnnounceIntent
+  acceptedCount: number
 }
 
 type ShareApiResult<T> =
@@ -120,6 +132,8 @@ export class ShareAnnounceApiService {
     eventId: string,
     intent: ShareAnnounceIntent,
     messageText: string,
+    confirmationFingerprint?: string | null,
+    recipientParticipantIds?: string[],
   ): Promise<ShareApiResult<ShareNotifyResponse>> {
     try {
       const res = await fetch(
@@ -131,7 +145,7 @@ export class ShareAnnounceApiService {
             ...csrfHeaders(),
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ intent, messageText }),
+          body: JSON.stringify({ intent, messageText, confirmationFingerprint, recipientParticipantIds }),
         },
       )
       if (!res.ok) {

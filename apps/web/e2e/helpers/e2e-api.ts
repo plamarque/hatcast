@@ -149,8 +149,9 @@ export type AgendaParticipationCellFixture = {
 
 export async function resetAgendaParticipationCellFixture(
   request: APIRequestContext,
+  roles: 'cabaret' | 'volunteer' | 'all' = 'cabaret',
 ): Promise<AgendaParticipationCellFixture> {
-  const response = await request.post(`${apiBase}/v1/e2e/fixtures/agenda-participation-cell/reset`, {
+  const response = await request.post(`${apiBase}/v1/e2e/fixtures/agenda-participation-cell/reset?roles=${roles}`, {
     headers: {
       'X-Hatcast-E2E-Key': E2E_API_KEY,
     },

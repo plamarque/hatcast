@@ -1087,6 +1087,9 @@ export class SeasonHome implements OnDestroy, OnInit {
       roleSlots: normalizeRoleSlots(ev.roleSlots),
       fallbackStatus: payload.status,
       availabilityOpenedAt: ev.availabilityOpenedAt ?? null,
+    }).catch(() => {
+      this.snack.open('Impossible de charger la disponibilité. Réessaie dans un instant.', 'OK', { duration: 5000 })
+      return undefined
     })
     if (!result) {
       return

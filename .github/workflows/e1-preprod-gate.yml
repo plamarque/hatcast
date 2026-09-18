@@ -1,5 +1,5 @@
 # E1 cutover preprod gate (T2) — staging Cloud Run.
-# Blocking when Malice ready: health, PWA, e1-mobile-member P0, e1-desktop-orga P0.
+# Blocking when Malice ready: health, PWA, member mobile, organizer reminder, and desktop admin E1 projects.
 # Skips E1 Playwright if Neon has no Malice season (reset/replay migration in progress).
 # Migration assert §6 + golden MIG-E2E : migration-staging-gate.yml (manual, after replay).
 # Design: _bmad-output/test-artifacts/test-design-e1-cutover-preprod-gate.md
@@ -28,6 +28,8 @@ jobs:
       HATCAST_E2E_ORGA_PASSWORD: ${{ secrets.HATCAST_E2E_ORGA_PASSWORD }}
       HATCAST_E2E_MEMBER_EMAIL: ${{ secrets.HATCAST_E2E_MEMBER_EMAIL }}
       HATCAST_E2E_MEMBER_PASSWORD: ${{ secrets.HATCAST_E2E_MEMBER_PASSWORD }}
+      HATCAST_E2E_REMINDER_ORGANIZER_EMAIL: ${{ secrets.HATCAST_E2E_REMINDER_ORGANIZER_EMAIL }}
+      HATCAST_E2E_REMINDER_ORGANIZER_PASSWORD: ${{ secrets.HATCAST_E2E_REMINDER_ORGANIZER_PASSWORD }}
       HATCAST_E2E_TROUPE_SLUG: ${{ vars.HATCAST_E2E_TROUPE_SLUG }}
       HATCAST_E2E_SEASON_SLUG: ${{ vars.HATCAST_E2E_SEASON_SLUG }}
       HATCAST_E2E_MEMBER_SLUG: ${{ vars.HATCAST_E2E_MEMBER_SLUG }}
@@ -47,6 +49,8 @@ jobs:
           test -n "${HATCAST_E2E_ORGA_PASSWORD}" || (echo "Missing secret HATCAST_E2E_ORGA_PASSWORD" && exit 1)
           test -n "${HATCAST_E2E_MEMBER_EMAIL}" || (echo "Missing secret HATCAST_E2E_MEMBER_EMAIL" && exit 1)
           test -n "${HATCAST_E2E_MEMBER_PASSWORD}" || (echo "Missing secret HATCAST_E2E_MEMBER_PASSWORD" && exit 1)
+          test -n "${HATCAST_E2E_REMINDER_ORGANIZER_EMAIL}" || (echo "Missing secret HATCAST_E2E_REMINDER_ORGANIZER_EMAIL" && exit 1)
+          test -n "${HATCAST_E2E_REMINDER_ORGANIZER_PASSWORD}" || (echo "Missing secret HATCAST_E2E_REMINDER_ORGANIZER_PASSWORD" && exit 1)
           test -n "${HATCAST_E2E_SEASON_SLUG}" || (echo "Missing var HATCAST_E2E_SEASON_SLUG on environment staging" && exit 1)
           test -n "${HATCAST_E2E_MEMBER_SLUG}" || (echo "Missing var HATCAST_E2E_MEMBER_SLUG on environment staging" && exit 1)
           test -n "${HATCAST_DATASOURCE_URL}" || (echo "Missing secret HATCAST_DATASOURCE_URL (Neon staging probe)" && exit 1)
@@ -85,7 +89,7 @@ jobs:
         working-directory: apps/web
         run: npx playwright install --with-deps chromium
 
-      - name: Run E1 Playwright gate (mobile blocking + desktop orga)
+      - name: Run E1 Playwright gate (member, organizer reminder, and desktop admin)
         if: steps.malice_ready.outcome == 'success'
         working-directory: apps/web
         env:
@@ -93,7 +97,9 @@ jobs:
         run: >
           npm run test:e2e --
           --project=e1-mobile-member
+          --project=e1-mobile-orga
           --project=e1-desktop-orga
+          --project=e1-desktop-reminder-organizer
 
       - name: Upload Playwright report on failure
         if: failure() && steps.malice_ready.outcome == 'success'

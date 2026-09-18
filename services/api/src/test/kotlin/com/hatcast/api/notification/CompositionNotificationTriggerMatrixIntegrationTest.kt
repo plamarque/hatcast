@@ -424,7 +424,7 @@ class CompositionNotificationTriggerMatrixIntegrationTest {
     // --- M-P1 / M-P2 proxy availability ---
 
     @Test
-    fun `M-P1 proxy availability defers dispatch until roles recorded`() {
+    fun `M-P1 proxy availability rejects empty roles silently then notifies a complete response`() {
         val admin = adminCookie("sub-matrix-proxy-avail-admin")
         memberCookie("sub-matrix-proxy-avail-member")
         val seasonId = createSeason(admin)
@@ -441,7 +441,7 @@ class CompositionNotificationTriggerMatrixIntegrationTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"status":"available","roleKeys":[]}""")
                     .with(csrf()),
-            ).andExpect(status().isOk)
+            ).andExpect(status().isBadRequest)
 
         verify(notificationDispatcher, never()).dispatch(
             argThat { intent == NotificationIntent.PROXY_AVAILABILITY_RECORDED },

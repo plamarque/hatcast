@@ -124,6 +124,99 @@ async function setupPoll(options: {
 }
 
 describe('AvailabilityPoll', () => {
+  it.each(['vote', 'comment'])('serializes all poll writes while %s is pending', async first => {
+    const { fixture, setMyAvailability } = await setupPoll({ initialStatus: 'available', initialRoleKeys: ['player', 'volunteer'] })
+    fixture.componentRef.setInput('roleSlots', ROLE_TEMPLATES.match)
+    const comp = fixture.componentInstance as any
+    comp.onCommentInput('Draft preserved')
+    let release!: (value: unknown) => void
+    setMyAvailability.mockImplementationOnce(() => new Promise(resolve => { release = resolve }))
+    const pending = first === 'vote' ? comp.onRoleToggle('mc', true) : comp.saveComment()
+    fixture.detectChanges()
+    expect([...fixture.nativeElement.querySelectorAll('input[type="checkbox"]')].every((el: any) => el.disabled)).toBe(true)
+    expect(fixture.nativeElement.querySelector('.availability-poll__clear').disabled).toBe(true)
+    expect(fixture.nativeElement.querySelector('.availability-poll__comment-save').disabled).toBe(true)
+    expect(fixture.nativeElement.querySelector('textarea').readOnly).toBe(true)
+    await comp.clearResponse()
+    await comp.onUnavailableToggle(true)
+    await comp.onAvailableFlatToggle(true)
+    await comp.onRoleToggle('player', false)
+    await comp.saveComment()
+    await comp.persistVote('direct', 'unknown', [])
+    expect(setMyAvailability).toHaveBeenCalledTimes(1)
+    release({ ok: true, status: 200, data: { status: 'available', roleKeys: ['player', 'volunteer'], comment: 'Draft preserved' } })
+    await pending
+    fixture.detectChanges()
+    expect(comp.busy()).toBe(false)
+    expect(fixture.nativeElement.querySelector('.availability-poll__clear').disabled).toBe(false)
+    await comp.clearResponse()
+    expect(setMyAvailability).toHaveBeenCalledTimes(2)
+    expect(setMyAvailability).toHaveBeenLastCalledWith('season-1', 'event-1', expect.objectContaining({ status: 'unknown', roleKeys: [] }))
+  })
+
+  it('serializes a held clear against comment and votes without resurrecting availability', async () => {
+    const { fixture, setMyAvailability } = await setupPoll({ initialStatus: 'available', initialRoleKeys: ['volunteer'] })
+    const comp = fixture.componentInstance as any
+    let release!: (value: unknown) => void
+    setMyAvailability.mockImplementationOnce(() => new Promise(resolve => { release = resolve }))
+    comp.onCommentInput('Draft')
+    const pending = comp.clearResponse()
+    await comp.saveComment()
+    await comp.onRoleToggle('player', true)
+    expect(setMyAvailability).toHaveBeenCalledTimes(1)
+    release({ ok: true, status: 200, data: { status: 'unknown', roleKeys: [], comment: null } })
+    await pending
+    expect(setMyAvailability.mock.calls[0][2]).toMatchObject({ status: 'unknown', roleKeys: [] })
+  })
+
+  it.each([false, true])('renders locked volunteer, help and correct clear target (proxy=%s)', async proxyMode => {
+    const { fixture, setMyAvailability, setParticipantAvailability } = await setupPoll({ proxyMode, initialStatus: 'available', initialRoleKeys: ['volunteer'] })
+    fixture.componentRef.setInput('roleSlots', ROLE_TEMPLATES.match)
+    fixture.detectChanges()
+    const row = [...fixture.nativeElement.querySelectorAll('app-availability-poll-row')].find((el: any) => el.textContent.includes('Bénévole')) as HTMLElement
+    const input = row.querySelector('input')!
+    expect(input.checked).toBe(true)
+    expect(input.disabled).toBe(true)
+    const help = row.querySelector('button[aria-label="Pourquoi bénévole est obligatoire"]') as HTMLButtonElement
+    help.click()
+    fixture.detectChanges()
+    expect(row.textContent).toContain('Quand tu es disponible, tu es aussi disponible comme bénévole.')
+    const clear = fixture.nativeElement.querySelector('.availability-poll__clear') as HTMLButtonElement
+    expect(clear.textContent).toBe(proxyMode ? 'Effacer la réponse' : 'Effacer ma réponse')
+    clear.click()
+    await fixture.whenStable()
+    const api = proxyMode ? setParticipantAvailability : setMyAvailability
+    expect(api.mock.calls[0].at(-1)).toMatchObject({ status: 'unknown', roleKeys: [] })
+    if (proxyMode) expect(api.mock.calls[0][2]).toBe('p1')
+    fixture.componentRef.setInput('readOnly', true)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.availability-poll__clear')).toBeNull()
+  })
+
+  it('locks volunteer while allowing explicit unknown and unavailable transitions', async () => {
+    const { fixture, setMyAvailability } = await setupPoll({ initialStatus: 'available', initialRoleKeys: ['player', 'volunteer'] })
+    fixture.componentRef.setInput('roleSlots', ROLE_TEMPLATES.match)
+    fixture.detectChanges()
+    const comp = fixture.componentInstance as any
+    await comp.onRoleToggle('volunteer', false)
+    expect(setMyAvailability).not.toHaveBeenCalled()
+    await comp.onRoleToggle('player', false)
+    expect(setMyAvailability).toHaveBeenLastCalledWith('season-1', 'event-1', expect.objectContaining({ status: 'available', roleKeys: ['volunteer'] }))
+    await comp.clearResponse()
+    expect(setMyAvailability).toHaveBeenLastCalledWith('season-1', 'event-1', expect.objectContaining({ status: 'unknown', roleKeys: [] }))
+    await comp.onUnavailableToggle(true)
+    expect(setMyAvailability).toHaveBeenLastCalledWith('season-1', 'event-1', expect.objectContaining({ status: 'unavailable', roleKeys: [] }))
+  })
+
+  it.each([false, true])('adds volunteer to any first optional vote (proxy=%s)', async proxyMode => {
+    const { fixture, setMyAvailability, setParticipantAvailability } = await setupPoll({ proxyMode })
+    fixture.componentRef.setInput('roleSlots', ROLE_TEMPLATES.match)
+    fixture.detectChanges()
+    await (fixture.componentInstance as any).onRoleToggle('mc', true)
+    const call = (proxyMode ? setParticipantAvailability : setMyAvailability).mock.calls[0]
+    expect(call[call.length - 1]).toMatchObject({ status: 'available', roleKeys: ['mc', 'volunteer'], applyVolunteerRule: true })
+  })
+
   it('renders poll rows without Moi/Tous toggle', async () => {
     const { fixture } = await setupPoll()
     const el = fixture.nativeElement as HTMLElement
@@ -366,4 +459,23 @@ describe('AvailabilityPoll', () => {
       }),
     )
   })
+  it('autosaves unknown when the final explicit role is unchecked', async () => {
+    const { fixture, setMyAvailability } = await setupPoll({ initialStatus: 'available', initialRoleKeys: ['dj'] })
+    await (fixture.componentInstance as any).onRoleToggle('dj', false)
+    expect(setMyAvailability).toHaveBeenCalledWith('season-1', 'event-1', expect.objectContaining({ status: 'unknown', roleKeys: [] }))
+  })
+
+  it('requires an explicit role before saving a comment on a legacy general response', async () => {
+    const { fixture, setMyAvailability } = await setupPoll({ initialStatus: 'available', initialRoleKeys: [] })
+    const component = fixture.componentInstance as any
+    fixture.componentRef.setInput('roleSlots', ROLE_TEMPLATES.match)
+    fixture.detectChanges()
+    component.onCommentInput('Brouillon conservé')
+    await component.saveComment()
+    fixture.detectChanges()
+    expect(setMyAvailability).not.toHaveBeenCalled()
+    expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain('Choisis au moins un rôle')
+    expect(component.commentText()).toBe('Brouillon conservé')
+  })
+
 })

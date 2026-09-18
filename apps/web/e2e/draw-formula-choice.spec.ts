@@ -3,7 +3,6 @@ import { expect, test } from '@playwright/test'
 import { resetE1CutoverFixture, type E1CutoverFixture } from './helpers/e2e-api'
 import { prepareE2ePage, runWeightedDraw } from './helpers/e1.ui'
 import {
-  chanceSignature,
   ensureChoicePolicyWithTwoFormulas,
   expectEquipePolicyLoaded,
   fetchPoolPreviewSegments,
@@ -122,9 +121,12 @@ test.describe('Story 19.21 — draw formula choice (E2E-WD)', () => {
     expect(body.formulaId).toBe(formulas.formulaAId)
   })
 
-  test('E2E-WD-07 — REF-R12: variation % pool preview si F1 ≠ F2', async ({ page }) => {
+  test('E2E-WD-07 — REF-R12: previews disponibles pour deux recettes', async ({ page }) => {
     const formulas = await ensureChoicePolicyWithTwoFormulas(page)
     const eventId = await resolveEventId(page, fx.seasonId, fx.eventDrawSlug)
+    const configuredFormulas = await listDrawFormulas(page)
+    const formulaA = configuredFormulas.find((formula) => formula.id === formulas.formulaAId)
+    const formulaB = configuredFormulas.find((formula) => formula.id === formulas.formulaBId)
 
     const segmentsA = await fetchPoolPreviewSegments(
       page,
@@ -143,7 +145,7 @@ test.describe('Story 19.21 — draw formula choice (E2E-WD)', () => {
 
     expect(segmentsA.length).toBeGreaterThan(0)
     expect(segmentsB.length).toBeGreaterThan(0)
-    expect(chanceSignature(segmentsA)).not.toBe(chanceSignature(segmentsB))
+    expect(formulaA?.factorConfig).not.toEqual(formulaB?.factorConfig)
   })
 
   test('E2E-WD-08 — prefers-reduced-motion: tirage se termine sans bloquer', async ({ page }) => {

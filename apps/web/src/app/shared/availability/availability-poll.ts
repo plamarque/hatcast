@@ -23,6 +23,7 @@ import {
 import {
   candidateRolesForEvent,
   mandatoryVolunteerCoverage,
+  normalizeCandidateRoleKeys,
 } from '../../core/availability/availability-role-rules'
 import {
   effectiveMemberGender,
@@ -105,7 +106,6 @@ export class AvailabilityPoll {
   protected readonly summaryIncludesChances = signal(false)
 
   private readonly initialStatus = signal<'available' | 'unavailable' | 'unknown'>('unknown')
-  private volunteerExplicitlyUnchecked = false
   private chancesLoadGeneration = 0
 
   protected readonly hasRoles = computed(() => totalSlots(this.roleSlots()) > 0)
@@ -119,7 +119,8 @@ export class AvailabilityPoll {
     effectiveMemberGender(this.subject().gender),
   )
 
-  protected readonly rolesDisabled = computed(() => this.readOnly() || this.archived())
+  protected readonly busy = computed(() => this.savingRowKey() !== null || this.savingComment())
+  protected readonly rolesDisabled = computed(() => this.readOnly() || this.archived() || this.busy())
 
   protected readonly commentDirty = computed(
     () => this.commentText().trim() !== this.savedComment().trim(),
@@ -139,7 +140,6 @@ export class AvailabilityPoll {
       this.savedComment.set(subject.comment ?? '')
       this.commentError.set(null)
       this.initialStatus.set(subject.status)
-      this.volunteerExplicitlyUnchecked = false
     })
 
     effect(() => {
@@ -315,7 +315,7 @@ export class AvailabilityPoll {
   }
 
   protected async onUnavailableToggle(checked: boolean): Promise<void> {
-    if (!this.canEdit()) return
+    if (!this.canEdit() || this.busy()) return
     const currentRoles = checkedRoleKeysFromSubject(this.roleSlots(), this.subject())
     const vote = computeVoteFromChecks({
       hasRoles: this.hasRoles(),
@@ -327,7 +327,7 @@ export class AvailabilityPoll {
   }
 
   protected async onAvailableFlatToggle(checked: boolean): Promise<void> {
-    if (!this.canEdit()) return
+    if (!this.canEdit() || this.busy()) return
     const vote = computeVoteFromChecks({
       hasRoles: false,
       unavailableChecked: false,
@@ -340,33 +340,9 @@ export class AvailabilityPoll {
   protected async onRoleToggle(roleKey: string, checked: boolean): Promise<void> {
     if (!this.canEdit() || this.rolesDisabled()) return
 
-    let currentKeys = checkedRoleKeysFromSubject(this.roleSlots(), this.subject())
-
-    const hadVolunteer = currentKeys.includes('volunteer')
-    if (roleKey === 'volunteer' && !checked) {
-      this.volunteerExplicitlyUnchecked = true
-    }
-    if (roleKey === 'player' && checked) {
-      this.volunteerExplicitlyUnchecked = false
-    }
-
-    const nextKeys = toggleRoleCheck(
-      this.roleSlots(),
-      currentKeys,
-      roleKey as RoleKey,
-      checked,
-      this.shouldApplyVolunteerRule(currentKeys),
-    )
-
-    if (
-      roleKey === 'player' &&
-      checked &&
-      !hadVolunteer &&
-      nextKeys.includes('volunteer') &&
-      mandatoryVolunteerCoverage(this.roleSlots())
-    ) {
-      this.snack.open('Bénévole ajouté (obligatoire sur ce format)', 'OK', { duration: 3000 })
-    }
+    if (roleKey === 'volunteer' && !checked && this.subject().status === 'available') return
+    const currentKeys = checkedRoleKeysFromSubject(this.roleSlots(), this.subject())
+    const nextKeys = toggleRoleCheck(this.roleSlots(), currentKeys, roleKey as RoleKey, checked, true)
 
     const vote = computeVoteFromChecks({
       hasRoles: true,
@@ -412,13 +388,13 @@ export class AvailabilityPoll {
   }
 
   protected onCommentInput(value: string): void {
-    if (!this.canEdit()) return
+    if (!this.canEdit() || this.busy()) return
     this.commentText.set(value)
     this.commentError.set(null)
   }
 
   protected async saveComment(): Promise<void> {
-    if (!this.canEdit() || !this.commentDirty() || this.savingComment()) {
+    if (!this.canEdit() || !this.commentDirty() || this.busy()) {
       return
     }
     if (this.commentText().length > AVAILABILITY_COMMENT_MAX_LENGTH) {
@@ -429,24 +405,37 @@ export class AvailabilityPoll {
     }
 
     const subject = this.subject()
-    const roleKeys = checkedRoleKeysFromSubject(this.roleSlots(), subject)
+    const rawRoleKeys = checkedRoleKeysFromSubject(this.roleSlots(), subject)
+    if (subject.status === 'available' && this.hasRoles() && rawRoleKeys.length === 0) {
+      this.commentError.set('Choisis au moins un rôle avant de modifier cette disponibilité.')
+      return
+    }
+    const roleKeys = subject.status === 'available'
+      ? normalizeCandidateRoleKeys(this.roleSlots(), rawRoleKeys) : []
     this.savingComment.set(true)
-    const result = await this.persist.saveCommentOnly({
-      seasonId: this.seasonId(),
-      eventId: this.eventId(),
-      subjectParticipantId: subject.participantId,
-      proxyMode: this.proxyMode(),
-      status: subject.status,
-      roleKeys,
-      applyVolunteerRule: this.shouldApplyVolunteerRule(roleKeys),
-      comment: this.commentText().trim() ? this.commentText().trim() : null,
-    })
-    this.savingComment.set(false)
+    let result
+    try {
+      result = await this.persist.saveCommentOnly({
+        seasonId: this.seasonId(),
+        eventId: this.eventId(),
+        subjectParticipantId: subject.participantId,
+        proxyMode: this.proxyMode(),
+        status: subject.status,
+        roleKeys,
+        applyVolunteerRule: true,
+        comment: this.commentText().trim() ? this.commentText().trim() : null,
+      })
+    } catch {
+      this.commentError.set('Enregistrement impossible. Réessaie en conservant tes modifications.')
+      return
+    } finally {
+      this.savingComment.set(false)
+    }
 
     if (!result.ok || !result.data) {
       if (result.status === 400) {
         this.commentError.set(
-          `Le commentaire ne peut pas dépasser ${AVAILABILITY_COMMENT_MAX_LENGTH} caractères.`,
+          'Réponse invalide. Vérifie les rôles et le commentaire.',
         )
       }
       return
@@ -468,6 +457,8 @@ export class AvailabilityPoll {
     status: 'available' | 'unavailable' | 'unknown',
     roleKeys: RoleKey[],
   ): Promise<void> {
+    if (!this.canEdit() || this.busy()) return
+    this.savingRowKey.set(rowKey)
     const subject = this.subject()
     const previousSummary = this.summary()
     const optimistic = patchSummaryOptimistic(
@@ -477,24 +468,30 @@ export class AvailabilityPoll {
       roleKeys,
     )
     this.summaryPatch.emit(optimistic)
-    this.savingRowKey.set(rowKey)
+    let result
+    try {
+      result = await this.persist.saveVote({
+        seasonId: this.seasonId(),
+        eventId: this.eventId(),
+        troupeId: this.troupeId(),
+        roleSlots: this.roleSlots(),
+        subjectParticipantId: subject.participantId,
+        proxyMode: this.proxyMode(),
+        status,
+        roleKeys,
+        applyVolunteerRule: true,
+        savedComment: this.savedComment(),
+        initialStatus: this.initialStatus(),
+        availabilityOpenedAt: this.availabilityOpenedAt(),
+      })
 
-    const result = await this.persist.saveVote({
-      seasonId: this.seasonId(),
-      eventId: this.eventId(),
-      troupeId: this.troupeId(),
-      roleSlots: this.roleSlots(),
-      subjectParticipantId: subject.participantId,
-      proxyMode: this.proxyMode(),
-      status,
-      roleKeys,
-      applyVolunteerRule: this.shouldApplyVolunteerRule(roleKeys),
-      savedComment: this.savedComment(),
-      initialStatus: this.initialStatus(),
-      availabilityOpenedAt: this.availabilityOpenedAt(),
-    })
-
-    this.savingRowKey.set(null)
+    } catch {
+      this.summaryPatch.emit(previousSummary)
+      this.snack.open('Enregistrement impossible.', 'OK', { duration: 5000 })
+      return
+    } finally {
+      this.savingRowKey.set(null)
+    }
 
     if (!result.ok || !result.data) {
       this.summaryPatch.emit(previousSummary)
@@ -510,12 +507,13 @@ export class AvailabilityPoll {
     })
   }
 
-  private shouldApplyVolunteerRule(roleKeys: RoleKey[]): boolean {
-    return !(
-      this.volunteerExplicitlyUnchecked &&
-      roleKeys.includes('player') &&
-      !roleKeys.includes('volunteer')
-    )
+  protected volunteerLocked(roleKey: string): boolean {
+    return roleKey === 'volunteer' && this.subject().status === 'available' && this.subject().roleKeys.includes('volunteer') && mandatoryVolunteerCoverage(this.roleSlots())
+  }
+
+  protected async clearResponse(): Promise<void> {
+    if (!this.canEdit() || this.busy()) return
+    await this.persistVote('clear', 'unknown', [])
   }
 
   private async ensureChancesLoaded(): Promise<void> {

@@ -203,6 +203,30 @@ class AvailabilityService(
     }
 
     @Transactional(readOnly = true)
+    fun hasUnknownAvailability(
+        seasonId: UUID,
+        eventId: UUID,
+        principal: SessionUserPrincipal,
+    ): Boolean {
+        val event = loadAuthorizedEvent(seasonId, eventId, principal)
+        requireAvailabilitySummaryReadable(event, seasonId, principal)
+        if (event.archived || !event.isAvailabilityOpen()) {
+            return false
+        }
+        val eligible = loadEligibleParticipants(seasonId, event.id)
+        if (eligible.isEmpty()) {
+            return false
+        }
+        val availabilityIndex =
+            availabilityRepository
+                .findByEvent_IdWithAssociations(event.id)
+                .toAvailabilityIndex()
+        return eligible.any { row ->
+            availabilityIndex.forParticipant(row.participantId, row.userId) == null
+        }
+    }
+
+    @Transactional(readOnly = true)
     fun getSummary(
         seasonId: UUID,
         eventId: UUID,
@@ -776,16 +800,17 @@ class AvailabilityService(
         event: EventEntity,
         stored: StoredAvailabilityStatus,
         body: SetMyAvailabilityRequest,
-    ): List<String> =
-        if (stored == StoredAvailabilityStatus.AVAILABLE) {
-            AvailabilityRoleRules.normalizeRoleKeys(
-                event.roleSlots,
-                body.roleKeys,
-                applyVolunteerRule = body.applyVolunteerRule ?: true,
-            )
-        } else {
-            emptyList()
+    ): List<String> {
+        if (stored != StoredAvailabilityStatus.AVAILABLE) return emptyList()
+        val roles = AvailabilityRoleRules.normalizeRoleKeys(
+            event.roleSlots,
+            body.roleKeys,
+        )
+        if (roles.isEmpty() && AvailabilityRoleRules.rolesRequiredForEvent(event.roleSlots).isNotEmpty()) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Choisis au moins un rôle pour cet événement.")
         }
+        return roles
+    }
 
     private data class EligibleParticipantRow(
         val participantId: UUID,

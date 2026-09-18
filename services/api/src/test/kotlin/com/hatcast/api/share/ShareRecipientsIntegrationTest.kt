@@ -285,6 +285,7 @@ class ShareRecipientsIntegrationTest {
             eq("draw"),
             eq("🎲 TIRAGE test message"),
             any(),
+            any(),
         )
     }
 
@@ -553,6 +554,7 @@ class ShareRecipientsIntegrationTest {
             eq(seasonId),
             eq("event"),
             eq("📢 Invite dispos test"),
+            any(),
             any(),
         )
     }

@@ -48,9 +48,9 @@ This document provides the complete epic and story breakdown for **hatcast**, de
 - FR11: An administrator can create, edit, and archive seasons for a troupe.
 - FR12: An administrator can create, edit, and archive events (spectacles) within a season. Each event includes at minimum: **title**, **date and time** (or start/end window), **location or venue label**, **description** (optional), **event type**, and **lifecycle status** (active vs inactive/archived). Inactive or archived events are hidden from ordinary members and visitors; administrators and authorized organizers retain access.
 - FR13: Active troupe members can view **active** seasons and events for their troupe by default. Inactive or archived events are not listed on member and visitor surfaces. Authorized season/event participants who are not troupe members can access only the active season or event scope granted to them, according to the permission model.
-- FR14: An administrator can configure event types and required/optional roles for events according to troupe rules, including whether **volunteer availability is mandatory** when a participant marks a play role as available.
+- FR14: An administrator can configure event types and required/optional roles for events according to troupe rules, including the number of volunteer slots offered by the event.
 - FR15: A **linked participant** can record availability per event as **available**, **unavailable**, or **unknown**, within their authorized season or event scope.
-- FR16: A linked participant can indicate role-level availability when the event type requires role choices. When a play role is marked available and the event type has **mandatory volunteer coverage** configured (FR14), volunteer availability is recorded as available for that event unless the participant explicitly marks volunteer unavailable.
+- FR16: A linked participant can indicate role-level availability when the event type requires role choices. Every new saved available response includes volunteer when the event offers positive volunteer slots, without opt-out or requiring another role. Historical empty-role responses remain eligible for every role until explicitly replaced.
 - FR17: A **season organizer, event organizer, or troupe administrator** can record or adjust availability on behalf of a participant in their authorized scope, including name-only or not-yet-linked participants, with auditability of who acted.
 - FR18: In MVP, a linked participant can add an optional free-text **availability comment** (maximum **500 characters**) on their availability submission for an event. A **season organizer, event organizer, or troupe administrator** (same scope as FR17) can add or edit the same field on behalf of a participant. Comments appear to organizers and administrators on the event availability view; they are not shown on public discovery pages.
 - FR19: An organizer can view eligible participants who are available for each role for an event.
@@ -1026,14 +1026,14 @@ afin que les organisateurs planifient la présence.
 #### Story 5.2 : Disponibilité par rôle et rôles favoris pré-sélectionnés
 
 En tant que **participant lié**,  
-je veux indiquer ma disponibilité au niveau des rôles requis, avec **pré-sélection de mes rôles favoris** troupe lorsque configurés,  
+je veux indiquer ma disponibilité au niveau des rôles requis, sans présélection des rôles optionnels,
 afin de signaler rapidement sur quels postes je peux jouer.
 
 **Acceptance Criteria**
 
 - **Given** un type d’événement avec choix de rôles (DOMAIN), **when** je suis « Dispo », **then** je peux exprimer la candidature par rôle conformément aux règles (FR16).
-- **Given** des rôles favoris troupe configurés (FR46), **when** j’ouvre le formulaire pour un type d’événement applicable, **then** ces rôles sont **pré-cochés** et je peux les modifier avant soumission.
-- **Given** couverture bénévole obligatoire (FR14), **when** un rôle jeu est marqué Dispo, **then** le bénévolat est enregistré Dispo sauf décochage explicite.
+- **Given** des rôles favoris troupe configurés (FR46), **when** j’ouvre le formulaire, **then** les rôles optionnels restent non cochés pour une nouvelle réponse ; seul le bénévolat proposé constitue la sélection obligatoire. Les préférences du compte restent inchangées.
+- **Given** des places bénévoles proposées, **when** une réponse Dispo est enregistrée, **then** le bénévolat est obligatoire, même seul ; les autres rôles sont optionnels. Les anciennes réponses sans rôle restent inchangées jusqu’à une validation explicite.
 - **Couverture :** FR16, FR46 ; UX-DR5 (candidature rôle si Dispo).
 
 ---

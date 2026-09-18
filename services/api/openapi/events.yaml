@@ -736,3 +736,9 @@ components:
           type: object
           nullable: true
           description: Composition ; présent si tab=equipe (`composition.yaml`).
+        hasUnknownAvailability:
+          type: boolean
+          description: >
+            Au moins un participant éligible n'a pas répondu (status unknown).
+            Présent sur tous les onglets pour le menu Relance dispos, sans charger
+            availabilitySummary hors tab=dispos.

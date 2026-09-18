@@ -29,6 +29,7 @@ interface CompositionNotificationPort {
         intent: String,
         messagePreview: String,
         actorUserId: UUID,
+        recipientChannels: Map<UUID, Set<com.hatcast.api.notification.NotificationChannel>> = emptyMap(),
     )
 
     fun notifyTeamValidatedFyi(
@@ -125,6 +126,7 @@ class NoOpCompositionNotificationAdapter : CompositionNotificationPort {
         intent: String,
         messagePreview: String,
         actorUserId: UUID,
+        recipientChannels: Map<UUID, Set<com.hatcast.api.notification.NotificationChannel>>,
     ) {
         log.debug(
             "manual_announcement_requested eventId={} seasonId={} intent={} messagePreviewLength={} actorUserId={}",

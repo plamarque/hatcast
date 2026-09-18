@@ -1,4 +1,5 @@
-import { Component, input, output } from '@angular/core'
+import { Component, input, output, signal } from '@angular/core'
+import { MatButtonModule } from '@angular/material/button'
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatIconModule } from '@angular/material/icon'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
@@ -14,6 +15,7 @@ import type { PollRowKind } from './availability-vote.utils'
   selector: 'app-availability-poll-row',
   imports: [
     MatCheckboxModule,
+    MatButtonModule,
     MatIconModule,
     MatProgressBarModule,
     MatProgressSpinnerModule,
@@ -29,6 +31,8 @@ export class AvailabilityPollRow {
   readonly label = input.required<string>()
   readonly emoji = input<string | null>(null)
   readonly checked = input(false)
+  readonly mandatory = input(false)
+  protected readonly helpOpen = signal(false)
   readonly disabled = input(false)
   readonly fillPercent = input(0)
   readonly counterText = input('')
@@ -48,7 +52,7 @@ export class AvailabilityPollRow {
   readonly poolSegmentTap = output<{ participantId: string; chancePercent: number }>()
 
   protected onCheckboxChange(checked: boolean): void {
-    if (this.disabled() || this.saving()) {
+    if (this.disabled() || this.saving() || this.mandatory()) {
       return
     }
     this.checkedChange.emit(checked)

@@ -78,8 +78,18 @@ class CompositionWorkflowNotificationAdapter(
         intent: String,
         messagePreview: String,
         actorUserId: UUID,
+        recipientChannels: Map<UUID, Set<NotificationChannel>>,
     ) {
         if (intent == "availability_nudge") {
+            val unknownUserIds =
+                recipientResolver
+                    .resolveUnknownAvailabilityRecipients(seasonId, eventId)
+                    .mapNotNull { it.userId }
+                    .toSet()
+            val currentRecipientChannels = recipientChannels.filterKeys { it in unknownUserIds }
+            if (currentRecipientChannels.isEmpty()) {
+                return
+            }
             dispatcher.dispatch(
                 NotificationDispatchContext(
                     intent = NotificationIntent.MANUAL_AVAILABILITY_NUDGE,
@@ -88,6 +98,8 @@ class CompositionWorkflowNotificationAdapter(
                     troupeId = null,
                     actorUserId = actorUserId,
                     customMessageBody = messagePreview,
+                    recipientUserIds = currentRecipientChannels.keys.toList(),
+                    recipientChannels = currentRecipientChannels,
                 ),
             )
             return

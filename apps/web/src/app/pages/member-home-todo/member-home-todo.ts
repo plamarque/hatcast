@@ -23,7 +23,9 @@ import { DemoTroupeJoinService } from '../../core/troupes/demo-troupe-join.servi
 import { saisonEventPath, troupeHubPath } from '../../core/navigation/troupe-routes'
 import { MePreferencesApiService } from '../../core/account/me-preferences-api.service'
 import type { MemberGender } from '../../core/account/member-gender'
-import { AgendaParticipationStatus } from '../../shared/participation/agenda-participation-status'
+import { AgendaEventCard } from '../../shared/participation/agenda-event-card'
+import { AgendaEventActionsService } from '../../shared/participation/agenda-event-actions.service'
+import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 
 @Component({
   selector: 'app-member-home-todo',
@@ -32,12 +34,14 @@ import { AgendaParticipationStatus } from '../../shared/participation/agenda-par
     MatIconModule,
     MatSnackBarModule,
     RouterLink,
-    AgendaParticipationStatus,
+    AgendaEventCard,
   ],
   templateUrl: './member-home-todo.html',
   styleUrl: './member-home-todo.scss',
 })
 export class MemberHomeTodo implements OnInit, OnDestroy {
+  protected readonly eventActions = inject(AgendaEventActionsService)
+  private readonly troupeContext = inject(TroupeContextService)
   private readonly auth = inject(AuthApiService)
   private readonly memberBootstrap = inject(MemberShellBootstrapService)
   private readonly mePreferencesApi = inject(MePreferencesApiService)
@@ -152,6 +156,7 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
       return
     }
     this.loadingSession.set(false)
+    void this.troupeContext.load()
     void this.loadViewerGender()
     void this.seasonShortcut.refresh()
     void this.bootstrapInbox()
@@ -301,12 +306,12 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
     }).format(new Date(action.startsAt))
   }
 
-  protected timeLabel(item: UserAgendaItem): string {
-    return new Intl.DateTimeFormat('fr-FR', {
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZone: 'Europe/Paris',
-    }).format(new Date(item.startsAt))
+  protected async openAvailability(item: UserAgendaItem): Promise<void> {
+    if (await this.eventActions.openAvailability(item)) await this.loadInbox()
+  }
+
+  protected async openParticipation(item: UserAgendaItem): Promise<void> {
+    if (await this.eventActions.openParticipation(item, this.viewerGender())) await this.loadInbox()
   }
 
   protected isAvailabilityAction(action: InboxAction): boolean {
@@ -330,20 +335,6 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
       return null
     }
     return { label, urgent: calendarDaysFromNow(action.startsAt, now) <= URGENT_DAYS }
-  }
-
-  protected eventDetailText(
-    item: AgendaCardEnrichedItem,
-  ): { description?: string; location?: string } | null {
-    const description = item.description?.trim()
-    const location = item.location?.trim()
-    if (!description && !location) {
-      return null
-    }
-    return {
-      ...(description ? { description } : {}),
-      ...(location ? { location } : {}),
-    }
   }
 
   private async loadViewerGender(): Promise<void> {

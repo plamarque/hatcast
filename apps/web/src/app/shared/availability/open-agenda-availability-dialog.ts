@@ -27,11 +27,10 @@ export async function openAgendaAvailabilityDialog(
   params: OpenAgendaAvailabilityDialogParams,
 ): Promise<AvailabilityDialogResult | undefined> {
   const availability = await availabilityApi.getMyAvailability(params.seasonId, params.eventId)
-  const initialStatus =
-    availability.ok && availability.data ? availability.data.status : params.fallbackStatus
-  const initialRoleKeys = availability.ok && availability.data ? availability.data.roleKeys : []
-  const initialComment =
-    availability.ok && availability.data ? (availability.data.comment ?? null) : null
+  if (!availability.ok || !availability.data) throw new Error('availability-load')
+  const initialStatus = availability.data.status
+  const initialRoleKeys = availability.data.roleKeys
+  const initialComment = availability.data.comment ?? null
 
   const ref = dialog.open<AvailabilityDialog, AvailabilityDialogData, AvailabilityDialogResult>(
     AvailabilityDialog,

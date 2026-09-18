@@ -2,6 +2,7 @@ package com.hatcast.api.event
 
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.availability.AvailabilityService
+import com.hatcast.api.availability.AvailabilityStatusMapper
 import com.hatcast.api.availability.dto.EventAvailabilitySummaryResponse
 import com.hatcast.api.composition.CompositionService
 import com.hatcast.api.composition.dto.CompositionResponseDto
@@ -131,6 +132,15 @@ class EventPageService(
             categories = categories,
             availabilitySummary = availabilitySummary,
             composition = composition,
+            hasUnknownAvailability =
+                resolveHasUnknownAvailability(
+                    seasonId = seasonId,
+                    eventId = eventId,
+                    event = event,
+                    permissions = permissions,
+                    principal = principal,
+                    availabilitySummary = availabilitySummary,
+                ),
         )
     }
 
@@ -161,6 +171,50 @@ class EventPageService(
         } catch (ex: ResponseStatusException) {
             if (ex.statusCode == HttpStatus.FORBIDDEN) {
                 null
+            } else {
+                throw ex
+            }
+        }
+
+    private fun resolveHasUnknownAvailability(
+        seasonId: UUID,
+        eventId: UUID,
+        event: EventResponseDto,
+        permissions: MySeasonPermissionsDto,
+        principal: SessionUserPrincipal,
+        availabilitySummary: EventAvailabilitySummaryResponse?,
+    ): Boolean {
+        if (!canSeeRelanceAvailabilityHint(event, permissions)) {
+            return false
+        }
+        if (availabilitySummary != null) {
+            return availabilitySummary.participants.any { it.status == AvailabilityStatusMapper.UNKNOWN }
+        }
+        return loadHasUnknownAvailabilityIfReadable(seasonId, eventId, principal)
+    }
+
+    private fun canSeeRelanceAvailabilityHint(
+        event: EventResponseDto,
+        permissions: MySeasonPermissionsDto,
+    ): Boolean {
+        if (event.archived || event.availabilityOpenedAt == null) {
+            return false
+        }
+        return permissions.isTroupeAdmin ||
+            permissions.isSeasonOrganizer ||
+            event.id in permissions.eventOrganizerFor
+    }
+
+    private fun loadHasUnknownAvailabilityIfReadable(
+        seasonId: UUID,
+        eventId: UUID,
+        principal: SessionUserPrincipal,
+    ): Boolean =
+        try {
+            availabilityService.hasUnknownAvailability(seasonId, eventId, principal)
+        } catch (ex: ResponseStatusException) {
+            if (ex.statusCode == HttpStatus.FORBIDDEN) {
+                false
             } else {
                 throw ex
             }

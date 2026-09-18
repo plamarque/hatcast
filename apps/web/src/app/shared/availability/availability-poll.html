@@ -9,7 +9,7 @@
     rowKind="unavailable"
     label="Pas disponible"
     [checked]="isUnavailableChecked()"
-    [disabled]="!canEdit()"
+    [disabled]="!canEdit() || busy()"
     [fillPercent]="unavailableFillPercent()"
     [counterText]="'' + unavailableCount()"
     [avatars]="unavailableAvatars()"
@@ -31,6 +31,7 @@
         [emoji]="roleEmojiFor(role.roleKey)"
         [checked]="isRoleRowChecked(role.roleKey)"
         [disabled]="rolesDisabled()"
+        [mandatory]="volunteerLocked(role.roleKey)"
         [fillPercent]="roleFillPercent(role.roleKey)"
         [counterText]="roleCounterText(role.roleKey)"
         [avatars]="roleAvatars(role.roleKey)"
@@ -53,7 +54,7 @@
       rowKind="available"
       label="Dispo"
       [checked]="isAvailableFlatChecked()"
-      [disabled]="!canEdit()"
+      [disabled]="!canEdit() || busy()"
       [fillPercent]="flatAvailableFillPercent()"
       [counterText]="flatAvailableCountValue() + '/' + summary().participants.length"
       [avatars]="flatAvailableAvatars()"
@@ -68,6 +69,10 @@
   }
 </div>
 
+@if (canEdit() && subject().status !== 'unknown') {
+  <button mat-button type="button" class="availability-poll__clear" [disabled]="busy()" (click)="clearResponse()">{{ proxyMode() ? 'Effacer la réponse' : 'Effacer ma réponse' }}</button>
+}
+
 @if (showCommentBlock()) {
   <div class="availability-poll__comment">
     <mat-form-field appearance="outline" class="availability-poll__comment-field">
@@ -75,7 +80,7 @@
       <textarea
         matInput
         rows="3"
-        [readonly]="!canEdit()"
+        [readonly]="!canEdit() || busy()"
         [value]="commentText()"
         [attr.maxlength]="500"
         (input)="onCommentInput($any($event.target).value)"
@@ -92,7 +97,7 @@
         mat-flat-button
         type="button"
         class="availability-poll__comment-save"
-        [disabled]="!commentDirty() || savingComment()"
+        [disabled]="!commentDirty() || busy()"
         (click)="saveComment()"
       >
         Enregistrer le commentaire
