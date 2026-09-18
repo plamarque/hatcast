@@ -77,7 +77,7 @@ done
 if [[ ${#PLAYWRIGHT_ARGS[@]} -eq 0 ]]; then
   case "${PRESET}" in
     gate)
-      PLAYWRIGHT_ARGS=(--project=e1-mobile-member --project=e1-desktop-orga)
+      PLAYWRIGHT_ARGS=(--project=e1-mobile-member --project=e1-mobile-orga --project=e1-desktop-orga)
       ;;
     smoke)
       PLAYWRIGHT_ARGS=(--project=setup-admin)
