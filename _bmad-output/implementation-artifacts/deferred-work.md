@@ -36,3 +36,7 @@ status: open
 - source_spec: `spec-bug-024-mandatory-volunteer.md`
   summary: BUG-023 - Preserve saved Home card state if inbox refresh fails.
   evidence: Existing BUG-021 dependency member-home-todo.ts openAvailability/openParticipation discard result.item and fetchInbox retains prior state on refresh failure.
+
+- source_spec: none
+  summary: Fix E2E-WD-07 so distinct draw formulas produce distinct preview chances when their rules differ.
+  evidence: Split from the staging-release gate because the draw formula calculation failure is independently shippable from the mobile availability-reminder failure.

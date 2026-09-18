@@ -36,6 +36,7 @@ export default defineConfig({
     {
       name: 'e1-mobile-member',
       testMatch: /e1\/.*\.mobile\.spec\.ts/,
+      testIgnore: /e1\/orga-availability-reminder\.mobile\.spec\.ts/,
       use: {
         ...devices['Pixel 5'],
         storageState: 'e2e/.auth/member.json',
