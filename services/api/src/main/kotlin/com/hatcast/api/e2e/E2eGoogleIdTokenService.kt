@@ -14,6 +14,7 @@ import java.time.Instant
  * Known tokens (idToken value):
  * - `e2e-admin` → Patrice seed (TROUPE_ADMIN Les Improbots + super-admin plateforme)
  * - `e2e-member` → Angie seed (membre troupe, sans admin)
+ * - `e2e-reminder-organizer` → Anneke seed (organisatrice de saison E1, sans admin)
  */
 @Service
 @Profile("e2e")
@@ -40,6 +41,12 @@ class E2eGoogleIdTokenService(
                     googleSub = "seed-improbots-01",
                     email = "angie@seed.improbots.test",
                     name = "Angie",
+                ),
+            "e2e-reminder-organizer" to
+                Persona(
+                    googleSub = "seed-improbots-02",
+                    email = "anneke@seed.improbots.test",
+                    name = "Anneke",
                 ),
             "e2e-guest-carnet-only" to
                 Persona(

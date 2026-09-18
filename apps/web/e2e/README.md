@@ -155,8 +155,10 @@ cd apps/web && npx playwright install chromium
 |--------|--------|------|-------|
 | `setup-admin` | — | `e2e-admin` + reset 3.19 & E1 | `auth.setup.ts` |
 | `setup-member` | — | `e2e-member` (Angie) + reset E1 | `auth-member.setup.ts` |
+| `setup-reminder-organizer` | — | dedicated non-admin organizer | `auth-reminder-organizer.setup.ts` |
 | `e1-mobile-member` | Pixel 5 | membre | `e1/*.mobile.spec.ts` |
 | `e1-desktop-orga` | Desktop Chrome | admin | `e1/*.desktop.spec.ts` |
+| `e1-desktop-reminder-organizer` | Desktop Chrome | dedicated non-admin organizer | `e1/reminder-organizer.desktop.spec.ts` |
 | `chromium-3-19` | Desktop Chrome | admin | `recette-3.19.spec.ts` |
 | `chromium-3-8d` | Desktop Chrome | admin | `recette-3.8d.spec.ts` |
 | `chromium-3-25` | Desktop Chrome | guest personas (per spec) | `recette-3.25.spec.ts` |
@@ -240,6 +242,8 @@ export PLAYWRIGHT_BASE_URL="https://hatcast-v2-staging-….run.app"
 cd apps/web
 npm run test:e2e -- --project=e1-mobile-member --project=e1-desktop-orga
 ```
+
+The reminder-organizer project additionally requires `HATCAST_E2E_REMINDER_ORGANIZER_EMAIL` and `HATCAST_E2E_REMINDER_ORGANIZER_PASSWORD`. This dedicated account must be an active member and season organizer for the selected E1 season, without troupe or platform administrator privileges.
 
 **Gate T3 — migration golden (après replay complet)** : [`migration-staging-gate.yml`](../../../.github/workflows/migration-staging-gate.yml) ou local :
 
