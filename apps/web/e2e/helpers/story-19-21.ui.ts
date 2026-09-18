@@ -246,10 +246,3 @@ export async function fetchPoolPreviewSegments(
   const body = (await response.json()) as { segments: PoolPreviewSegment[] }
   return body.segments ?? []
 }
-
-export function chanceSignature(segments: PoolPreviewSegment[]): string {
-  return segments
-    .map((segment) => `${segment.participantId}:${segment.chancePercent}`)
-    .sort()
-    .join('|')
-}
