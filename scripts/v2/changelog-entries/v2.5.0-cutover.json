@@ -1,0 +1,18 @@
+{
+  "version": "2.5.0",
+  "date": "__BUILD_DATE__",
+  "source": "curated-release",
+  "notes": "Availability reminders, role selection, and mobile navigation improvements.",
+  "changes": [
+    "✨ Disponibilités — les orgas peuvent relancer les membres qui n’ont pas encore répondu depuis le détail du spectacle.",
+    "✨ Disponibilités — lorsqu’un spectacle propose des rôles, choisis le tien avant de confirmer.",
+    "🔧 Disponibilités — mêmes actions et choix de rôle depuis Accueil et Mon agenda.",
+    "🔧 Mobile — choix de rôle plus lisibles et contenu dégagé au-dessus de la navigation."
+  ],
+  "changes_en": [
+    "✨ Availability — orgs can remind members who have not replied yet from the show details.",
+    "✨ Availability — when a show offers roles, choose yours before confirming.",
+    "🔧 Availability — use the same response and role-selection journey from Home and My schedule.",
+    "🔧 Mobile — clearer role choices and content stays visible above the bottom navigation."
+  ]
+}
