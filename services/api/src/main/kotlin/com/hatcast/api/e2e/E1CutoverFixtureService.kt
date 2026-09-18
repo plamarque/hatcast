@@ -9,6 +9,8 @@ import com.hatcast.api.composition.EventCompositionSlotRepository
 import com.hatcast.api.e2e.dto.E1CutoverFixtureResponse
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
+import com.hatcast.api.organizer.SeasonOrganizerEntity
+import com.hatcast.api.organizer.SeasonOrganizerRepository
 import com.hatcast.api.participant.ParticipantStatus
 import com.hatcast.api.participant.SeasonParticipantMembershipSync
 import com.hatcast.api.participant.SeasonParticipantRepository
@@ -37,6 +39,7 @@ class E1CutoverFixtureService(
     private val auditEventRepository: AuditEventRepository,
     private val auditRecorder: AuditEventRecorder,
     private val membershipSync: SeasonParticipantMembershipSync,
+    private val seasonOrganizerRepository: SeasonOrganizerRepository,
 ) {
     @Transactional
     fun resetE1Cutover(): E1CutoverFixtureResponse {
@@ -55,6 +58,7 @@ class E1CutoverFixtureService(
         membershipSync.ensureForMembership(season, membership)
         val participant = requireParticipant(season.id, MEMBER_MEMBERSHIP_ID)
         reactivate(participant)
+        ensureReminderOrganizer(season)
 
         val drawEvent = loadEvent(EVENT_DRAW_ID, season.id)
         val activiteEvent = loadEvent(EVENT_ACTIVITE_ID, season.id)
@@ -142,6 +146,25 @@ class E1CutoverFixtureService(
         }
     }
 
+    private fun ensureReminderOrganizer(season: com.hatcast.api.season.SeasonEntity) {
+        val membership =
+            troupeMembershipRepository.findById(REMINDER_ORGANIZER_MEMBERSHIP_ID).orElseThrow {
+                ResponseStatusException(HttpStatus.NOT_FOUND, "Reminder organizer membership seed missing")
+            }
+        val user = membership.user ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Reminder organizer user seed missing")
+        membershipSync.ensureForMembership(season, membership)
+        if (seasonOrganizerRepository.findBySeason_IdAndUser_Id(season.id, user.id) == null) {
+            seasonOrganizerRepository.save(
+                SeasonOrganizerEntity(
+                    season = season,
+                    user = user,
+                    grantedAt = Instant.now(),
+                    grantedBy = null,
+                ),
+            )
+        }
+    }
+
     private fun ensureActiviteAudit(
         seasonId: UUID,
         eventId: UUID,
@@ -176,6 +199,7 @@ class E1CutoverFixtureService(
         private val SEED_TROUPE_ID = UUID.fromString("a0000001-0000-4000-8000-000000000001")
         private val MEMBER_MEMBERSHIP_ID = UUID.fromString("e0000001-0000-4000-8000-000000000001")
         private val MEMBER_USER_ID = UUID.fromString("d0000001-0000-4000-8000-000000000001")
+        private val REMINDER_ORGANIZER_MEMBERSHIP_ID = UUID.fromString("e0000001-0000-4000-8000-000000000002")
         private val EVENT_DRAW_ID = UUID.fromString("c0000014-0000-4000-8000-000000000014")
         private val EVENT_ACTIVITE_ID = UUID.fromString("c0000010-0000-4000-8000-000000000010")
         private val EVENT_PENDING_ID = UUID.fromString("c0000012-0000-4000-8000-000000000012")

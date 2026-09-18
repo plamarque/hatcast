@@ -211,6 +211,7 @@ Le job **T3** n’est **pas** couplé au deploy : lancer après `./scripts/migra
 | `HATCAST_E2E_STAGING_BASE_URL` | secret | Origine HTTPS Cloud Run (`PLAYWRIGHT_BASE_URL`) |
 | `HATCAST_E2E_ORGA_EMAIL` / `HATCAST_E2E_ORGA_PASSWORD` | secrets | Login desktop orga (Identity Platform) |
 | `HATCAST_E2E_MEMBER_EMAIL` / `HATCAST_E2E_MEMBER_PASSWORD` | secrets | Login mobile membre |
+| `HATCAST_E2E_REMINDER_ORGANIZER_EMAIL` / `HATCAST_E2E_REMINDER_ORGANIZER_PASSWORD` | secrets | Dedicated non-admin season organizer for the availability-reminder E2E |
 | `HATCAST_DATASOURCE_URL` | secret | JDBC Neon staging (assert migration §6) |
 | `HATCAST_DATASOURCE_USERNAME` / `HATCAST_DATASOURCE_PASSWORD` | secrets | Credentials Neon (même paire que deploy Cloud Run ; requis par `pg` pour §6) |
 | `HATCAST_E2E_TROUPE_SLUG` | variable | défaut `la-malice` |
@@ -238,6 +239,8 @@ export HATCAST_E2E_ORGA_EMAIL="…"
 export HATCAST_E2E_ORGA_PASSWORD="…"
 export HATCAST_E2E_MEMBER_EMAIL="…"
 export HATCAST_E2E_MEMBER_PASSWORD="…"
+export HATCAST_E2E_REMINDER_ORGANIZER_EMAIL="…"
+export HATCAST_E2E_REMINDER_ORGANIZER_PASSWORD="…"
 export HATCAST_E2E_SEASON_SLUG="malice-2025-2026"
 export HATCAST_E2E_MEMBER_SLUG="…"
 # Slugs spectacle : optionnels — découverte API (dispos ouvertes ; passé OK si saison figée)
@@ -254,8 +257,10 @@ BASE_URL="$PLAYWRIGHT_BASE_URL" ./scripts/check-pwa.sh
 # Playwright E1 uniquement
 cd apps/web
 npx playwright install chromium
-npm run test:e2e -- --project=e1-mobile-member --project=e1-desktop-orga
+npm run test:e2e -- --project=e1-mobile-member --project=e1-desktop-orga --project=e1-desktop-reminder-organizer
 ```
+
+Before enabling the gate, an operator must create the dedicated Identity Platform account, add it as an active member and season organizer for `HATCAST_E2E_SEASON_SLUG`, and verify that it has neither troupe-admin nor platform-admin access. Store only its email and password as the two GitHub `staging` secrets above.
 
 **Avant `deploy_prod.sh` :** confirmer qu’un run T2 récent est **vert** sur le commit RC cible (ou lancer `workflow_dispatch` juste avant promote). Après un replay migration, lancer aussi **T3** ([`migration-staging-gate.yml`](../../../.github/workflows/migration-staging-gate.yml)) si la parité Malice doit être attestée avant cutover.
 

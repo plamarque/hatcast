@@ -34,6 +34,11 @@ export default defineConfig({
       dependencies: isStagingTarget ? ['setup-admin'] : [],
     },
     {
+      name: 'setup-reminder-organizer',
+      testMatch: /auth-reminder-organizer\.setup\.ts/,
+      dependencies: ['setup-admin'],
+    },
+    {
       name: 'e1-mobile-member',
       testMatch: /e1\/.*\.mobile\.spec\.ts/,
       testIgnore: /e1\/orga-availability-reminder\.mobile\.spec\.ts/,
@@ -46,11 +51,21 @@ export default defineConfig({
     {
       name: 'e1-desktop-orga',
       testMatch: /e1\/.*\.desktop\.spec\.ts/,
+      testIgnore: /e1\/reminder-organizer\.desktop\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
         storageState: 'e2e/.auth/admin.json',
       },
       dependencies: ['setup-admin'],
+    },
+    {
+      name: 'e1-desktop-reminder-organizer',
+      testMatch: /e1\/reminder-organizer\.desktop\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'e2e/.auth/reminder-organizer.json',
+      },
+      dependencies: ['setup-reminder-organizer'],
     },
     {
       name: 'e1-mobile-orga',

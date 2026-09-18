@@ -3,7 +3,7 @@
 #
 # Usage (depuis la racine du dépôt) :
 #   ./scripts/run_e2e.sh              # suite complète (parité CI e2e-smoke)
-#   ./scripts/run_e2e.sh --gate         # gate E1 (mobile membre + desktop orga)
+#   ./scripts/run_e2e.sh --gate         # gate E1 (mobile membre + relance orga + desktop admin)
 #   ./scripts/run_e2e.sh --smoke        # auth + fixtures uniquement
 #   ./scripts/run_e2e.sh -- --project=chromium-3-8d
 #
@@ -28,7 +28,7 @@ Usage: $(basename "$0") [OPTIONS] [-- playwright-args...]
 Lance les tests E2E V2 (Playwright, profil API e2e).
 
 Options :
-  --gate            Gate E1 (--project=e1-mobile-member --project=e1-desktop-orga)
+  --gate            Gate E1 (mobile membre, relance orga, desktop admin)
   --smoke           Smoke minimal (--project=setup-admin)
   --reuse-servers   Réutiliser 8080/4200 si déjà up (API **doit** être profil e2e)
   --help, -h        Cette aide
@@ -77,7 +77,7 @@ done
 if [[ ${#PLAYWRIGHT_ARGS[@]} -eq 0 ]]; then
   case "${PRESET}" in
     gate)
-      PLAYWRIGHT_ARGS=(--project=e1-mobile-member --project=e1-mobile-orga --project=e1-desktop-orga)
+      PLAYWRIGHT_ARGS=(--project=e1-mobile-member --project=e1-mobile-orga --project=e1-desktop-orga --project=e1-desktop-reminder-organizer)
       ;;
     smoke)
       PLAYWRIGHT_ARGS=(--project=setup-admin)
