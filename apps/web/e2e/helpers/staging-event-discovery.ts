@@ -31,6 +31,15 @@ type UserAgendaItem = { eventSlug: string; title: string; seasonSlug: string }
 type UserAgendaResponse = { content: UserAgendaItem[] }
 const REMINDER_EVENT_ID = 'c00000e1-0000-4000-8000-000000000001'
 
+/**
+ * This event is a resettable staging fixture for reminder journeys only. The
+ * generic member E1 suite writes availability answers, so it must never use
+ * this anchor when it selects events for its own journeys.
+ */
+function excludeReminderFixture(events: SeasonEvent[]): SeasonEvent[] {
+  return events.filter((event) => event.id !== REMINDER_EVENT_ID)
+}
+
 function env(name: string): string | undefined {
   return process.env[name]?.trim() || undefined
 }
@@ -249,7 +258,7 @@ export async function discoverStagingE1Context(
     `/v1/troupes/${troupe.id}/seasons/by-slug/${encodeURIComponent(seasonSlug)}`,
   )
   const memberUserId = await fetchCurrentUserId(request)
-  const events = await listSeasonEvents(request, season.id)
+  const events = excludeReminderFixture(await listSeasonEvents(request, season.id))
   const memberEligible = await filterMemberEligibleDisposOpen(request, season.id, events, memberUserId)
   if (memberEligible.length === 0) {
     throw new Error(
