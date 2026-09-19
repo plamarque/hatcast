@@ -20,7 +20,11 @@ type CompositionSnapshot = {
   validatedAt?: string | null
 }
 type AuthMe = { user: { id: string } }
-type SummaryParticipant = { participantId: string; userId?: string | null }
+type SummaryParticipant = {
+  participantId: string
+  userId?: string | null
+  status?: 'unknown' | 'available' | 'unavailable'
+}
 type AvailabilitySummary = { participants: SummaryParticipant[] }
 type UserAgendaItem = { eventSlug: string; title: string; seasonSlug: string }
 type UserAgendaResponse = { content: UserAgendaItem[] }
@@ -117,6 +121,24 @@ async function filterMemberEligibleDisposOpen(
   for (const event of disposOpen(events)) {
     const participant = await memberParticipantOnEvent(request, seasonId, event.id, userId)
     if (participant) {
+      eligible.push(event)
+    }
+  }
+  return eligible
+}
+
+async function filterWithUnknownAvailability(
+  request: APIRequestContext,
+  seasonId: string,
+  events: SeasonEvent[],
+): Promise<SeasonEvent[]> {
+  const eligible: SeasonEvent[] = []
+  for (const event of events) {
+    const summary = await apiGet<AvailabilitySummary>(
+      request,
+      `/v1/seasons/${seasonId}/events/${event.id}/availability/summary`,
+    )
+    if (summary.participants.some((participant) => participant.status === 'unknown')) {
       eligible.push(event)
     }
   }
@@ -229,8 +251,15 @@ export async function discoverStagingE1Context(
     )
   }
 
-  const dispos = pickDisposEvent(memberEligible)
-  const draw = await pickDrawEvent(request, season.id, memberEligible)
+  const reminderEligible = await filterWithUnknownAvailability(request, season.id, memberEligible)
+  if (reminderEligible.length === 0) {
+    throw new Error(
+      'No open event with an unanswered eligible participant — publish staging fixture data or pin HATCAST_E2E_EVENT_DRAW_SLUG',
+    )
+  }
+
+  const dispos = pickDisposEvent(reminderEligible)
+  const draw = await pickDrawEvent(request, season.id, reminderEligible)
   const drawParticipant = await memberParticipantOnEvent(request, season.id, draw.id, memberUserId)
   if (!drawParticipant) {
     throw new Error(
