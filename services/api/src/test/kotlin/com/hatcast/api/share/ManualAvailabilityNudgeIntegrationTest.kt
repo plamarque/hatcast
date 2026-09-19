@@ -8,10 +8,14 @@ import com.hatcast.api.notification.NotificationDispatcher
 import com.hatcast.api.notification.NotificationIntent
 import com.hatcast.api.organizer.SeasonOrganizerEntity
 import com.hatcast.api.organizer.SeasonOrganizerRepository
+import com.hatcast.api.participant.EventParticipantEntity
+import com.hatcast.api.participant.EventParticipantRepository
+import com.hatcast.api.participant.ParticipantStatus
 import com.hatcast.api.participant.SeasonParticipantEntity
 import com.hatcast.api.participant.SeasonParticipantRemovalSource
 import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.participant.SeasonParticipantService
+import com.hatcast.api.event.EventRepository
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.support.TestAuthSupport
 import com.hatcast.api.troupe.TroupeBaselineRole
@@ -70,6 +74,12 @@ class ManualAvailabilityNudgeIntegrationTest {
 
     @Autowired
     private lateinit var seasonParticipantService: SeasonParticipantService
+
+    @Autowired
+    private lateinit var eventParticipantRepository: EventParticipantRepository
+
+    @Autowired
+    private lateinit var eventRepository: EventRepository
 
     @Autowired
     private lateinit var seasonOrganizerRepository: SeasonOrganizerRepository
@@ -387,6 +397,22 @@ class ManualAvailabilityNudgeIntegrationTest {
         ensureRoster(seasonId)
         grantNonParticipantSeasonOrganizer(organizer, organizerSub, seasonId)
         val eventId = createEvent(admin, seasonId)
+        val organizerUser = userRepository.findByGoogleSub(organizerSub) ?: error("Missing organizer user")
+        val organizerSeasonParticipant =
+            seasonParticipantRepository.findBySeason_IdAndTroupeMembership_Id(
+                seasonId,
+                membershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, organizerUser.id)?.id
+                    ?: error("Missing organizer membership"),
+            ) ?: error("Missing organizer season participant")
+        eventParticipantRepository.save(
+            EventParticipantEntity(
+                event = eventRepository.findById(eventId).orElseThrow(),
+                displayName = organizerSeasonParticipant.displayName,
+                user = organizerUser,
+                seasonParticipant = organizerSeasonParticipant,
+                status = ParticipantStatus.ACTIVE,
+            ),
+        )
         openAvailability(admin, seasonId, eventId)
 
         val summary =
@@ -394,7 +420,6 @@ class ManualAvailabilityNudgeIntegrationTest {
                 mockMvc.perform(get("/v1/seasons/$seasonId/events/$eventId/availability/summary").cookie(organizer))
                     .andExpect(status().isOk).andReturn().response.contentAsString,
             )
-        val organizerUser = userRepository.findByGoogleSub(organizerSub) ?: error("Missing organizer user")
         org.junit.jupiter.api.Assertions.assertTrue(
             summary.get("participants").none { participant -> participant.get("userId")?.asText() == organizerUser.id.toString() },
             "The dedicated organizer must not be an active season participant",
