@@ -1,5 +1,15 @@
 [
   {
+    "version": "2.5.0",
+    "date": "2026-09-19",
+    "changes": [
+      "✨ Disponibilités — les orgas peuvent relancer les membres qui n’ont pas encore répondu depuis le détail du spectacle.",
+      "✨ Disponibilités — lorsqu’un spectacle propose des rôles, choisis le tien avant de confirmer.",
+      "🔧 Disponibilités — mêmes actions et choix de rôle depuis Accueil et Mon agenda.",
+      "🔧 Mobile — choix de rôle plus lisibles et contenu dégagé au-dessus de la navigation."
+    ]
+  },
+  {
     "version": "2.4.6",
     "date": "2026-09-16",
     "changes": [
