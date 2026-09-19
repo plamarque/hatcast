@@ -321,6 +321,13 @@ jobs:
             --cpu 1 \
             --startup-probe=initialDelaySeconds=0,timeoutSeconds=10,periodSeconds=10,failureThreshold=60,httpGet.path=/,httpGet.port=8080 \
             --env-vars-file="${ENV_FILE}"
+          # Staging can retain a manually pinned revision after a prior rollback.
+          # The E1 gate must exercise the image built by this workflow.
+          if [ "${TARGET_ENV}" = "staging" ]; then
+            gcloud run services update-traffic "${SERVICE_NAME}" \
+              --region "${GCP_REGION}" \
+              --to-latest
+          fi
           # --allow-unauthenticated peut échouer à appliquer IAM ; voir DEPLOY_V2_CLOUD_RUN.md §4.1
           gcloud run services add-iam-policy-binding "${SERVICE_NAME}" \
             --region "${GCP_REGION}" \
