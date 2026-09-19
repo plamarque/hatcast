@@ -1,5 +1,46 @@
 # Changelog
 
+## [2.5.0] - 2026-09-19
+
+### ✨ New Features
+- feat(story): merge availability-reminder-notify
+- feat(reminders): Notify unanswered members
+- feat(story): merge fix-availability-mandatory-volunteer
+- feat(story): merge bug-021-availability-consistency
+
+### 🐛 Bug Fixes
+- fix(availability): Exclude removed participants
+- fix(ci): Route staging to latest revision
+- fix(e2e): Gate mobile organizer reminder
+- fix(navigation): Lift mobile nav content
+- fix(navigation): Add mobile bottom spacing
+- fix(availability): Refine mobile role dialog
+- fix(availability): Require offered volunteer
+- fix(ui): Simplify availability dialog copy
+- fix(ui): Compact availability role selection
+- fix(availability): Clarify role selection
+- fix(event-detail): Show Relance dispos on Infos via BFF flag
+
+### 📝 Other Changes
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- test(e2e): Isolate reminder fixture selection
+- chore(v2): promote v2 to staging-v2
+- test(e2e): Isolate reminder fixtures
+- chore(v2): promote v2 to staging-v2
+- test(e2e): Select events needing reminders
+- chore(v2): promote v2 to staging-v2
+- test(e2e): Stabilize formula preview coverage
+- test(e2e): Cover organizer reminders
+- docs(release): Add v2.5.0 user changelog cutover
+- chore(availability): Renumber volunteer incident
+- test(availability): Record final delivery checks
+- docs: Record reminder email eligibility issue
+- chore(v2): sync release v2.4.6-rc.1 artifacts to v2
+
+---
+
 ## [2.4.6] - 2026-09-16
 
 ### ✨ New Features
