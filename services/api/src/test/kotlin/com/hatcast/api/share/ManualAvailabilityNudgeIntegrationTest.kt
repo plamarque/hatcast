@@ -6,7 +6,10 @@ import com.hatcast.api.auth.IdpIdTokenVerifier
 import com.hatcast.api.notification.NotificationDispatchContext
 import com.hatcast.api.notification.NotificationDispatcher
 import com.hatcast.api.notification.NotificationIntent
+import com.hatcast.api.organizer.SeasonOrganizerEntity
+import com.hatcast.api.organizer.SeasonOrganizerRepository
 import com.hatcast.api.participant.SeasonParticipantEntity
+import com.hatcast.api.participant.SeasonParticipantRemovalSource
 import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.participant.SeasonParticipantService
 import com.hatcast.api.season.SeasonRepository
@@ -67,6 +70,9 @@ class ManualAvailabilityNudgeIntegrationTest {
 
     @Autowired
     private lateinit var seasonParticipantService: SeasonParticipantService
+
+    @Autowired
+    private lateinit var seasonOrganizerRepository: SeasonOrganizerRepository
 
     @Autowired
     private lateinit var manualShareNotifyRepository: EventManualShareNotifyRepository
@@ -172,6 +178,34 @@ class ManualAvailabilityNudgeIntegrationTest {
                     displayName = "Sans compte",
                 ),
             ).id
+    }
+
+    private fun grantNonParticipantSeasonOrganizer(
+        cookie: jakarta.servlet.http.Cookie,
+        googleSub: String,
+        seasonId: UUID,
+    ) {
+        val user = userRepository.findByGoogleSub(googleSub) ?: error("Missing organizer user")
+        val membership =
+            membershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, user.id)
+                ?: error("Missing organizer membership")
+        val season = seasonRepository.findById(seasonId).orElseThrow()
+        seasonOrganizerRepository.save(
+            SeasonOrganizerEntity(
+                season = season,
+                user = user,
+                grantedAt = Instant.now(),
+                grantedBy = null,
+            ),
+        )
+        val participant =
+            seasonParticipantRepository.findBySeason_IdAndTroupeMembership_Id(seasonId, membership.id)
+                ?: error("Missing organizer season participant")
+        participant.status = com.hatcast.api.participant.ParticipantStatus.REMOVED
+        participant.removedAt = Instant.now()
+        participant.removalSource = SeasonParticipantRemovalSource.SEASON_ADMIN
+        participant.updatedAt = Instant.now()
+        seasonParticipantRepository.save(participant)
     }
 
     private fun setMyAvailability(
@@ -344,6 +378,63 @@ class ManualAvailabilityNudgeIntegrationTest {
 
     @Test
     @Tag("FR31")
+    fun `season organizer without admin or participant access can preview and notify selected unknown recipient`() {
+        val admin = adminCookie("sub-nudge-organizer-admin")
+        val organizerSub = "sub-nudge-organizer"
+        val organizer = memberCookie(organizerSub)
+        memberCookie("sub-nudge-organizer-recipient")
+        val seasonId = createSeason(admin)
+        ensureRoster(seasonId)
+        grantNonParticipantSeasonOrganizer(organizer, organizerSub, seasonId)
+        val eventId = createEvent(admin, seasonId)
+        openAvailability(admin, seasonId, eventId)
+
+        val summary =
+            mapper.readTree(
+                mockMvc.perform(get("/v1/seasons/$seasonId/events/$eventId/availability/summary").cookie(organizer))
+                    .andExpect(status().isOk).andReturn().response.contentAsString,
+            )
+        val organizerUser = userRepository.findByGoogleSub(organizerSub) ?: error("Missing organizer user")
+        org.junit.jupiter.api.Assertions.assertTrue(
+            summary.get("participants").none { participant -> participant.get("userId")?.asText() == organizerUser.id.toString() },
+            "The dedicated organizer must not be an active season participant",
+        )
+
+        val preview =
+            mapper.readTree(
+                mockMvc.perform(
+                    get("/v1/seasons/$seasonId/events/$eventId/share-recipients")
+                        .param("intent", "availability_nudge")
+                        .cookie(organizer),
+                ).andExpect(status().isOk).andReturn().response.contentAsString,
+            )
+        val selectedParticipantId =
+            preview.get("recipients").first { recipient ->
+                recipient.get("channels").get("email").get("eligible").asBoolean() ||
+                    recipient.get("channels").get("push").get("eligible").asBoolean()
+            }.get("participantId").asText()
+
+        mockMvc.perform(
+            post("/v1/seasons/$seasonId/events/$eventId/share-recipients/notify")
+                .cookie(organizer)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """{"intent":"availability_nudge","messageText":"Rappel organisateur","confirmationFingerprint":"${preview.get("confirmationFingerprint").asText()}","recipientParticipantIds":["$selectedParticipantId"]}""",
+                ).with(csrf()),
+        ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.acceptedCount").value(1))
+
+        verify(notificationDispatcher).dispatch(
+            argThat { context: NotificationDispatchContext ->
+                context.intent == NotificationIntent.MANUAL_AVAILABILITY_NUDGE &&
+                    context.eventId == eventId &&
+                    context.actorUserId == organizerUser.id
+            },
+        )
+    }
+
+    @Test
+    @Tag("FR31")
     fun `POST availability_nudge rejects an empty selection without side effects`() {
         val admin = adminCookie("sub-nudge-empty-selection")
         memberCookie("sub-nudge-empty-selection-member")
@@ -438,6 +529,15 @@ class ManualAvailabilityNudgeIntegrationTest {
                 get("/v1/seasons/$seasonId/events/$eventId/share-recipients")
                     .param("intent", "availability_nudge")
                     .cookie(member),
+            ).andExpect(status().isForbidden)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events/$eventId/share-recipients/notify")
+                    .cookie(member)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"intent":"availability_nudge","messageText":"Rappel","recipientParticipantIds":[]}""")
+                    .with(csrf()),
             ).andExpect(status().isForbidden)
     }
 }

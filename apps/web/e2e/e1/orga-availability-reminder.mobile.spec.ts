@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 import { openEventAdminMenu, openEventTab } from '../helpers/e1.ui'
-import { prepareE1Run, resolveE1Context } from '../helpers/e1-staging'
+import { prepareE1Run, resolveReminderE1Context } from '../helpers/e1-staging'
 
 test.describe('E1 — relance de disponibilités (mobile)', () => {
   test.beforeEach(async ({ page, request }) => {
@@ -9,8 +9,8 @@ test.describe('E1 — relance de disponibilités (mobile)', () => {
   })
 
   test('E1-ORG-031 — conserve les trois actions sur une ligne', async ({ page, request }) => {
-    const fx = await resolveE1Context(request)
-    await openEventTab(page, fx, fx.eventDrawSlug, 'infos')
+    const fx = await resolveReminderE1Context(request)
+    await openEventTab(page, fx, fx.eventReminderSlug, 'infos')
     await openEventAdminMenu(page)
     await page.getByRole('menuitem', { name: 'Relance dispos' }).click()
 

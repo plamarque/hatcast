@@ -243,7 +243,7 @@ cd apps/web
 npm run test:e2e -- --project=e1-mobile-member --project=e1-desktop-orga
 ```
 
-The reminder-organizer project additionally requires `HATCAST_E2E_REMINDER_ORGANIZER_EMAIL` and `HATCAST_E2E_REMINDER_ORGANIZER_PASSWORD`. This dedicated account must be an active member and season organizer for the selected E1 season, without troupe or platform administrator privileges.
+The reminder projects use the reserved `HATCAST_E2E_REMINDER_EVENT_SLUG` anchor, created/reset by `scripts/v2/e1-staging-reminder-fixture.mjs` in the staging gate. It is open, future, and resets the E2E member to an unanswered, email-notifiable recipient on that event; no member, draw, or activity scenario may use this event. The reminder-organizer project additionally requires `HATCAST_E2E_REMINDER_ORGANIZER_EMAIL` and `HATCAST_E2E_REMINDER_ORGANIZER_PASSWORD`. This dedicated account must be an active troupe member and season organizer for the selected E1 season, without troupe or platform administrator privileges and without an active season-participant row. The Playwright journeys only preview and deselect recipients; they never send a reminder.
 
 **Gate T3 — migration golden (après replay complet)** : [`migration-staging-gate.yml`](../../../.github/workflows/migration-staging-gate.yml) ou local :
 

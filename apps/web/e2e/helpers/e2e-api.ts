@@ -24,6 +24,16 @@ export type E1CutoverFixture = {
   eventActiviteTitle: string
   eventPendingSlug: string
   eventPendingTitle: string
+  /** Dedicated, read-only availability-reminder fixture (never shared with member/draw/activity journeys). */
+  eventReminderSlug: string
+  eventReminderTitle: string
+}
+
+export type E1EventContext = Pick<E1CutoverFixture, 'troupeSlug' | 'seasonSlug' | 'seasonId'>
+
+export type E1ReminderFixture = E1EventContext & {
+  eventReminderSlug: string
+  eventReminderTitle: string
 }
 
 export async function resetE1CutoverFixture(request: APIRequestContext): Promise<E1CutoverFixture> {

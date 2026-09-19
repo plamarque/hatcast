@@ -30,6 +30,8 @@ jobs:
       HATCAST_E2E_MEMBER_PASSWORD: ${{ secrets.HATCAST_E2E_MEMBER_PASSWORD }}
       HATCAST_E2E_REMINDER_ORGANIZER_EMAIL: ${{ secrets.HATCAST_E2E_REMINDER_ORGANIZER_EMAIL }}
       HATCAST_E2E_REMINDER_ORGANIZER_PASSWORD: ${{ secrets.HATCAST_E2E_REMINDER_ORGANIZER_PASSWORD }}
+      HATCAST_E2E_STAGING_FIXTURE_CONFIRM: staging
+      HATCAST_E2E_STAGING_TARGET: staging
       HATCAST_E2E_TROUPE_SLUG: ${{ vars.HATCAST_E2E_TROUPE_SLUG }}
       HATCAST_E2E_SEASON_SLUG: ${{ vars.HATCAST_E2E_SEASON_SLUG }}
       HATCAST_E2E_MEMBER_SLUG: ${{ vars.HATCAST_E2E_MEMBER_SLUG }}
@@ -83,6 +85,10 @@ jobs:
         run: |
           echo "::warning::Malice season missing on Neon staging — E1 Playwright skipped."
           echo "::warning::After migrate-from-v1.sh, run Actions → Migration staging gate (Malice)."
+
+      - name: Bootstrap isolated staging reminder fixture
+        if: steps.malice_ready.outcome == 'success'
+        run: node scripts/v2/e1-staging-reminder-fixture.mjs
 
       - name: Install Playwright Chromium
         if: steps.malice_ready.outcome == 'success'

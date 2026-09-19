@@ -1,6 +1,6 @@
 import type { APIRequestContext } from '@playwright/test'
 
-import type { E1CutoverFixture } from './e2e-api'
+import type { E1CutoverFixture, E1ReminderFixture } from './e2e-api'
 
 type TroupeListItem = { id: string; slug: string }
 type SeasonRef = { id: string; slug: string; title: string }
@@ -26,8 +26,10 @@ type SummaryParticipant = {
   status?: 'unknown' | 'available' | 'unavailable'
 }
 type AvailabilitySummary = { participants: SummaryParticipant[] }
+type ReminderPreview = { notifiableCount: number }
 type UserAgendaItem = { eventSlug: string; title: string; seasonSlug: string }
 type UserAgendaResponse = { content: UserAgendaItem[] }
+const REMINDER_EVENT_ID = 'c00000e1-0000-4000-8000-000000000001'
 
 function env(name: string): string | undefined {
   return process.env[name]?.trim() || undefined
@@ -40,6 +42,10 @@ function startOfTodayUtc(): number {
 
 function isUpcoming(startsAt: string): boolean {
   return Date.parse(startsAt) >= startOfTodayUtc()
+}
+
+function isFuture(startsAt: string): boolean {
+  return Date.parse(startsAt) > Date.now()
 }
 
 function disposOpen(events: SeasonEvent[]): SeasonEvent[] {
@@ -300,5 +306,69 @@ export async function discoverStagingE1Context(
     eventActiviteTitle: pickBySlug(events, activiteSlug)?.title ?? dispos.title,
     eventPendingSlug: pendingSlug,
     eventPendingTitle: pickBySlug(events, pendingSlug)?.title ?? dispos.title,
+  }
+}
+
+/**
+ * Resolve the staging-only reminder anchor. Unlike member discovery, this never
+ * filters through the signed-in actor's season participant row: the dedicated
+ * organizer is intentionally not a season participant.
+ */
+export async function discoverStagingReminderContext(
+  request: APIRequestContext,
+): Promise<E1ReminderFixture> {
+  const troupeSlug = env('HATCAST_E2E_TROUPE_SLUG') ?? 'la-malice'
+  const seasonSlug = env('HATCAST_E2E_SEASON_SLUG')
+  const reminderSlug = env('HATCAST_E2E_REMINDER_EVENT_SLUG')
+  if (!seasonSlug) throw new Error('Missing HATCAST_E2E_SEASON_SLUG')
+  if (!reminderSlug) {
+    throw new Error(
+      'Missing HATCAST_E2E_REMINDER_EVENT_SLUG — run the staging reminder fixture bootstrap before Playwright',
+    )
+  }
+
+  const troupes = await apiGet<TroupeListItem[]>(request, '/v1/troupes')
+  const troupe = troupes.find((candidate) => candidate.slug === troupeSlug)
+  if (!troupe) throw new Error(`Troupe "${troupeSlug}" not visible for reminder fixture validation`)
+  const season = await apiGet<SeasonRef>(
+    request,
+    `/v1/troupes/${troupe.id}/seasons/by-slug/${encodeURIComponent(seasonSlug)}`,
+  )
+  const events = await listSeasonEvents(request, season.id)
+  const event = pickBySlug(events, reminderSlug)
+  if (!event || event.id !== REMINDER_EVENT_ID) {
+    throw new Error(
+      `Reminder fixture "${reminderSlug}" not found at its reserved identity in ${troupeSlug}/${seasonSlug}; rerun the staging reminder fixture bootstrap`,
+    )
+  }
+  if (event.archived || !event.availabilityOpenedAt || !isFuture(event.startsAt)) {
+    throw new Error(
+      `Reminder fixture "${reminderSlug}" violates its contract: archived=${event.archived}, availabilityOpenedAt=${event.availabilityOpenedAt ?? 'null'}, startsAt=${event.startsAt}; it must be open and future`,
+    )
+  }
+  const summary = await apiGet<AvailabilitySummary>(
+    request,
+    `/v1/seasons/${season.id}/events/${event.id}/availability/summary`,
+  )
+  if (!summary.participants.some((participant) => participant.status === 'unknown')) {
+    throw new Error(
+      `Reminder fixture "${reminderSlug}" has no unanswered eligible recipient; rerun the staging reminder fixture bootstrap`,
+    )
+  }
+  const preview = await apiGet<ReminderPreview>(
+    request,
+    `/v1/seasons/${season.id}/events/${event.id}/share-recipients?intent=availability_nudge`,
+  )
+  if (preview.notifiableCount < 1) {
+    throw new Error(
+      `Reminder fixture "${reminderSlug}" has no notifiable unanswered recipient; rerun the staging reminder fixture bootstrap`,
+    )
+  }
+  return {
+    troupeSlug,
+    seasonSlug,
+    seasonId: season.id,
+    eventReminderSlug: event.slug,
+    eventReminderTitle: event.title,
   }
 }
