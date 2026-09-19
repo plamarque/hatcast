@@ -836,6 +836,7 @@ class AvailabilityService(
                 .findByIdEventId(eventId)
                 .map { it.id.seasonParticipantId }
                 .toSet()
+        val removedSeasonUserIds = seasonParticipantRepository.findRemovedUserIdsForSeason(seasonId).toSet()
         val byId = linkedMapOf<UUID, EligibleParticipantRow>()
         val seenUserIds = mutableSetOf<UUID>()
 
@@ -859,8 +860,14 @@ class AvailabilityService(
             if (linkedSeasonId != null && linkedSeasonId in byId) {
                 continue
             }
+            if (row.seasonParticipant?.status == ParticipantStatus.REMOVED) {
+                continue
+            }
             val userId = row.user?.id
             if (userId != null && userId in seenUserIds) {
+                continue
+            }
+            if (userId != null && userId in removedSeasonUserIds) {
                 continue
             }
             byId[row.id] = toEligibleRow(row)
