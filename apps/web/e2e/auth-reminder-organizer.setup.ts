@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { E2E_REMINDER_ORGANIZER_ID_TOKEN } from './fixtures/e1-cutover.constants'
-import { isStagingE2e } from './helpers/e1-staging'
+import { isStagingE2e, resolveReminderE1Context } from './helpers/e1-staging'
 import { prepareE2ePage } from './helpers/e1.ui'
 import { signInWithE2eToken } from './helpers/e2e-api'
 import { signInWithEmailPassword } from './helpers/staging-auth'
@@ -13,7 +13,9 @@ const authFile = path.join(__dirname, '.auth', 'reminder-organizer.json')
 type Troupe = { id: string; slug: string }
 type Season = { id: string }
 type Permissions = { isTroupeAdmin: boolean; isSeasonOrganizer: boolean }
-type Session = { platformAdmin: boolean }
+type Session = { platformAdmin: boolean; user: { id: string } }
+type Event = { id: string }
+type AvailabilitySummary = { participants: Array<{ userId?: string | null }> }
 
 function required(value: string | undefined, name: string): string {
   if (!value?.trim()) {
@@ -57,6 +59,20 @@ setup('authenticate non-admin availability reminder organizer', async ({ page, b
   const session = (await sessionResponse.json()) as Session
   if (!permissions.isSeasonOrganizer || permissions.isTroupeAdmin || session.platformAdmin) {
     throw new Error('Availability-reminder organizer must be a season organizer without troupe admin privileges')
+  }
+  const reminderFixture = await resolveReminderE1Context(page.request)
+  const eventResponse = await page.request.get(
+    `/v1/seasons/${reminderFixture.seasonId}/events/by-slug/${encodeURIComponent(reminderFixture.eventReminderSlug)}`,
+  )
+  if (!eventResponse.ok()) throw new Error('Cannot resolve availability-reminder fixture event')
+  const event = (await eventResponse.json()) as Event
+  const availabilityResponse = await page.request.get(
+    `/v1/seasons/${reminderFixture.seasonId}/events/${event.id}/availability/summary`,
+  )
+  if (!availabilityResponse.ok()) throw new Error('Cannot verify availability-reminder organizer participant boundary')
+  const availability = (await availabilityResponse.json()) as AvailabilitySummary
+  if (availability.participants.some((participant) => participant.userId === session.user.id)) {
+    throw new Error('Availability-reminder organizer must not appear in reminder fixture participants')
   }
 
   await page.goto('/agenda')

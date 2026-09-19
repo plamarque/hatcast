@@ -198,7 +198,7 @@ Le job **T3** n’est **pas** couplé au deploy : lancer après `./scripts/migra
 
 **Bootstrap membre staging :** au setup Playwright (`auth-member.setup.ts`), l’orga E2E réactive automatiquement le compte `HATCAST_E2E_MEMBER_EMAIL` s’il est `INACTIVE` / `REMOVED` (PATCH adhésion troupe → `ACTIVE`, puis `POST …/participants/{id}/reinclude` si besoin). Désactiver : `HATCAST_E2E_SKIP_MEMBER_REACTIVATE=1`.
 
-**Spectacles Malice :** `resolveE1Context` interroge l’API (`scope=all`) et retient un event avec `availabilityOpenedAt` — **à venir en priorité**, sinon **le plus récent passé** (navigation directe `/saison/…/event/{slug}`, pas dépendant de l’agenda « upcoming »). Override : `HATCAST_E2E_EVENT_DISPOS_SLUG` / `_DRAW_SLUG`.
+**Spectacles Malice :** `resolveE1Context` interroge l’API (`scope=all`) et retient un event avec `availabilityOpenedAt` — **à venir en priorité**, sinon **le plus récent passé** (navigation directe `/saison/…/event/{slug}`, pas dépendant de l’agenda « upcoming »). Override : `HATCAST_E2E_EVENT_DISPOS_SLUG` / `_DRAW_SLUG`. Les parcours de relance utilisent séparément `HATCAST_E2E_REMINDER_EVENT_SLUG`, écrit par `scripts/v2/e1-staging-reminder-fixture.mjs` avant Playwright : cet événement réservé est ouvert, futur, et réinitialise le membre E2E comme destinataire sans réponse et notifiable. Il ne sert jamais aux parcours membre, tirage ou activité.
 
 **Critères de sortie (PO) :** health + PWA toujours requis ; 100 % P0 `e1-mobile-member` + `e1-desktop-orga` **quand** la saison Malice existe sur Neon (probe `--probe`) ; sinon gate **vert avec warning** pendant un reset/replay. Assert migration §6 + **MIG-E2E** golden : gate **T3** [`migration-staging-gate.yml`](../../../.github/workflows/migration-staging-gate.yml).
 
@@ -212,6 +212,7 @@ Le job **T3** n’est **pas** couplé au deploy : lancer après `./scripts/migra
 | `HATCAST_E2E_ORGA_EMAIL` / `HATCAST_E2E_ORGA_PASSWORD` | secrets | Login desktop orga (Identity Platform) |
 | `HATCAST_E2E_MEMBER_EMAIL` / `HATCAST_E2E_MEMBER_PASSWORD` | secrets | Login mobile membre |
 | `HATCAST_E2E_REMINDER_ORGANIZER_EMAIL` / `HATCAST_E2E_REMINDER_ORGANIZER_PASSWORD` | secrets | Dedicated non-admin season organizer for the availability-reminder E2E |
+| `HATCAST_E2E_REMINDER_EVENT_SLUG` | runtime (gate) | Slug exact de la fixture reminder, exporté par le bootstrap staging avant Playwright |
 | `HATCAST_DATASOURCE_URL` | secret | JDBC Neon staging (assert migration §6) |
 | `HATCAST_DATASOURCE_USERNAME` / `HATCAST_DATASOURCE_PASSWORD` | secrets | Credentials Neon (même paire que deploy Cloud Run ; requis par `pg` pour §6) |
 | `HATCAST_E2E_TROUPE_SLUG` | variable | défaut `la-malice` |
@@ -260,7 +261,7 @@ npx playwright install chromium
 npm run test:e2e -- --project=e1-mobile-member --project=e1-desktop-orga --project=e1-desktop-reminder-organizer
 ```
 
-Before enabling the gate, an operator must create the dedicated Identity Platform account, add it as an active member and season organizer for `HATCAST_E2E_SEASON_SLUG`, and verify that it has neither troupe-admin nor platform-admin access. Store only its email and password as the two GitHub `staging` secrets above.
+Before enabling the gate, an operator must create the dedicated Identity Platform account and add it as an active troupe member. The staging bootstrap grants/retains its season-organizer access and keeps its season-participant row removed. Verify that it has neither troupe-admin nor platform-admin access. Store only its email and password as the two GitHub `staging` secrets above.
 
 **Avant `deploy_prod.sh` :** confirmer qu’un run T2 récent est **vert** sur le commit RC cible (ou lancer `workflow_dispatch` juste avant promote). Après un replay migration, lancer aussi **T3** ([`migration-staging-gate.yml`](../../../.github/workflows/migration-staging-gate.yml)) si la parité Malice doit être attestée avant cutover.
 

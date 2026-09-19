@@ -1,6 +1,6 @@
 import { expect, type Page } from '@playwright/test'
 
-import type { E1CutoverFixture } from './e2e-api'
+import type { E1CutoverFixture, E1EventContext } from './e2e-api'
 import { seedMemberDisposRoles } from './dispos-poll.ui'
 import { saisonEventPath, saisonWorkspacePath } from './e1-routes'
 
@@ -29,7 +29,7 @@ export async function expectSeasonHistoryLatestEvent(page: Page, title: string):
 
 export async function openEventTab(
   page: Page,
-  fx: E1CutoverFixture,
+  fx: E1EventContext,
   eventSlug: string,
   tab: 'dispos' | 'equipe' | 'infos' | 'activite',
 ) {

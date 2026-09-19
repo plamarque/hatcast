@@ -21,4 +21,7 @@ data class E1CutoverFixtureResponse(
     /** `[MVP] 03 · Validations en attente` — pending confirmations. */
     val eventPendingSlug: String,
     val eventPendingTitle: String,
+    /** Dedicated read-only anchor for availability reminder journeys. */
+    val eventReminderSlug: String,
+    val eventReminderTitle: String,
 )
