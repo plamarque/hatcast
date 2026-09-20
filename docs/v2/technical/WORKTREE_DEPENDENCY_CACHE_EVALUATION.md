@@ -76,3 +76,32 @@ This is a favorable safety result, not production authorization. A follow-up
 integration story would need to make runtime preparation recognize a valid
 cache hit and offer detach before dependency changes; without it, `npm ci`
 correctly fails closed on the read-only link.
+
+## Consumption integration — 2026-09-20
+
+Runtime preparation now consumes an opt-in snapshot only when
+`WORKTREE_DEPENDENCY_CACHE_ROOT` names an existing root and a matching,
+read-only snapshot is present. Its identity combines the SHA-256 of the current
+`package-lock.json` with the active Node and npm versions. The snapshot layout
+is `<root>/<identity>/node_modules`, with the exact identity in
+`<root>/<identity>/.hatcast-worktree-dependency-cache`; this is a consumer
+contract, not a publication command.
+
+On a validated hit, preparation creates a local `node_modules` overlay. Each
+external top-level dependency links to the immutable snapshot, while the root
+workspaces (`legacy` and `apps/web`) are linked into the consuming worktree;
+this preserves npm's relative workspace resolution. The hit skips `npm ci` and
+Chromium preparation continues as usual. A missing or invalid snapshot falls
+back to `npm ci` only when no dependency entry exists. Existing dependencies
+are reused unchanged.
+
+`detach-dependencies` accepts only an overlay bearing the matching local
+marker. It validates the immutable snapshot, copies only cache-backed entries
+to a staging tree, rebuilds worktree-local workspace links, and swaps the
+staging tree in only after that copy succeeds. A failed copy leaves the
+original overlay in place; ordinary locally installed `node_modules` trees are
+never removed by this command.
+
+This remains deliberately bounded: it does not publish snapshots, select a
+default or user-level cache root, prune cache entries, or alter browser-cache
+handling.
