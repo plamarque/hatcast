@@ -2,7 +2,7 @@
 set -euo pipefail
 source_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 tmp_root="$(cd "$(mktemp -d "${TMPDIR:-/tmp}/hatcast-runtime.XXXXXX")" && pwd)"
-trap 'rm -rf "${tmp_root}"' EXIT
+trap 'chmod -R u+w "${tmp_root}" 2>/dev/null || true; rm -rf "${tmp_root}"' EXIT
 fail() { echo "FAIL: $*" >&2; exit 1; }
 expect_fail() { if "$@" >/dev/null 2>&1; then fail "command unexpectedly succeeded: $*"; fi; }
 expect() { grep -Fqx "$2" "$1" || fail "missing '$2'"; }
@@ -12,15 +12,17 @@ make_fixture() {
   git -C "${root}" config user.email test@example.invalid
   git -C "${root}" config user.name "Runtime test"
   mkdir -p "${root}/scripts/v2" "${root}/apps/web" "${root}/services/api" "${root}/_bmad/scripts" "${root}/_bmad/custom" "${root}/_bmad/_config" "${root}/.agents/skills"
-  cp "${source_root}/scripts/v2/story-worktree-runtime.sh" "${source_root}/scripts/v2/story-worktree-bootstrap.sh" "${source_root}/scripts/v2/bmad-runtime.env" "${root}/scripts/v2/"
+  cp "${source_root}/scripts/v2/story-worktree-runtime.sh" "${source_root}/scripts/v2/story-worktree-bootstrap.sh" "${source_root}/scripts/v2/bmad-runtime.env" "${source_root}/scripts/v2/worktree-dependency-cache.sh" "${root}/scripts/v2/"
   cp "${source_root}/_bmad/custom/config.toml" "${root}/_bmad/custom/"
   cp "${source_root}/_bmad/custom/story-branch-workflow.md" "${root}/_bmad/custom/"
   cp "${source_root}/_bmad/_config/manifest.yaml" "${root}/_bmad/_config/"
   cp "${source_root}/_bmad/scripts/memlog.py" "${root}/_bmad/scripts/"
   printf '.env\n' >"${root}/.gitignore"
-  printf '{"name":"fixture"}\n' >"${root}/package.json"
+  printf '{"name":"fixture","workspaces":["legacy","apps/web"]}\n' >"${root}/package.json"
   printf '{"lockfileVersion":3}\n' >"${root}/package-lock.json"
-  printf '{"name":"web"}\n' >"${root}/apps/web/package.json"
+  mkdir -p "${root}/legacy"
+  printf '{"name":"hatcast-legacy"}\n' >"${root}/legacy/package.json"
+  printf '{"name":"@hatcast/web"}\n' >"${root}/apps/web/package.json"
   printf '#!/usr/bin/env bash\n' >"${root}/services/api/gradlew"; chmod +x "${root}/services/api/gradlew"
   for skill in bmad-create-story bmad-dev-story bmad-code-review; do mkdir -p "${root}/.agents/skills/${skill}"; printf 'name: %s\n' "${skill}" >"${root}/.agents/skills/${skill}/SKILL.md"; done
   . "${source_root}/scripts/v2/bmad-runtime.env"
@@ -34,10 +36,10 @@ make_fixture() {
 make_mock_bin() {
   local bin="$1" command
   mkdir -p "${bin}"
-  printf '#!/usr/bin/env bash\nprintf "v22.0.0\\n"\n' >"${bin}/node"
+  printf '#!/usr/bin/env bash\nif [[ "$1" == "-e" ]]; then printf "hatcast-legacy\\tlegacy\\n@hatcast/web\\tapps/web\\n"; else printf "v22.0.0\\n"; fi\n' >"${bin}/node"
   printf '#!/usr/bin/env bash\nprintf "openjdk version \\"21.0.1\\"\\n" >&2\n' >"${bin}/java"
   chmod +x "${bin}/node" "${bin}/java"
-  printf '#!/usr/bin/env bash\nmkdir -p node_modules; : >node_modules/.package-lock.json\nprintf "npm:%%s:%%s " "$PWD" "$*" >>"${RUNTIME_LOG}"\n' >"${bin}/npm"
+  printf '#!/usr/bin/env bash\nif [[ "$1" == "--version" ]]; then printf "10.0.0\\n"; exit 0; fi\nmkdir -p node_modules; : >node_modules/.package-lock.json\nprintf "npm:%%s:%%s " "$PWD" "$*" >>"${RUNTIME_LOG}"\n' >"${bin}/npm"
   printf '#!/usr/bin/env bash\n[[ "${RUNTIME_NPX_FAIL:-0}" != 1 ]] || exit 1\nmkdir -p "${PLAYWRIGHT_BROWSERS_PATH}/chromium-test"; : >"${PLAYWRIGHT_BROWSERS_PATH}/chromium-test/INSTALLATION_COMPLETE"\nprintf "npx:%%s:%%s " "$PWD" "$*" >>"${RUNTIME_LOG}"\n' >"${bin}/npx"
   printf '#!/usr/bin/env bash\n[[ "${RUNTIME_LSOF_ERROR:-0}" != 1 ]] || exit 2\n[[ -n "${RUNTIME_PORT_CONFLICT:-}" && "$*" == *"-iTCP:${RUNTIME_PORT_CONFLICT}"* ]]\n' >"${bin}/lsof"
   printf '#!/usr/bin/env bash\n[[ "${RUNTIME_LINK_FAIL:-0}" != 1 ]] || exit 1\n/bin/ln "$@"\n' >"${bin}/ln"
@@ -59,8 +61,26 @@ if ! "${base_env[@]}" bash "${runtime}" prepare >"${tmp_root}/prepare.out" 2>&1;
 [[ -L "${unit}/.env" && -f "${unit}/node_modules/.package-lock.json" && -f "${tmp_root}/browser-cache/chromium-test/INSTALLATION_COMPLETE" ]] || fail "preparation did not establish runtime"
 expect "${tmp_root}/prepare.out" 'READINESS=ready'
 [[ "$(cat "${tmp_root}/runtime.log")" == "npm:${unit_physical}:ci npx:${unit_physical}/apps/web:playwright install chromium " ]] || fail "preparation commands did not use required directories: $(cat "${tmp_root}/runtime.log")"
+rm -rf "${unit}/node_modules"
+cache_root="${tmp_root}/cache"; mkdir -p "${cache_root}"
+key="$("${base_env[@]}" bash "${unit}/scripts/v2/worktree-dependency-cache.sh" identity "${unit}")"
+snapshot="${cache_root}/${key}"; mkdir -p "${snapshot}/node_modules/pkg"
+printf '%s\n' "${key}" >"${snapshot}/.hatcast-worktree-dependency-cache"
+: >"${snapshot}/node_modules/.package-lock.json"; chmod -R a-w "${snapshot}"
+"${base_env[@]}" WORKTREE_DEPENDENCY_CACHE_ROOT="${cache_root}" bash "${runtime}" prepare >"${tmp_root}/hit.out" 2>&1 || { cat "${tmp_root}/hit.out"; fail "cache-hit preparation failed"; }
+expect "${tmp_root}/hit.out" 'DEPENDENCY_CACHE=hit'
+[[ -d "${unit}/node_modules" && ! -L "${unit}/node_modules" ]] || fail "cache hit did not create local overlay"
+[[ -L "${unit}/node_modules/pkg" ]] || fail "cache hit did not link external dependency"
+[[ -L "${unit}/node_modules/@hatcast/web" && -L "${unit}/node_modules/hatcast-legacy" ]] || fail "cache hit did not create workspace links"
+[[ "$(cat "${tmp_root}/runtime.log")" == "npm:${unit_physical}:ci npx:${unit_physical}/apps/web:playwright install chromium npx:${unit_physical}/apps/web:playwright install chromium " ]] || fail "cache hit ran npm ci"
+rm -rf "${unit}/node_modules"; mkdir "${unit}/node_modules"; : >"${unit}/node_modules/.package-lock.json"
 "${base_env[@]}" bash "${runtime}" prepare >/dev/null || fail "idempotent preparation failed"
-[[ "$(cat "${tmp_root}/runtime.log")" == "npm:${unit_physical}:ci npx:${unit_physical}/apps/web:playwright install chromium npm:${unit_physical}:ci npx:${unit_physical}/apps/web:playwright install chromium " ]] || fail "idempotent preparation did not repeat the bounded reproducibility checks"
+[[ "$(cat "${tmp_root}/runtime.log")" == "npm:${unit_physical}:ci npx:${unit_physical}/apps/web:playwright install chromium npx:${unit_physical}/apps/web:playwright install chromium npx:${unit_physical}/apps/web:playwright install chromium " ]] || fail "idempotent preparation did not reuse local dependencies"
+rm -rf "${unit}/node_modules"
+empty_cache_root="${tmp_root}/empty-cache"; mkdir "${empty_cache_root}"
+"${base_env[@]}" WORKTREE_DEPENDENCY_CACHE_ROOT="${empty_cache_root}" bash "${runtime}" prepare >"${tmp_root}/configured-miss.out" 2>&1 || { cat "${tmp_root}/configured-miss.out"; fail "configured cache miss preparation failed"; }
+expect "${tmp_root}/configured-miss.out" 'DEPENDENCY_CACHE=miss'
+[[ "$(cat "${tmp_root}/runtime.log")" == "npm:${unit_physical}:ci npx:${unit_physical}/apps/web:playwright install chromium npx:${unit_physical}/apps/web:playwright install chromium npx:${unit_physical}/apps/web:playwright install chromium npm:${unit_physical}:ci npx:${unit_physical}/apps/web:playwright install chromium " ]] || fail "configured cache miss did not run npm ci"
 rm -rf "${tmp_root}/browser-cache"; expect_fail "${base_env[@]}" RUNTIME_NPX_FAIL=1 bash "${runtime}" prepare
 [[ ! -e "${tmp_root}/browser-cache/chromium-test" ]] || fail "failed browser preparation claimed success"
 rm "${unit}/.env"; printf 'operator-owned\n' >"${unit}/.env"; expect_fail "${base_env[@]}" bash "${runtime}" prepare
