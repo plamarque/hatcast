@@ -8,7 +8,7 @@ cleanup_tmp=""
 
 state() { printf '%s=%s\n' "$1" "$2"; }
 fail() { state CODE "$1"; state FEASIBILITY no-go; exit "${2:-2}"; }
-usage() { echo "Usage: $(basename "$0") evaluate" >&2; }
+usage() { echo "Usage: $(basename "$0") evaluate | symlink-hit CACHE_ROOT WORKTREE | probe-npm-ci CACHE_ROOT WORKTREE | detach CACHE_ROOT WORKTREE" >&2; }
 
 unit_valid() {
   [[ -n "${root}" && -f "${root}/.git" && -f "${root}/package.json" && -f "${root}/package-lock.json" ]] || return 1
@@ -31,6 +31,62 @@ elapsed_ms() {
 storage_kib() { du -sk "$1" 2>/dev/null | awk 'NR == 1 { print $1 }'; }
 archive_repo() { git -C "${root}" archive --format=tar HEAD | tar -xf - -C "$1"; }
 run_npm_ci() { (cd "$1" && npm ci --no-audit --no-fund >/dev/null); }
+
+path_inside() {
+  python3 -c 'import os,sys
+root=os.path.realpath(sys.argv[1]); candidate=os.path.realpath(sys.argv[2])
+sys.exit(0 if os.path.commonpath([root, candidate]) == root else 1)' "$1" "$2"
+}
+cache_source() {
+  local cache_root="$1" source="${1}/node_modules"
+  [[ -d "${cache_root}" && -f "${source}/.package-lock.json" ]] || return 1
+  path_inside "${cache_root}" "${source}" || return 1
+  printf '%s\n' "${source}"
+}
+symlink_hit() {
+  local cache_root="$1" worktree="$2" source target start ms
+  source="$(cache_source "${cache_root}")" || fail DC_CACHE_INVALID
+  [[ -d "${worktree}" && ! -e "${worktree}/node_modules" && ! -L "${worktree}/node_modules" ]] || fail DC_WORKTREE_TARGET_CONFLICT
+  target="${worktree}/node_modules"
+  start="$(python3 -c 'import time; print(time.monotonic_ns())')"
+  ln -s "${source}" "${target}" || fail DC_LINK_FAILED 1
+  ms="$(elapsed_ms "${start}")"
+  state MODE symlink-hit
+  state CACHE_HIT linked
+  state LINK_MS "${ms}"
+  state FEASIBILITY go
+}
+probe_npm_ci() {
+  local cache_root="$1" worktree="$2" source target before after link_state rc
+  source="$(cache_source "${cache_root}")" || fail DC_CACHE_INVALID
+  target="${worktree}/node_modules"
+  [[ -L "${target}" ]] || fail DC_WORKTREE_LINK_REQUIRED
+  path_inside "${cache_root}" "${target}" || fail DC_LINK_OUTSIDE_CACHE
+  before="$(shasum "${source}/.hatcast-cache-sentinel" | awk '{print $1}')" || fail DC_SENTINEL_MISSING
+  set +e
+  (cd "${worktree}" && npm ci --ignore-scripts --no-audit --no-fund >/dev/null)
+  rc=$?
+  set -e
+  after="$(shasum "${source}/.hatcast-cache-sentinel" | awk '{print $1}')" || fail DC_SENTINEL_MISSING
+  [[ -L "${target}" ]] && link_state=retained || link_state=replaced
+  state MODE probe-npm-ci
+  state NPM_CI_LINK "${link_state}"
+  [[ ${rc} -eq 0 ]] && state NPM_CI_RESULT succeeded || state NPM_CI_RESULT refused
+  if [[ "${before}" == "${after}" ]]; then state SNAPSHOT unchanged; state FEASIBILITY go; else state SNAPSHOT mutated; state FEASIBILITY no-go; fi
+}
+detach() {
+  local cache_root="$1" worktree="$2" source target
+  source="$(cache_source "${cache_root}")" || fail DC_CACHE_INVALID
+  target="${worktree}/node_modules"
+  [[ -L "${target}" ]] || fail DC_WORKTREE_LINK_REQUIRED
+  path_inside "${cache_root}" "${target}" || fail DC_LINK_OUTSIDE_CACHE
+  rm "${target}" || fail DC_DETACH_UNLINK_FAILED 1
+  cp -R "${source}" "${target}" || fail DC_DETACH_COPY_FAILED 1
+  chmod -R u+w "${target}" || fail DC_DETACH_WRITABLE_FAILED 1
+  state MODE detach
+  state DETACH local-writable
+  state FEASIBILITY go
+}
 
 evaluate() {
   local tmp baseline source materialization baseline_start baseline_ms source_start source_ms
@@ -93,5 +149,11 @@ evaluate() {
   fi
 }
 
-[[ $# -eq 1 ]] || { usage; exit 2; }
-case "$1" in evaluate) evaluate ;; --help|-h) usage ;; *) usage; exit 2 ;; esac
+case "$1" in
+  evaluate) [[ $# -eq 1 ]] || { usage; exit 2; }; evaluate ;;
+  symlink-hit) [[ $# -eq 3 ]] || { usage; exit 2; }; symlink_hit "$2" "$3" ;;
+  probe-npm-ci) [[ $# -eq 3 ]] || { usage; exit 2; }; probe_npm_ci "$2" "$3" ;;
+  detach) [[ $# -eq 3 ]] || { usage; exit 2; }; detach "$2" "$3" ;;
+  --help|-h) usage ;;
+  *) usage; exit 2 ;;
+esac

@@ -61,3 +61,18 @@ cold-cache baseline and the cache-warmed source installation respectively.
 The materialization is consistently 6.6 to 7.2 seconds slower than the normal
 installation path. This makes the no-go decision robust for this machine and
 dependency tree.
+
+## Immutable symlink feasibility — 2026-09-20
+
+The redirected fixture evaluates a read-only snapshot linked as a worktree's
+`node_modules`. Creating the link is a cache hit and performs no dependency
+build. A real `npm ci` against the linked fixture is refused with `EACCES`
+before it can remove the immutable sentinel; the link is retained and the
+snapshot remains unchanged. An explicit detach validates that the link resolves
+inside the supplied cache root, unlinks only that entry, creates a writable
+local tree, and proves a later local mutation does not change the snapshot.
+
+This is a favorable safety result, not production authorization. A follow-up
+integration story would need to make runtime preparation recognize a valid
+cache hit and offer detach before dependency changes; without it, `npm ci`
+correctly fails closed on the read-only link.
