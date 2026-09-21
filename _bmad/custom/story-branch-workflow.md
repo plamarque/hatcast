@@ -27,6 +27,18 @@ It merges locally, pushes `v2`, fetches and verifies that `origin/v2` contains
 the integrated HEAD, then removes this clean local unit worktree and its local
 `feat/{story-key}` branch. It never deletes `origin/feat/{story-key}`.
 
+## Tracking BMad additive
+
+`start` validates the requested key against the canonical Epic/Story headings,
+then invokes the versioned project controller `story-status-sync.py` in the
+new or reopened unit. The controller only adds an absent key as `backlog` to
+`development_status`; it preserves existing entries, comments, metadata and
+`action_items`, including historical keys absent from `epics.md`. A first
+addition is committed in the unit as `chore(bmad): Sync sprint status for
+{story-key}` before Build. A retry reports the already-present entry and makes
+no commit. It never runs full Sprint Planning or modifies the ignored BMad
+runtime. An unknown or ambiguous key fails before any tracking write.
+
 ## Runtime readiness (Epic 21)
 
 From a valid `feat/{story-key}` unit, inspect without mutation:

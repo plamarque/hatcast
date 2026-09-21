@@ -124,6 +124,50 @@ print_metadata() {
   fi
 }
 
+sync_story_status() {
+  local story_key="$1" unit_path="$2" sync_output tracking pre_status changed_paths
+
+  pre_status="$(git -C "${unit_path}" status --porcelain)"
+  if [[ -n "${pre_status}" ]]; then
+    echo "ERROR: tracking synchronization requires a clean unit worktree." >&2
+    exit 1
+  fi
+
+  if ! sync_output="$(python3 "${unit_path}/scripts/v2/story-status-sync.py" --project-root "${unit_path}" --story-key "${story_key}")"; then
+    echo "ERROR: BMad tracking synchronization refused; the unit was preserved without a metadata commit." >&2
+    exit 1
+  fi
+  tracking="$(sed -n 's/^TRACKING=//p' <<<"${sync_output}")"
+  case "${tracking}" in
+    present)
+      printf '%s\n' "${sync_output}"
+      return 0
+      ;;
+    added)
+      changed_paths="$(git -C "${unit_path}" diff --name-only)"
+      if [[ "${changed_paths}" != "_bmad-output/implementation-artifacts/sprint-status.yaml" ]] || ! git -C "${unit_path}" diff --cached --quiet; then
+        echo "ERROR: tracking changed but the unit is not otherwise clean; no metadata commit was created." >&2
+        exit 1
+      fi
+      git -C "${unit_path}" add _bmad-output/implementation-artifacts/sprint-status.yaml
+      if ! git -C "${unit_path}" commit -m "chore(bmad): Sync sprint status for ${story_key}"; then
+        echo "ERROR: BMad tracking metadata commit failed; the unit was preserved." >&2
+        exit 1
+      fi
+      if [[ -n "$(git -C "${unit_path}" status --porcelain)" ]] || [[ "$(git -C "${unit_path}" log -1 --format=%s)" != "chore(bmad): Sync sprint status for ${story_key}" ]]; then
+        echo "ERROR: BMad tracking metadata commit verification failed; the unit was preserved." >&2
+        exit 1
+      fi
+      printf '%s\n' "${sync_output}"
+      printf 'TRACKING_COMMIT=created\n'
+      ;;
+    *)
+      echo "ERROR: BMad tracking synchronization returned an invalid result." >&2
+      exit 1
+      ;;
+  esac
+}
+
 start_story_branch() {
   local story_key="$1" branch dev dev_ref integration_root unit_path existing_path created=false
 
@@ -159,6 +203,7 @@ start_story_branch() {
     fi
     echo "REOPENED_UNIT_WORKTREE=${unit_path}"
     if bash "${_script_dir}/story-worktree-bootstrap.sh" --verify "${unit_path}"; then
+      sync_story_status "${story_key}" "${unit_path}"
       print_metadata "${branch}" "${dev_ref}" "${unit_path}"
       return 0
     fi
@@ -183,6 +228,7 @@ start_story_branch() {
     echo "ERROR: BMad bootstrap failed; the unit worktree was preserved for inspection: ${unit_path}" >&2
     exit 1
   fi
+  sync_story_status "${story_key}" "${unit_path}"
   print_metadata "${branch}" "${dev_ref}" "${unit_path}"
 }
 

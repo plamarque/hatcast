@@ -3,7 +3,7 @@
 
 set -euo pipefail
 
-[[ "$1" == "--yes" && "$2" == "bmad-method@6.11.0" && "$3" == "install" ]]
+[[ "$1" == "--yes" && "$2" == "bmad-method@6.12.0" && "$3" == "install" ]]
 printf '%s\n' "$@" >"${HATCAST_BMAD_NPX_LOG:?HATCAST_BMAD_NPX_LOG is required}"
 
 root=""
@@ -15,4 +15,4 @@ for ((index = 1; index <= $#; index++)); do
   fi
 done
 [[ -n "${root}" ]]
-bash "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/mock-bmad-provisioner.sh" "${root}" "6.11.0"
+bash "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/mock-bmad-provisioner.sh" "${root}" "6.12.0"
