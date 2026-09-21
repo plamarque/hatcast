@@ -3100,3 +3100,18 @@ Manual BMad stories become verifiable in their isolated worktrees before a human
 | 21.4 | Human smoke handoff | 21.2, 21.3 |
 | 21.5 | Delivery gates and integration | 21.1–21.4 |
 | 21.6 | GitHub review decision controller | existing `story-branch.sh integrate` contract; independent of 21.4–21.5 completion |
+
+#### Story 21.6 : GitHub review decision controller
+
+En tant que **propriétaire de la livraison HatCast**,
+je veux **relier chaque worktree de story à une PR GitHub, à sa révision exacte et à ma décision de revue**,
+afin que **l’intégration vers `v2` soit traçable, contrôlée et sûre**.
+
+**Acceptance Criteria**
+
+1. **Given** un worktree `feat/{story-key}` propre et enregistré, **when** la review est préparée, **then** le contrôleur crée ou met à jour une seule PR vers `v2`, publie son URL et son SHA de tête, et assure exactement un label `delivery:batch` ou `delivery:release-now`.
+2. **Given** une approbation GitHub directe de Patrice ou son approbation explicite en conversation, **when** le contrôleur lit ou enregistre cette décision, **then** il lie approbation, lane et commentaire d’attestation au SHA actuel et refuse tout SHA devenu différent.
+3. **Given** une demande de changements, des commentaires bloquants non résolus, une PR invalide, ou une approbation manquante, **when** une intégration est demandée, **then** le contrôleur échoue sans effet de bord et conserve l’unité pour correction.
+4. **Given** une décision courante et valide, **when** l’intégration est explicitement demandée, **then** le contrôleur délègue uniquement à `scripts/v2/story-branch.sh integrate`; cette commande conserve seule les responsabilités de push, vérification distante et suppression locale.
+5. **Given** un état ambigu, stale ou échoué, **when** une opération mutante est demandée, **then** elle est refusée avant toute approbation, label, commentaire, merge, push, déploiement, release ou suppression.
+6. **Couverture :** workflow développeur V2. **Priorité :** P1. **Depends :** contrat `story-branch.sh integrate`. **UI :** N/A.
