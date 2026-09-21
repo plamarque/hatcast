@@ -3088,7 +3088,7 @@ afin de **suivre** la répartition des spectacles prestigieux.
 
 ### Epic 21 — Worktree delivery readiness
 
-Manual BMad stories become verifiable in their isolated worktrees before a human is asked to approve integration. The epic retains the existing worktree and explicit integration contract while adding readiness, targeted-E2E evidence, a coverage-gap disposition, and a click-ready smoke handoff.
+Manual BMad stories become verifiable in their isolated worktrees before a human is asked to approve integration. The epic retains the existing worktree and explicit integration contract while adding readiness, targeted-E2E evidence, a coverage-gap disposition, a click-ready smoke handoff, and a GitHub review decision controller bound to the exact PR head SHA.
 
 **Delivery plan and gates:** [epic-worktree-delivery-readiness.md](epic-worktree-delivery-readiness.md).
 
@@ -3099,3 +3099,4 @@ Manual BMad stories become verifiable in their isolated worktrees before a human
 | 21.3 | Targeted E2E evidence | 21.2 |
 | 21.4 | Human smoke handoff | 21.2, 21.3 |
 | 21.5 | Delivery gates and integration | 21.1–21.4 |
+| 21.6 | GitHub review decision controller | existing `story-branch.sh integrate` contract; independent of 21.4–21.5 completion |

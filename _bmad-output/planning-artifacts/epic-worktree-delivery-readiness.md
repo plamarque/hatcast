@@ -40,8 +40,9 @@ The operator selects the Loop adapter locally before queue activation. The remai
 | 3 | `21-3-targeted-e2e-evidence` | Discover applicable Playwright coverage, run it after readiness, and record an attested result. | 21-2; D0 waiver policy | Targeted E2E passes, or a documented equivalent/approved waiver exists. |
 | 4 | `21-4-human-smoke-handoff` | Start the selected story worktree, publish a click-ready smoke handoff, and stop it cleanly. | 21-2, 21-3; D0 smoke-guide choice | Handoff names branch, URL, guide, E2E evidence and owner; stop verification passes. |
 | 5 | `21-5-delivery-gates-integration` | Connect the four evidence contracts to the existing BMad/worktree lifecycle without weakening human integration approval. | 21-1..21-4 | Black-box workflow tests prove ordering and retention on every failure. |
+| 6 | `21-6-github-review-decision-controller` | Bind a story worktree to its GitHub PR, exact head SHA, Patrice's review decision, and one delivery lane before the existing integration command may run. | Existing `story-branch.sh integrate` contract; independent of 21-4 and 21-5 completion | Hermetic GitHub CLI fixture tests prove stale, ambiguous, unapproved and changed-head states fail closed. |
 
-Stories are strictly sequential through 21-5. Loop treats `backlog` entries as selectable, so every Epic 21 invocation must use `--max-stories 1`; the operator starts the next story only after the preceding story's required human gate is recorded. Parallel product stories may use the resulting workflow only after their own readiness evidence exists.
+Stories 21-1 through 21-5 are strictly sequential. Story 21-6 is additive and may be implemented while 21-4 and 21-5 remain `awaiting-operator`; it consumes their evidence when applicable but does not alter their human-gate contract. Loop treats `backlog` entries as selectable, so every Epic 21 invocation must use `--max-stories 1`; the operator starts the selected story only after its required human gate is recorded. Parallel product stories may use the resulting workflow only after their own readiness evidence exists.
 
 ## Story acceptance contract
 
@@ -75,6 +76,13 @@ Stories are strictly sequential through 21-5. Loop treats `backlog` entries as s
 2. **Given** a complete smoke handoff, **when** the operator completes external actions, **then** Loop's observed confirmation facility may park and reverify evidence, but does not assert Git approval.
 3. **Given** human review approval, **when** integration is requested, **then** the existing `integrate` command alone preserves push, remote-ancestry and recoverable-cleanup guards.
 
+### 21-6 — GitHub review decision controller
+
+1. **Given** a clean registered `feat/{story-key}` unit, **when** review is prepared, **then** the controller creates or updates exactly one PR targeting `v2`, reports its URL and head SHA, and has exactly one `delivery:batch` or `delivery:release-now` label.
+2. **Given** a direct GitHub approval by Patrice or his explicit conversation approval, **when** the controller inspects or records the decision, **then** it binds approval, lane and attestation to the current PR head SHA and refuses a stale or changed head.
+3. **Given** requested changes, unresolved blocking comments, an invalid PR state, or a missing owner approval, **when** integration is requested, **then** the controller fails closed and leaves the unit available for repair.
+4. **Given** a current, valid decision, **when** integration is explicitly requested, **then** the controller delegates only to `story-branch.sh integrate`; that command alone pushes, verifies the remote, and removes the local unit and local branch.
+
 ## Machine and human gates
 
 | Gate | Owner | Evidence / command | Failure outcome |
@@ -85,7 +93,7 @@ Stories are strictly sequential through 21-5. Loop treats `backlog` entries as s
 | G3 coverage | machine | discovery record plus targeted E2E result | Enter coverage disposition, not human smoke. |
 | G4 coverage disposition | human where waiver is chosen | test/equivalent/waiver record | Do not request validation without it. |
 | G5 smoke | human | URL, guide, branch, E2E result, clean stop | Do not recommend integration. |
-| G6 review/integration | human then machine | explicit approval; existing `integrate` guards | Preserve unit on failure. |
+| G6 GitHub review/integration | Patrice then machine | current PR head, owner approval, exactly one lane label; existing `integrate` guards | Preserve unit on failure. |
 
 ## Activation and non-goals
 
