@@ -166,8 +166,8 @@ class MemberSeasonGlanceService(
     private fun selectPrimarySeason(candidates: List<SeasonEntity>): SeasonEntity =
         candidates.maxWith(
             compareBy<SeasonEntity> { it.isActive }
-                .thenByDescending { it.startDate ?: LocalDate.MIN }
-                .thenByDescending { it.updatedAt }
+                .thenBy { it.startDate ?: LocalDate.MIN }
+                .thenBy { it.updatedAt }
                 .thenBy { it.title.lowercase() },
         )
 

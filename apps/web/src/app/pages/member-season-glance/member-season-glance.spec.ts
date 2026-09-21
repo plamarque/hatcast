@@ -162,6 +162,32 @@ describe('MemberSeasonGlance', () => {
     })
   })
 
+  it('shows the server-resolved season in the filter when no filter was selected', async () => {
+    const { fixture, glanceApi } = await setup({
+      glance: {
+        ...glanceSelf,
+        filterBarVisible: true,
+        participationFilters: {
+          troupes: [{ id: 'troupe-1', name: 'La BIM', slug: 'la-bim' }],
+          seasons: [
+            {
+              id: 'season-1',
+              title: 'Saison 2026-2027',
+              slug: 'saison-2026-2027',
+              troupeId: 'troupe-1',
+            },
+          ],
+        },
+      },
+    })
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('La BIM')
+      expect(fixture.nativeElement.textContent).toContain('Saison 2026-2027')
+    })
+    expect(glanceApi.getSeasonGlance).toHaveBeenCalledTimes(1)
+  })
+
   it('hides filter trigger when API reports filterBarVisible false', async () => {
     const { fixture } = await setup({ glance: glanceSelf })
     expect(fixture.nativeElement.querySelector('[data-testid="filter-trigger"]')).toBeNull()

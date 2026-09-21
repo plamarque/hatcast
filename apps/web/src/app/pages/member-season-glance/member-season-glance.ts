@@ -316,6 +316,12 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
         clearStoredMemberGlanceFilters()
         await this.syncFilterQueryParams()
       } else {
+        if (this.selectedSeasonId() == null) {
+          if (this.selectedTroupeId() == null) {
+            this.selectedTroupeId.set(r.data.troupeId)
+          }
+          this.selectedSeasonId.set(r.data.resolvedSeasonId)
+        }
         await this.reconcileFiltersWithCatalog()
       }
       return
