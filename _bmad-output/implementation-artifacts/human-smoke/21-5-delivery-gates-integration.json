@@ -1,0 +1,13 @@
+{
+  "baseline_commit": "f998a3f15a3a0d51681a80bb9ba55703928a62e2",
+  "branch": "feat/21-5-delivery-gates-integration",
+  "e2e_outcome": "passed",
+  "e2e_reference": "_bmad-output/implementation-artifacts/e2e-evidence/21-3-targeted-e2e-evidence.json",
+  "guide_reference": "docs/v2/smoke/21-5-login-page.json",
+  "owned_process_group": "90561",
+  "owned_process_marker": "smoke-1790113292-90446",
+  "owner": "patrice",
+  "result": "stopped",
+  "schema": "hatcast.story-human-smoke-handoff.v1",
+  "url": "https://localhost:4200"
+}

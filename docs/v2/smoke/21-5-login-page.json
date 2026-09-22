@@ -1,0 +1,15 @@
+{
+  "route": "/connexion",
+  "account_or_fixture_reference": "public route; no authentication required",
+  "actions": [
+    "Open https://localhost:4200/connexion",
+    "Check that the page heading is Connexion",
+    "Check that the email field, password field, Se connecter button, and Google entry point are visible",
+    "Do not submit the form"
+  ],
+  "expected_observations": [
+    "The page loads without an error screen",
+    "The authentication controls are visible and usable",
+    "No authenticated session is required"
+  ]
+}
