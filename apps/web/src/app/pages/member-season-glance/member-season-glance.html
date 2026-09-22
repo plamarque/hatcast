@@ -22,6 +22,7 @@
         <app-filter-criteria-bar
           [dimensions]="hubDimensions()"
           [chips]="activeFilterChips()"
+          [removableDimensions]="removableFilterDimensions()"
           (openDimension)="onOpenFilterDimension($event)"
           (removeDimension)="onRemoveFilterDimension($event)"
           (clearAll)="onClearFilters()"
@@ -31,6 +32,7 @@
       <div class="member-glance-page__chips-row" data-testid="member-glance-chips-row">
         <app-active-filter-chips
           [chips]="activeFilterChips()"
+          [removableDimensions]="removableFilterDimensions()"
           (removeDimension)="onRemoveFilterDimension($event)"
           (openDimension)="onOpenFilterDimension($event)"
           (clearAll)="onClearFilters()"
@@ -48,6 +50,12 @@
       </div>
     } @else if (loadError()) {
       <p class="member-glance-page__error" role="alert">Impossible de charger le profil saison.</p>
+    } @else if (noParticipation()) {
+      <section class="member-glance-page__empty" aria-labelledby="member-glance-empty-heading">
+        <h2 id="member-glance-empty-heading">Aucune saison disponible</h2>
+        <p>Rejoins une troupe pour commencer à suivre tes statistiques.</p>
+        <a mat-stroked-button routerLink="/troupes">Voir mes troupes</a>
+      </section>
     } @else if (panelProfile(); as profile) {
       <app-member-profile-panel
         [profile]="profile"

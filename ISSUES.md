@@ -10,6 +10,17 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Open Issues
 
+### BUG-025 — Mes Stats defaults to a prior active season
+- **ID**: BUG-025
+- **Status**: Fixed locally — targeted verification passed; review pending
+- **Severity**: High
+- **Affected area**: V2 member season glance API and the “Mes Stats” page default scope.
+- **Observed behavior**: With multiple active eligible seasons and no explicit season filter, “Mes Stats” can render the previous season by default. When the API resolves any default season, the page leaves its filter signals unset, so it displays “Toutes les…” rather than the actual displayed scope.
+- **Expected behavior**: The default scope is the newest active eligible season and the filter visibly identifies that returned troupe and season; an explicit season filter remains authoritative.
+- **Cause**: `MemberSeasonGlanceService.selectPrimarySeason` uses `maxWith` with descending start-date and update-date comparators. Under `maxWith`, that ordering selects the older date when candidates have the same active state. `MemberSeasonGlance` does not hydrate its unset filter signals from the API's `resolvedSeasonId` and `troupeId`.
+- **Repro**: A member participates in active seasons beginning 2025-09-01 and 2026-09-01, then opens `/membre/{userSlug}` without a season query parameter.
+- **Notes/context**: The client correctly leaves an unset default to server-side resolution. The correction retains one-season aggregation and access checks, hydrates the existing filter from the returned scope, and is covered by focused backend (4 tests) and web (8 tests) suites.
+
 ### BUG-022 — Aperçu des relances : éligibilité email sans préférence
 - **ID**: BUG-022
 - **Status**: Fixed (2026-09-17)

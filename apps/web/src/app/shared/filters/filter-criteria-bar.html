@@ -21,18 +21,21 @@
           <mat-chip-set aria-label="Valeur du filtre {{ dim.title }}">
             <mat-chip
               class="filter-criteria-bar__value-chip"
-              [removable]="true"
+              [removable]="isRemovable(dim.key)"
               (removed)="onRemove(dim.key)"
               (click)="onOpen(dim.key)"
             >
               {{ chip.label }}
-              <button
-                matChipRemove
-                type="button"
-                [attr.aria-label]="'Retirer le filtre ' + chip.label"
-              >
-                <mat-icon>cancel</mat-icon>
-              </button>
+              @if (isRemovable(dim.key)) {
+                <button
+                  matChipRemove
+                  type="button"
+                  [attr.aria-label]="'Retirer le filtre ' + chip.label"
+                  (click)="$event.stopPropagation()"
+                >
+                  <mat-icon>cancel</mat-icon>
+                </button>
+              }
             </mat-chip>
           </mat-chip-set>
         }
@@ -40,7 +43,7 @@
     }
   </div>
 
-  @if (hasActiveFilters()) {
+  @if (hasRemovableFilters()) {
     <button
       mat-button
       type="button"

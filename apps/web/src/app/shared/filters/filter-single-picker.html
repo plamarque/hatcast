@@ -13,16 +13,26 @@
     <app-filter-dimension-single
       [dimension]="effectiveDimension()"
       [selectedId]="draftId()"
+      [showHeader]="!data.requiredSelection"
       (selectionChange)="onSelect($event)"
     />
   </div>
 
-  @if (data.isMobile) {
-    <div class="filter-picker-shell__footer">
-      <button mat-button type="button" data-testid="single-picker-reset" (click)="onReset()">
-        Réinitialiser
-      </button>
-      <button mat-flat-button color="primary" type="button" data-testid="single-picker-apply" (click)="onApply()">
+    @if (data.isMobile) {
+      <div class="filter-picker-shell__footer">
+      @if (!data.requiredSelection) {
+        <button mat-button type="button" data-testid="single-picker-reset" (click)="onReset()">
+          Réinitialiser
+        </button>
+      }
+      <button
+        mat-flat-button
+        color="primary"
+        type="button"
+        data-testid="single-picker-apply"
+        [disabled]="data.requiredSelection && draftId() == null"
+        (click)="onApply()"
+      >
         Appliquer
       </button>
     </div>

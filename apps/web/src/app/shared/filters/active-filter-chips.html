@@ -3,29 +3,34 @@
     <mat-chip-set aria-label="Filtres actifs">
       @for (chip of chips(); track chip.dimensionKey) {
         <mat-chip
-          [removable]="true"
+          [removable]="isRemovable(chip.dimensionKey)"
           (removed)="onRemove(chip.dimensionKey)"
           (click)="onChipClick(chip.dimensionKey)"
         >
           {{ chip.label }}
-          <button
-            matChipRemove
-            type="button"
-            [attr.aria-label]="'Retirer le filtre ' + chip.label"
-          >
-            <mat-icon>cancel</mat-icon>
-          </button>
+          @if (isRemovable(chip.dimensionKey)) {
+            <button
+              matChipRemove
+              type="button"
+              [attr.aria-label]="'Retirer le filtre ' + chip.label"
+              (click)="$event.stopPropagation()"
+            >
+              <mat-icon>cancel</mat-icon>
+            </button>
+          }
         </mat-chip>
       }
     </mat-chip-set>
-    <button
-      mat-button
-      type="button"
-      class="active-filter-chips__clear"
-      data-testid="filter-clear-all"
-      (click)="onClearAll()"
-    >
-      Tout effacer
-    </button>
+    @if (hasRemovableChips()) {
+      <button
+        mat-button
+        type="button"
+        class="active-filter-chips__clear"
+        data-testid="filter-clear-all"
+        (click)="onClearAll()"
+      >
+        Tout effacer
+      </button>
+    }
   </div>
 }

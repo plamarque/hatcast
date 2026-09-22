@@ -14,6 +14,7 @@ export class FilterDimensionSingle {
   readonly dimension = input.required<FilterDimensionConfig>()
   readonly selectedId = input<string | null>(null)
   readonly immediateApply = input(false)
+  readonly showHeader = input(true)
 
   readonly selectionChange = output<string | null>()
 
