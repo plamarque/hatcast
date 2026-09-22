@@ -17,8 +17,8 @@ Exemple : story `17-43-event-detail-contexte-infos` → branche `feat/17-43-even
 ```bash
 ./scripts/v2/story-branch.sh start STORY_KEY  # from clean v2: create/reopen and bootstrap unit
 ./scripts/v2/story-branch.sh assert STORY_KEY # from unit: before manual story/code edits
-./scripts/v2/story-branch.sh merge STORY_KEY  # from clean v2 after approved review (local)
-./scripts/v2/story-branch.sh integrate STORY_KEY # from clean v2 after approved review: merge, push, verify, cleanup
+./scripts/v2/story-branch.sh merge STORY_KEY  # from clean v2 after a current delivery decision (local)
+./scripts/v2/story-branch.sh integrate STORY_KEY # from clean v2 after a current delivery decision: merge, push, verify, cleanup
 ```
 
 `merge` remains the local-only compatibility command: it neither pushes nor
@@ -151,8 +151,14 @@ fournit son jeton de confirmation sans le persister :
 
 Cette re-vérification exige le résultat de demande retenu et un état smoke
 `stopped` cohérent. Elle confirme seulement que les preuves sont encore
-valides. L'approbation de review reste humaine et l'intégration reste, depuis
-un checkout `v2` propre et à jour, la commande inchangée :
+valides. La décision de review reste humaine : Patrice la formule explicitement
+en conversation (`batch` ou `release-now`) ou la consigne directement dans
+GitHub avec un unique label `delivery:batch` ou `delivery:release-now` et son
+commentaire `HatCast delivery decision: lane=<lane> head_sha=<SHA courant>`.
+Chaque thread de review non résolu est bloquant pour ce contrôleur. Une
+approbation GitHub formelle ne constitue pas cette gate. L'intégration reste,
+depuis un checkout `v2`
+propre et à jour, la commande inchangée :
 
 ```bash
 ./scripts/v2/story-branch.sh integrate STORY_KEY
@@ -268,7 +274,8 @@ and is neither human review nor integration approval: the `assert`, `merge`, and
 
 1. Vérifier `./scripts/v2/story-branch.sh assert {{story_key}}` dans le worktree unité, ou signaler si review hors unité.
 2. Diff de review : `git diff {{baseline_commit}}..HEAD` (ou merge-base avec `v2` si baseline absent).
-3. Si un humain confirme la review **approuvée** : recommander `./scripts/v2/story-branch.sh integrate {{story_key}}` depuis le checkout `v2` propre et à jour. Cette invocation explicite pousse `v2`, vérifie le remote, puis supprime sans confirmation supplémentaire l’unité locale et sa branche locale. Ne jamais supprimer la branche distante de story automatiquement. Le script ne peut pas prouver cette approbation.
+3. Résoudre exactement une PR ouverte vers `v2`, puis rapporter son URL et son SHA de tête. La décision explicite de Patrice doit avoir exactement un label `delivery:batch` ou `delivery:release-now` et un commentaire de Patrice `HatCast delivery decision: lane=<lane> head_sha=<SHA courant>`. Refuser un SHA devenu stale, un `Request changes` ou un thread de review non résolu : chaque thread non résolu est bloquant pour ce contrôleur. Ne jamais soumettre une review GitHub `APPROVED`.
+4. Après une préflight valide et une demande explicite d'intégration : recommander `./scripts/v2/story-branch.sh integrate {{story_key}}` depuis le checkout `v2` propre et à jour. Cette invocation explicite pousse `v2`, vérifie le remote, puis supprime sans confirmation supplémentaire l’unité locale et sa branche locale. Ne jamais supprimer la branche distante de story automatiquement.
 
 ## Parallélisme
 

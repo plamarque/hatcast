@@ -28,10 +28,35 @@ The repository controller owns local worktree and revision state. GitHub owns
 Patrice's review decision. `sprint-status.yaml` remains BMad tracking and is
 never used as the delivery state machine.
 
-For a review or integration decision, obtain the GitHub PR JSON snapshot, then
-run `uv run scripts/validate_pr_preflight.py --pr-json <snapshot> --project-root {project-root} --expected-owner <GitHub-login> --require-approval` to validate
-its head, delivery label, owner approval and clean `v2` facts. Reason from its
-JSON result; if it cannot run, report that limitation and do not mutate GitHub.
+For a review or integration decision, resolve exactly one open PR from the
+registered `feat/{story-key}` unit to `v2`. Report its URL and current head
+SHA. Capture a snapshot containing `number`, `url`, `state`, `baseRefName`,
+`headRefName`, `headRefOid`, `labels`, `comments`, `reviews` and
+`reviewThreads`, with every connection fully paginated, then run:
+
+```bash
+uv run scripts/validate_pr_preflight.py --pr-json <snapshot> \
+  --project-root {project-root} --expected-owner <Patrice-GitHub-login>
+```
+
+The validator accepts one PR only, requires an open `v2` PR, one delivery lane,
+Patrice's current lane-and-SHA attestation, no requested changes, no unresolved
+review thread, and a clean `v2` checkout. Every unresolved review thread is
+blocking for this controller. Its JSON is the decision evidence. If it
+cannot run or any check fails, report the limitation and do not mutate GitHub.
+
+Use the versioned controller, rather than reconstructing its GitHub calls:
+
+```bash
+python3 {skill-root}/scripts/github_review_decision_controller.py \
+  <prepare|record|preflight> --story-key <story-key> \
+  --project-root {project-root} --expected-owner <Patrice-GitHub-login> \
+  [--lane <batch|release-now>]
+```
+
+`prepare` resolves or creates the single PR and captures every snapshot page;
+`record` writes the explicitly authorised lane and attestation, then re-reads
+and validates it; `preflight` only captures and validates.
 
 ## Choose the operation
 
@@ -40,18 +65,28 @@ JSON result; if it cannot run, report that limitation and do not mutate GitHub.
   before code changes. Reopen the same unit only before integration.
 - **Prepare review** — require committed, targeted verification. For UX work,
   create the prescribed smoke evidence; for technical-only work, report the
-  relevant verification without inventing visual artefacts. Open or update the
-  story PR and present its head revision and evidence.
+  relevant verification without inventing visual artefacts. Create or update
+  one PR from the registered feature unit to `v2`, then present its URL, head
+  SHA and current lane state. Multiple or invalid PRs fail before any mutation.
 - **Handle review** — a GitHub `Request changes` authorizes repair from
   unresolved blocking comments in the live unit. Resolve each comment with a
   correction or an explicit explanation. Any new commit requires fresh review.
-- **Approve and integrate** — accept only Patrice's GitHub approval or his
-  explicit conversation approval. Conversation approval names only
-  `batch` or `release-now`; re-read the PR head, refuse if it changed, then use
-  Patrice's connected GitHub identity to approve, set exactly one
-  `delivery:<lane>` label and attest the head SHA in a comment. Refuse
-  integration without approval and exactly one lane. From clean, current `v2`,
-  run `{project-root}/scripts/v2/story-branch.sh integrate <story-key>`.
+- **Record decision** — accept only Patrice's explicit conversational decision
+  naming `batch` or `release-now`, or his direct GitHub decision. A vague
+  acknowledgement is never a decision. Before a conversational mutation,
+  re-read the PR head, labels, requested changes and review threads; stop if
+  the PR is ambiguous, closed, targets another branch, has a changed head, or
+  has requested changes or an unresolved thread. Use Patrice's connected
+  identity to leave exactly one label, `delivery:batch` or
+  `delivery:release-now`, and this exact comment line:
+  `HatCast delivery decision: lane=delivery:<lane> head_sha=<current-40-character-sha>`.
+  Re-read the snapshot and require the successful validator before integration.
+  Do not call a GitHub approval API or submit an `APPROVED` review.
+- **Integrate** — require the successful current preflight above and an
+  explicit integration request. A changed head, missing/malformed attestation,
+  requested changes, or unresolved review thread fails closed before any label,
+  comment, merge, push or cleanup. From clean, current `v2`, invoke only
+  `{project-root}/scripts/v2/story-branch.sh integrate <story-key>`.
 - **Release follow-up** — `delivery:release-now` proceeds through the existing
   staging/E2E and promotion flow. `delivery:batch` waits for the existing
   release-context/release-version flow; do not create a second batch registry.
@@ -64,8 +99,10 @@ JSON result; if it cannot run, report that limitation and do not mutate GitHub.
 - After a verified integration, the existing script removes the local unit and
   local feature branch. A later failure starts a new correction unit from the
   current `v2`; use PR, integrated SHA and evidence for attribution.
-- Never merge, push, label, approve, comment, deploy, release or delete from a
-  vague acknowledgement. Explain the proposed external action and obtain the
-  explicit decision first.
+- Never merge, push, label, comment, deploy, release or delete from a vague
+  acknowledgement. Explain the proposed external action and obtain the explicit
+  decision first. A direct GitHub label/comment is valid only when it satisfies
+  the current snapshot validator; a formal GitHub approval is neither required
+  nor used as the delivery gate.
 - BMAD Loop may only be introduced through a version-pinned proof of concept;
   it must not supersede this controller for integration or decommissioning.
