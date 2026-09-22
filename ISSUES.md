@@ -10,6 +10,16 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Open Issues
 
+### BUG-026 — Human smoke handoff times out while Angular is compiling
+- **ID**: BUG-026
+- **Status**: Fixed locally — hermetic handoff coverage passed; live smoke rerun pending
+- **Severity**: High (blocks the required human smoke handoff)
+- **Affected area**: `scripts/v2/story-human-smoke-handoff.sh` startup wait and diagnostics.
+- **Observed behavior**: The handoff records no usable URL because its endpoint wait ends before the Angular development server is ready on a cold start. The owned API can already be healthy on 8080 while `ng serve` is still compiling. The controller redirects the owned `start-dev.sh` output to `/dev/null`, leaving no startup reason in the handoff result.
+- **Expected behavior**: The handoff waits for the bounded normal cold-start window, distinguishes an in-progress front build from a failed process, and retains a redacted diagnostic reference when startup fails.
+- **Repro**: From a ready 21.4 unit with free 8080/4200, run `story-human-smoke-handoff.sh start --guide docs/v2/smoke/21-4-login-page.json`. In the observed run, 8080 was listening while the handoff had already failed and the Angular endpoint was still unavailable.
+- **Notes/context**: The owned smoke group was stopped cleanly; no unrelated process was stopped. The handoff now allows a bounded 180-second cold-start window (maximum 300 seconds when overridden). Three older `start-dev.sh` processes in temporary test fixtures were observed separately and were left untouched.
+
 ### BUG-025 — Mes Stats defaults to a prior active season
 - **ID**: BUG-025
 - **Status**: Fixed locally — targeted verification passed; review pending
