@@ -45,6 +45,26 @@ output="$(python3 "${controller}" --project-root "${project}" --story-key 21-6-g
 after="$(shasum -a 256 "${project}/_bmad-output/implementation-artifacts/sprint-status.yaml" | awk '{print $1}')"
 [[ "${output}" == *$'TRACKING=present'* && "${before}" == "${after}" ]] || fail "idempotency changed bytes"
 
+reconcile="$(make_project reconcile)"
+reconcile_file="${reconcile}/_bmad-output/implementation-artifacts/sprint-status.yaml"
+awk '
+  /  epic-21: backlog/ { print "  epic-21: in-progress"; next }
+  /^action_items:/ { print "  21-6-github-review-decision-controller: backlog" }
+  { print }
+' "${reconcile_file}" >"${reconcile_file}.tmp"
+mv "${reconcile_file}.tmp" "${reconcile_file}"
+before_legacy="$(grep -Fx '  legacy-key: done  # must remain' "${reconcile_file}")"
+output="$(python3 "${controller}" --project-root "${reconcile}" --set-status epic-21=done --set-status 21-6-github-review-decision-controller=done)"
+[[ "${output}" == *$'TRACKING=updated'* ]] || fail "status reconciliation result missing"
+grep -Fx '  epic-21: done' "${reconcile_file}" >/dev/null || fail "epic status was not updated"
+grep -Fx '  21-6-github-review-decision-controller: done' "${reconcile_file}" >/dev/null || fail "story status was not updated"
+[[ "$(grep -Fx '  legacy-key: done  # must remain' "${reconcile_file}")" == "${before_legacy}" ]] || fail "historical entry changed"
+before="$(shasum -a 256 "${reconcile_file}" | awk '{print $1}')"
+python3 "${controller}" --project-root "${reconcile}" --set-status epic-21=done --set-status 21-6-github-review-decision-controller=done >/dev/null
+[[ "${before}" == "$(shasum -a 256 "${reconcile_file}" | awk '{print $1}')" ]] || fail "status reconciliation idempotency changed bytes"
+expect_fail python3 "${controller}" --project-root "${reconcile}" --set-status 21-9-unknown=done
+[[ "${before}" == "$(shasum -a 256 "${reconcile_file}" | awk '{print $1}')" ]] || fail "unknown reconciliation changed bytes"
+
 historical="$(make_project historical)"
 historical_file="${historical}/_bmad-output/implementation-artifacts/sprint-status.yaml"
 historical_entries="$(for number in $(seq 1 238); do printf '  historical-%s: done\\n' "${number}"; done)"
