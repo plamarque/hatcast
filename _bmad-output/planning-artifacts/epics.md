@@ -3101,6 +3101,50 @@ Manual BMad stories become verifiable in their isolated worktrees before a human
 | 21.5 | Delivery gates and integration | 21.1–21.4 |
 | 21.6 | GitHub review decision controller | existing `story-branch.sh integrate` contract; independent of 21.4–21.5 completion |
 
+#### Story 21.4 : Human smoke handoff
+
+En tant que **propriétaire de la livraison HatCast**,
+je veux **démarrer une unité de story prête pour une vérification humaine et
+l’arrêter de façon bornée**,
+afin de **recevoir une URL, un guide non sensible et une preuve de nettoyage
+sans confondre ce smoke avec une approbation d’intégration**.
+
+**Acceptance Criteria**
+
+1. **Given** une unité `feat/{story-key}` prête et une preuve E2E ciblée valide,
+   **when** un handoff smoke est demandé avec un guide non sensible, **then** il
+   démarre la stack normale de cette unité et fournit l’URL locale et la commande
+   d’arrêt explicite.
+2. **Given** un smoke terminé ou échoué, **when** son arrêt est demandé, **then**
+   seuls les processus possédés par ce handoff sont arrêtés et la libération des
+   ports est vérifiée.
+3. **Given** un prérequis, guide, port ou état de propriété invalide, **when** le
+   handoff est demandé, **then** il échoue avant de démarrer ou d’arrêter un
+   processus.
+4. **Couverture :** workflow développeur V2. **Priorité :** P1. **Depends :**
+   21.2, 21.3. **UI :** N/A.
+
+#### Story 21.5 : Delivery gates integration
+
+En tant que **propriétaire de la livraison HatCast**,
+je veux **enchaîner les preuves de readiness, E2E et smoke avant une demande de
+revue humaine**,
+afin de **refuser les livraisons incomplètes sans prendre la responsabilité du
+merge ou de l’approbation GitHub**.
+
+**Acceptance Criteria**
+
+1. **Given** une story sans readiness, preuve E2E ou disposition de couverture
+   valide, **when** un smoke humain est demandé, **then** le contrôleur refuse
+   sans action externe.
+2. **Given** un smoke terminé et vérifiable, **when** l’opérateur le confirme,
+   **then** le contrôleur revalide les preuves sans affirmer une approbation Git.
+3. **Given** une revue humaine valide, **when** l’intégration est demandée,
+   **then** seul `story-branch.sh integrate` conserve les gardes de push,
+   vérification distante et nettoyage local.
+4. **Couverture :** workflow développeur V2. **Priorité :** P1. **Depends :**
+   21.1–21.4. **UI :** N/A.
+
 #### Story 21.6 : GitHub review decision controller
 
 En tant que **propriétaire de la livraison HatCast**,
