@@ -10,6 +10,17 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Open Issues
 
+### BUG-027 — Review controller dirties its own checkout
+- **ID**: BUG-027
+- **Status**: Fixed locally — regression coverage added; review pending
+- **Severity**: High (blocks recording a delivery decision)
+- **Affected area**: `scripts/v2/github_review_decision_controller.py`.
+- **Observed behavior**: Running the controller can create `scripts/v2/__pycache__/` while it imports its validator. Its own clean-`v2` precondition then fails, and it emits only the generic `review controller unavailable` result before recording any GitHub decision.
+- **Expected behavior**: The controller must leave the checkout unchanged while it snapshots and validates a PR; a clean checkout must remain eligible for a decision.
+- **Cause**: Python bytecode writing was enabled before importing `validate_pr_preflight`.
+- **Repro**: From a clean `v2` checkout, run the controller `record` command for an open eligible PR.
+- **Notes/context**: The regression test copies the controller into its checked Git fixture and asserts both that no `__pycache__` is created and that `git status --porcelain` stays empty.
+
 ### BUG-026 — Human smoke handoff times out while Angular is compiling
 - **ID**: BUG-026
 - **Status**: Fixed locally — hermetic handoff coverage passed; live smoke rerun pending
