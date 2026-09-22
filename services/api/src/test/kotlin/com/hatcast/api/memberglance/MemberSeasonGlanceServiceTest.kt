@@ -103,6 +103,7 @@ class MemberSeasonGlanceServiceTest {
                 title = "Saison active",
                 isActive = true,
                 startDate = LocalDate.of(2026, 3, 1),
+                endDate = LocalDate.of(2026, 12, 31),
             )
         val older =
             season(
@@ -159,6 +160,7 @@ class MemberSeasonGlanceServiceTest {
                 title = "Saison 2025-2026",
                 isActive = true,
                 startDate = LocalDate.of(2025, 9, 1),
+                endDate = LocalDate.of(2026, 8, 31),
             )
         val current =
             season(
@@ -167,6 +169,7 @@ class MemberSeasonGlanceServiceTest {
                 title = "Saison 2026-2027",
                 isActive = true,
                 startDate = LocalDate.of(2026, 9, 1),
+                endDate = LocalDate.of(2027, 8, 31),
             )
         val membership = activeMembership(target, "Current")
 
@@ -259,6 +262,7 @@ class MemberSeasonGlanceServiceTest {
         title: String = "Season",
         isActive: Boolean = false,
         startDate: LocalDate? = null,
+        endDate: LocalDate? = null,
     ): SeasonEntity {
         val troupe = TroupeEntity(id = troupeId, name = "Troupe", slug = "troupe")
         return SeasonEntity(
@@ -269,6 +273,7 @@ class MemberSeasonGlanceServiceTest {
             archived = false,
             isActive = isActive,
             startDate = startDate,
+            endDate = endDate,
             updatedAt = Instant.parse("2026-01-01T00:00:00Z"),
         )
     }

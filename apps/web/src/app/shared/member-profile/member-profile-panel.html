@@ -54,27 +54,36 @@
         </h3>
       }
       @if (profile().monthlyChart.length > 0) {
-        <div class="member-profile__chart">
-          @for (month of profile().monthlyChart; track month.monthKey) {
-            <div class="member-profile__chart-month">
-              <div class="member-profile__chart-blocks">
-                @for (block of month.blocks; track block.eventId) {
-                  <span
-                    [class]="chartBlockModifierClass(block)"
-                    [matTooltip]="chartBlockTooltip(block)"
-                    matTooltipClass="member-profile__chart-tooltip"
-                    matTooltipPosition="above"
-                    [attr.aria-label]="chartBlockTooltip(block)"
-                  >
-                    @if (chartBlockRoleEmoji(block.roleKey); as roleEmoji) {
-                      <span class="member-profile__chart-role" aria-hidden="true">{{ roleEmoji }}</span>
+        <div #monthlyChart class="member-profile__chart">
+          <div class="member-profile__chart-timeline">
+            <div class="member-profile__chart-months">
+              @for (month of profile().monthlyChart; track month.monthKey) {
+                <div class="member-profile__chart-month" [attr.data-month-key]="month.monthKey">
+                  <div class="member-profile__chart-blocks">
+                    @for (block of month.blocks; track block.eventId) {
+                      <span
+                        [class]="chartBlockModifierClass(block)"
+                        [matTooltip]="chartBlockTooltip(block)"
+                        matTooltipClass="member-profile__chart-tooltip"
+                        matTooltipPosition="above"
+                        [attr.aria-label]="chartBlockTooltip(block)"
+                      >
+                        @if (chartBlockRoleEmoji(block.roleKey); as roleEmoji) {
+                          <span class="member-profile__chart-role" aria-hidden="true">{{ roleEmoji }}</span>
+                        }
+                      </span>
                     }
-                  </span>
-                }
-              </div>
-              <span class="member-profile__chart-month-label">{{ monthLabel(month.monthKey) }}</span>
+                  </div>
+                  <span class="member-profile__chart-month-label">{{ monthLabel(month.monthKey) }}</span>
+                </div>
+              }
             </div>
-          }
+            <div class="member-profile__chart-years" aria-label="Années">
+              @for (group of chartYears(); track group.year) {
+                <span class="member-profile__chart-year" [style.--month-count]="group.monthCount">{{ group.year }}</span>
+              }
+            </div>
+          </div>
         </div>
       } @else {
         <div class="member-profile__chart member-profile__chart--empty" aria-hidden="true"></div>

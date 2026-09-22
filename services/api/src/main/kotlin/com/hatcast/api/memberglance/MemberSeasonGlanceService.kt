@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.server.ResponseStatusException
 import java.time.LocalDate
+import java.time.ZoneId
 import java.util.UUID
 
 @Service
@@ -41,6 +42,15 @@ class MemberSeasonGlanceService(
         principal: SessionUserPrincipal,
         troupeId: UUID?,
         seasonId: UUID?,
+    ): MemberSeasonGlanceResponseDto =
+        getSeasonGlance(userSlug, principal, troupeId?.let(::setOf).orEmpty(), seasonId?.let(::setOf).orEmpty())
+
+    @Transactional(readOnly = true)
+    fun getSeasonGlance(
+        userSlug: String,
+        principal: SessionUserPrincipal,
+        troupeIds: Set<UUID>,
+        seasonIds: Set<UUID>,
     ): MemberSeasonGlanceResponseDto {
         val targetUser =
             userRepository.findBySlug(userSlug.trim())
@@ -51,33 +61,31 @@ class MemberSeasonGlanceService(
         val participation = participationContext(targetUserId)
         val filterBarVisible = participation.filterBarVisible
 
-        val resolvedSeason =
-            resolveSeason(
-                targetUserId = targetUserId,
-                troupeId = troupeId,
-                seasonId = seasonId,
+        val resolvedSeasons =
+            resolveSeasons(
+                troupeIds = troupeIds,
+                seasonIds = seasonIds,
                 participation = participation,
-                filterBarVisible = filterBarVisible,
             )
 
         requireCanViewGlance(
             principal = principal,
             targetUserId = targetUserId,
-            season = resolvedSeason,
+            seasons = resolvedSeasons,
         )
 
         val troupeMembership =
-            membershipRepository.findByTroupe_IdAndUser_Id(resolvedSeason.troupe.id, targetUserId)
+            membershipRepository.findByTroupe_IdAndUser_Id(resolvedSeasons.first().troupe.id, targetUserId)
                 ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Membre introuvable.")
 
         if (troupeMembership.status != TroupeMembershipStatus.ACTIVE) {
             throw ResponseStatusException(HttpStatus.NOT_FOUND, "Membre introuvable.")
         }
 
-        val seasonId = resolvedSeason.id
-        val stats = statsProvider.loadStats(seasonId, targetUserId)
-        val monthlyChart = statsProvider.loadMonthlyChart(seasonId, targetUserId)
-        val favoriteRoleCounts = statsProvider.loadFavoriteRoleCounts(seasonId, targetUserId)
+        val resolvedSeasonIds = resolvedSeasons.map { it.id }
+        val stats = statsProvider.loadStats(resolvedSeasonIds, targetUserId)
+        val monthlyChart = statsProvider.loadMonthlyChart(resolvedSeasonIds, targetUserId)
+        val favoriteRoleCounts = statsProvider.loadFavoriteRoleCounts(resolvedSeasonIds, targetUserId)
         val selfPreferences =
             if (isSelf) {
                 userMemberPreferencesService.getPreferences(targetUserId)
@@ -91,9 +99,9 @@ class MemberSeasonGlanceService(
             displayName = selfPreferences?.memberDisplayName ?: troupeMembership.displayName,
             avatarUrl = ParticipantRowPresentation.avatarUrl(avatarService, targetUser),
             isSelf = isSelf,
-            resolvedSeasonId = seasonId,
-            troupeId = resolvedSeason.troupe.id,
-            preferredRolesTroupeId = resolvedSeason.troupe.id,
+            resolvedSeasonIds = resolvedSeasonIds,
+            resolvedTroupeIds = resolvedSeasons.map { it.troupe.id }.distinct(),
+            preferredRolesTroupeId = resolvedSeasons.map { it.troupe.id }.distinct().singleOrNull(),
             filterBarVisible = filterBarVisible,
             participationFilters =
                 if (filterBarVisible) {
@@ -110,76 +118,53 @@ class MemberSeasonGlanceService(
         )
     }
 
-    private fun resolveSeason(
-        targetUserId: UUID,
-        troupeId: UUID?,
-        seasonId: UUID?,
+    private fun resolveSeasons(
+        troupeIds: Set<UUID>,
+        seasonIds: Set<UUID>,
         participation: ParticipationContext,
-        filterBarVisible: Boolean,
-    ): SeasonEntity {
-        if (seasonId != null) {
-            val season =
-                seasonRepository
-                    .findById(seasonId)
-                    .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Saison inconnue.") }
-            if (season.archived) {
-                throw ResponseStatusException(HttpStatus.NOT_FOUND, "Saison inconnue.")
-            }
-            if (season.id !in participation.seasonIds) {
-                throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Saison hors périmètre du membre.")
-            }
-            if (troupeId != null && season.troupe.id != troupeId) {
-                throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Troupe et saison incohérentes.")
-            }
-            return season
+    ): List<SeasonEntity> {
+        if (!troupeIds.all { it in participation.troupeIds }) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Troupe hors périmètre du membre.")
         }
-
-        val candidates = candidateSeasons(participation.seasonIds, troupeId)
-        when {
-            candidates.isEmpty() -> {
-                val message =
-                    if (troupeId != null) {
-                        "Aucune saison pour cette troupe."
-                    } else {
-                        "Aucune participation active."
-                    }
-                throw ResponseStatusException(HttpStatus.NOT_FOUND, message)
-            }
-            candidates.size == 1 -> return candidates.single()
-            filterBarVisible -> return selectPrimarySeason(candidates)
-            else ->
-                throw ResponseStatusException(HttpStatus.NOT_FOUND, "Aucune participation active.")
+        if (!seasonIds.all { it in participation.seasonIds }) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Saison hors périmètre du membre.")
         }
+        val scoped = candidateSeasons(participation.seasonIds, troupeIds)
+        val resolved = if (seasonIds.isEmpty()) scoped.filter(::isEligibleCurrentSeason) else scoped.filter { it.id in seasonIds }
+        if (resolved.any { it.troupe.id !in troupeIds } && troupeIds.isNotEmpty()) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Troupe et saison incohérentes.")
+        }
+        if (resolved.isEmpty()) {
+            throw ResponseStatusException(HttpStatus.NOT_FOUND, if (troupeIds.isEmpty()) "Aucune participation active." else "Aucune saison pour cette troupe.")
+        }
+        return resolved.sortedBy { it.startDate }
     }
 
     private fun candidateSeasons(
         seasonIds: Set<UUID>,
-        troupeId: UUID?,
+        troupeIds: Set<UUID>,
     ): List<SeasonEntity> =
         seasonIds.mapNotNull { id ->
             seasonRepository.findById(id).orElse(null)?.takeIf { season ->
-                !season.archived && (troupeId == null || season.troupe.id == troupeId)
+                !season.archived && (troupeIds.isEmpty() || season.troupe.id in troupeIds)
             }
         }
 
-    /** MVP: no cross-season merge — pick the most relevant single season when filters are unset. */
-    private fun selectPrimarySeason(candidates: List<SeasonEntity>): SeasonEntity =
-        candidates.maxWith(
-            compareBy<SeasonEntity> { it.isActive }
-                .thenBy { it.startDate ?: LocalDate.MIN }
-                .thenBy { it.updatedAt }
-                .thenBy { it.title.lowercase() },
-        )
+    private fun isEligibleCurrentSeason(season: SeasonEntity): Boolean {
+        val today = LocalDate.now(ZoneId.of("Europe/Paris"))
+        return season.isActive && season.startDate != null && season.endDate != null &&
+            !today.isBefore(season.startDate) && !today.isAfter(season.endDate)
+    }
 
     private fun requireCanViewGlance(
         principal: SessionUserPrincipal,
         targetUserId: UUID,
-        season: SeasonEntity,
+        seasons: List<SeasonEntity>,
     ) {
         if (principal.userId == targetUserId) {
             return
         }
-        troupeAccess.requireActiveMember(principal, season.troupe.id)
+        seasons.map { it.troupe.id }.distinct().forEach { troupeAccess.requireActiveMember(principal, it) }
     }
 
     private fun participationContext(userId: UUID): ParticipationContext {

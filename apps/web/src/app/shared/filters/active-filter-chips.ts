@@ -5,6 +5,14 @@ import { MatIconModule } from '@angular/material/icon'
 
 import type { ActiveFilterChip, FilterDimensionKey } from './filter.types'
 
+const ALL_FILTER_DIMENSIONS: readonly FilterDimensionKey[] = [
+  'troupe',
+  'season',
+  'participant',
+  'spectacle',
+  'categories',
+]
+
 @Component({
   selector: 'app-active-filter-chips',
   imports: [MatButtonModule, MatChipsModule, MatIconModule],
@@ -13,6 +21,7 @@ import type { ActiveFilterChip, FilterDimensionKey } from './filter.types'
 })
 export class ActiveFilterChips {
   readonly chips = input<ActiveFilterChip[]>([])
+  readonly removableDimensions = input<readonly FilterDimensionKey[]>(ALL_FILTER_DIMENSIONS)
 
   readonly removeDimension = output<FilterDimensionKey>()
   readonly openDimension = output<FilterDimensionKey>()
@@ -28,5 +37,13 @@ export class ActiveFilterChips {
 
   protected onClearAll(): void {
     this.clearAll.emit()
+  }
+
+  protected isRemovable(key: FilterDimensionKey): boolean {
+    return this.removableDimensions().includes(key)
+  }
+
+  protected hasRemovableChips(): boolean {
+    return this.chips().some((chip) => this.isRemovable(chip.dimensionKey))
   }
 }

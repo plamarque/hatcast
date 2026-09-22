@@ -76,6 +76,7 @@ export interface ParticipantPickerOption {
 }
 
 export interface ParticipantPickerData {
+  title?: string
   options: ParticipantPickerOption[]
   selectedIds: string[]
   isMobile: boolean
@@ -128,6 +129,8 @@ export interface SinglePickerData {
   dimension: FilterDimensionConfig
   selectedId: string | null
   isMobile: boolean
+  /** A selected value is required before the picker can apply. */
+  requiredSelection?: boolean
   participationFilters?: UserAgendaParticipationFilters
   draftTroupeId?: string | null
 }

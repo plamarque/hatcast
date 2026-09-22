@@ -13,6 +13,7 @@ import {
   type MemberSeasonGlance as MemberSeasonGlanceData,
 } from '../../core/member-glance/member-season-glance-api.service'
 import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
+import { FilterPanelService } from '../../shared/filters/filter-panel.service'
 import { MemberSeasonGlance } from './member-season-glance'
 
 const glanceSelf: MemberSeasonGlanceData = {
@@ -42,21 +43,26 @@ describe('MemberSeasonGlance', () => {
   async function setup(options?: {
     glance?: MemberSeasonGlanceData
     userSlug?: string
+    response?: unknown
+    seasonPickerResult?: unknown
   }): Promise<{
     fixture: ComponentFixture<MemberSeasonGlance>
     router: Router
     glanceApi: { getSeasonGlance: ReturnType<typeof vi.fn> }
+    filterPanel: { openSinglePicker: ReturnType<typeof vi.fn> }
     paramMap$: BehaviorSubject<ReturnType<typeof convertToParamMap>>
   }> {
     const paramMap$ = new BehaviorSubject(
       convertToParamMap({ userSlug: options?.userSlug ?? 'angie' }),
     )
     const glanceApi = {
-      getSeasonGlance: vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        data: options?.glance ?? glanceSelf,
-      }),
+      getSeasonGlance: vi.fn().mockResolvedValue(
+        options?.response ?? {
+          ok: true,
+          status: 200,
+          data: options?.glance ?? glanceSelf,
+        },
+      ),
     }
     const authApi = {
       ensureHatcastSession: vi.fn().mockResolvedValue({
@@ -71,6 +77,9 @@ describe('MemberSeasonGlance', () => {
         },
       }),
       logout: vi.fn(),
+    }
+    const filterPanel = {
+      openSinglePicker: vi.fn().mockResolvedValue(options?.seasonPickerResult),
     }
 
     await TestBed.configureTestingModule({
@@ -93,6 +102,7 @@ describe('MemberSeasonGlance', () => {
         },
         { provide: MemberSeasonGlanceApiService, useValue: glanceApi },
         { provide: AuthApiService, useValue: authApi },
+        { provide: FilterPanelService, useValue: filterPanel },
         {
           provide: TroupeSeasonResolverService,
           useValue: { resolveSeasonSlug: vi.fn().mockResolvedValue({ kind: 'not-found' }) },
@@ -116,7 +126,7 @@ describe('MemberSeasonGlance', () => {
       expect(fixture.nativeElement.textContent).toContain('Mes Stats')
     })
     await fixture.whenStable()
-    return { fixture, router: TestBed.inject(Router), glanceApi, paramMap$ }
+    return { fixture, router: TestBed.inject(Router), glanceApi, filterPanel, paramMap$ }
   }
 
   it('loads glance and shows Mes Stats page title', async () => {
@@ -162,7 +172,7 @@ describe('MemberSeasonGlance', () => {
     })
   })
 
-  it('shows the server-resolved season in the filter when no filter was selected', async () => {
+  it('shows Toutes when no scope filter was selected', async () => {
     const { fixture, glanceApi } = await setup({
       glance: {
         ...glanceSelf,
@@ -181,11 +191,45 @@ describe('MemberSeasonGlance', () => {
       },
     })
 
-    await vi.waitFor(() => {
-      expect(fixture.nativeElement.textContent).toContain('La BIM')
-      expect(fixture.nativeElement.textContent).toContain('Saison 2026-2027')
-    })
+    expect(fixture.componentInstance['hubDimensions']()[0].summary).toBe('Toutes')
+    expect(fixture.componentInstance['hubDimensions']()[1].summary).toBe('Toutes')
     expect(glanceApi.getSeasonGlance).toHaveBeenCalledTimes(1)
+    expect(fixture.nativeElement.querySelector('[aria-label^="Retirer le filtre Saison 2026-2027"]')).toBeNull()
+  })
+
+  it('shows a troupe CTA when the member has no active participation', async () => {
+    const { fixture } = await setup({
+      response: {
+        ok: false,
+        status: 404,
+        errorMessage: 'Aucune participation active.',
+      },
+    })
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Aucune saison disponible')
+    })
+    const cta = fixture.nativeElement.querySelector('a[routerLink="/troupes"]')
+    expect(cta?.textContent).toContain('Voir mes troupes')
+  })
+
+  it('clears an explicit season scope back to Toutes', async () => {
+    const participationFilters = {
+      troupes: [{ id: 'troupe-1', name: 'La BIM', slug: 'la-bim' }],
+      seasons: [
+        { id: 'season-1', title: 'Saison suggérée', slug: 'suggeree', troupeId: 'troupe-1' },
+        { id: 'season-2', title: 'Autre saison', slug: 'autre', troupeId: 'troupe-1' },
+      ],
+    }
+    const { fixture, glanceApi, filterPanel } = await setup({
+      glance: { ...glanceSelf, filterBarVisible: true, participationFilters },
+    })
+
+    await fixture.componentInstance['onSeasonFilterChange']('season-2')
+    await fixture.componentInstance['onRemoveFilterDimension']('season')
+
+    expect(filterPanel.openSinglePicker).not.toHaveBeenCalled()
+    expect(glanceApi.getSeasonGlance).toHaveBeenCalledTimes(3)
   })
 
   it('hides filter trigger when API reports filterBarVisible false', async () => {

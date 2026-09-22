@@ -5,9 +5,8 @@
 }
 
 .member-profile__chart {
-  display: flex;
-  align-items: flex-end;
-  gap: 0.6rem;
+  --chart-month-width: 2.25rem;
+  --chart-gap: 0.6rem;
   min-height: 12.5rem;
   padding: 0.75rem;
   border-radius: 0.85rem;
@@ -18,10 +17,31 @@
   scrollbar-width: thin;
 }
 
+.member-profile__chart-timeline { width: max-content; }
+
+.member-profile__chart-months,
+.member-profile__chart-years { display: flex; gap: var(--chart-gap); }
+
+.member-profile__chart-months { align-items: flex-end; }
+
+.member-profile__chart-years { margin-top: 0.35rem; min-height: 1rem; }
+
+.member-profile__chart-year {
+  width: calc(var(--month-count) * (var(--chart-month-width) + var(--chart-gap)) - var(--chart-gap));
+  box-sizing: border-box;
+  border-top: 1px solid color-mix(in srgb, var(--mat-sys-outline-variant) 65%, transparent);
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.25;
+  padding-top: 0.18rem;
+  text-align: center;
+}
+
 .member-profile__chart-month {
   display: flex;
   flex: 0 0 auto;
-  min-width: 2.25rem;
+  min-width: var(--chart-month-width);
   flex-direction: column;
   align-items: center;
   gap: 0.35rem;
@@ -99,12 +119,13 @@
 
 @media (max-width: 720px) {
   .member-profile__chart {
-    gap: 0.42rem;
+    --chart-month-width: 2rem;
+    --chart-gap: 0.42rem;
     padding: 0.6rem 0.45rem;
   }
 
   .member-profile__chart-month {
-    min-width: 2rem;
+    min-width: var(--chart-month-width);
   }
 
   .member-profile__chart-block {
@@ -128,13 +149,11 @@
 }
 
 @media (max-width: 480px) {
+  .member-profile__chart { --chart-month-width: 1.85rem; }
   .member-profile__chart-block {
     width: 1.35rem;
     height: 1.35rem;
     font-size: 0.8rem;
   }
 
-  .member-profile__chart-month {
-    min-width: 1.85rem;
-  }
 }

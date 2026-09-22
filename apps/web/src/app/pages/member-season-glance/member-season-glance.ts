@@ -3,7 +3,7 @@ import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
-import { ActivatedRoute, Router } from '@angular/router'
+import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 import { Subscription } from 'rxjs'
 import { distinctUntilChanged, map } from 'rxjs/operators'
 
@@ -11,7 +11,6 @@ import { AuthApiService } from '../../core/auth/auth-api.service'
 import type { UserAgendaParticipationFilters } from '../../core/agenda/user-agenda-api.service'
 import {
   clearStoredMemberGlanceFilters,
-  parseAgendaFilterUuid,
   readStoredMemberGlanceFilters,
   writeStoredMemberGlanceFilters,
 } from '../../core/member-glance/member-glance-filters-storage'
@@ -22,16 +21,12 @@ import {
 import type { MemberProfileSummary } from '../../core/member-profile/member-profile-api.service'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
 import {
-  buildAgendaFilterChips,
-  buildAgendaFilterDimensions,
-  buildAgendaHubDimensions,
-  resolveAgendaPanelSeason,
 } from '../../shared/filters/filter-builders'
 import { ActiveFilterChips } from '../../shared/filters/active-filter-chips'
 import { FilterCriteriaBar } from '../../shared/filters/filter-criteria-bar'
 import { FilterPanelService } from '../../shared/filters/filter-panel.service'
 import { FilterTrigger } from '../../shared/filters/filter-trigger'
-import type { FilterDimensionKey } from '../../shared/filters/filter.types'
+import type { ActiveFilterChip, FilterDimensionKey, FilterHubDimension } from '../../shared/filters/filter.types'
 import { MemberProfilePanel } from '../../shared/member-profile/member-profile-panel'
 
 const EMPTY_PARTICIPATION_FILTERS: UserAgendaParticipationFilters = {
@@ -50,6 +45,7 @@ const EMPTY_PARTICIPATION_FILTERS: UserAgendaParticipationFilters = {
     FilterCriteriaBar,
     FilterTrigger,
     MemberProfilePanel,
+    RouterLink,
   ],
   templateUrl: './member-season-glance.html',
   styleUrl: './member-season-glance.scss',
@@ -68,13 +64,26 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
   protected readonly loadingSession = signal(true)
   protected readonly loadingGlance = signal(false)
   protected readonly loadError = signal(false)
+  protected readonly noParticipation = signal(false)
   protected readonly glance = signal<MemberSeasonGlanceData | null>(null)
 
   protected readonly filterBarVisible = signal(false)
   protected readonly participationFilters = signal<UserAgendaParticipationFilters | null>(null)
-  protected readonly selectedTroupeId = signal<string | null>(null)
-  protected readonly selectedSeasonId = signal<string | null>(null)
+  /** Empty selection means the eligible "Toutes" scope. */
+  protected readonly selectedTroupeIds = signal<string[]>([])
+  protected readonly selectedSeasonIds = signal<string[]>([])
   protected readonly userSlug = signal('')
+
+  protected readonly removableFilterDimensions = computed<FilterDimensionKey[]>(() => {
+    const dimensions: FilterDimensionKey[] = []
+    if (this.selectedTroupeIds().length) {
+      dimensions.push('troupe')
+    }
+    if (this.selectedSeasonIds().length) {
+      dimensions.push('season')
+    }
+    return dimensions
+  })
 
   protected readonly pageTitle = () => {
     const g = this.glance()
@@ -127,11 +136,7 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
       return []
     }
     const filters = this.participationFilters() ?? EMPTY_PARTICIPATION_FILTERS
-    return buildAgendaHubDimensions(
-      filters,
-      this.selectedTroupeId(),
-      this.selectedSeasonId(),
-    )
+    return this.multiHubDimensions(filters)
   })
 
   protected readonly activeFilterChips = computed(() => {
@@ -139,15 +144,11 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
       return []
     }
     const filters = this.participationFilters() ?? EMPTY_PARTICIPATION_FILTERS
-    return buildAgendaFilterChips(
-      filters,
-      this.selectedTroupeId(),
-      this.selectedSeasonId(),
-    )
+    return this.multiFilterChips(filters)
   })
 
   protected readonly hasActiveFilters = computed(
-    () => this.selectedTroupeId() != null || this.selectedSeasonId() != null,
+    () => this.selectedTroupeIds().length > 0 || this.selectedSeasonIds().length > 0,
   )
 
   async ngOnInit(): Promise<void> {
@@ -190,22 +191,17 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
     await this.router.navigate(['/connexion'], { replaceUrl: true })
   }
 
-  protected async onTroupeFilterChange(troupeId: string | null): Promise<void> {
-    this.selectedTroupeId.set(troupeId)
-    if (troupeId && this.selectedSeasonId()) {
-      const seasons = this.participationFilters()?.seasons ?? []
-      const seasonStillValid = seasons.some(
-        (l) => l.id === this.selectedSeasonId() && l.troupeId === troupeId,
-      )
-      if (!seasonStillValid) {
-        this.selectedSeasonId.set(null)
-      }
-    }
+  protected async onTroupeFilterChange(troupeIds: string[] | string | null): Promise<void> {
+    troupeIds = typeof troupeIds === 'string' ? [troupeIds] : troupeIds ?? []
+    this.selectedTroupeIds.set(troupeIds)
+    const compatible = new Set(this.availableSeasons().map((season) => season.id))
+    this.selectedSeasonIds.update((ids) => ids.filter((id) => compatible.has(id)))
     await this.applyFilterChange()
   }
 
-  protected async onSeasonFilterChange(seasonId: string | null): Promise<void> {
-    this.selectedSeasonId.set(seasonId)
+  protected async onSeasonFilterChange(seasonIds: string[] | string | null): Promise<void> {
+    seasonIds = typeof seasonIds === 'string' ? [seasonIds] : seasonIds ?? []
+    this.selectedSeasonIds.set(seasonIds)
     await this.applyFilterChange()
   }
 
@@ -218,63 +214,40 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
 
   protected async onOpenFilterDimension(key: FilterDimensionKey): Promise<void> {
     const filters = this.participationFilters() ?? EMPTY_PARTICIPATION_FILTERS
-    await this.openAgendaDimensionPicker(key, filters)
-  }
-
-  private async openAgendaDimensionPicker(
-    key: FilterDimensionKey,
-    filters: UserAgendaParticipationFilters,
-  ): Promise<void> {
-    const dimension = buildAgendaFilterDimensions(filters, this.selectedTroupeId()).find(
-      (d) => d.key === key,
-    )
-    if (!dimension) {
-      return
-    }
-    const selectedId =
-      key === 'troupe' ? this.selectedTroupeId() : this.selectedSeasonId()
-    const result = await this.filterPanel.openSinglePicker({
-      dimension,
-      selectedId,
-      participationFilters: filters,
-      draftTroupeId: this.selectedTroupeId(),
+    const isTroupe = key === 'troupe'
+    const options = isTroupe
+      ? filters.troupes.map((troupe) => ({ id: troupe.id, label: troupe.name }))
+      : this.availableSeasons().map((season) => ({ id: season.id, label: season.title }))
+    const result = await this.filterPanel.openParticipantPicker({
+      title: isTroupe ? 'Choisir des troupes' : 'Choisir des saisons',
+      options,
+      selectedIds: isTroupe ? this.selectedTroupeIds() : this.selectedSeasonIds(),
     })
     if (!result) {
       return
     }
     if (result.action === 'reset') {
-      if (key === 'troupe') {
-        await this.onTroupeFilterChange(null)
-        return
-      }
-      await this.onSeasonFilterChange(null)
+      if (isTroupe) await this.onTroupeFilterChange([])
+      else await this.onSeasonFilterChange([])
       return
     }
-    if (key === 'troupe') {
-      await this.onTroupeFilterChange(result.selectedId)
-      return
-    }
-    const seasonId = resolveAgendaPanelSeason(
-      filters,
-      this.selectedTroupeId(),
-      result.selectedId,
-    )
-    await this.onSeasonFilterChange(seasonId)
+    if (isTroupe) await this.onTroupeFilterChange(result.selectedIds)
+    else await this.onSeasonFilterChange(result.selectedIds)
   }
 
   protected async onRemoveFilterDimension(key: FilterDimensionKey): Promise<void> {
     if (key === 'troupe') {
-      await this.onTroupeFilterChange(null)
+      await this.onTroupeFilterChange([])
       return
     }
     if (key === 'season') {
-      await this.onSeasonFilterChange(null)
+      await this.onSeasonFilterChange([])
     }
   }
 
   protected async onClearFilters(): Promise<void> {
-    this.selectedTroupeId.set(null)
-    this.selectedSeasonId.set(null)
+    this.selectedTroupeIds.set([])
+    this.selectedSeasonIds.set([])
     clearStoredMemberGlanceFilters()
     await this.syncFilterQueryParams()
     await this.loadGlance()
@@ -299,9 +272,10 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
     }
     this.loadingGlance.set(true)
     this.loadError.set(false)
+    this.noParticipation.set(false)
     const r = await this.glanceApi.getSeasonGlance(slug, {
-      troupeId: this.selectedTroupeId() ?? undefined,
-      seasonId: this.selectedSeasonId() ?? undefined,
+      troupeIds: this.selectedTroupeIds(),
+      seasonIds: this.selectedSeasonIds(),
     })
     this.loadingGlance.set(false)
 
@@ -311,17 +285,11 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
       this.participationFilters.set(r.data.participationFilters)
 
       if (!r.data.filterBarVisible) {
-        this.selectedTroupeId.set(null)
-        this.selectedSeasonId.set(null)
+        this.selectedTroupeIds.set([])
+        this.selectedSeasonIds.set([])
         clearStoredMemberGlanceFilters()
         await this.syncFilterQueryParams()
       } else {
-        if (this.selectedSeasonId() == null) {
-          if (this.selectedTroupeId() == null) {
-            this.selectedTroupeId.set(r.data.troupeId)
-          }
-          this.selectedSeasonId.set(r.data.resolvedSeasonId)
-        }
         await this.reconcileFiltersWithCatalog()
       }
       return
@@ -329,6 +297,11 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
 
     if (r.status === 401) {
       await this.redirectToLogin()
+      return
+    }
+
+    if (r.status === 404 && r.errorMessage === 'Aucune participation active.') {
+      this.noParticipation.set(true)
       return
     }
 
@@ -352,25 +325,24 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
 
   private bootstrapFiltersFromRoute(): void {
     const query = this.route.snapshot.queryParamMap
-    const queryTroupe = parseAgendaFilterUuid(query.get('troupeId'))
-    const queryLeague = parseAgendaFilterUuid(query.get('seasonId'))
-    if (queryTroupe || queryLeague) {
-      this.selectedTroupeId.set(queryTroupe)
-      this.selectedSeasonId.set(queryLeague)
+    const queryTroupes = query.getAll('troupeId').filter(Boolean)
+    const querySeasons = query.getAll('seasonId').filter(Boolean)
+    if (queryTroupes.length || querySeasons.length) {
+      this.selectedTroupeIds.set(queryTroupes)
+      this.selectedSeasonIds.set(querySeasons)
       return
     }
     const stored = readStoredMemberGlanceFilters()
     if (stored) {
-      this.selectedTroupeId.set(parseAgendaFilterUuid(stored.troupeId))
-      this.selectedSeasonId.set(parseAgendaFilterUuid(stored.seasonId))
+      this.selectedTroupeIds.set(stored.troupeIds)
+      this.selectedSeasonIds.set(stored.seasonIds)
     }
   }
 
   private async syncInitialFilterUrl(): Promise<void> {
     const query = this.route.snapshot.queryParamMap
     const hasQueryFilters =
-      parseAgendaFilterUuid(query.get('troupeId')) != null ||
-      parseAgendaFilterUuid(query.get('seasonId')) != null
+      query.getAll('troupeId').length > 0 || query.getAll('seasonId').length > 0
     if (!hasQueryFilters && this.hasActiveFilters()) {
       await this.syncFilterQueryParams()
     }
@@ -383,13 +355,15 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
   }
 
   private persistFilterSelection(): void {
-    if (this.selectedTroupeId() == null && this.selectedSeasonId() == null) {
+    const troupeIds = this.selectedTroupeIds()
+    const seasonIds = this.selectedSeasonIds()
+    if (!troupeIds.length && !seasonIds.length) {
       clearStoredMemberGlanceFilters()
       return
     }
     writeStoredMemberGlanceFilters({
-      troupeId: this.selectedTroupeId(),
-      seasonId: this.selectedSeasonId(),
+      troupeIds,
+      seasonIds,
     })
   }
 
@@ -399,8 +373,8 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
       await this.router.navigate([], {
         relativeTo: this.route,
         queryParams: {
-          troupeId: this.selectedTroupeId(),
-          seasonId: this.selectedSeasonId(),
+          troupeId: this.selectedTroupeIds().length ? this.selectedTroupeIds() : null,
+          seasonId: this.selectedSeasonIds().length ? this.selectedSeasonIds() : null,
         },
         queryParamsHandling: 'merge',
         replaceUrl: true,
@@ -415,24 +389,52 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
     if (!catalog) {
       return
     }
-    let troupeId = this.selectedTroupeId()
-    let seasonId = this.selectedSeasonId()
-    if (troupeId && !catalog.troupes.some((t) => t.id === troupeId)) {
-      troupeId = null
-    }
-    if (seasonId && !catalog.seasons.some((l) => l.id === seasonId)) {
-      seasonId = null
-    }
-    if (troupeId && seasonId) {
-      const season = catalog.seasons.find((s) => s.id === seasonId)
-      if (season && season.troupeId !== troupeId) {
-        seasonId = null
-      }
-    }
-    this.selectedTroupeId.set(troupeId)
-    this.selectedSeasonId.set(seasonId)
+    const troupeIds = this.selectedTroupeIds().filter((id) => catalog.troupes.some((troupe) => troupe.id === id))
+    const allowedSeasons = new Set(this.seasonsForTroupes(catalog, troupeIds).map((season) => season.id))
+    const seasonIds = this.selectedSeasonIds().filter((id) => allowedSeasons.has(id))
+    this.selectedTroupeIds.set(troupeIds)
+    this.selectedSeasonIds.set(seasonIds)
     this.persistFilterSelection()
     await this.syncFilterQueryParams()
+  }
+
+  private availableSeasons() {
+    return this.seasonsForTroupes(
+      this.participationFilters() ?? EMPTY_PARTICIPATION_FILTERS,
+      this.selectedTroupeIds(),
+    )
+  }
+
+  private seasonsForTroupes(filters: UserAgendaParticipationFilters, troupeIds: string[]) {
+    return troupeIds.length
+      ? filters.seasons.filter((season) => troupeIds.includes(season.troupeId))
+      : filters.seasons
+  }
+
+  private multiHubDimensions(filters: UserAgendaParticipationFilters): FilterHubDimension[] {
+    const troupeIds = this.selectedTroupeIds()
+    const seasonIds = this.selectedSeasonIds()
+    const summary = (ids: string[], labels: string[], all: string) =>
+      !ids.length ? all : ids.length === 1 ? labels[0] ?? all : `${ids.length} sélectionnées`
+    return [
+      {
+        key: 'troupe', icon: 'groups', title: 'Troupe',
+        summary: summary(troupeIds, filters.troupes.filter((t) => troupeIds.includes(t.id)).map((t) => t.name), 'Toutes'),
+      },
+      {
+        key: 'season', icon: 'calendar_month', title: 'Saison',
+        summary: summary(seasonIds, filters.seasons.filter((s) => seasonIds.includes(s.id)).map((s) => s.title), 'Toutes'),
+      },
+    ]
+  }
+
+  private multiFilterChips(filters: UserAgendaParticipationFilters): ActiveFilterChip[] {
+    const chips: ActiveFilterChip[] = []
+    const troupeIds = this.selectedTroupeIds()
+    const seasonIds = this.selectedSeasonIds()
+    if (troupeIds.length) chips.push({ dimensionKey: 'troupe', label: troupeIds.length === 1 ? (filters.troupes.find((t) => t.id === troupeIds[0])?.name ?? 'Troupe') : `${troupeIds.length} troupes` })
+    if (seasonIds.length) chips.push({ dimensionKey: 'season', label: seasonIds.length === 1 ? (filters.seasons.find((s) => s.id === seasonIds[0])?.title ?? 'Saison') : `${seasonIds.length} saisons` })
+    return chips
   }
 
   private async redirectToLogin(): Promise<void> {
