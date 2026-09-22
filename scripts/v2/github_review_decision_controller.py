@@ -14,6 +14,10 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+# The controller validates that its project checkout is clean before it records
+# a decision.  Its own import must not invalidate that precondition.
+sys.dont_write_bytecode = True
+
 from validate_pr_preflight import LANE_LABELS, check_pr, check_v2
 
 

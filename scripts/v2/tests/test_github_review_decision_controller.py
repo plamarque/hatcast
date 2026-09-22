@@ -22,10 +22,15 @@ class ControllerTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name) / "v2"
         self.root.mkdir()
+        self.controller = self.root / "scripts" / "v2" / "github_review_decision_controller.py"
+        self.controller.parent.mkdir(parents=True)
+        for source in ("github_review_decision_controller.py", "validate_pr_preflight.py"):
+            destination = self.controller.parent / source
+            destination.write_text((SCRIPT.parent / source).read_text(encoding="utf-8"), encoding="utf-8")
         for args in (("init",), ("config", "user.email", "test@example.invalid"), ("config", "user.name", "Test")):
             subprocess.run(["git", "-C", str(self.root), *args], check=True, capture_output=True)
         (self.root / "README").write_text("test\n", encoding="utf-8")
-        subprocess.run(["git", "-C", str(self.root), "add", "README"], check=True, capture_output=True)
+        subprocess.run(["git", "-C", str(self.root), "add", "README", "scripts"], check=True, capture_output=True)
         subprocess.run(["git", "-C", str(self.root), "commit", "-m", "test"], check=True, capture_output=True)
         subprocess.run(["git", "-C", str(self.root), "branch", "-M", "v2"], check=True, capture_output=True)
         self.bin = Path(self.temp.name) / "bin"
@@ -65,7 +70,7 @@ else:
 
     def run_controller(self, command, *extra):
         environment = os.environ | {"PATH": f"{self.bin}:{os.environ['PATH']}", "FAKE_PR": str(self.snapshot_path), "FAKE_LOG": str(self.log_path)}
-        return subprocess.run(["python3", str(SCRIPT), command, "--story-key", "example", "--project-root", str(self.root), "--expected-owner", "patrice", *extra], capture_output=True, text=True, env=environment)
+        return subprocess.run(["python3", str(self.controller), command, "--story-key", "example", "--project-root", str(self.root), "--expected-owner", "patrice", *extra], capture_output=True, text=True, env=environment)
 
     def test_prepare_resolves_and_captures_complete_snapshot(self):
         self.snapshot_path.write_text(json.dumps(self.snapshot()), encoding="utf-8")
@@ -82,6 +87,9 @@ else:
         self.assertIn("pr edit 42 --add-label delivery:batch", calls)
         self.assertIn("pr comment 42 --body HatCast delivery decision: lane=delivery:batch", calls)
         self.assertGreaterEqual(calls.count("api graphql"), 2)
+        self.assertFalse((self.controller.parent / "__pycache__").exists())
+        status = subprocess.run(["git", "-C", str(self.root), "status", "--porcelain"], check=True, capture_output=True, text=True)
+        self.assertEqual(status.stdout, "")
 
 
 if __name__ == "__main__":
