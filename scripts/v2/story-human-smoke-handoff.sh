@@ -209,8 +209,11 @@ group_missing() {
   [[ -z "${observed}" ]]
 }
 wait_for_endpoints() {
-  local attempts="${HATCAST_SMOKE_WAIT_ATTEMPTS:-60}" i
-  [[ "${attempts}" =~ ^[1-9][0-9]*$ ]] || attempts=60
+  # A cold Angular development build can outlast API startup by more than a
+  # minute. Keep the handoff bounded, but do not declare its owned stack dead
+  # while the front is still compiling.
+  local attempts="${HATCAST_SMOKE_WAIT_ATTEMPTS:-180}" i
+  [[ "${attempts}" =~ ^[1-9][0-9]*$ && "${attempts}" -le 300 ]] || attempts=180
   for ((i=0; i<attempts; i++)); do
     curl -kfsS "${health_url}" >/dev/null 2>&1 && curl -kfsS "${url}" >/dev/null 2>&1 && return 0
     sleep 1
