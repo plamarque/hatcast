@@ -2,7 +2,10 @@
 # /// script
 # requires-python = ">=3.10"
 # ///
-"""Validate a complete GitHub PR snapshot for HatCast delivery."""
+"""Validate a complete GitHub PR snapshot for HatCast delivery.
+
+This is a versioned project command. The ignored installed skill calls it.
+"""
 
 from __future__ import annotations
 

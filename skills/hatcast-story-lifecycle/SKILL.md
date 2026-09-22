@@ -35,7 +35,7 @@ SHA. Capture a snapshot containing `number`, `url`, `state`, `baseRefName`,
 `reviewThreads`, with every connection fully paginated, then run:
 
 ```bash
-uv run scripts/validate_pr_preflight.py --pr-json <snapshot> \
+uv run scripts/v2/validate_pr_preflight.py --pr-json <snapshot> \
   --project-root {project-root} --expected-owner <Patrice-GitHub-login>
 ```
 
@@ -48,7 +48,7 @@ cannot run or any check fails, report the limitation and do not mutate GitHub.
 Use the versioned controller, rather than reconstructing its GitHub calls:
 
 ```bash
-python3 {skill-root}/scripts/github_review_decision_controller.py \
+python3 {project-root}/scripts/v2/github_review_decision_controller.py \
   <prepare|record|preflight> --story-key <story-key> \
   --project-root {project-root} --expected-owner <Patrice-GitHub-login> \
   [--lane <batch|release-now>]

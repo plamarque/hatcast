@@ -11,12 +11,13 @@ make_fixture() {
   git init "${root}" >/dev/null
   git -C "${root}" config user.email test@example.invalid
   git -C "${root}" config user.name "Runtime test"
-  mkdir -p "${root}/scripts/v2" "${root}/apps/web" "${root}/services/api" "${root}/_bmad/scripts" "${root}/_bmad/custom" "${root}/_bmad/_config" "${root}/.agents/skills"
+  mkdir -p "${root}/scripts/v2" "${root}/apps/web" "${root}/services/api" "${root}/_bmad/scripts" "${root}/_bmad/custom" "${root}/_bmad/_config" "${root}/.agents/skills" "${root}/skills"
   cp "${source_root}/scripts/v2/story-worktree-runtime.sh" "${source_root}/scripts/v2/story-worktree-bootstrap.sh" "${source_root}/scripts/v2/bmad-runtime.env" "${source_root}/scripts/v2/worktree-dependency-cache.sh" "${root}/scripts/v2/"
   cp "${source_root}/_bmad/custom/config.toml" "${root}/_bmad/custom/"
   cp "${source_root}/_bmad/custom/story-branch-workflow.md" "${root}/_bmad/custom/"
   cp "${source_root}/_bmad/_config/manifest.yaml" "${root}/_bmad/_config/"
   cp "${source_root}/_bmad/scripts/memlog.py" "${root}/_bmad/scripts/"
+  cp -R "${source_root}/skills/hatcast-story-lifecycle" "${root}/skills/"
   printf '.env\n' >"${root}/.gitignore"
   printf '{"name":"fixture","workspaces":["legacy","apps/web"]}\n' >"${root}/package.json"
   printf '{"lockfileVersion":3}\n' >"${root}/package-lock.json"
@@ -25,6 +26,7 @@ make_fixture() {
   printf '{"name":"@hatcast/web"}\n' >"${root}/apps/web/package.json"
   printf '#!/usr/bin/env bash\n' >"${root}/services/api/gradlew"; chmod +x "${root}/services/api/gradlew"
   for skill in bmad-create-story bmad-dev-story bmad-code-review; do mkdir -p "${root}/.agents/skills/${skill}"; printf 'name: %s\n' "${skill}" >"${root}/.agents/skills/${skill}/SKILL.md"; done
+  mkdir -p "${root}/.agents/skills/hatcast-story-lifecycle"; cp "${root}/skills/hatcast-story-lifecycle/SKILL.md" "${root}/.agents/skills/hatcast-story-lifecycle/SKILL.md"
   . "${source_root}/scripts/v2/bmad-runtime.env"
   printf '%s\n' "${HATCAST_BMAD_RUNTIME_VERSION}" >"${root}/.agents/skills/.hatcast-bmad-runtime-version"
   git -C "${root}" add . && git -C "${root}" commit -m "test: Add runtime fixture" >/dev/null

@@ -42,8 +42,8 @@ context:
 ## Code Map
 
 - `skills/hatcast-story-lifecycle/SKILL.md` -- current delivery rules; replace formal owner-review approval with attested explicit decision semantics.
-- `skills/hatcast-story-lifecycle/scripts/validate_pr_preflight.py` -- stdlib PR snapshot validator; extend its decision and blocking-thread checks while retaining clean-`v2` facts.
-- `skills/hatcast-story-lifecycle/scripts/tests/test_validate_pr_preflight.py` -- hermetic unit fixtures for current, stale, ambiguous, missing and blocking states.
+- `scripts/v2/validate_pr_preflight.py` -- stdlib PR snapshot validator; extend its decision and blocking-thread checks while retaining clean-`v2` facts.
+- `scripts/v2/tests/test_validate_pr_preflight.py` -- hermetic unit fixtures for current, stale, ambiguous, missing and blocking states.
 - `scripts/v2/story-branch.sh` -- sole integration, remote-verification and local-cleanup implementation; do not duplicate it.
 - `_bmad/custom/story-branch-workflow.md` and `epic-worktree-delivery-readiness.md` -- current documentation still describes owner approval and needs the corrected human-decision contract.
 
@@ -51,10 +51,10 @@ context:
 
 **Execution:**
 
-- [ ] `skills/hatcast-story-lifecycle/scripts/validate_pr_preflight.py` -- validate one open `v2` PR, exactly one lane, a current Patrice attestation and no blocking review state; emit redacted deterministic JSON.
-- [ ] `skills/hatcast-story-lifecycle/scripts/tests/test_validate_pr_preflight.py` -- prove valid conversation/direct decisions and fail-closed stale, duplicate-lane, missing-attestation, changed-head and blocking-review cases.
-- [ ] `skills/hatcast-story-lifecycle/SKILL.md` -- define preparation, explicit decision recording and integration without a GitHub approval API call.
-- [ ] `_bmad/custom/story-branch-workflow.md` and `_bmad-output/planning-artifacts/epic-worktree-delivery-readiness.md` -- align the operational and Epic-21 gate wording with the approved decision model.
+- [x] `scripts/v2/validate_pr_preflight.py` -- validate one open `v2` PR, exactly one lane, a current Patrice attestation and no blocking review state; emit redacted deterministic JSON.
+- [x] `scripts/v2/tests/test_validate_pr_preflight.py` -- prove valid conversation/direct decisions and fail-closed stale, duplicate-lane, missing-attestation, changed-head and blocking-review cases.
+- [x] `skills/hatcast-story-lifecycle/SKILL.md` -- define preparation, explicit decision recording and integration without a GitHub approval API call; bootstrap installs this instruction into ignored `.agents/skills`.
+- [x] `_bmad/custom/story-branch-workflow.md` and `_bmad-output/planning-artifacts/epic-worktree-delivery-readiness.md` -- align the operational and Epic-21 gate wording with the approved decision model.
 
 **Acceptance Criteria:**
 
@@ -80,6 +80,6 @@ The controller is a deterministic preflight and evidence recorder. It does not b
 
 **Commands:**
 
-- `python3 -m unittest skills/hatcast-story-lifecycle/scripts/tests/test_validate_pr_preflight.py` -- expected: all valid and fail-closed PR decision fixtures pass.
+- `python3 -m unittest scripts/v2/tests/test_validate_pr_preflight.py scripts/v2/tests/test_github_review_decision_controller.py` -- expected: all valid and fail-closed PR decision fixtures pass.
 - `bash scripts/v2/story-branch.test.sh` -- expected: existing merge, remote verification and cleanup safeguards remain green.
 - `git diff --check` -- expected: no whitespace errors.

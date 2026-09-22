@@ -252,7 +252,8 @@ and is neither human review nor integration approval: the `assert`, `merge`, and
 
 1. **Après l’étape 1** (quand `story_key` est connu), **avant l’étape 2** :
    - Depuis le checkout d’intégration propre `v2`, exécuter `./scripts/v2/story-branch.sh start {{story_key}}`.
-   - **HALT** si le script échoue (arbre sale, clé non sûre, conflit de chemin, remote absent ou bootstrap incomplet). Si le runtime BMad n’est pas en cache, demander confirmation puis relancer avec `HATCAST_BMAD_ALLOW_NETWORK=1`.
+  - **HALT** si le script échoue (arbre sale, clé non sûre, conflit de chemin, remote absent ou bootstrap incomplet). Si le runtime BMad n’est pas en cache, demander confirmation puis relancer avec `HATCAST_BMAD_ALLOW_NETWORK=1`.
+  - Le bootstrap matérialise aussi la source versionnée `skills/hatcast-story-lifecycle/SKILL.md` dans `.agents/skills/hatcast-story-lifecycle/`. Seule cette copie runtime est ignorée; les commandes qu’elle appelle restent sous `scripts/v2/` et sont versionnées.
    - Continuer uniquement dans le worktree indiqué par `WORKTREE_PATH`; ne jamais changer le checkout d’intégration.
 2. **À l’étape 5** (création du fichier story), inclure dans le **frontmatter YAML** :
    ```yaml
@@ -290,4 +291,4 @@ git rebase origin/v2
 
 - Stories **docs-only** ou **ops** sans code : même convention (isolation + review).
 - Hotfix urgent sur `v2` : hors cycle BMad ; documenter dans le Change Log de la story si applicable.
-- Un échec de bootstrap laisse le worktree unité inspectable. Le bootstrap installe les workflows BMad standards épinglés uniquement dans l’unité; tout téléchargement requiert `HATCAST_BMAD_ALLOW_NETWORK=1`. Aucun secret n’est copié. `integrate` ne nettoie qu’après publication et vérification distantes réussies; en cas d’échec, l’unité et la branche locale restent disponibles.
+- Un échec de bootstrap laisse le worktree unité inspectable. Le bootstrap installe les workflows BMad standards épinglés uniquement dans l’unité, puis copie la seule instruction de skill HatCast versionnée dans le runtime ignoré; tout téléchargement requiert `HATCAST_BMAD_ALLOW_NETWORK=1`. Aucun secret n’est copié. `integrate` ne nettoie qu’après publication et vérification distantes réussies; en cas d’échec, l’unité et la branche locale restent disponibles.

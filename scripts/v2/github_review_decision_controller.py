@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Deterministic GitHub review-decision controller for one HatCast story."""
+"""Deterministic GitHub review-decision controller for one HatCast story.
+
+This is a versioned project command. The ignored installed skill calls it.
+"""
 
 from __future__ import annotations
 

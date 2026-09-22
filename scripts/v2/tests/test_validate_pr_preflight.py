@@ -5,6 +5,8 @@ import tempfile
 import unittest
 
 
+# The preflight validator is a versioned project command, not an installed
+# skill payload. Installed skills only contain the activation instructions.
 SCRIPT = Path(__file__).parents[1] / "validate_pr_preflight.py"
 
 
