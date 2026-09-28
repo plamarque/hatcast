@@ -1,5 +1,40 @@
 # Changelog
 
+## [2.6.0] - 2026-09-29
+
+### ✨ New Features
+- feat(workflow): Add GitHub decision controller (#8)
+- feat(stats): Unify active season statistics (#9)
+- feat(story): merge sprint-status-additive-sync
+- feat(workflow): Add story lifecycle skill
+- feat(story): merge worktree-dependency-cache-integration
+- feat(worktrees): Reuse immutable dependencies
+- feat(story): merge worktree-dependency-cache-feasibility
+
+### 🐛 Bug Fixes
+- fix(dispos): Show unavailable respondents
+- fix(workflow): Preserve clean review checkout (#12)
+- fix(workflow): Allow smoke cold starts (#10)
+- fix(workflow): Sync BMad story status safely
+- fix(workflow): Align BMad runtime pins
+
+### 📝 Other Changes
+- chore(v2): promote v2 to staging-v2
+- test(stats): Accept no-participation state
+- docs(release): Add v2.6.0 cutover
+- test(workflow): Record delivery gate smoke (#11)
+- docs(plan): Add Epic 21 story headings
+- docs(workflow): Define story 21.6
+- docs(workflow): Add GitHub review controller plan
+- chore(bmad): Upgrade BMad Method to 6.12
+- docs(worktrees): Refresh Epic 21 context
+- docs(plan): Add worktree cache change proposal
+- test(worktree): Evaluate immutable symlink cache
+- test(worktree): Measure dependency cache feasibility
+- chore(v2): sync release v2.5.0-rc.1 artifacts to v2
+
+---
+
 ## [2.5.0] - 2026-09-19
 
 ### ✨ New Features
