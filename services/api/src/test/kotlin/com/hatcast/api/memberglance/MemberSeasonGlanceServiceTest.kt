@@ -103,6 +103,7 @@ class MemberSeasonGlanceServiceTest {
                 title = "Saison active",
                 isActive = true,
                 startDate = LocalDate.of(2026, 3, 1),
+                endDate = LocalDate.of(2026, 12, 31),
             )
         val older =
             season(
@@ -144,6 +145,63 @@ class MemberSeasonGlanceServiceTest {
 
         assertEquals(primarySeasonId, result.resolvedSeasonId)
         assertEquals(true, result.filterBarVisible)
+    }
+
+    @Test
+    fun `all groups filter resolves newest active season when several active seasons exist`() {
+        val userId = UUID.randomUUID()
+        val target = user(id = userId, slug = "two-active-seasons")
+        val priorSeasonId = UUID.fromString("b0000004-0000-4000-8000-000000000004")
+        val currentSeasonId = UUID.fromString("b0000005-0000-4000-8000-000000000005")
+        val prior =
+            season(
+                id = priorSeasonId,
+                troupeId = seedTroupeId,
+                title = "Saison 2025-2026",
+                isActive = true,
+                startDate = LocalDate.of(2025, 9, 1),
+                endDate = LocalDate.of(2026, 8, 31),
+            )
+        val current =
+            season(
+                id = currentSeasonId,
+                troupeId = seedTroupeId,
+                title = "Saison 2026-2027",
+                isActive = true,
+                startDate = LocalDate.of(2026, 9, 1),
+                endDate = LocalDate.of(2027, 8, 31),
+            )
+        val membership = activeMembership(target, "Current")
+
+        stubParticipation(
+            userId,
+            troupeIds = setOf(seedTroupeId),
+            seasonIds = setOf(priorSeasonId, currentSeasonId),
+        )
+        whenever(userRepository.findBySlug("two-active-seasons")).thenReturn(target)
+        whenever(seasonRepository.findById(priorSeasonId)).thenReturn(Optional.of(prior))
+        whenever(seasonRepository.findById(currentSeasonId)).thenReturn(Optional.of(current))
+        whenever(membershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, userId)).thenReturn(membership)
+        whenever(statsProvider.loadStats(currentSeasonId, userId)).thenReturn(null)
+        whenever(statsProvider.loadMonthlyChart(currentSeasonId, userId)).thenReturn(emptyList())
+        whenever(statsProvider.loadFavoriteRoleCounts(currentSeasonId, userId)).thenReturn(emptyList())
+        whenever(userMemberPreferencesService.getPreferences(userId)).thenReturn(
+            UserMemberPreferencesResponseDto(
+                memberDisplayName = "Current",
+                preferredRoleKeys = emptyList(),
+                gender = "non_specified",
+            ),
+        )
+
+        val result =
+            service.getSeasonGlance(
+                userSlug = "two-active-seasons",
+                principal = principal(userId),
+                troupeId = null,
+                seasonId = null,
+            )
+
+        assertEquals(currentSeasonId, result.resolvedSeasonId)
     }
 
     @Test
@@ -204,6 +262,7 @@ class MemberSeasonGlanceServiceTest {
         title: String = "Season",
         isActive: Boolean = false,
         startDate: LocalDate? = null,
+        endDate: LocalDate? = null,
     ): SeasonEntity {
         val troupe = TroupeEntity(id = troupeId, name = "Troupe", slug = "troupe")
         return SeasonEntity(
@@ -214,6 +273,7 @@ class MemberSeasonGlanceServiceTest {
             archived = false,
             isActive = isActive,
             startDate = startDate,
+            endDate = endDate,
             updatedAt = Instant.parse("2026-01-01T00:00:00Z"),
         )
     }

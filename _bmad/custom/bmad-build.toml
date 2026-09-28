@@ -1,0 +1,4 @@
+[workflow]
+activation_steps_append = [
+  '''HatCast tracking boundary: `story-branch.sh start` alone may create the BMad-owned `chore(bmad): Sync sprint status for {story-key}` commit in the clean feat/{story-key} unit. Do not stage, revert, edit, or regenerate sprint-status.yaml manually. The controller only adds a canonical planned key; human review and the existing integration gates remain mandatory.'''
+]

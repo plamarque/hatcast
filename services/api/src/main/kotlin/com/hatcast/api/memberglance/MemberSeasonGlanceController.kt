@@ -18,14 +18,14 @@ class MemberSeasonGlanceController(
     @GetMapping("/{userSlug}/season-glance")
     fun getSeasonGlance(
         @PathVariable userSlug: String,
-        @RequestParam(required = false) troupeId: UUID?,
-        @RequestParam(required = false) seasonId: UUID?,
+        @RequestParam(required = false) troupeId: List<UUID>?,
+        @RequestParam(required = false) seasonId: List<UUID>?,
         @AuthenticationPrincipal principal: SessionUserPrincipal,
     ): MemberSeasonGlanceResponseDto =
         memberSeasonGlanceService.getSeasonGlance(
             userSlug = userSlug,
             principal = principal,
-            troupeId = troupeId,
-            seasonId = seasonId,
+            troupeIds = troupeId.orEmpty().toSet(),
+            seasonIds = seasonId.orEmpty().toSet(),
         )
 }

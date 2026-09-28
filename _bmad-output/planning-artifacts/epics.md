@@ -3088,7 +3088,7 @@ afin de **suivre** la répartition des spectacles prestigieux.
 
 ### Epic 21 — Worktree delivery readiness
 
-Manual BMad stories become verifiable in their isolated worktrees before a human is asked to approve integration. The epic retains the existing worktree and explicit integration contract while adding readiness, targeted-E2E evidence, a coverage-gap disposition, and a click-ready smoke handoff.
+Manual BMad stories become verifiable in their isolated worktrees before a human is asked to approve integration. The epic retains the existing worktree and explicit integration contract while adding readiness, targeted-E2E evidence, a coverage-gap disposition, a click-ready smoke handoff, and a GitHub review decision controller bound to the exact PR head SHA.
 
 **Delivery plan and gates:** [epic-worktree-delivery-readiness.md](epic-worktree-delivery-readiness.md).
 
@@ -3099,3 +3099,63 @@ Manual BMad stories become verifiable in their isolated worktrees before a human
 | 21.3 | Targeted E2E evidence | 21.2 |
 | 21.4 | Human smoke handoff | 21.2, 21.3 |
 | 21.5 | Delivery gates and integration | 21.1–21.4 |
+| 21.6 | GitHub review decision controller | existing `story-branch.sh integrate` contract; independent of 21.4–21.5 completion |
+
+#### Story 21.4 : Human smoke handoff
+
+En tant que **propriétaire de la livraison HatCast**,
+je veux **démarrer une unité de story prête pour une vérification humaine et
+l’arrêter de façon bornée**,
+afin de **recevoir une URL, un guide non sensible et une preuve de nettoyage
+sans confondre ce smoke avec une approbation d’intégration**.
+
+**Acceptance Criteria**
+
+1. **Given** une unité `feat/{story-key}` prête et une preuve E2E ciblée valide,
+   **when** un handoff smoke est demandé avec un guide non sensible, **then** il
+   démarre la stack normale de cette unité et fournit l’URL locale et la commande
+   d’arrêt explicite.
+2. **Given** un smoke terminé ou échoué, **when** son arrêt est demandé, **then**
+   seuls les processus possédés par ce handoff sont arrêtés et la libération des
+   ports est vérifiée.
+3. **Given** un prérequis, guide, port ou état de propriété invalide, **when** le
+   handoff est demandé, **then** il échoue avant de démarrer ou d’arrêter un
+   processus.
+4. **Couverture :** workflow développeur V2. **Priorité :** P1. **Depends :**
+   21.2, 21.3. **UI :** N/A.
+
+#### Story 21.5 : Delivery gates integration
+
+En tant que **propriétaire de la livraison HatCast**,
+je veux **enchaîner les preuves de readiness, E2E et smoke avant une demande de
+revue humaine**,
+afin de **refuser les livraisons incomplètes sans prendre la responsabilité du
+merge ou de l’approbation GitHub**.
+
+**Acceptance Criteria**
+
+1. **Given** une story sans readiness, preuve E2E ou disposition de couverture
+   valide, **when** un smoke humain est demandé, **then** le contrôleur refuse
+   sans action externe.
+2. **Given** un smoke terminé et vérifiable, **when** l’opérateur le confirme,
+   **then** le contrôleur revalide les preuves sans affirmer une approbation Git.
+3. **Given** une revue humaine valide, **when** l’intégration est demandée,
+   **then** seul `story-branch.sh integrate` conserve les gardes de push,
+   vérification distante et nettoyage local.
+4. **Couverture :** workflow développeur V2. **Priorité :** P1. **Depends :**
+   21.1–21.4. **UI :** N/A.
+
+#### Story 21.6 : GitHub review decision controller
+
+En tant que **propriétaire de la livraison HatCast**,
+je veux **relier chaque worktree de story à une PR GitHub, à sa révision exacte et à ma décision de revue**,
+afin que **l’intégration vers `v2` soit traçable, contrôlée et sûre**.
+
+**Acceptance Criteria**
+
+1. **Given** un worktree `feat/{story-key}` propre et enregistré, **when** la review est préparée, **then** le contrôleur crée ou met à jour une seule PR vers `v2`, publie son URL et son SHA de tête, et assure exactement un label `delivery:batch` ou `delivery:release-now`.
+2. **Given** une approbation GitHub directe de Patrice ou son approbation explicite en conversation, **when** le contrôleur lit ou enregistre cette décision, **then** il lie approbation, lane et commentaire d’attestation au SHA actuel et refuse tout SHA devenu différent.
+3. **Given** une demande de changements, des commentaires bloquants non résolus, une PR invalide, ou une approbation manquante, **when** une intégration est demandée, **then** le contrôleur échoue sans effet de bord et conserve l’unité pour correction.
+4. **Given** une décision courante et valide, **when** l’intégration est explicitement demandée, **then** le contrôleur délègue uniquement à `scripts/v2/story-branch.sh integrate`; cette commande conserve seule les responsabilités de push, vérification distante et suppression locale.
+5. **Given** un état ambigu, stale ou échoué, **when** une opération mutante est demandée, **then** elle est refusée avant toute approbation, label, commentaire, merge, push, déploiement, release ou suppression.
+6. **Couverture :** workflow développeur V2. **Priorité :** P1. **Depends :** contrat `story-branch.sh integrate`. **UI :** N/A.

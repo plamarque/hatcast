@@ -7,7 +7,18 @@ _script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=bmad-runtime.env
 source "${_script_dir}/bmad-runtime.env"
 
-usage() { echo "Usage: $(basename "$0") [--verify] [--allow-network] <unit-worktree-path>" >&2; }
+usage() { echo "Usage: $(basename "$0") [--verify|--sync-project-skills] [--allow-network] <unit-worktree-path>" >&2; }
+
+sync_project_skills() {
+  local root="$1" source_skill="$root/skills/hatcast-story-lifecycle/SKILL.md"
+  local installed_skill="$root/.agents/skills/hatcast-story-lifecycle/SKILL.md"
+  if [[ ! -f "${source_skill}" ]] || ! grep -Fqx "name: hatcast-story-lifecycle" "${source_skill}"; then
+    echo "ERROR: HatCast lifecycle skill source is unavailable or invalid." >&2
+    return 1
+  fi
+  mkdir -p "$(dirname "${installed_skill}")"
+  cp "${source_skill}" "${installed_skill}"
+}
 
 validate_root() {
   local root="$1"
@@ -18,6 +29,7 @@ validate_root() {
     "$root/.agents/skills/bmad-create-story/SKILL.md"
     "$root/.agents/skills/bmad-dev-story/SKILL.md"
     "$root/.agents/skills/bmad-code-review/SKILL.md"
+    "$root/.agents/skills/hatcast-story-lifecycle/SKILL.md"
     "$root/.agents/skills/.hatcast-bmad-runtime-version"
   )
   local path skill
@@ -33,6 +45,10 @@ validate_root() {
       return 1
     fi
   done
+  if ! grep -Fqx "name: hatcast-story-lifecycle" "$root/.agents/skills/hatcast-story-lifecycle/SKILL.md"; then
+    echo "ERROR: HatCast lifecycle skill declaration is invalid." >&2
+    return 1
+  fi
   if [[ "$(<"$root/.agents/skills/.hatcast-bmad-runtime-version")" != "${HATCAST_BMAD_RUNTIME_VERSION}" ]]; then
     echo "ERROR: BMad runtime completion marker does not match ${HATCAST_BMAD_RUNTIME_VERSION}." >&2
     return 1
@@ -89,10 +105,11 @@ provision_standard_bmad() {
 }
 
 main() {
-  local verify=false allow_network=false root
+  local verify=false sync_only=false allow_network=false root
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --verify) verify=true ;;
+      --sync-project-skills) sync_only=true ;;
       --allow-network) allow_network=true ;;
       *) break ;;
     esac
@@ -104,9 +121,12 @@ main() {
   [[ -f "${root}/package.json" ]] || { echo "ERROR: not a HatCast worktree: ${root}" >&2; exit 1; }
   [[ "$(git -C "${root}" rev-parse --show-toplevel 2>/dev/null || true)" == "${root}" ]] || { echo "ERROR: not a Git worktree: ${root}" >&2; exit 1; }
 
-  if [[ "${verify}" == false ]]; then
+  if [[ "${verify}" == false && "${sync_only}" == false ]]; then
     if [[ "${allow_network}" == true ]]; then export HATCAST_BMAD_ALLOW_NETWORK=1; fi
     provision_standard_bmad "${root}"
+    sync_project_skills "${root}"
+  elif [[ "${sync_only}" == true ]]; then
+    sync_project_skills "${root}"
   fi
   validate_root "${root}"
   printf 'BMAD_RUNTIME_SOURCE=pinned-installer\n'

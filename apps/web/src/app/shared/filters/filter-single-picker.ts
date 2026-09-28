@@ -44,7 +44,7 @@ export class FilterSinglePicker {
 
   protected readonly effectiveDimension = computed(() => {
     const dim = this.data.dimension
-    if (!this.data.participationFilters || dim.key !== 'season') {
+    if (this.data.requiredSelection || !this.data.participationFilters || dim.key !== 'season') {
       return dim
     }
     const built = buildAgendaFilterDimensions(
@@ -77,10 +77,16 @@ export class FilterSinglePicker {
   }
 
   protected onReset(): void {
+    if (this.data.requiredSelection) {
+      return
+    }
     this.finish({ action: 'reset', selectedId: null })
   }
 
   protected onApply(): void {
+    if (this.data.requiredSelection && this.draftId() == null) {
+      return
+    }
     this.finish({ action: 'apply', selectedId: this.draftId() })
   }
 

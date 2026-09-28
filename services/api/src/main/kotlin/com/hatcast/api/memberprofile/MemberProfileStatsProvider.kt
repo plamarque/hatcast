@@ -23,4 +23,11 @@ interface MemberProfileStatsProvider {
         seasonId: UUID,
         userId: UUID,
     ): List<FavoriteRoleCountDto>
+
+    /** A unified view must calculate rates from the combined raw event scope. */
+    fun loadStats(seasonIds: Collection<UUID>, userId: UUID): MemberProfileStatsDto?
+
+    fun loadMonthlyChart(seasonIds: Collection<UUID>, userId: UUID): List<MemberProfileMonthDto>
+
+    fun loadFavoriteRoleCounts(seasonIds: Collection<UUID>, userId: UUID): List<FavoriteRoleCountDto>
 }

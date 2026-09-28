@@ -3,7 +3,7 @@
 set -euo pipefail
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 root="$(git -C "${script_dir}/../.." rev-parse --show-toplevel 2>/dev/null || true)"
-usage() { echo "Usage: $(basename "$0") [inspect|prepare]" >&2; }
+usage() { echo "Usage: $(basename "$0") [inspect|prepare|detach-dependencies]" >&2; }
 state() { printf '%s=%s\n' "$1" "$2"; }
 has_command() { command -v "$1" >/dev/null 2>&1; }
 browser_cache() { if [[ -n "${PLAYWRIGHT_BROWSERS_PATH:-}" ]]; then printf '%s\n' "${PLAYWRIGHT_BROWSERS_PATH}"; elif [[ "$(uname -s)" == Darwin ]]; then printf '%s\n' "${HOME}/Library/Caches/ms-playwright"; else printf '%s\n' "${HOME}/.cache/ms-playwright"; fi; }
@@ -63,7 +63,7 @@ link_environment() {
   [[ -n "${relative}" ]] && ln -s "${relative}" "${root}/.env"
 }
 prepare() {
-  local env check port
+  local env check port cache_result cache_rc
   unit_valid || { prepare_failure invalid-worktree; return 1; }
   env="$(environment_state)"
   [[ "${env}" == conflict ]] && { prepare_failure environment-conflict; return 1; }
@@ -71,9 +71,35 @@ prepare() {
   for check in bmad_state node_npm_state jdk_state e2e_files_state python_state; do [[ "$(${check})" == ready ]] || { prepare_failure preconditions-unavailable; return 1; }; done
   for port in 8080 4200; do [[ "$(port_state "${port}")" == free ]] || { prepare_failure ports-unavailable; return 1; }; done
   [[ "${env}" == linked ]] || { link_environment || { prepare_failure environment-link-failed; return 1; }; }
-  (cd "${root}" && npm ci >/dev/null 2>&1) || { prepare_failure dependencies-failed; return 1; }
+  if [[ ! -e "${root}/node_modules" && ! -L "${root}/node_modules" ]]; then
+    if [[ -n "${WORKTREE_DEPENDENCY_CACHE_ROOT:-}" ]]; then
+      set +e
+      cache_result="$(bash "${script_dir}/worktree-dependency-cache.sh" prepare "${WORKTREE_DEPENDENCY_CACHE_ROOT}" "${root}")"
+      cache_rc=$?
+      set -e
+      if [[ ${cache_rc} -eq 0 ]]; then
+        state DEPENDENCY_CACHE hit
+      elif [[ ${cache_rc} -eq 3 ]]; then
+        state DEPENDENCY_CACHE miss
+        (cd "${root}" && npm ci >/dev/null 2>&1) || { prepare_failure dependencies-failed; return 1; }
+      else
+        state DEPENDENCY_CACHE unavailable
+        prepare_failure dependency-cache-invalid
+        return 1
+      fi
+    else
+      state DEPENDENCY_CACHE unavailable
+      (cd "${root}" && npm ci >/dev/null 2>&1) || { prepare_failure dependencies-failed; return 1; }
+    fi
+  else
+    state DEPENDENCY_CACHE local
+  fi
   (cd "${root}/apps/web" && npx playwright install chromium >/dev/null 2>&1) || { prepare_failure chromium-failed; return 1; }
   inspect && { state PREPARATION ready; return 0; }; state PREPARATION not-ready; return 1
 }
+detach_dependencies() {
+  [[ -n "${WORKTREE_DEPENDENCY_CACHE_ROOT:-}" ]] || { state DETACH unavailable; return 1; }
+  bash "${script_dir}/worktree-dependency-cache.sh" detach "${WORKTREE_DEPENDENCY_CACHE_ROOT}" "${root}"
+}
 mode="${1:-inspect}"; [[ $# -le 1 ]] || { usage; exit 2; }
-case "${mode}" in inspect) inspect ;; prepare) prepare ;; --help|-h) usage ;; *) usage; exit 2 ;; esac
+case "${mode}" in inspect) inspect ;; prepare) prepare ;; detach-dependencies) detach_dependencies ;; --help|-h) usage ;; *) usage; exit 2 ;; esac

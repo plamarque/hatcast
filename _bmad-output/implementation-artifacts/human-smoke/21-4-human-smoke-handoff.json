@@ -1,0 +1,13 @@
+{
+  "baseline_commit": "38fc9534cfd33b3eafd7393e33655c05fa62a491",
+  "branch": "feat/21-4-human-smoke-handoff",
+  "e2e_outcome": "passed",
+  "e2e_reference": "_bmad-output/implementation-artifacts/e2e-evidence/21-3-targeted-e2e-evidence.json",
+  "guide_reference": "docs/v2/smoke/21-4-login-page.json",
+  "owned_process_group": "77353",
+  "owned_process_marker": "smoke-1790111973-77239",
+  "owner": "patrice",
+  "result": "stopped",
+  "schema": "hatcast.story-human-smoke-handoff.v1",
+  "url": "https://localhost:4200"
+}

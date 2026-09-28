@@ -45,13 +45,11 @@ class SeasonGlanceStatsProvider(
     override fun loadStats(
         seasonId: UUID,
         userId: UUID,
-    ): MemberProfileStatsDto? {
-        val participants = participantsForUser(seasonId, userId)
-        if (participants.isEmpty()) {
-            return null
-        }
-        val participantIds = participants.map { it.id }.toSet()
-        val events = eventRepository.findNonArchivedBySeasonId(seasonId)
+    ): MemberProfileStatsDto? = loadStats(listOf(seasonId), userId)
+
+    override fun loadStats(seasonIds: Collection<UUID>, userId: UUID): MemberProfileStatsDto? {
+        val scopedEvents = scopedEvents(seasonIds, userId)
+        val events = scopedEvents.map { it.event }
         if (events.isEmpty()) {
             return null
         }
@@ -73,12 +71,13 @@ class SeasonGlanceStatsProvider(
             val declines = declinesByEvent[event.id].orEmpty()
             val locked = isCompositionLockedForStats(composition, slots)
 
+            val scoped = scopedEvents.first { it.event.id == event.id }
             if (
-                participantIds.any { pid ->
+                scoped.participantIds.any { pid ->
                     effectiveAvailability(
                         event = event,
                         participantId = pid,
-                        participants = participants,
+                        participants = scoped.participants,
                         locked = locked,
                         slots = slots,
                         declines = declines,
@@ -91,14 +90,14 @@ class SeasonGlanceStatsProvider(
 
             if (locked) {
                 if (
-                    participantIds.any { pid ->
+                    scoped.participantIds.any { pid ->
                         hasInitialSelection(slots, declines, pid)
                     }
                 ) {
                     totalInitialSelections++
                 }
                 if (
-                    participantIds.any { pid ->
+                    scoped.participantIds.any { pid ->
                         hasFinalParticipation(slots, declines, pid)
                     }
                 ) {
@@ -160,13 +159,11 @@ class SeasonGlanceStatsProvider(
     override fun loadMonthlyChart(
         seasonId: UUID,
         userId: UUID,
-    ): List<MemberProfileMonthDto> {
-        val participants = participantsForUser(seasonId, userId)
-        if (participants.isEmpty()) {
-            return emptyList()
-        }
-        val participantIds = participants.map { it.id }.toSet()
-        val events = eventRepository.findNonArchivedBySeasonId(seasonId)
+    ): List<MemberProfileMonthDto> = loadMonthlyChart(listOf(seasonId), userId)
+
+    override fun loadMonthlyChart(seasonIds: Collection<UUID>, userId: UUID): List<MemberProfileMonthDto> {
+        val scopedEvents = scopedEvents(seasonIds, userId)
+        val events = scopedEvents.map { it.event }
         if (events.isEmpty()) {
             return emptyList()
         }
@@ -180,6 +177,7 @@ class SeasonGlanceStatsProvider(
         val startsAtByEventId = events.associate { it.id to it.startsAt }
         val blocksByMonth = mutableMapOf<String, MutableList<MemberProfileChartBlockDto>>()
         for (event in eventsInChartOrder(events)) {
+            val scoped = scopedEvents.first { it.event.id == event.id }
             val composition = compositions[event.id]
             val slots = slotsByEvent[event.id].orEmpty()
             val declines = declinesByEvent[event.id].orEmpty()
@@ -187,11 +185,11 @@ class SeasonGlanceStatsProvider(
             val monthKey = event.startsAt.atZone(ZONE).format(MONTH_FORMAT)
 
             val block =
-                participantIds.firstNotNullOfOrNull { pid ->
+                scoped.participantIds.firstNotNullOfOrNull { pid ->
                     chartBlockForEvent(
                         event = event,
                         participantId = pid,
-                        participants = participants,
+                        participants = scoped.participants,
                         locked = locked,
                         slots = slots,
                         declines = declines,
@@ -202,12 +200,7 @@ class SeasonGlanceStatsProvider(
             blocksByMonth.getOrPut(monthKey) { mutableListOf() }.add(block)
         }
 
-        return blocksByMonth.entries
-            .sortedWith(
-                compareBy<Map.Entry<String, MutableList<MemberProfileChartBlockDto>>> { (monthKey, _) ->
-                    schoolYearMonthDisplayIndex(monthKey)
-                }.thenBy { it.key },
-            ).map { (monthKey, blocks) ->
+        return blocksByMonth.entries.sortedBy { it.key }.map { (monthKey, blocks) ->
                 MemberProfileMonthDto(
                     monthKey = monthKey,
                     blocks = chartBlocksInDisplayOrder(blocks, startsAtByEventId),
@@ -250,13 +243,11 @@ class SeasonGlanceStatsProvider(
     override fun loadFavoriteRoleCounts(
         seasonId: UUID,
         userId: UUID,
-    ): List<FavoriteRoleCountDto> {
-        val participants = participantsForUser(seasonId, userId)
-        if (participants.isEmpty()) {
-            return emptyList()
-        }
-        val participantIds = participants.map { it.id }.toSet()
-        val events = eventRepository.findNonArchivedBySeasonId(seasonId)
+    ): List<FavoriteRoleCountDto> = loadFavoriteRoleCounts(listOf(seasonId), userId)
+
+    override fun loadFavoriteRoleCounts(seasonIds: Collection<UUID>, userId: UUID): List<FavoriteRoleCountDto> {
+        val scopedEvents = scopedEvents(seasonIds, userId)
+        val events = scopedEvents.map { it.event }
         val eventIds = events.map { it.id }
         val compositions = compositionRepository.findByEventIdIn(eventIds).associateBy { it.eventId }
         val slotsByEvent = slotRepository.findByEventIdIn(eventIds).groupBy { it.eventId }
@@ -264,6 +255,7 @@ class SeasonGlanceStatsProvider(
 
         val counts = mutableMapOf<String, Int>()
         for (event in events) {
+            val participantIds = scopedEvents.first { it.event.id == event.id }.participantIds
             val composition = compositions[event.id]
             val slots = slotsByEvent[event.id].orEmpty()
             if (!isCompositionLockedForStats(composition, slots)) {
@@ -288,6 +280,20 @@ class SeasonGlanceStatsProvider(
             FavoriteRoleCountDto(roleKey = roleKey, count = count)
         }
     }
+
+    private fun scopedEvents(seasonIds: Collection<UUID>, userId: UUID): List<ScopedEvent> =
+        seasonIds.distinct().flatMap { seasonId ->
+            val participants = participantsForUser(seasonId, userId)
+            if (participants.isEmpty()) emptyList() else eventRepository.findNonArchivedBySeasonId(seasonId).map { event ->
+                ScopedEvent(event, participants, participants.map { it.id }.toSet())
+            }
+        }
+
+    private data class ScopedEvent(
+        val event: EventEntity,
+        val participants: List<SeasonParticipantEntity>,
+        val participantIds: Set<UUID>,
+    )
 
     private fun participantsForUser(
         seasonId: UUID,

@@ -426,10 +426,10 @@ class SeasonGlanceStatsProviderTest {
 
         val chart = provider.loadMonthlyChart(seasonId, userId)
 
-        assertEquals(listOf("2026-09", "2026-03", "2026-08"), chart.map { it.monthKey })
+        assertEquals(listOf("2026-03", "2026-08", "2026-09"), chart.map { it.monthKey })
         assertEquals(
             listOf(sameDayEarly.id, sameDayLate.id),
-            chart[1].blocks.map { it.eventId },
+            chart[0].blocks.map { it.eventId },
         )
     }
 

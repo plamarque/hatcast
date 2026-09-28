@@ -1,5 +1,9 @@
 # Deferred Work
 
+- source_spec: `_bmad-output/implementation-artifacts/spec-fix-stats-current-season.md`
+  summary: Define a deterministic default-season tie-break when active state, dates, and title are identical.
+  evidence: `MemberSeasonGlanceService.selectPrimarySeason` receives candidates from a set and has no stable final ID comparator; changing this equal-value policy requires product direction under the approved spec.
+
 ## Deferred from: code review of spec-19-20-ui-admin-politiques-tirage (2026-09-15)
 
 - E2E AC9 Formules→Équipe : repose sur couverture 19.21 (`event-equipe-tab.spec.ts`, `draw-formula-choice.spec.ts`) ; pas de chaîne E2E assign UI 19.20 → Équipe dans ce diff.

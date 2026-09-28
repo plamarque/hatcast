@@ -1,10 +1,10 @@
 # Epic 21 Context: Worktree delivery readiness
 
-<!-- Generated from planning artifacts. Regenerate with compile-epic-context if planning docs change. -->
+<!-- Compiled from planning artifacts. Edit freely. Regenerate with compile-epic-context if planning docs change. -->
 
 ## Goal
 
-Make each manually delivered BMad story verifiable from its isolated unit worktree before a human is asked to approve integration. The epic strengthens delivery evidence without changing HatCast product behaviour or replacing the existing explicit human integration approval.
+Make manually delivered BMad stories verifiable inside their isolated worktrees before requesting human integration approval. The epic adds non-secret readiness, targeted E2E and coverage evidence, a click-ready smoke handoff, and a GitHub review decision tied to the exact PR head, while preserving the existing explicit worktree-integration contract.
 
 ## Stories
 
@@ -13,33 +13,26 @@ Make each manually delivered BMad story verifiable from its isolated unit worktr
 - Story 21.3: Targeted E2E evidence
 - Story 21.4: Human smoke handoff
 - Story 21.5: Delivery gates and integration
+- Story 21.6: GitHub review decision controller
 
 ## Requirements & Constraints
 
-- The selected local Loop adapter and policy must be validated before execution; readiness artifacts contain identifiers and outcomes only, never secrets or absolute worktree paths.
-- Each Epic 21 invocation must select at most one story. Stories proceed strictly in order, and the operator starts a successor only after recording the prior required human gate.
-- The adapter choice is an operator-owned prerequisite. Later decisions are deferred to the first story that needs them: environment/dependency/port handling for runtime readiness, waiver authority and expiry for coverage, and the smoke-guide schema for human testing.
-- Runtime readiness must inspect BMad, Node/npm, JDK, Playwright browser, environment-reference, and port state without mutation. Downloads require explicit human confirmation.
-- Preparation must not copy, track, print, or serialize environment values or ignored files. E2E must use the isolated E2E setup, rather than a normal development API.
-- Before human validation, record the relevant Playwright projects/specs and rationale. Run applicable targeted E2E after readiness and retain the command, exit result, and report reference.
-- If no relevant E2E exists, require exactly one documented disposition: a test to add now, cited equivalent coverage, or an authorized human waiver.
-- Preserve the product-quality baseline: critical paths need automated regression coverage, and a disabled test cannot be used to pass a delivery gate without an explicit waiver.
-- A smoke handoff needs a clickable URL, concise guide, branch and baseline identity, prior E2E result, owner, and explicit stop action. Record the clean stop result without secrets.
-- Do not request human validation until readiness and E2E evidence or a valid coverage disposition exist. Loop confirmation may reverify evidence but cannot assert Git approval.
-- On any gate failure, stop at that gate: do not queue execution after failed preflight, run E2E or smoke after failed readiness, request smoke after missing coverage disposition, or recommend integration after incomplete smoke evidence.
+- The selected local Loop adapter and non-secret policy must pass JSON validation before queue activation. A dry run must select the numeric story key; use `--max-stories 1` for every Epic 21 invocation because backlog entries are selectable.
+- Readiness must inspect prerequisites without mutation. Dependency downloads require explicit human confirmation; environment handling must reference existing local values without copying, tracking, printing, or serialising secrets or absolute worktree paths.
+- Targeted Playwright coverage must be discovered and justified before human validation. Run it only after readiness under the isolated E2E profile; record the command, exit result, report reference, and selected projects/specs. If no relevant E2E exists, require exactly one disposition: a test to write now, cited equivalent coverage, or an authorised, expiring waiver.
+- A smoke request requires the prior E2E result or accepted disposition. Its handoff identifies the unit branch/baseline, clickable URL, concise actions and expected observations, account or fixture reference, owner, and explicit stop action. Record the outcome without secrets and verify owned processes stop cleanly.
+- Existing integration approval remains human-only: Loop confirmation is not Git approval. Integration must be refused when required readiness, coverage, review, or smoke evidence is absent, stale, ambiguous, or failed; retain the unit for repair on every failure.
+- For review, a clean registered `feat/{story-key}` worktree maps to exactly one PR targeting `v2`, with its URL and current head SHA reported and exactly one lane label: `delivery:batch` or `delivery:release-now`. Patrice's direct GitHub label and head-SHA attestation, or his explicit conversational decision, must bind to that current SHA without a formal GitHub approval. Requested changes, unresolved blocking comments, invalid PR state, missing or stale attestation, or a changed head fail closed before any mutation.
 
 ## Technical Decisions
 
-- Retain the delivery model: a clean `v2` integration worktree, an adjacent `feat/{story-key}` unit worktree, explicit human review, then the established integration command and its existing safety guards.
-- Use the Loop JSON validation and a dry run that recognizes a numeric queued story key as the pre-execution readiness evidence.
-- Treat readiness, coverage, smoke, and review/integration as separate gates. A failed gate preserves the unit and prevents the next activity; it does not weaken integration or cleanup protections.
-- Isolated E2E requires its dedicated profile and prerequisites, including dependencies, JDK, Playwright Chromium, and its reserved ports. Development startup is a separate smoke mechanism and does not substitute for E2E.
-- Smoke startup must use the selected unit branch and the chosen non-secret environment handoff. Its short guide identifies the route, account or fixture reference, actions, expected observations, E2E result, URL, and stop command.
-- Use black-box workflow tests to prove gate ordering and evidence retention on every failure path.
+- The existing Git lifecycle is authoritative: a clean `v2` integration worktree and adjacent unit worktree, followed by explicit human review and the existing `scripts/v2/story-branch.sh integrate` command.
+- `run_e2e.sh` is the isolated E2E entrypoint. It needs dependencies, a JDK, Playwright Chromium, and ports 8080/4200 for Spring's `e2e` plus H2 and Angular. Do not substitute the normal development server as the E2E server.
+- `start-dev.sh` serves smoke from the unit worktree's `.env` on 8080/4200 and owns normal cleanup; it does not supply an E2E, environment-file, or port-selection contract.
+- The controller delegates a valid explicit integration request only to `story-branch.sh integrate`. That command alone retains responsibility for push, remote verification, and recoverable local worktree/branch cleanup. The controller must not merge, push, deploy, release, delete, or change approvals/labels/comments on an ambiguous or stale state.
+- Use black-box workflow tests for readiness and delivery contracts; use hermetic GitHub CLI fixtures to prove stale, ambiguous, unapproved, and changed-head review states fail closed.
 
 ## Cross-Story Dependencies
 
-- 21.2 depends on 21.1 and the operator's environment, dependency, and port decisions.
-- 21.3 depends on 21.2 and the waiver-policy decision.
-- 21.4 depends on 21.2, 21.3, and the smoke-guide decision.
-- 21.5 depends on completion of 21.1 through 21.4; human review approval remains required before integration.
+- Stories 21.1–21.5 are sequential: adapter/policy readiness enables runtime readiness, which enables targeted E2E, then the smoke handoff, then delivery-gate integration.
+- Story 21.6 depends only on the existing `story-branch.sh integrate` contract. It is additive and may proceed while 21.4 and 21.5 await an operator; it consumes their evidence when applicable without weakening their human gates.

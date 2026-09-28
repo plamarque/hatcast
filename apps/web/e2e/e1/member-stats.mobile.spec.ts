@@ -23,8 +23,13 @@ test.describe('E1 — membre stats perso (mobile)', () => {
       timeout: 45_000,
     })
     const stats = page.locator('.member-profile__stats')
-    const empty = page.getByText('Statistiques disponibles lorsque les disponibilités seront saisies.')
-    await expect(stats.or(empty)).toBeVisible({ timeout: 15_000 })
+    const noStatsYet = page.getByText('Statistiques disponibles lorsque les disponibilités seront saisies.')
+    const noParticipation = page.getByRole('heading', { name: 'Aucune saison disponible' })
+    await expect(stats.or(noStatsYet).or(noParticipation)).toBeVisible({ timeout: 15_000 })
+    if (await noParticipation.isVisible()) {
+      await expect(page.getByText('Rejoins une troupe pour commencer à suivre tes statistiques.')).toBeVisible()
+      await expect(page.getByRole('link', { name: 'Voir mes troupes' })).toHaveAttribute('href', '/troupes')
+    }
   })
 
   test('E1-MEM-021 — bottom nav Stats shortcut', async ({ page, request }) => {

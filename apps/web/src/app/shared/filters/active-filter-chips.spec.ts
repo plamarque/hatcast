@@ -47,4 +47,13 @@ describe('ActiveFilterChips', () => {
     expect(removeSpy).toHaveBeenCalledWith('troupe')
     expect(clearSpy).toHaveBeenCalled()
   })
+
+  it('keeps non-removable chips interactive without rendering a remove action', () => {
+    fixture.componentRef.setInput('chips', [{ dimensionKey: 'season', label: 'Saison 2026-27' }])
+    fixture.componentRef.setInput('removableDimensions', [])
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelector('[aria-label^="Retirer le filtre"]')).toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-testid="filter-clear-all"]')).toBeNull()
+  })
 })

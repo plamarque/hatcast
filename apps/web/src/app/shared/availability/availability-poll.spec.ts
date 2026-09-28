@@ -436,6 +436,34 @@ describe('AvailabilityPoll', () => {
     expect(el.querySelector('app-composition-pool-preview')).toBeFalsy()
   })
 
+  it('shows unavailable respondents as a neutral pool with explainability enabled', async () => {
+    const { fixture, getEventAvailabilitySummary } = await setupPoll()
+    fixture.componentRef.setInput('summary', {
+      ...mockSummary,
+      participants: [
+        ...mockSummary.participants,
+        {
+          participantId: 'p3',
+          userId: 'user-3',
+          displayName: 'Camille',
+          avatarUrl: null,
+          status: 'unavailable' as const,
+          roleKeys: [],
+          comment: null,
+        },
+      ],
+    })
+    fixture.detectChanges()
+
+    const unavailableRow = fixture.nativeElement.querySelector('app-availability-poll-row') as HTMLElement
+    ;(unavailableRow.querySelector('.poll-row__gauge-trigger') as HTMLButtonElement).click()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    expect(getEventAvailabilitySummary).not.toHaveBeenCalled()
+    expect(unavailableRow.querySelector('.poll-row__pool-neutral')?.textContent).toContain('Camille')
+  })
+
   it('saves comment without changing vote scope', async () => {
     const { fixture, setMyAvailability } = await setupPoll({
       initialStatus: 'available',

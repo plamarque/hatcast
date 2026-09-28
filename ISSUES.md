@@ -10,6 +10,38 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Open Issues
 
+### BUG-027 — Review controller dirties its own checkout
+- **ID**: BUG-027
+- **Status**: Fixed locally — regression coverage added; review pending
+- **Severity**: High (blocks recording a delivery decision)
+- **Affected area**: `scripts/v2/github_review_decision_controller.py`.
+- **Observed behavior**: Running the controller can create `scripts/v2/__pycache__/` while it imports its validator. Its own clean-`v2` precondition then fails, and it emits only the generic `review controller unavailable` result before recording any GitHub decision.
+- **Expected behavior**: The controller must leave the checkout unchanged while it snapshots and validates a PR; a clean checkout must remain eligible for a decision.
+- **Cause**: Python bytecode writing was enabled before importing `validate_pr_preflight`.
+- **Repro**: From a clean `v2` checkout, run the controller `record` command for an open eligible PR.
+- **Notes/context**: The regression test copies the controller into its checked Git fixture and asserts both that no `__pycache__` is created and that `git status --porcelain` stays empty.
+
+### BUG-026 — Human smoke handoff times out while Angular is compiling
+- **ID**: BUG-026
+- **Status**: Fixed locally — hermetic handoff coverage passed; live smoke rerun pending
+- **Severity**: High (blocks the required human smoke handoff)
+- **Affected area**: `scripts/v2/story-human-smoke-handoff.sh` startup wait and diagnostics.
+- **Observed behavior**: The handoff records no usable URL because its endpoint wait ends before the Angular development server is ready on a cold start. The owned API can already be healthy on 8080 while `ng serve` is still compiling. The controller redirects the owned `start-dev.sh` output to `/dev/null`, leaving no startup reason in the handoff result.
+- **Expected behavior**: The handoff waits for the bounded normal cold-start window, distinguishes an in-progress front build from a failed process, and retains a redacted diagnostic reference when startup fails.
+- **Repro**: From a ready 21.4 unit with free 8080/4200, run `story-human-smoke-handoff.sh start --guide docs/v2/smoke/21-4-login-page.json`. In the observed run, 8080 was listening while the handoff had already failed and the Angular endpoint was still unavailable.
+- **Notes/context**: The owned smoke group was stopped cleanly; no unrelated process was stopped. The handoff now allows a bounded 180-second cold-start window (maximum 300 seconds when overridden). Three older `start-dev.sh` processes in temporary test fixtures were observed separately and were left untouched.
+
+### BUG-025 — Mes Stats defaults to a prior active season
+- **ID**: BUG-025
+- **Status**: Fixed locally — targeted verification passed; review pending
+- **Severity**: High
+- **Affected area**: V2 member season glance API and the “Mes Stats” page default scope.
+- **Observed behavior**: With multiple active eligible seasons and no explicit season filter, “Mes Stats” can render the previous season by default. When the API resolves any default season, the page leaves its filter signals unset, so it displays “Toutes les…” rather than the actual displayed scope.
+- **Expected behavior**: The default scope is the newest active eligible season and the filter visibly identifies that returned troupe and season; an explicit season filter remains authoritative.
+- **Cause**: `MemberSeasonGlanceService.selectPrimarySeason` uses `maxWith` with descending start-date and update-date comparators. Under `maxWith`, that ordering selects the older date when candidates have the same active state. `MemberSeasonGlance` does not hydrate its unset filter signals from the API's `resolvedSeasonId` and `troupeId`.
+- **Repro**: A member participates in active seasons beginning 2025-09-01 and 2026-09-01, then opens `/membre/{userSlug}` without a season query parameter.
+- **Notes/context**: The client correctly leaves an unset default to server-side resolution. The correction retains one-season aggregation and access checks, hydrates the existing filter from the returned scope, and is covered by focused backend (4 tests) and web (8 tests) suites.
+
 ### BUG-022 — Aperçu des relances : éligibilité email sans préférence
 - **ID**: BUG-022
 - **Status**: Fixed (2026-09-17)
@@ -65,7 +97,7 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ### BUG-019 — Dispos « Pas disponible » : dépliage vide (noms invisibles)
 - **ID**: BUG-019
-- **Status**: Open
+- **Status**: Fixed (2026-09-28, local verification)
 - **Severity**: Medium (orga cannot see who is unavailable; roles still expand)
 - **Affected area**: Onglet Dispos — `availability-poll` / `availability-poll-row` (spectacle publié, explainability on)
 - **Observed behavior**: Tap on the « Pas disponible » gauge, counter, or avatars expands the row but shows no names. Role rows (Arbitre, MC, …) do expand with names.
@@ -73,6 +105,7 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 - **Cause**: Neutral name chips render only when `explainabilityEnabled` is false (`unavailablePoolShowNeutral`). On a published event, explainability is on, and unavailable people have no `chancePercent`, so none of the three pool branches (`chance preview` / `neutral` / `chances unavailable`) match — empty body.
 - **Repro**: Event detail → Dispos → tap avatars/gauge on « Pas disponible » (screenshot orga Impro, 2026-09-16).
 - **Reported by**: Organizer feedback (Nicolas Nasciet) via Patrice.
+- **Verification**: `availability-poll.spec.ts` clicks the unavailable gauge with explainability enabled, confirms the unavailable member is rendered, and confirms no chance-summary request is made; `npm test -- --watch=false --include='src/app/shared/availability/availability-poll.spec.ts'` passes (22 tests).
 
 ### LIMIT-009 — Dispos V2 : plus d’entrée « Tous » ni liste des non-répondants
 - **ID**: LIMIT-009

@@ -14,9 +14,12 @@ export interface MemberSeasonGlance {
   displayName: string
   avatarUrl: string | null
   isSelf: boolean
-  resolvedSeasonId: string
-  troupeId: string
-  preferredRolesTroupeId: string
+  resolvedSeasonIds?: string[]
+  resolvedTroupeIds?: string[]
+  /** Legacy server fields during rolling deploy. */
+  resolvedSeasonId?: string
+  troupeId?: string
+  preferredRolesTroupeId: string | null
   filterBarVisible: boolean
   participationFilters: UserAgendaParticipationFilters | null
   stats?: MemberProfileStats | null
@@ -32,15 +35,11 @@ export type ApiResult<T> = { ok: boolean; status: number; data?: T; errorMessage
 export class MemberSeasonGlanceApiService {
   async getSeasonGlance(
     userSlug: string,
-    filters?: { troupeId?: string; seasonId?: string },
+    filters?: { troupeIds?: string[]; seasonIds?: string[] },
   ): Promise<ApiResult<MemberSeasonGlance>> {
     const params = new URLSearchParams()
-    if (filters?.troupeId) {
-      params.set('troupeId', filters.troupeId)
-    }
-    if (filters?.seasonId) {
-      params.set('seasonId', filters.seasonId)
-    }
+    for (const troupeId of filters?.troupeIds ?? []) params.append('troupeId', troupeId)
+    for (const seasonId of filters?.seasonIds ?? []) params.append('seasonId', seasonId)
     const qs = params.toString()
     const url = `/v1/members/${encodeURIComponent(userSlug)}/season-glance${qs ? `?${qs}` : ''}`
     try {

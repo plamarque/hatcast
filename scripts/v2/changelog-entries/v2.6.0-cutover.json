@@ -1,0 +1,14 @@
+{
+  "version": "2.6.0",
+  "date": "__BUILD_DATE__",
+  "source": "curated-release",
+  "notes": "Mes Stats multi-saisons actives et correction de la liste des indisponibles.",
+  "changes": [
+    "✨ Mes stats — retrouve tes chiffres sur toutes tes saisons actives, dans une vue plus lisible.",
+    "🐛 Dispos — ouvre « Pas disponible » pour voir les personnes concernées."
+  ],
+  "changes_en": [
+    "✨ Stats — see your numbers across all active seasons in a clearer view.",
+    "🐛 Availability — open “Unavailable” to see the people concerned."
+  ]
+}

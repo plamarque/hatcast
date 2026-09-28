@@ -294,7 +294,7 @@ Legend: **M** = mobile project (blocking) · **D** = desktop orga · **API** = n
 | E1-SAN-002 | Login as member | Text/troupe season from env or fixture |
 | E1-MEM-001 | Open agenda | ≥1 event card; date readable at 390px width |
 | E1-MEM-004 | Tap season workspace | URL `/saison/...` or `/ligue/...` per routing |
-| **E1-MEM-020** | `goto /membre/{slug}` or tap bottom nav **Stats** | Heading **Mes Stats**; stats block visible (Disponibilités / Sélections / Désistements **or** explicit empty-state copy — not spinner forever) |
+| **E1-MEM-020** | `goto /membre/{slug}` or tap bottom nav **Stats** | Heading **Mes Stats**; stats block visible (Disponibilités / Sélections / Désistements), explicit empty-stats copy, **or** no-participation guidance (**Aucune saison disponible** + **Voir mes troupes**) — not spinner forever |
 | **E1-MEM-021** | From mobile nav: **Mes stats** tab | Lands on same profile; `aria-current="page"` on Mes stats tab |
 | **E1-MEM-040** | Visit season workspace then **Ma troupe** tab | **P0** — URL `/troupes/{slug}`; `app-troupe-hub` visible; tab `aria-current="page"` |
 | **E1-MEM-041** | Clear `lastVisitedTroupeSlug` → **Ma troupe** | **P1** — URL `/troupes` list; tab **not** active |

@@ -1,4 +1,4 @@
-import { Component, computed, input, output } from '@angular/core'
+import { AfterViewChecked, Component, computed, ElementRef, input, output, viewChild } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
@@ -34,7 +34,7 @@ import { RoleToggleChipSet } from '../event-roles/role-toggle-chip-set/role-togg
   templateUrl: './member-profile-panel.html',
   styleUrl: './member-profile-dialog.scss',
 })
-export class MemberProfilePanel {
+export class MemberProfilePanel implements AfterViewChecked {
   readonly profile = input.required<MemberProfileSummary>()
   readonly loading = input(false)
   readonly saving = input(false)
@@ -47,6 +47,8 @@ export class MemberProfilePanel {
   readonly preferredRolesChange = output<readonly string[]>()
   readonly savePreferredRoles = output<void>()
   readonly closeRequested = output<void>()
+  private readonly chart = viewChild<ElementRef<HTMLElement>>('monthlyChart')
+  private focusedChartKey = ''
 
   protected readonly hasStats = computed(() => !!this.profile().stats)
   protected readonly hasFavoriteCounts = computed(
@@ -64,6 +66,17 @@ export class MemberProfilePanel {
   protected readonly chartHeading = computed(() =>
     "En un clin d'œil",
   )
+  /** One label per contiguous year keeps the time scale readable without widening each month. */
+  protected readonly chartYears = computed(() => {
+    const groups: Array<{ year: string; monthCount: number }> = []
+    for (const month of this.profile().monthlyChart) {
+      const year = month.monthKey.slice(0, 4)
+      const current = groups.at(-1)
+      if (current?.year === year) current.monthCount++
+      else groups.push({ year, monthCount: 1 })
+    }
+    return groups
+  })
   private readonly shortMonths = [
     'JAN',
     'FEV',
@@ -94,6 +107,18 @@ export class MemberProfilePanel {
       return monthKey
     }
     return this.shortMonths[monthIndex] ?? monthKey
+  }
+
+  ngAfterViewChecked(): void {
+    const months = this.profile().monthlyChart
+    const chart = this.chart()?.nativeElement
+    const key = months.map((month) => month.monthKey).join(',')
+    if (!chart || !key || key === this.focusedChartKey) return
+    this.focusedChartKey = key
+    const now = new Date()
+    const currentKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+    const target = chart.querySelector<HTMLElement>(`[data-month-key="${currentKey}"]`)
+    if (target) chart.scrollLeft = Math.max(0, target.offsetLeft - (chart.clientWidth - target.clientWidth) / 2)
   }
 
   protected chartBlockRoleEmoji(roleKey: string | null | undefined): string | null {

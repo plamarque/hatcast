@@ -50,4 +50,16 @@ describe('FilterCriteriaBar', () => {
 
     expect(spy).toHaveBeenCalledWith('participant')
   })
+
+  it('does not render removal actions for fixed scope chips', () => {
+    fixture.componentRef.setInput('chips', [
+      { dimensionKey: 'season', label: 'Saison 2026-27' },
+    ])
+    fixture.componentRef.setInput('removableDimensions', [])
+    fixture.detectChanges()
+
+    const el = fixture.nativeElement as HTMLElement
+    expect(el.querySelector('[aria-label^="Retirer le filtre"]')).toBeNull()
+    expect(el.querySelector('[data-testid="filter-clear-all"]')).toBeNull()
+  })
 })

@@ -35,6 +35,7 @@ env PATH="${parser_root}/bin:${PATH}" START_DEV_NPM_LOG="${tmp_root}/start-dev-n
 expect_fail env PATH="${parser_root}/bin:${PATH}" bash "${parser_root}/scripts/start-dev.sh" --legacy --human-smoke-owner=unsafe_marker
 grep -Fqx '[[ -z "${HUMAN_SMOKE_OWNER_MARKER}" ]] && set -m' "${source_root}/scripts/start-dev.sh" || fail 'real start-dev does not retain the smoke process group'
 gate="${unit}/scripts/v2/story-human-smoke-handoff.sh"
+grep -Fqx '  local attempts="${HATCAST_SMOKE_WAIT_ATTEMPTS:-180}" i' "${gate}" || fail 'cold-start wait budget changed unexpectedly'
 release_marker="${tmp_root}/release-ports"; probe_count="${tmp_root}/port-probes"
 base=(env PATH="${bin}:${PATH}" SMOKE_LAUNCH_LOG="${launch_log}" HATCAST_SMOKE_WAIT_ATTEMPTS=1 HATCAST_SMOKE_STOP_PORT_WAIT_ATTEMPTS=5 SMOKE_PORT_RELEASE_MARKER="${release_marker}" SMOKE_PORT_PROBE_COUNT_FILE="${probe_count}" SMOKE_PORT_RELEASE_AFTER=2 SMOKE_PORT_RELEASE_PORT=8080)
 printf '%s\n' '{"route":"/connexion","actions":["Open"],"expected_observations":["Loaded"]}' >"${unit}/guide.bad.json"

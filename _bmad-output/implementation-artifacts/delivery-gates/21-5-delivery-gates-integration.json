@@ -1,0 +1,12 @@
+{
+  "baseline_commit": "f998a3f15a3a0d51681a80bb9ba55703928a62e2",
+  "branch": "feat/21-5-delivery-gates-integration",
+  "e2e_outcome": "passed",
+  "e2e_reference": "_bmad-output/implementation-artifacts/e2e-evidence/21-3-targeted-e2e-evidence.json",
+  "human_smoke_request": "permitted",
+  "readiness": "ready",
+  "request_identity": "23b8da0889378059b5cf8c6663c98b6957e0ce4faabdfc20e96477bd6529887c",
+  "review_integration_approval": "external",
+  "schema": "hatcast.story-delivery-gates.v1",
+  "spec_reference": "_bmad-output/implementation-artifacts/spec-21-5-delivery-gates-integration.md"
+}

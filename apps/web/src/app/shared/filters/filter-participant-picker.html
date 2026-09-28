@@ -4,7 +4,7 @@
   [class.filter-picker-shell--dialog]="!isBottomSheet"
 >
   <app-hatcast-picker-header
-    title="Filtrer les participants"
+    [title]="data.title ?? 'Filtrer les participants'"
     [surface]="isBottomSheet ? 'sheet' : 'dialog'"
     (close)="close()"
   />

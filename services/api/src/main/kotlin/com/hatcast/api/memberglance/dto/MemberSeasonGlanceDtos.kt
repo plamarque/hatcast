@@ -12,9 +12,15 @@ data class MemberSeasonGlanceResponseDto(
     val displayName: String,
     val avatarUrl: String?,
     val isSelf: Boolean,
-    val resolvedSeasonId: UUID,
-    val troupeId: UUID,
-    val preferredRolesTroupeId: UUID,
+    /** Server-resolved, eligible scope. Empty request parameters mean "Toutes". */
+    val resolvedSeasonIds: List<UUID>,
+    val resolvedTroupeIds: List<UUID>,
+    /** Compatibility field for existing clients; new clients must use resolvedSeasonIds. */
+    val resolvedSeasonId: UUID = resolvedSeasonIds.first(),
+    /** Compatibility field for existing clients; new clients must use resolvedTroupeIds. */
+    val troupeId: UUID = resolvedTroupeIds.first(),
+    /** Kept only when a single troupe gives an unambiguous preferred-role context. */
+    val preferredRolesTroupeId: UUID?,
     val filterBarVisible: Boolean,
     val participationFilters: UserAgendaParticipationFiltersDto?,
     val stats: MemberProfileStatsDto?,
