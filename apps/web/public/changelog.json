@@ -1,5 +1,13 @@
 [
   {
+    "version": "2.6.0",
+    "date": "2026-09-29",
+    "changes": [
+      "✨ Mes stats — retrouve tes chiffres sur toutes tes saisons actives, dans une vue plus lisible.",
+      "🐛 Dispos — ouvre « Pas disponible » pour voir les personnes concernées."
+    ]
+  },
+  {
     "version": "2.5.0",
     "date": "2026-09-19",
     "changes": [
