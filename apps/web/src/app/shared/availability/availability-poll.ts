@@ -280,7 +280,8 @@ export class AvailabilityPoll {
   }
 
   protected unavailablePoolShowNeutral(): boolean {
-    return !this.explainabilityEnabled() && this.unavailableAvatars().length > 0
+    // An unavailable response is not a draw candidate, so it never has chances to preview.
+    return this.unavailableAvatars().length > 0
   }
 
   protected flatAvailablePoolShowNeutral(): boolean {

@@ -97,7 +97,7 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ### BUG-019 — Dispos « Pas disponible » : dépliage vide (noms invisibles)
 - **ID**: BUG-019
-- **Status**: Open
+- **Status**: Fixed (2026-09-28, local verification)
 - **Severity**: Medium (orga cannot see who is unavailable; roles still expand)
 - **Affected area**: Onglet Dispos — `availability-poll` / `availability-poll-row` (spectacle publié, explainability on)
 - **Observed behavior**: Tap on the « Pas disponible » gauge, counter, or avatars expands the row but shows no names. Role rows (Arbitre, MC, …) do expand with names.
@@ -105,6 +105,7 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 - **Cause**: Neutral name chips render only when `explainabilityEnabled` is false (`unavailablePoolShowNeutral`). On a published event, explainability is on, and unavailable people have no `chancePercent`, so none of the three pool branches (`chance preview` / `neutral` / `chances unavailable`) match — empty body.
 - **Repro**: Event detail → Dispos → tap avatars/gauge on « Pas disponible » (screenshot orga Impro, 2026-09-16).
 - **Reported by**: Organizer feedback (Nicolas Nasciet) via Patrice.
+- **Verification**: `availability-poll.spec.ts` clicks the unavailable gauge with explainability enabled, confirms the unavailable member is rendered, and confirms no chance-summary request is made; `npm test -- --watch=false --include='src/app/shared/availability/availability-poll.spec.ts'` passes (22 tests).
 
 ### LIMIT-009 — Dispos V2 : plus d’entrée « Tous » ni liste des non-répondants
 - **ID**: LIMIT-009
