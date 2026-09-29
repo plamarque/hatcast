@@ -15,6 +15,7 @@ import {
   expectTroupeHubMetricTiles,
   expectTroupeHubPersonnesStrip,
   expectTroupeHubSeasonChartStatusBlocks,
+  expectTroupeHubSeasonChartMobileGeometry,
   expectTroupeHubSeasonChartVisible,
   fetchSeasonStatisticsEvents,
   gotoTroupeHub,
@@ -113,6 +114,7 @@ test.describe('E1 — membre hub Ma troupe dashboard (mobile)', () => {
     await expectTroupeHubMetricTiles(page)
     await expectTroupeHubSeasonChartVisible(page)
     await expectTroupeHubSeasonChartStatusBlocks(page)
+    await expectTroupeHubSeasonChartMobileGeometry(page, fx.troupeSlug, fx.seasonSlug)
     await assertNoHorizontalOverflow(page)
   })
 

@@ -10,6 +10,17 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Open Issues
 
+### BUG-028 — Mobile troupe hub season chart stacks month columns vertically
+- **ID**: BUG-028
+- **Status**: Open — BMAD diagnosis and corrective spec ready for approval
+- **Severity**: Medium (collective season overview is not usable on narrow mobile viewports)
+- **Affected area**: V2 `troupe-hub` season mini-chart (`/troupes/:slug`).
+- **Observed behavior**: On a narrow Android viewport, the mini-chart shown for La Malice renders month columns one below another. The chart becomes taller than the viewport and visually continues behind the fixed member navigation.
+- **Expected behavior**: Months form a horizontal timeline inside the season-card chart; event blocks for each month stack vertically, and any extra width scrolls horizontally inside the chart. The final chart CTA must remain reachable above the member navigation.
+- **Cause**: `troupe-hub.html` renders `.member-profile__chart-month` elements directly in the chart container, omitting `.member-profile__chart-timeline` and `.member-profile__chart-months`. The shared chart SCSS applies its horizontal flex layout only to the omitted months wrapper.
+- **Repro**: On staging, sign in to a member account and open `/troupes/la-malice` on a narrow Android viewport with at least three past events in the selected season.
+- **Notes/context**: The fixed bottom navigation is not established as causal: `member-shell.scss` already reserves its height plus safe-area. The corrective mobile E2E will verify CTA reachability before any shell/navigation change is considered. UX spec `ux-design-hub-mini-chart-17-44.md` MC10 requires horizontal in-card scrolling.
+
 ### BUG-027 — Review controller dirties its own checkout
 - **ID**: BUG-027
 - **Status**: Fixed locally — regression coverage added; review pending
