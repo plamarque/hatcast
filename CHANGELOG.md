@@ -2,6 +2,18 @@
 
 ## [2.6.0] - 2026-09-29
 
+### 🐛 Bug Fixes
+- fix(troupe-hub): Fix mobile season chart
+- fix(stats): Preserve current troupe context
+
+### 📝 Other Changes
+- chore(v2): promote v2 to staging-v2
+- chore(v2): sync release v2.6.0-rc.1 artifacts to v2
+
+---
+
+## [2.6.0] - 2026-09-29
+
 ### ✨ New Features
 - feat(workflow): Add GitHub decision controller (#8)
 - feat(stats): Unify active season statistics (#9)
