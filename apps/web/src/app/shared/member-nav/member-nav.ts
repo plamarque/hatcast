@@ -49,6 +49,7 @@ export class MemberNav implements OnInit {
     effect(() => {
       this.currentPath()
       this.troupeShortcut.refresh()
+      this.statsShortcut.refresh()
     })
   }
 
@@ -83,6 +84,6 @@ export class MemberNav implements OnInit {
   })
 
   ngOnInit(): void {
-    void this.statsShortcut.refresh()
+    // The navigation effect refreshes both context-dependent shortcuts.
   }
 }

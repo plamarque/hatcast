@@ -637,6 +637,13 @@ describe('TroupeHub', () => {
     await vi.waitFor(() => {
       expect(fixture.nativeElement.querySelector('.troupe-hub__season-chart')).not.toBeNull()
     })
+    const chart = fixture.nativeElement.querySelector('.troupe-hub__season-chart') as HTMLElement
+    const timeline = chart.querySelector(':scope > .member-profile__chart-timeline')
+    const months = timeline?.querySelector(':scope > .member-profile__chart-months')
+    expect(timeline).not.toBeNull()
+    expect(months).not.toBeNull()
+    expect(months?.children).toHaveLength(3)
+    expect(Array.from(months?.children ?? []).every((node) => node.matches('.member-profile__chart-month'))).toBe(true)
     expect(fixture.nativeElement.querySelectorAll('.troupe-hub__season-chart-block').length).toBe(3)
     expect(
       fixture.nativeElement.querySelector('.troupe-hub__season-chart-block--confirmed'),

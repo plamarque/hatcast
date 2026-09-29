@@ -105,6 +105,71 @@ export async function expectTroupeHubSeasonChartStatusBlocks(page: Page): Promis
   await expect(toned.first()).toBeVisible()
 }
 
+/** BUG-028 — the chart owns lateral scrolling; month columns must not stack on mobile. */
+export async function expectTroupeHubSeasonChartMobileGeometry(
+  page: Page,
+  troupeSlug: string,
+  seasonSlug: string,
+): Promise<void> {
+  const chart = page.locator('.troupe-hub__season-chart')
+  const months = chart.locator('.member-profile__chart-months')
+  const cta = page.getByRole('link', { name: 'Voir toutes les stats', exact: true })
+  await expect(months).toBeVisible()
+  await expect(cta).toBeVisible()
+
+  const geometry = await chart.evaluate((chartElement) => {
+    const monthsElement = chartElement.querySelector('.member-profile__chart-months') as HTMLElement | null
+    const monthElements = Array.from(
+      chartElement.querySelectorAll('.member-profile__chart-month'),
+    ) as HTMLElement[]
+    const labels = monthElements.map(
+      (month) => month.querySelector('.member-profile__chart-month-label') as HTMLElement,
+    )
+    const labelsAreAligned =
+      monthElements.length >= 2 &&
+      labels.every(
+        (label, index) =>
+          label !== null &&
+          (index === 0 || Math.abs(label.getBoundingClientRect().top - labels[0].getBoundingClientRect().top) < 1),
+      )
+    const columnsIncreaseLeft =
+      monthElements.length >= 2 &&
+      monthElements.every(
+        (month, index) => index === 0 || month.getBoundingClientRect().left > monthElements[index - 1].getBoundingClientRect().left,
+      )
+    return {
+      chartOverflowX: getComputedStyle(chartElement).overflowX,
+      monthsDisplay: monthsElement ? getComputedStyle(monthsElement).display : null,
+      monthCount: monthElements.length,
+      labelsAreAligned,
+      columnsIncreaseLeft,
+    }
+  })
+  expect(geometry.monthsDisplay).toBe('flex')
+  expect(geometry.monthCount).toBeGreaterThanOrEqual(2)
+  expect(geometry.labelsAreAligned).toBe(true)
+  expect(geometry.columnsIncreaseLeft).toBe(true)
+  expect(geometry.chartOverflowX).toBe('auto')
+  await chart.evaluate((element) => {
+    const monthsElement = element.querySelector('.member-profile__chart-months') as HTMLElement
+    monthsElement.style.minWidth = `${element.clientWidth + 1}px`
+  })
+  expect(await chart.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true)
+  await chart.evaluate((element) => {
+    element.scrollLeft = element.scrollWidth
+  })
+  expect(await chart.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0)
+
+  await cta.scrollIntoViewIfNeeded()
+  const ctaBox = await cta.boundingBox()
+  const navigationBox = await page.locator('.member-nav__bottom').boundingBox()
+  expect(ctaBox).not.toBeNull()
+  expect(navigationBox).not.toBeNull()
+  expect(ctaBox!.y + ctaBox!.height).toBeLessThanOrEqual(navigationBox!.y)
+  await cta.click()
+  await expect(page).toHaveURL(seasonWorkspaceUrlPattern(troupeSlug, seasonSlug), { timeout: 30_000 })
+}
+
 export async function openTroupeHubSeasonStatsFromChart(
   page: Page,
   troupeSlug: string,

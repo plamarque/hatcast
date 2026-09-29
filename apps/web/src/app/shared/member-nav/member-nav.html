@@ -41,8 +41,11 @@
     <a
       mat-list-item
       class="member-nav__rail-link"
-      [routerLink]="statsShortcut.link()"
+      [routerLink]="statsShortcut.ready() ? statsShortcut.link() : null"
+      [queryParams]="statsShortcut.queryParams()"
       [class.member-nav__link--active]="isStatsTabActive()"
+      [attr.aria-disabled]="statsShortcut.ready() ? null : 'true'"
+      [attr.tabindex]="statsShortcut.ready() ? null : '-1'"
       aria-label="Mes stats"
       [attr.aria-current]="isStatsTabActive() ? 'page' : null"
     >
@@ -118,8 +121,11 @@
     </a>
     <a
       mat-tab-link
-      [routerLink]="statsShortcut.link()"
+      [routerLink]="statsShortcut.ready() ? statsShortcut.link() : null"
+      [queryParams]="statsShortcut.queryParams()"
       [active]="isStatsTabActive()"
+      [attr.aria-disabled]="statsShortcut.ready() ? null : 'true'"
+      [attr.tabindex]="statsShortcut.ready() ? null : '-1'"
       aria-label="Mes stats"
       [attr.aria-current]="isStatsTabActive() ? 'page' : null"
     >
