@@ -10,7 +10,11 @@ import { TroupeContextService } from './troupe-context.service'
 import { TroupeSeasonResolverService } from './troupe-season-resolver.service'
 
 describe('TroupeSeasonResolverService', () => {
-  let troupeApi: { listMyTroupes: ReturnType<typeof vi.fn> }
+  let troupeApi: {
+    listMyTroupes: ReturnType<typeof vi.fn>
+    resolveTroupeContextBySlug: ReturnType<typeof vi.fn>
+    getAdminTroupeBySlug: ReturnType<typeof vi.fn>
+  }
   let seasonsApi: {
     getSeasonBySlug: ReturnType<typeof vi.fn>
     resolveAdminSeasonBySlug: ReturnType<typeof vi.fn>
@@ -19,8 +23,13 @@ describe('TroupeSeasonResolverService', () => {
   let auth: { ensureHatcastSession: ReturnType<typeof vi.fn> }
 
   beforeEach(() => {
+    installStorage()
     localStorage.clear()
-    troupeApi = { listMyTroupes: vi.fn() }
+    troupeApi = {
+      listMyTroupes: vi.fn(),
+      resolveTroupeContextBySlug: vi.fn().mockResolvedValue({ ok: false, status: 404 }),
+      getAdminTroupeBySlug: vi.fn().mockResolvedValue({ ok: false, status: 404 }),
+    }
     seasonsApi = {
       getSeasonBySlug: vi.fn(),
       resolveAdminSeasonBySlug: vi.fn(),
@@ -100,6 +109,28 @@ describe('TroupeSeasonResolverService', () => {
     expect(result.kind === 'resolved' ? result.troupe.id : null).toBe('troupe-2')
     expect(context().selectedTroupe()?.id).toBe('troupe-2')
     expect(localStorage.getItem('hatcast.selectedTroupeId')).toBe('troupe-2')
+  })
+
+  it('résout pour un raccourci sans changer la troupe sélectionnée', async () => {
+    localStorage.setItem('hatcast.selectedTroupeId', 'troupe-1')
+    troupeApi.listMyTroupes.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: [troupe('troupe-1'), troupe('troupe-2')],
+    })
+    seasonsApi.getSeasonBySlug
+      .mockResolvedValueOnce({ ok: false, status: 404 })
+      .mockResolvedValueOnce({ ok: true, status: 200, data: season('s2', 'troupe-2') })
+
+    context().selectedTroupe.set(troupe('troupe-1'))
+    const loadSpy = vi.spyOn(context(), 'load')
+    const result = await resolver().resolveSeasonSlugReadOnly('saison-a')
+
+    expect(result.kind).toBe('resolved')
+    expect(result.kind === 'resolved' ? result.troupe.id : null).toBe('troupe-2')
+    expect(context().selectedTroupe()?.id).toBe('troupe-1')
+    expect(localStorage.getItem('hatcast.selectedTroupeId')).toBe('troupe-1')
+    expect(loadSpy).not.toHaveBeenCalled()
   })
 
   it('bloque une résolution ambiguë sans changer la préférence', async () => {
@@ -285,4 +316,17 @@ function season(id: string, troupeId: string): SeasonResponse {
     createdAt: '',
     updatedAt: '',
   }
+}
+
+function installStorage(): void {
+  const values = new Map<string, string>()
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    value: {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+      removeItem: (key: string) => values.delete(key),
+      clear: () => values.clear(),
+    },
+  })
 }

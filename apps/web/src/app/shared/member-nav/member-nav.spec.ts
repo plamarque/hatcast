@@ -19,6 +19,8 @@ describe('MemberNav', () => {
   let statsShortcut: {
     userSlug: ReturnType<typeof signal<string | null>>
     link: ReturnType<typeof signal<string>>
+    queryParams: ReturnType<typeof signal<{ troupeId: string; seasonId: string } | null>>
+    ready: ReturnType<typeof signal<boolean>>
     refresh: ReturnType<typeof vi.fn>
   }
   let troupeShortcut: {
@@ -38,6 +40,8 @@ describe('MemberNav', () => {
     statsShortcut = {
       userSlug: signal('patrice'),
       link: signal('/membre/patrice'),
+      queryParams: signal({ troupeId: 'malice', seasonId: 'season-malice' }),
+      ready: signal(true),
       refresh: vi.fn().mockResolvedValue(undefined),
     }
     troupeShortcut = {
@@ -231,11 +235,29 @@ describe('MemberNav', () => {
     expect(activeBottom?.textContent).toContain('Ma troupe')
   })
 
-  it('links stats tab to member glance', async () => {
+  it('renders the resolved stats scope on rail and bottom-nav links', async () => {
     await renderAt('/accueil')
 
-    const statsLinks = fixture.nativeElement.querySelectorAll('a[href="/membre/patrice"]')
-    expect(statsLinks.length).toBeGreaterThan(0)
+    const statsLinks = Array.from(
+      fixture.nativeElement.querySelectorAll('a[aria-label="Mes stats"]') as NodeListOf<HTMLAnchorElement>,
+    )
+    expect(statsLinks.map((link) => link.getAttribute('href'))).toEqual([
+      '/membre/patrice?troupeId=malice&seasonId=season-malice',
+      '/membre/patrice?troupeId=malice&seasonId=season-malice',
+    ])
+  })
+
+  it('keeps stats links inert while their scope is resolving', async () => {
+    await renderAt('/accueil')
+    statsShortcut.ready.set(false)
+    fixture.detectChanges()
+
+    const statsLinks = Array.from(
+      fixture.nativeElement.querySelectorAll('a[aria-label="Mes stats"]') as NodeListOf<HTMLElement>,
+    )
+    expect(statsLinks).toHaveLength(2)
+    expect(statsLinks.map((link) => link.getAttribute('aria-disabled'))).toEqual(['true', 'true'])
+    expect(statsLinks.map((link) => link.getAttribute('href'))).toEqual([null, null])
   })
 
   it('marks stats tab active on own member glance route', async () => {
@@ -292,5 +314,15 @@ describe('MemberNav', () => {
     await fixture.whenStable()
     fixture.detectChanges()
     expect(troupeShortcut.refresh).toHaveBeenCalled()
+  })
+
+  it('refreshes stats shortcut when route changes', async () => {
+    await renderAt('/accueil')
+    statsShortcut.refresh.mockClear()
+    await router.navigateByUrl('/agenda')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    expect(statsShortcut.refresh).toHaveBeenCalled()
   })
 })

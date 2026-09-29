@@ -4,7 +4,7 @@ import { MatIconModule } from '@angular/material/icon'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
-import { Subscription } from 'rxjs'
+import { combineLatest, Subscription } from 'rxjs'
 import { distinctUntilChanged, map } from 'rxjs/operators'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
@@ -59,7 +59,9 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
   private readonly filterPanel = inject(FilterPanelService)
 
   private routeSubscription?: Subscription
-  private skipNextParamReload = false
+  private routeStateKey = ''
+  private glanceRequestGeneration = 0
+  private sessionUserSlug = ''
 
   protected readonly loadingSession = signal(true)
   protected readonly loadingGlance = signal(false)
@@ -159,30 +161,37 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
     }
     this.loadingSession.set(false)
 
+    this.sessionUserSlug = r.data.user.slug?.trim() ?? ''
     this.userSlug.set(this.route.snapshot.paramMap.get('userSlug') ?? '')
     this.bootstrapFiltersFromRoute()
+    this.routeStateKey = this.currentRouteStateKey()
     await this.syncInitialFilterUrl()
     await this.loadGlance()
 
-    this.routeSubscription = this.route.paramMap
+    this.routeSubscription = combineLatest([this.route.paramMap, this.route.queryParamMap])
       .pipe(
-        map((p) => p.get('userSlug') ?? ''),
+        map(([params, query]) => ({
+          slug: params.get('userSlug') ?? '',
+          troupeIds: query.getAll('troupeId').filter(Boolean),
+          seasonIds: query.getAll('seasonId').filter(Boolean),
+        })),
+        map((state) => ({ ...state, key: this.routeStateKeyFor(state.slug, state.troupeIds, state.seasonIds) })),
         distinctUntilChanged(),
       )
-      .subscribe((slug) => {
-        if (this.skipNextParamReload) {
-          this.skipNextParamReload = false
+      .subscribe((state) => {
+        if (state.key === this.routeStateKey) {
           return
         }
-        if (slug === this.userSlug()) {
-          return
-        }
-        this.userSlug.set(slug)
-        void this.reloadForRouteSlugChange()
+        this.glanceRequestGeneration++
+        this.routeStateKey = state.key
+        this.userSlug.set(state.slug)
+        this.bootstrapFiltersFromRoute(state.troupeIds, state.seasonIds)
+        void this.reloadForRouteChange()
       })
   }
 
   ngOnDestroy(): void {
+    this.glanceRequestGeneration++
     this.routeSubscription?.unsubscribe()
   }
 
@@ -257,9 +266,8 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
     void this.router.navigate(['/accueil'])
   }
 
-  private async reloadForRouteSlugChange(): Promise<void> {
+  private async reloadForRouteChange(): Promise<void> {
     this.glance.set(null)
-    this.bootstrapFiltersFromRoute()
     await this.syncInitialFilterUrl()
     await this.loadGlance()
   }
@@ -270,6 +278,7 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
       this.loadError.set(true)
       return
     }
+    const requestGeneration = ++this.glanceRequestGeneration
     this.loadingGlance.set(true)
     this.loadError.set(false)
     this.noParticipation.set(false)
@@ -277,6 +286,9 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
       troupeIds: this.selectedTroupeIds(),
       seasonIds: this.selectedSeasonIds(),
     })
+    if (requestGeneration !== this.glanceRequestGeneration) {
+      return
+    }
     this.loadingGlance.set(false)
 
     if (r.ok && r.data) {
@@ -284,7 +296,7 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
       this.filterBarVisible.set(r.data.filterBarVisible)
       this.participationFilters.set(r.data.participationFilters)
 
-      if (!r.data.filterBarVisible) {
+      if (!r.data.filterBarVisible && !this.hasExplicitRouteScope()) {
         this.selectedTroupeIds.set([])
         this.selectedSeasonIds.set([])
         clearStoredMemberGlanceFilters()
@@ -323,13 +335,19 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
     this.loadError.set(true)
   }
 
-  private bootstrapFiltersFromRoute(): void {
-    const query = this.route.snapshot.queryParamMap
-    const queryTroupes = query.getAll('troupeId').filter(Boolean)
-    const querySeasons = query.getAll('seasonId').filter(Boolean)
+  private bootstrapFiltersFromRoute(
+    queryTroupes = this.route.snapshot.queryParamMap.getAll('troupeId').filter(Boolean),
+    querySeasons = this.route.snapshot.queryParamMap.getAll('seasonId').filter(Boolean),
+  ): void {
     if (queryTroupes.length || querySeasons.length) {
       this.selectedTroupeIds.set(queryTroupes)
       this.selectedSeasonIds.set(querySeasons)
+      return
+    }
+    if (this.userSlug() === this.sessionUserSlug) {
+      this.selectedTroupeIds.set([])
+      this.selectedSeasonIds.set([])
+      clearStoredMemberGlanceFilters()
       return
     }
     const stored = readStoredMemberGlanceFilters()
@@ -368,20 +386,38 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
   }
 
   private async syncFilterQueryParams(): Promise<void> {
-    this.skipNextParamReload = true
-    try {
-      await this.router.navigate([], {
-        relativeTo: this.route,
-        queryParams: {
-          troupeId: this.selectedTroupeIds().length ? this.selectedTroupeIds() : null,
-          seasonId: this.selectedSeasonIds().length ? this.selectedSeasonIds() : null,
-        },
-        queryParamsHandling: 'merge',
-        replaceUrl: true,
-      })
-    } finally {
-      this.skipNextParamReload = false
-    }
+    this.routeStateKey = this.routeStateKeyFor(
+      this.userSlug(),
+      this.selectedTroupeIds(),
+      this.selectedSeasonIds(),
+    )
+    await this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        troupeId: this.selectedTroupeIds().length ? this.selectedTroupeIds() : null,
+        seasonId: this.selectedSeasonIds().length ? this.selectedSeasonIds() : null,
+      },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    })
+  }
+
+  private hasExplicitRouteScope(): boolean {
+    const query = this.route.snapshot.queryParamMap
+    return query.getAll('troupeId').length > 0 || query.getAll('seasonId').length > 0
+  }
+
+  private currentRouteStateKey(): string {
+    const query = this.route.snapshot.queryParamMap
+    return this.routeStateKeyFor(
+      this.route.snapshot.paramMap.get('userSlug') ?? '',
+      query.getAll('troupeId').filter(Boolean),
+      query.getAll('seasonId').filter(Boolean),
+    )
+  }
+
+  private routeStateKeyFor(slug: string, troupeIds: string[], seasonIds: string[]): string {
+    return JSON.stringify({ slug, troupeIds, seasonIds })
   }
 
   private async reconcileFiltersWithCatalog(): Promise<void> {
