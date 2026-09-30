@@ -20,6 +20,8 @@ context:
 
 **Approach:** Add a small, versioned HatCast controller invoked by the story-worktree lifecycle. It validates that a requested key exists in the canonical `epics.md`, adds only that missing key with `backlog` status while preserving the YAML document and historical entries, then creates one BMad-owned `chore(bmad)` metadata commit on the feature branch. The existing full BMad generator remains unchanged and continues to report orphan drift rather than deleting it.
 
+**2026-09-23 approved extension:** after Patrice confirms an evidence-backed reconciliation, the same controller may update only the explicitly named canonical keys to explicitly named legal statuses. It preserves all other lines and historical entries, is idempotent, and cannot regenerate the file.
+
 ## Boundaries & Constraints
 
 **Always:** Run only from the registered feature-unit lifecycle after `story-branch.sh` has validated the clean `v2` integration checkout. Parse the canonical Epic/Story headings and reject a key absent from them. Preserve all existing `development_status` entries, comments, top-level metadata and `action_items`; make the operation idempotent; emit redacted semantic result fields only. Keep `sprint-status.yaml` under the BMad controller, never under ad-hoc agent editing. Retain the existing `story-branch.sh` integration, remote verification and local cleanup safety checks.
