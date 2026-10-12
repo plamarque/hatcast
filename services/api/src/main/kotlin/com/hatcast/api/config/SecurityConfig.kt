@@ -25,6 +25,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 @EnableWebSecurity
 class SecurityConfig(
     @Value("\${hatcast.cors.allowed-origins}") private val allowedOrigins: String,
+    @Value("\${hatcast.cors.allowed-origin-patterns:}") private val allowedOriginPatterns: String,
     @Value("\${hatcast.e2e.api-enabled:false}") private val e2eApiEnabled: Boolean,
     private val csrfCookiePublishingFilter: CsrfCookiePublishingFilter,
     private val migrationApiKeyAuthenticationFilter: MigrationApiKeyAuthenticationFilter,
@@ -114,6 +115,8 @@ class SecurityConfig(
         val configuration = CorsConfiguration()
         configuration.allowedOrigins =
             allowedOrigins.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+        configuration.allowedOriginPatterns =
+            allowedOriginPatterns.split(",").map { it.trim() }.filter { it.isNotEmpty() }
         configuration.allowedMethods = listOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
         configuration.allowedHeaders = listOf("*")
         configuration.allowCredentials = true

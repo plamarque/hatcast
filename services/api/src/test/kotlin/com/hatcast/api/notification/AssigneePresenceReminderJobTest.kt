@@ -209,6 +209,33 @@ class AssigneePresenceReminderJobTest {
     }
 
     @Test
+    fun `J-7 reminder skips confirmed assignee outside current needs`() {
+        val zone = EventService.AGENDA_ZONE
+        val reference = ZonedDateTime.of(2032, 6, 24, 10, 0, 0, 0, zone).toInstant()
+        val eventStart = ZonedDateTime.of(2032, 7, 1, 19, 0, 0, 0, zone).toInstant()
+        val event = reminderEvent(eventStart, roleSlots = mapOf("player" to 1))
+
+        whenever(eventRepository.findValidatedOpenEventsStartingFrom(any())).thenReturn(listOf(event))
+        whenever(slotRepository.findByEventId(event.id)).thenReturn(
+            listOf(
+                EventCompositionSlotEntity(
+                    eventId = event.id,
+                    roleKey = "player",
+                    slotIndex = 1,
+                    seasonParticipantId = UUID.randomUUID(),
+                    participationStatus = SlotParticipationStatus.CONFIRMED,
+                ),
+            ),
+        )
+
+        val sent = job.processRemindersAt(reference)
+
+        assertEquals(0, sent)
+        verify(dispatcher, never()).dispatch(any())
+        verify(reminderMarkService, never()).tryClaimReminderMark(any(), any(), any(), any())
+    }
+
+    @Test
     fun `J-7 reminder skips confirmed assignee with removed season participant`() {
         val zone = EventService.AGENDA_ZONE
         val reference = ZonedDateTime.of(2032, 6, 24, 10, 0, 0, 0, zone).toInstant()
@@ -398,7 +425,10 @@ class AssigneePresenceReminderJobTest {
         verify(reminderMarkService, never()).tryClaimReminderMark(any(), any(), any(), any())
     }
 
-    private fun reminderEvent(startsAt: Instant): EventEntity {
+    private fun reminderEvent(
+        startsAt: Instant,
+        roleSlots: Map<String, Int> = mapOf("player" to 2),
+    ): EventEntity {
         val troupe = TroupeEntity(id = UUID.randomUUID(), name = "Troupe", slug = "troupe")
         val season = SeasonEntity(troupe = troupe, slug = "saison", title = "Saison")
         return EventEntity(
@@ -407,6 +437,7 @@ class AssigneePresenceReminderJobTest {
             title = "Spectacle",
             slug = "spectacle",
             startsAt = startsAt,
+            roleSlots = roleSlots,
             availabilityOpenedAt = Instant.parse("2032-01-01T00:00:00Z"),
         )
     }

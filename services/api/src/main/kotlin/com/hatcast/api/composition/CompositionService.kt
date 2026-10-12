@@ -14,6 +14,7 @@ import com.hatcast.api.availability.toAvailabilityIndex
 import com.hatcast.api.availability.StoredAvailabilityStatus
 import com.hatcast.api.composition.dto.CompositionDeclineDto
 import com.hatcast.api.composition.dto.CompositionResponseDto
+import com.hatcast.api.composition.dto.CompositionReconciliationItemDto
 import com.hatcast.api.composition.dto.CompositionSlotDto
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
@@ -281,10 +282,13 @@ class CompositionService(
         val resolvedCanManage = canManage ?: organizerAccess.canManageComposition(eventId, event.season, principal)
         val composition = compositionRepository.findById(eventId).orElse(null)
         val normalizedRoleSlots = RoleTemplates.normalize(event.roleSlots)
-        val slots =
-            slotRepository.findByEventId(eventId).filter { slot ->
-                val count = normalizedRoleSlots[slot.roleKey] ?: 0
-                slot.slotIndex in 0 until count
+        val storedSlots = slotRepository.findByEventId(eventId)
+        val slots = storedSlots.filter { it.isRequiredBy(normalizedRoleSlots) }
+        val reconciliationSlots =
+            if (resolvedCanManage) {
+                storedSlots.filter { !it.isRequiredBy(normalizedRoleSlots) && it.hasAssignee() }
+            } else {
+                emptyList()
             }
         val hasAssignedSlots = slots.any { it.hasAssignee() }
         val compositionValidated = composition?.validatedAt != null
@@ -319,7 +323,7 @@ class CompositionService(
             }
         val participantIdsForPresentation =
             if (canViewSlots) {
-                val fromSlots = slots.mapNotNull { it.assignedParticipantId() }
+                val fromSlots = (slots + reconciliationSlots).mapNotNull { it.assignedParticipantId() }
                 val fromDeclines =
                     declineRows.mapNotNull { row ->
                         row.seasonParticipantId ?: row.eventParticipantId
@@ -381,6 +385,19 @@ class CompositionService(
                 emptyList()
             }
 
+        val reconciliationItems =
+            reconciliationSlots.map { slot ->
+                val participantId = slot.assignedParticipantId()
+                    ?: error("Reconciliation slot must have an assignee")
+                CompositionReconciliationItemDto(
+                    roleKey = slot.roleKey,
+                    slotIndex = slot.slotIndex,
+                    participantId = participantId,
+                    participantDisplayName = displayNames[participantId] ?: "Participant",
+                    participationStatus = slot.participationStatus.name.lowercase(),
+                )
+            }
+
         val viewerParticipantIds =
             CompositionLinkedParticipantResolver.resolveViewerParticipantIds(
                 season = event.season,
@@ -406,6 +423,7 @@ class CompositionService(
             validatedAt = composition?.validatedAt,
             visibility = visibility.toApiValue(),
             slots = slotDtos,
+            reconciliationItems = reconciliationItems,
             declines = declineDtos,
             viewerParticipantIds = viewerParticipantIds.toList(),
         )
@@ -633,3 +651,6 @@ class CompositionService(
         return event
     }
 }
+
+fun EventCompositionSlotEntity.isRequiredBy(roleSlots: Map<String, Int>): Boolean =
+    slotIndex in 0 until (roleSlots[roleKey] ?: 0)

@@ -10,6 +10,26 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Open Issues
 
+### BUG-030 — Seed login via MagicDNS is rejected by offline CORS
+
+- **ID**: BUG-030
+- **Status**: Fixed
+- **Severity**: Medium
+- **Affected area**: Offline local development — `SecurityConfig`, `application-offline.yml`
+- **Observed behavior**: A seed member connecting from a phone through `https://<machine>.ts.net:4200` receives the generic 403 message « Ce compte n’est pas autorisé à accéder à HatCast », although the same token succeeds without an `Origin` header.
+- **Cause**: The Angular proxy forwards the MagicDNS `Origin`; the offline CORS configuration allowed only localhost origins, so Spring rejected the request before seed authentication.
+- **Fix**: Offline configuration now permits the scoped MagicDNS development origin pattern `https://*.ts.net:4200`.
+
+### BUG-029 — Agenda performance fixture has too few future events
+- **ID**: BUG-029
+- **Status**: Open
+- **Severity**: Low (blocks a complete local API regression run, not runtime behavior)
+- **Affected area**: `UserAgendaPerformanceIntegrationTest` seeded agenda fixture.
+- **Observed behavior**: On 2026-10-12, `./gradlew test` fails before the performance assertion because the fixture exposes 19 upcoming events while the test requires at least 20.
+- **Expected behavior**: The test fixture remains date-independent and supplies the documented minimum of 20 future events.
+- **Repro**: Run `./gradlew test` in `services/api`; `UserAgendaPerformanceIntegrationTest` fails with `content.length=19`.
+- **Notes/context**: Found while verifying CN-1. CN-1 targeted API/domain tests pass; this failure is unrelated to the reconciliation contract.
+
 ### BUG-028 — Mobile troupe hub season chart stacks month columns vertically
 - **ID**: BUG-028
 - **Status**: Open — BMAD diagnosis and corrective spec ready for approval
