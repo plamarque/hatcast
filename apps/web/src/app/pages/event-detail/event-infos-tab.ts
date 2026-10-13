@@ -25,11 +25,13 @@ import {
 } from '../../core/events/event-calendar-export'
 import { buildGoogleMapsSearchUrl, buildWazeUrl } from '../../core/events/event-maps'
 import {
+  EVENT_TYPE_IDS,
   type EventTypeId,
   getEventTypeIcon,
   getEventTypeLabel,
   normalizeRoleSlots,
   type RoleKey,
+  ROLE_KEYS,
   rolesWithSlots,
 } from '../../core/events/event-types'
 import {
@@ -65,6 +67,27 @@ import {
   type EventTypeRolesDialogResult,
 } from './event-type-roles-dialog'
 import { ORGANIZERS_HELP } from './event-organizers-dialog'
+
+function isTypeRolesDialogResult(value: unknown): value is Exclude<EventTypeRolesDialogResult, undefined> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return false
+  }
+  const result = value as { templateType?: unknown; roleSlots?: unknown }
+  if (
+    typeof result.templateType !== 'string' ||
+    !EVENT_TYPE_IDS.includes(result.templateType as EventTypeId) ||
+    typeof result.roleSlots !== 'object' ||
+    result.roleSlots === null ||
+    Array.isArray(result.roleSlots)
+  ) {
+    return false
+  }
+  const roleSlots = result.roleSlots as Record<string, unknown>
+  return ROLE_KEYS.every((key) => {
+    const count = roleSlots[key]
+    return typeof count === 'number' && Number.isFinite(count)
+  })
+}
 
 @Component({
   selector: 'app-event-infos-tab',
@@ -349,7 +372,7 @@ export class EventInfosTab {
       width: 'min(100vw - 2rem, 32rem)',
     })
     ref.afterClosed().subscribe((result) => {
-      if (result === undefined) {
+      if (!isTypeRolesDialogResult(result)) {
         return
       }
       this.savingTypeRoles.set(true)

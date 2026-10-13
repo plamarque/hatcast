@@ -13,8 +13,15 @@ e2e_files_state() { [[ -f "${root}/package-lock.json" && -f "${root}/apps/web/pa
 python_state() { has_command python3 && python3 -c 'import os' >/dev/null 2>&1 && echo ready || echo unavailable; }
 browser_ready() { compgen -G "$(browser_cache)/chromium-*/INSTALLATION_COMPLETE" >/dev/null 2>&1; }
 unit_valid() {
-  [[ -n "${root}" && -f "${root}/package.json" && "$(git -C "${root}" rev-parse --show-toplevel 2>/dev/null || true)" == "${root}" && "$(git -C "${root}" branch --show-current 2>/dev/null || true)" == feat/* ]] || return 1
-  git -C "${root}" worktree list --porcelain | awk -v expected="${root}" '/^worktree / { path = substr($0, 10) } /^branch refs\/heads\/feat\// && path == expected { found = 1 } END { exit(found ? 0 : 1) }'
+  local branch
+  branch="$(git -C "${root}" branch --show-current 2>/dev/null || true)"
+  [[ -n "${root}" && -f "${root}/package.json" && "$(git -C "${root}" rev-parse --show-toplevel 2>/dev/null || true)" == "${root}" ]] || return 1
+  [[ "${branch}" == feat/* || "${branch}" == codex/* ]] || return 1
+  git -C "${root}" worktree list --porcelain | awk -v expected="${root}" -v expected_branch="refs/heads/${branch}" '
+    /^worktree / { path = substr($0, 10) }
+    /^branch / && $0 == "branch " expected_branch && path == expected { found = 1 }
+    END { exit(found ? 0 : 1) }
+  '
 }
 integration_env() {
   local path=""

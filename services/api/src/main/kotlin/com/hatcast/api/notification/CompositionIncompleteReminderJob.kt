@@ -8,6 +8,7 @@ import com.hatcast.api.composition.CompositionSlotSnapshot
 import com.hatcast.api.composition.EventCompositionRepository
 import com.hatcast.api.composition.EventCompositionSlotRepository
 import com.hatcast.api.composition.assignedParticipantId
+import com.hatcast.api.composition.isRequiredBy
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.event.EventService
@@ -174,7 +175,7 @@ class CompositionIncompleteReminderJob(
             return false
         }
         val slots =
-            slotRepository.findByEventId(event.id).map { slot ->
+            slotRepository.findByEventId(event.id).filter { it.isRequiredBy(event.roleSlots) }.map { slot ->
                 CompositionSlotSnapshot(
                     roleKey = slot.roleKey,
                     slotIndex = slot.slotIndex,

@@ -57,6 +57,9 @@ expect "${tmp_root}/inspect.out" 'MODE=inspect'; expect "${tmp_root}/inspect.out
 [[ -z "$(git -C "${unit}" status --porcelain)" ]] || fail "inspection changed Git state"
 ! grep -Fq 'test-value' "${tmp_root}/inspect.out" || fail "inspection exposed environment value"
 ! grep -Fq "${unit}" "${tmp_root}/inspect.out" || fail "inspection exposed absolute path"
+git -C "${unit}" branch -m codex/runtime-unit
+"${base_env[@]}" bash "${runtime}" inspect >"${tmp_root}/codex-branch.out" 2>&1 && fail "missing prerequisites unexpectedly ready"
+expect "${tmp_root}/codex-branch.out" 'WORKTREE=valid'
 expect_fail "${base_env[@]}" RUNTIME_LINK_FAIL=1 bash "${runtime}" prepare
 [[ ! -e "${unit}/.env" && ! -e "${unit}/node_modules" && ! -e "${tmp_root}/browser-cache" ]] || fail "failed link mutated later prerequisites"
 if ! "${base_env[@]}" bash "${runtime}" prepare >"${tmp_root}/prepare.out" 2>&1; then cat "${tmp_root}/prepare.out" >&2; fail "preparation failed"; fi

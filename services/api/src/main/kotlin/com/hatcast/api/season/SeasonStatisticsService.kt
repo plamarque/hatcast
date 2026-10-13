@@ -19,6 +19,7 @@ import com.hatcast.api.composition.EventCompositionSlotEntity
 import com.hatcast.api.composition.EventCompositionSlotRepository
 import com.hatcast.api.composition.SlotParticipationStatus
 import com.hatcast.api.composition.assignedParticipantId
+import com.hatcast.api.composition.isRequiredBy
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.participant.ParticipantRowPresentation
@@ -195,7 +196,7 @@ class SeasonStatisticsService(
         events.count { event ->
             val composition = compositions[event.id]
             val slots =
-                slotsByEvent[event.id].orEmpty().map { slot ->
+                slotsByEvent[event.id].orEmpty().filter { it.isRequiredBy(event.roleSlots) }.map { slot ->
                     CompositionSlotSnapshot(
                         roleKey = slot.roleKey,
                         slotIndex = slot.slotIndex,
@@ -243,7 +244,7 @@ class SeasonStatisticsService(
             val monthSummaryBucket = monthSummary.getOrPut(mk) { StatCountBucket() }
             val composition = compositions[event.id]
             val validated = composition?.validatedAt != null
-            val slots = slotsByEvent[event.id].orEmpty()
+            val slots = slotsByEvent[event.id].orEmpty().filter { it.isRequiredBy(event.roleSlots) }
             val declines = declinesByEvent[event.id].orEmpty()
             val availability = availabilityIndex.forParticipant(event.id, participant)
             val availableRoleKeys =

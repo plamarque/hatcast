@@ -25,6 +25,7 @@ import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequ
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
@@ -402,6 +403,49 @@ class CompositionLifecycleIntegrationTest {
                 participationStatus = SlotParticipationStatus.CONFIRMED,
             ),
         )
+
+        mockMvc
+            .perform(get("/v1/seasons/$seasonId/events/$eventId").cookie(cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.compositionLifecycle").value("complete"))
+            .andExpect(jsonPath("$.teamStatusBadge.key").value("confirmed"))
+    }
+
+    @Test
+    fun `reduced needs ignore preserved assignment in lifecycle`() {
+        val cookie = memberCookie("sub-lifecycle-reconciled", admin = true)
+        val seasonId = createSeason(cookie)
+        val eventId = createEvent(cookie, seasonId, "Reconciled lifecycle")
+        val currentParticipant = createSeasonParticipant(seasonId, "Joueur actif")
+        val affectedParticipant = createSeasonParticipant(seasonId, "Joueur à réconcilier")
+        seedValidatedComposition(
+            eventId,
+            listOf(
+                EventCompositionSlotEntity(
+                    eventId = eventId,
+                    roleKey = "player",
+                    slotIndex = 0,
+                    seasonParticipantId = currentParticipant,
+                    participationStatus = SlotParticipationStatus.CONFIRMED,
+                ),
+                EventCompositionSlotEntity(
+                    eventId = eventId,
+                    roleKey = "player",
+                    slotIndex = 1,
+                    seasonParticipantId = affectedParticipant,
+                    participationStatus = SlotParticipationStatus.PENDING,
+                ),
+            ),
+        )
+
+        mockMvc
+            .perform(
+                patch("/v1/seasons/$seasonId/events/$eventId")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"roleSlots":{"player":1}}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
 
         mockMvc
             .perform(get("/v1/seasons/$seasonId/events/$eventId").cookie(cookie))

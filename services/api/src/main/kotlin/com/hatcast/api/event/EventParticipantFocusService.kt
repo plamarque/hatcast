@@ -11,6 +11,7 @@ import com.hatcast.api.composition.EventCompositionSlotRepository
 import com.hatcast.api.composition.SlotParticipationStatus
 import com.hatcast.api.composition.assignedParticipantId
 import com.hatcast.api.composition.hasAssignee
+import com.hatcast.api.composition.isRequiredBy
 import com.hatcast.api.event.dto.ParticipantFocusSummaryDto
 import com.hatcast.api.organizer.EventOrganizerRepository
 import com.hatcast.api.organizer.OrganizerAccessRules
@@ -31,6 +32,7 @@ class EventParticipantFocusService(
     private val organizerAccess: OrganizerAccessRules,
     private val eventOrganizerRepository: EventOrganizerRepository,
     private val troupeAccess: TroupeAccessService,
+    private val eventRepository: EventRepository,
 ) {
     companion object {
         private val ROLE_DISPLAY_ORDER =
@@ -74,6 +76,7 @@ class EventParticipantFocusService(
             return emptyMap()
         }
         val compositions = compositionRepository.findByEventIdIn(eventIds).associateBy { it.eventId }
+        val roleSlotsByEvent = eventRepository.findAllById(eventIds).associate { it.id to it.roleSlots }
         val slotsByEvent = slotRepository.findByEventIdIn(eventIds).groupBy { it.eventId }
         val declinesByEvent = declineRepository.findByEventIdIn(eventIds).groupBy { it.eventId }
         val canManageByEvent = resolveCanManageComposition(eventIds, season, principal)
@@ -102,7 +105,7 @@ class EventParticipantFocusService(
             val matchingSlot =
                 if (canViewSlots) {
                     pickPrimarySlot(
-                        slotsByEvent[eventId].orEmpty(),
+                        slotsByEvent[eventId].orEmpty().filter { it.isRequiredBy(roleSlotsByEvent[eventId].orEmpty()) },
                         focusParticipantId,
                     )
                 } else {

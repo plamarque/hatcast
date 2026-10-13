@@ -8,6 +8,7 @@ import com.hatcast.api.composition.EventCompositionSlotRepository
 import com.hatcast.api.composition.SlotParticipationStatus
 import com.hatcast.api.composition.assignedParticipantId
 import com.hatcast.api.composition.hasAssignee
+import com.hatcast.api.composition.isRequiredBy
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.event.RoleTemplates
 import com.hatcast.api.organizer.EventOrganizerRepository
@@ -152,8 +153,7 @@ class NotificationRecipientResolver(
         eventId: UUID,
     ): List<NotificationRecipient> {
         val assignedParticipantIds =
-            slotRepository
-                .findByEventId(eventId)
+            currentRequiredSlots(eventId)
                 .filter { it.hasAssignee() }
                 .mapNotNull { it.assignedParticipantId() }
         // Resolve by userId so that season-participant/event-participant ID mismatches don't leak assignees.
@@ -171,8 +171,7 @@ class NotificationRecipientResolver(
 
     fun resolveConfirmedAssigneeRecipients(eventId: UUID): List<NotificationRecipient> {
         val participantIds =
-            slotRepository
-                .findByEventId(eventId)
+            currentRequiredSlots(eventId)
                 .filter { it.hasAssignee() && it.participationStatus == com.hatcast.api.composition.SlotParticipationStatus.CONFIRMED }
                 .mapNotNull { it.assignedParticipantId() }
         return resolveAssigneeRecipients(participantIds)
@@ -211,8 +210,7 @@ class NotificationRecipientResolver(
 
     fun resolveValidatedAssigneeRecipients(eventId: UUID): List<NotificationRecipient> {
         val participantIds =
-            slotRepository
-                .findByEventId(eventId)
+            currentRequiredSlots(eventId)
                 .filter { it.hasAssignee() }
                 .mapNotNull { it.assignedParticipantId() }
         return resolveAssigneeRecipients(participantIds)
@@ -240,6 +238,13 @@ class NotificationRecipientResolver(
             participant.toRecipient()?.let { recipients.add(it) }
         }
         return recipients.distinctBy { it.dedupeKey() }
+    }
+
+    private fun currentRequiredSlots(eventId: UUID): List<com.hatcast.api.composition.EventCompositionSlotEntity> {
+        val slots = slotRepository.findByEventId(eventId)
+        val event = eventRepository.findById(eventId).orElse(null) ?: return emptyList()
+        val roleSlots = RoleTemplates.normalize(event.roleSlots)
+        return slots.filter { it.isRequiredBy(roleSlots) }
     }
 
     fun resolveSubjectRecipient(subjectUserId: UUID): List<NotificationRecipient> =

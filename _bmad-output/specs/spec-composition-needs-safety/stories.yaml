@@ -1,0 +1,27 @@
+- id: "cn-1"
+  title: Reconcile assignments after needs change
+  description: >-
+    Implement CAP-1 and CAP-2 server reconciliation and member-safe projections
+    for assignments outside changed event role needs.
+  spec_checkpoint: true
+  done_checkpoint: true
+  invoke_dev_with: >-
+    Start in a dedicated prepared worktree. Preserve assignments; do not silently
+    delete or expose organizer-only reconciliation data to members.
+- id: "cn-2"
+  title: Explain and regularize impacted selections
+  description: >-
+    Implement CAP-1, CAP-2 and CAP-4 organizer impact UI, regularization surface,
+    and readable role-need audit deltas on top of CN-1.
+  done_checkpoint: true
+  invoke_dev_with: >-
+    Read FRONTEND_UI.md first; use Material dialog patterns and validate mobile 480px.
+- id: "cn-3"
+  title: Notify removals from a visible composition
+  description: >-
+    Implement CAP-3 after-commit, idempotent removal notifications for assignees
+    affected by a member-visible composition needs change.
+  done_checkpoint: true
+  invoke_dev_with: >-
+    Reuse REMOVED_FROM_COMPOSITION; drafts must not notify and transaction retries
+    must not duplicate delivery.

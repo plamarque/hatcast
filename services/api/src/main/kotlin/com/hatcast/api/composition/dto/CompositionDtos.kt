@@ -42,11 +42,22 @@ data class CompositionDeclineDto(
     val note: String? = null,
 )
 
+/** An assigned stored slot that is no longer required by the event needs. */
+data class CompositionReconciliationItemDto(
+    val roleKey: String,
+    val slotIndex: Int,
+    val participantId: UUID,
+    val participantDisplayName: String,
+    val participationStatus: String,
+)
+
 data class CompositionResponseDto(
     val publishedAt: Instant?,
     val validatedAt: Instant?,
     val visibility: String,
     val slots: List<CompositionSlotDto>,
+    /** Organizer/admin-only assignments outside current required positions. */
+    val reconciliationItems: List<CompositionReconciliationItemDto> = emptyList(),
     val declines: List<CompositionDeclineDto> = emptyList(),
     val viewerParticipantIds: List<UUID> = emptyList(),
 )

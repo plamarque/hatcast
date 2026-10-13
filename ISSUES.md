@@ -10,6 +10,38 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Open Issues
 
+### BUG-031 — « Annuler » dans Format et besoins vide les besoins
+
+- **ID**: BUG-031
+- **Status**: Open — cause confirmée le 2026-10-13 ; correctif à cadrer
+- **Severity**: High (une action ponctuelle peut masquer toute une équipe déjà composée)
+- **Affected area**: V2 « Format et besoins » (`EventTypeRolesDialog` / `PATCH events.roleSlots`) et projection Équipe.
+- **Observed behavior**: Sur « Spectacle Long format Microphone », Nicolas a indiqué avoir voulu retirer uniquement le rôle Bénévole. Après avoir ouvert « Format et besoins », le bouton de pied de modale `Annuler` a persisté tous les effectifs à zéro ; l'onglet Équipe ne projette alors plus aucun créneau requis, bien que les affectations stockées existent encore. Un incident analogue a été signalé le 2026-10-12 pour « Apérock café ».
+- **Expected behavior**: `Annuler` doit fermer sans émettre aucun PATCH. Réduire ou retirer un rôle ne doit pas effacer silencieusement les besoins restants ni rendre invisible une équipe constituée.
+- **Cause confirmée**: L'attribut nu `mat-dialog-close` transmet la chaîne vide (`""`) au vrai clic Angular Material, et non `undefined`. `EventInfosTab.openTypeRolesDialog` ignore uniquement `undefined` : il appelle donc `persistTypeRoles("")`. À l'exécution, `result.templateType` et `result.roleSlots` sont alors `undefined`; `normalizeRoleSlots(undefined)` produit une map complète de zéros. `JSON.stringify` omet `templateType` mais envoie `roleSlots` à zéro. Le serveur accepte ce remplacement complet et persiste ces zéros. La re-sélection du format n'est pas nécessaire à l'incident, même si elle fait partie du parcours observé.
+- **Reproduction vérifiée**: Le test temporaire a cliqué le vrai bouton `button[mat-dialog-close]` dans le dialogue Angular : `MatDialogRef.close` a reçu `""` (et non `undefined`). La chaîne client puis serveur ci-dessus a été vérifiée dans le code. Le test était volontairement rouge contre l'attendu fonctionnel et a été retiré après diagnostic pour ne pas laisser la branche en échec.
+- **Notes/context**: Les événements de type sondage / personnalisé peuvent légitimement ne pas nécessiter de rôle : le correctif ne doit donc pas interdire globalement la valeur vide. Il doit distinguer explicitement une fermeture sans résultat d'une sauvegarde. CN-1 conserve désormais les créneaux affectés hors besoins pour les organisateurs, mais ne prévient pas l'écriture vide et ne les réaffiche pas encore dans l'UI. Voir aussi le chat Codex `01a130ec-46cd-7c60-b532-7634e1c5cfd4`.
+
+### BUG-030 — Seed login via MagicDNS is rejected by offline CORS
+
+- **ID**: BUG-030
+- **Status**: Fixed
+- **Severity**: Medium
+- **Affected area**: Offline local development — `SecurityConfig`, `application-offline.yml`
+- **Observed behavior**: A seed member connecting from a phone through `https://<machine>.ts.net:4200` receives the generic 403 message « Ce compte n’est pas autorisé à accéder à HatCast », although the same token succeeds without an `Origin` header.
+- **Cause**: The Angular proxy forwards the MagicDNS `Origin`; the offline CORS configuration allowed only localhost origins, so Spring rejected the request before seed authentication.
+- **Fix**: Offline configuration now permits the scoped MagicDNS development origin pattern `https://*.ts.net:4200`.
+
+### BUG-029 — Agenda performance fixture has too few future events
+- **ID**: BUG-029
+- **Status**: Open
+- **Severity**: Low (blocks a complete local API regression run, not runtime behavior)
+- **Affected area**: `UserAgendaPerformanceIntegrationTest` seeded agenda fixture.
+- **Observed behavior**: On 2026-10-12, `./gradlew test` fails before the performance assertion because the fixture exposes 19 upcoming events while the test requires at least 20.
+- **Expected behavior**: The test fixture remains date-independent and supplies the documented minimum of 20 future events.
+- **Repro**: Run `./gradlew test` in `services/api`; `UserAgendaPerformanceIntegrationTest` fails with `content.length=19`.
+- **Notes/context**: Found while verifying CN-1. CN-1 targeted API/domain tests pass; this failure is unrelated to the reconciliation contract.
+
 ### BUG-028 — Mobile troupe hub season chart stacks month columns vertically
 - **ID**: BUG-028
 - **Status**: Open — BMAD diagnosis and corrective spec ready for approval

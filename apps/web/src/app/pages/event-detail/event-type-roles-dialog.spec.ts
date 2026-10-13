@@ -116,6 +116,17 @@ describe('EventTypeRolesDialog', () => {
     )
   })
 
+  it('returns undefined when the footer cancel button is clicked', async () => {
+    const { fixture, close } = await setup(dialogData())
+
+    const cancel = [...fixture.nativeElement.querySelectorAll('button')].find(
+      (button: HTMLButtonElement) => button.textContent?.trim() === 'Annuler',
+    ) as HTMLButtonElement
+    cancel.click()
+
+    expect(close).toHaveBeenCalledWith(undefined)
+  })
+
   it('keeps templateType when customizing role counts', async () => {
     const { fixture, close } = await setup(
       dialogData({ templateType: 'match', roleSlots: applyTemplate('match') }),

@@ -11,6 +11,7 @@ import com.hatcast.api.composition.EventCompositionSlotEntity
 import com.hatcast.api.composition.EventCompositionSlotRepository
 import com.hatcast.api.composition.SlotParticipationStatus
 import com.hatcast.api.composition.assignedParticipantId
+import com.hatcast.api.composition.isRequiredBy
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.memberprofile.dto.FavoriteRoleCountDto
@@ -67,7 +68,7 @@ class SeasonGlanceStatsProvider(
 
         for (event in events) {
             val composition = compositions[event.id]
-            val slots = slotsByEvent[event.id].orEmpty()
+            val slots = slotsByEvent[event.id].orEmpty().filter { it.isRequiredBy(event.roleSlots) }
             val declines = declinesByEvent[event.id].orEmpty()
             val locked = isCompositionLockedForStats(composition, slots)
 
@@ -179,7 +180,7 @@ class SeasonGlanceStatsProvider(
         for (event in eventsInChartOrder(events)) {
             val scoped = scopedEvents.first { it.event.id == event.id }
             val composition = compositions[event.id]
-            val slots = slotsByEvent[event.id].orEmpty()
+            val slots = slotsByEvent[event.id].orEmpty().filter { it.isRequiredBy(event.roleSlots) }
             val declines = declinesByEvent[event.id].orEmpty()
             val locked = isCompositionLockedForStats(composition, slots)
             val monthKey = event.startsAt.atZone(ZONE).format(MONTH_FORMAT)
@@ -257,7 +258,7 @@ class SeasonGlanceStatsProvider(
         for (event in events) {
             val participantIds = scopedEvents.first { it.event.id == event.id }.participantIds
             val composition = compositions[event.id]
-            val slots = slotsByEvent[event.id].orEmpty()
+            val slots = slotsByEvent[event.id].orEmpty().filter { it.isRequiredBy(event.roleSlots) }
             if (!isCompositionLockedForStats(composition, slots)) {
                 continue
             }
