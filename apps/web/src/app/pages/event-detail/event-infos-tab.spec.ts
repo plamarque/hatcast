@@ -4,6 +4,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { provideRouter, Router } from '@angular/router'
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
+import { of } from 'rxjs'
 
 import { EventApiService } from '../../core/events/event-api.service'
 import { emptyRoleSlots } from '../../core/events/event-types'
@@ -55,6 +56,7 @@ describe('EventInfosTab', () => {
     onMapsMenuOpened: () => void
     onMapsMenuClosed: () => void
     onCategorySelect: (slug: string | null) => void
+    openTypeRolesDialog: () => void
   }
 
   function tab(): InfosTabTestApi {
@@ -502,6 +504,36 @@ describe('EventInfosTab', () => {
 
     await vi.waitFor(() => {
       expect(snackOpen).toHaveBeenCalledWith('Catégorie inconnue.', 'OK', { duration: 6000 })
+    })
+  })
+
+  it.each([
+    ['empty-string cancel result', ''],
+    ['array result', []],
+    ['empty object result', {}],
+    ['partial object result', { templateType: 'longform' }],
+  ])('does not persist a malformed format and roles dialog result: %s', (_label, result) => {
+    dialogOpen.mockReturnValue({ afterClosed: () => of(result) })
+
+    tab().openTypeRolesDialog()
+
+    expect(updateEvent).not.toHaveBeenCalled()
+  })
+
+  it('persists a valid format and roles dialog result', async () => {
+    const roleSlots = { ...emptyRoleSlots(), player: 4, mc: 1, dj: 1 }
+    dialogOpen.mockReturnValue({
+      afterClosed: () => of({ templateType: 'longform', roleSlots }),
+    })
+    updateEvent.mockResolvedValue({ ok: true, data: ev({ templateType: 'longform', roleSlots }) })
+
+    tab().openTypeRolesDialog()
+
+    await vi.waitFor(() => {
+      expect(updateEvent).toHaveBeenCalledWith('season-1', ev().id, {
+        templateType: 'longform',
+        roleSlots,
+      })
     })
   })
 
