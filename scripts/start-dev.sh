@@ -28,13 +28,70 @@
 # API : PostgreSQL (Neon) par défaut — exporter HATCAST_DATASOURCE_URL, HATCAST_DATASOURCE_USERNAME,
 # HATCAST_DATASOURCE_PASSWORD dans `.env` (Flyway + Spring Session sur cette base).
 # Mode --offline : base H2 fichier sous .local/hatcast-offline/ (pas de Neon requis).
+# TLS : tous les worktrees réutilisent le certificat mkcert localhost sous le
+# checkout v2 (`.local/hatcast-dev-certs/`). HATCAST_WEB_SSL_CERT et
+# HATCAST_WEB_SSL_KEY permettent de fournir un autre couple certificat/clé.
 
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # shellcheck source=load-dotenv.sh
 source "$ROOT/scripts/load-dotenv.sh"
-load_dotenv "$ROOT/.env"
+
+v2_worktree_root() {
+  local path=""
+  while IFS= read -r line; do
+    case "$line" in
+      'worktree '*) path="${line#worktree }" ;;
+      'branch refs/heads/v2') printf '%s\n' "$path"; return 0 ;;
+    esac
+  done < <(git -C "$ROOT" worktree list --porcelain)
+  return 1
+}
+
+load_worktree_env() {
+  local shared_root shared_env
+  if [[ -f "$ROOT/.env" ]]; then
+    load_dotenv "$ROOT/.env"
+    return
+  fi
+  shared_root="$(v2_worktree_root 2>/dev/null || true)"
+  shared_env="${shared_root:+$shared_root/.env}"
+  if [[ -n "$shared_env" && -f "$shared_env" ]]; then
+    echo "→ Configuration locale partagée depuis le checkout v2"
+    load_dotenv "$shared_env"
+  fi
+}
+
+ensure_shared_web_tls() {
+  local shared_root cert_dir cert key
+  if [[ -n "${HATCAST_WEB_SSL_CERT:-}" || -n "${HATCAST_WEB_SSL_KEY:-}" ]]; then
+    [[ -n "${HATCAST_WEB_SSL_CERT:-}" && -n "${HATCAST_WEB_SSL_KEY:-}" && -r "$HATCAST_WEB_SSL_CERT" && -r "$HATCAST_WEB_SSL_KEY" ]] || {
+      echo "✗ HATCAST_WEB_SSL_CERT et HATCAST_WEB_SSL_KEY doivent désigner deux fichiers lisibles." >&2
+      return 1
+    }
+    return
+  fi
+  shared_root="$(v2_worktree_root 2>/dev/null || true)"
+  [[ -n "$shared_root" ]] || shared_root="$ROOT"
+  cert_dir="${HATCAST_WEB_SSL_DIR:-$shared_root/.local/hatcast-dev-certs}"
+  cert="$cert_dir/localhost.pem"
+  key="$cert_dir/localhost-key.pem"
+  if [[ ! -f "$cert" || ! -f "$key" ]]; then
+    command -v mkcert >/dev/null 2>&1 || {
+      echo "✗ mkcert est requis pour créer le certificat localhost partagé." >&2
+      return 1
+    }
+    echo "→ Création du certificat HTTPS localhost partagé…"
+    mkdir -p "$cert_dir"
+    mkcert -cert-file "$cert" -key-file "$key" localhost 127.0.0.1 ::1
+  fi
+  export HATCAST_WEB_SSL_CERT="$cert"
+  export HATCAST_WEB_SSL_KEY="$key"
+}
+
+load_worktree_env
+ensure_shared_web_tls
 
 cd "$ROOT"
 
@@ -446,5 +503,6 @@ if [[ "$WITH_PUSH" == "1" ]]; then
   WEB_SERVE_PID=$!
   wait "$WEB_SERVE_PID"
 else
-  npm run dev -w @hatcast/web -- --host 0.0.0.0
+  npm run dev -w @hatcast/web -- --host 0.0.0.0 \
+    --ssl-cert "$HATCAST_WEB_SSL_CERT" --ssl-key "$HATCAST_WEB_SSL_KEY"
 fi

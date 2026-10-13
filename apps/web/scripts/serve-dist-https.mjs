@@ -13,9 +13,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const DIST = join(__dirname, '../dist/web/browser');
 const PORT = Number(process.env.HATCAST_WEB_PORT ?? 4200);
 const API_ORIGIN = process.env.HATCAST_API_ORIGIN ?? 'http://127.0.0.1:8080';
-const SSL_PEM =
-  process.env.HATCAST_WEB_SSL_PEM ??
-  join(__dirname, '../.angular/cache/21.2.7/web/vite/basic-ssl/_cert.pem');
+const DEFAULT_SSL_PEM = join(__dirname, '../.angular/cache/21.2.7/web/vite/basic-ssl/_cert.pem');
+const SSL_CERT = process.env.HATCAST_WEB_SSL_CERT ?? process.env.HATCAST_WEB_SSL_PEM ?? DEFAULT_SSL_PEM;
+const SSL_KEY = process.env.HATCAST_WEB_SSL_KEY ?? process.env.HATCAST_WEB_SSL_PEM ?? DEFAULT_SSL_PEM;
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -94,14 +94,13 @@ if (!existsSync(DIST)) {
   console.error(`Erreur : ${DIST} introuvable — lancez ng build --configuration=production d’abord.`);
   process.exit(1);
 }
-if (!existsSync(SSL_PEM)) {
+if (!existsSync(SSL_CERT) || !existsSync(SSL_KEY)) {
   console.error(
-    `Erreur : certificat TLS introuvable (${SSL_PEM}). Lancez ng serve une fois pour générer basic-ssl.`,
+    `Erreur : certificat TLS introuvable (${SSL_CERT} / ${SSL_KEY}).`,
   );
   process.exit(1);
 }
 
-const pem = readFileSync(SSL_PEM);
-createHttpsServer({ key: pem, cert: pem }, handler).listen(PORT, '0.0.0.0', () => {
+createHttpsServer({ key: readFileSync(SSL_KEY), cert: readFileSync(SSL_CERT) }, handler).listen(PORT, '0.0.0.0', () => {
   console.log(`✓ Front statique HTTPS : https://localhost:${PORT}  (${DIST})`);
 });
