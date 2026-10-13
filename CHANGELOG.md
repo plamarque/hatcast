@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.6.1] - 2026-10-13
+
+### ✨ New Features
+- feat(composition): Reconcile changed needs
+
+### 🐛 Bug Fixes
+- fix(composition): Prevent cancel role reset
+- fix(worktrees): Share local HTTPS bootstrap
+
+### 📝 Other Changes
+- chore(v2): Promote v2 to staging-v2
+- docs(release): Add v2.6.1 user changelog cutover
+- chore(v2): sync release v2.6.0-rc.2 artifacts to v2
+
+---
+
 ## [2.6.0] - 2026-09-29
 
 ### 🐛 Bug Fixes
