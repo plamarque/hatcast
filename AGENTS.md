@@ -87,6 +87,16 @@ When adding or editing content, keep this separation. Do not put "Slice 2" or "P
 
 ---
 
+## V2 local human smoke
+
+For a requested manual test from a V2 worktree, use the documented full stack in [DEVELOPMENT.md](DEVELOPMENT.md#recette-manuelle-v2-depuis-un-worktree): `./scripts/start-dev.sh --offline` unless the user explicitly needs the configured Neon or production-local path.
+
+- Do **not** hand off a user test from `npm run dev:web:v2` or `ng serve` alone: those commands start only the Angular proxy and assume a compatible API is already listening on port `8080`.
+- Before sharing `https://localhost:4200`, verify both the front and API/proxy are responding. Keep the launched stack running for the user’s test.
+- The startup script safely reuses the `v2` checkout’s local `.env` and TLS certificate when invoked from a worktree; `--offline` instead uses that worktree’s gitignored H2 seed database and requires no `.env`.
+
+---
+
 ## V2 staging releases (Cursor)
 
 For semver staging releases (`./scripts/release_version.sh`), use the project skill **[`.agents/skills/hatcast-v2-release/SKILL.md`](.agents/skills/hatcast-v2-release/SKILL.md)** :
