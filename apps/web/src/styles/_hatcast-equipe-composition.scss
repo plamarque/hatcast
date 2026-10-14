@@ -17,10 +17,14 @@
 
 .event-equipe-tab__row {
   --equipe-role-col: 7.5rem;
-  --equipe-clear-col: 2.5rem;
+  --equipe-structural-actions-col: 5.15rem;
 
   display: grid;
-  grid-template-columns: var(--equipe-role-col) minmax(0, 1fr) minmax(0, auto) var(--equipe-clear-col);
+  grid-template-columns:
+    var(--equipe-role-col)
+    minmax(0, 1fr)
+    minmax(0, auto)
+    var(--equipe-structural-actions-col);
   grid-template-rows: auto auto;
   column-gap: 0.5rem;
   row-gap: 0.3rem;
@@ -130,7 +134,10 @@
   grid-column: 4;
   grid-row: 1;
   display: inline-flex;
+  width: var(--equipe-structural-actions-col);
+  min-width: var(--equipe-structural-actions-col);
   justify-self: end;
+  justify-content: space-between;
   gap: 0.15rem;
 }
 

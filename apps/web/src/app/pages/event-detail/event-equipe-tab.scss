@@ -65,15 +65,27 @@
   gap: 1rem;
 }
 
-.event-equipe-tab__provisional-slot {
-  padding: 0.75rem;
+.event-equipe-tab__row--provisional {
   border: 1px dashed var(--mat-sys-outline);
-  border-radius: 0.65rem;
   background: var(--mat-sys-surface-container-low);
+}
 
-  mat-form-field {
-    width: 100%;
-  }
+.event-equipe-tab__provisional-role {
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: start;
+  color: var(--mat-sys-primary);
+}
+
+.event-equipe-tab__provisional-copy {
+  grid-column: 2;
+  grid-row: 1;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-title-small);
+}
+
+.event-equipe-tab__delete-provisional {
+  color: var(--mat-sys-on-surface-variant);
 }
 
 .event-equipe-tab__add-slot {

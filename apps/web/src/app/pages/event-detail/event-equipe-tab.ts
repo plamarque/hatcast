@@ -5,11 +5,9 @@ import { MatButtonModule } from '@angular/material/button'
 import { MatChipsModule } from '@angular/material/chips'
 import { MatDialog, MatDialogModule, type MatDialogRef } from '@angular/material/dialog'
 import { MatDividerModule } from '@angular/material/divider'
-import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { MatSelectModule } from '@angular/material/select'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 import { MatTooltip, MatTooltipModule } from '@angular/material/tooltip'
 
@@ -116,11 +114,9 @@ interface SlotRow {
     MatChipsModule,
     MatDialogModule,
     MatDividerModule,
-    MatFormFieldModule,
     MatIconModule,
     MatMenuModule,
     MatProgressSpinnerModule,
-    MatSelectModule,
     MatSnackBarModule,
     MatTooltipModule,
     EventEquipeEmpty,
@@ -137,6 +133,7 @@ export class EventEquipeTab {
   protected readonly roleChipDisplayText = roleActionChipDisplayText
   protected readonly roleKeys = ROLE_KEYS
   protected readonly roleLabels = ROLE_LABELS
+  protected readonly roleEmojis = ROLE_EMOJIS
 
   private readonly compositionApi = inject(CompositionApiService)
   private readonly eventsApi = inject(EventApiService)
@@ -1518,22 +1515,23 @@ export class EventEquipeTab {
       return
     }
     const name = row.slot?.participantDisplayName
-    if (name) {
-      const confirmed = await firstValueFrom(
-        this.dialog
-          .open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
-            data: {
-              title: 'Supprimer ce slot ?',
-              message: `Cette action retire ${name} du rôle ${row.roleLabel}.`,
-              confirmLabel: 'Supprimer',
-              destructive: true,
-            },
-          })
-          .afterClosed(),
-      )
-      if (!confirmed) {
-        return
-      }
+    const message = name
+      ? `Tu vas aussi retirer ${name} du rôle ${row.roleLabel}. Ce spectacle demandera une personne de moins pour ce rôle, même si le format le prévoit.`
+      : `Tu vas retirer une place de ${row.roleLabel}. Ce spectacle demandera une personne de moins pour ce rôle, même si le format le prévoit.`
+    const confirmed = await firstValueFrom(
+      this.dialog
+        .open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
+          data: {
+            title: 'Supprimer cette place ?',
+            message,
+            confirmLabel: 'Supprimer la place',
+            destructive: true,
+          },
+        })
+        .afterClosed(),
+    )
+    if (!confirmed) {
+      return
     }
     const seasonId = this.seasonId()
     const eventId = this.event().id
@@ -1549,13 +1547,13 @@ export class EventEquipeTab {
         return
       }
       if (!result.ok || !result.data) {
-        this.snack.open(result.errorMessage ?? 'Suppression du slot impossible.', 'OK', {
+        this.snack.open(result.errorMessage ?? 'Suppression de la place impossible.', 'OK', {
           duration: 6000,
         })
         return
       }
       this.eventUpdated.emit(result.data)
-      this.snack.open('Slot supprimé.', 'OK', { duration: 4000 })
+      this.snack.open('Place supprimée.', 'OK', { duration: 4000 })
     } finally {
       this.updatingStructure.set(false)
     }

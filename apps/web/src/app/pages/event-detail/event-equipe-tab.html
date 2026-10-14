@@ -198,6 +198,14 @@
       [class.event-equipe-tab__composition-body--draft]="showCompositionDraftZone()"
       [attr.aria-labelledby]="showCompositionDraftZone() ? 'composition-draft-zone-label' : null"
     >
+      <mat-menu #provisionalRoleMenu="matMenu">
+        @for (roleKey of roleKeys; track roleKey) {
+          <button type="button" mat-menu-item (click)="chooseProvisionalRole(roleKey)">
+            <span aria-hidden="true">{{ roleEmojis[roleKey] }}&nbsp;</span>
+            <span>{{ roleLabels[roleKey] }}</span>
+          </button>
+        }
+      </mat-menu>
       @if (showCompositionDraftZone()) {
         <div class="event-equipe-tab__draft-zone-head">
           <mat-chip-set aria-label="Statut de la composition">
@@ -289,8 +297,8 @@
                   type="button"
                   mat-icon-button
                   class="event-equipe-tab__delete-slot"
-                  aria-label="Supprimer ce slot"
-                  matTooltip="Supprimer ce slot"
+                  aria-label="Supprimer cette place"
+                  matTooltip="Supprimer cette place"
                   (click)="deleteSlot(row, $event)"
                 >
                   <mat-icon aria-hidden="true">delete</mat-icon>
@@ -309,24 +317,36 @@
           </div>
         </li>
       }
+      @if (canEditSlots() && provisionalSlotVisible()) {
+        <li class="event-equipe-tab__row event-equipe-tab__row--provisional">
+          <button
+            type="button"
+            mat-icon-button
+            class="event-equipe-tab__provisional-role"
+            [matMenuTriggerFor]="provisionalRoleMenu"
+            aria-label="Choisir le rôle de cette place"
+            matTooltip="Choisir le rôle"
+          >
+            <mat-icon aria-hidden="true">theater_comedy</mat-icon>
+          </button>
+          <span class="event-equipe-tab__provisional-copy">Choisir le rôle</span>
+          <span class="event-equipe-tab__structural-actions">
+            <button
+              type="button"
+              mat-icon-button
+              class="event-equipe-tab__delete-provisional"
+              aria-label="Supprimer cette place"
+              matTooltip="Supprimer cette place"
+              (click)="provisionalSlotVisible.set(false)"
+            >
+              <mat-icon aria-hidden="true">delete_outline</mat-icon>
+            </button>
+          </span>
+        </li>
+      }
       </ul>
 
       @if (canEditSlots()) {
-        @if (provisionalSlotVisible()) {
-          <section class="event-equipe-tab__provisional-slot" aria-label="Nouveau slot">
-            <mat-form-field appearance="outline">
-              <mat-label>Rôle du nouveau slot</mat-label>
-              <mat-select
-                [disabled]="updatingStructure()"
-                (selectionChange)="chooseProvisionalRole($event.value)"
-              >
-                @for (roleKey of roleKeys; track roleKey) {
-                  <mat-option [value]="roleKey">{{ roleLabels[roleKey] }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-          </section>
-        }
         <button
           type="button"
           mat-stroked-button

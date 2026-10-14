@@ -13,6 +13,7 @@ import {
 } from '../../core/draw/draw-policy-api.service'
 import { applyTemplate, emptyRoleSlots } from '../../core/events/event-types'
 import { EventApiService, type EventResponse } from '../../core/events/event-api.service'
+import { ConfirmDialog } from '../seasons-list/confirm-dialog'
 import { EventTypeRolesDialog } from './event-type-roles-dialog'
 import { EventEquipeTab } from './event-equipe-tab'
 
@@ -291,7 +292,16 @@ describe('EventEquipeTab', () => {
     ) as HTMLButtonElement
     addButton.click()
     fixture.detectChanges()
-    expect(fixture.nativeElement.querySelector('mat-select')).toBeTruthy()
+    expect(
+      fixture.nativeElement.querySelector(
+        'button[aria-label="Choisir le rôle de cette place"]',
+      ),
+    ).toBeTruthy()
+    expect(
+      fixture.nativeElement.querySelector(
+        '.event-equipe-tab__row--provisional button.event-equipe-tab__delete-provisional[aria-label="Supprimer cette place"]',
+      ),
+    ).toBeTruthy()
 
     await (
       fixture.componentInstance as unknown as {
@@ -332,9 +342,54 @@ describe('EventEquipeTab', () => {
         fixture.nativeElement.querySelector('button[aria-label="Libérer la place"]'),
       ).toBeTruthy()
       expect(
-        fixture.nativeElement.querySelector('button[aria-label="Supprimer ce slot"]'),
+        fixture.nativeElement.querySelector('button[aria-label="Supprimer cette place"]'),
       ).toBeTruthy()
     })
+  })
+
+  it('confirms every structural deletion and explains the reduced need', async () => {
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+    const event = new Event('click')
+    const deletion = (
+      fixture.componentInstance as unknown as {
+        deleteSlot: (
+          row: {
+            roleKey: string
+            slotIndex: number
+            roleLabel: string
+            roleEmoji: string
+            slot: null
+          },
+          event: Event,
+        ) => Promise<void>
+      }
+    ).deleteSlot(
+      {
+        roleKey: 'player',
+        slotIndex: 1,
+        roleLabel: 'Comédien·ne',
+        roleEmoji: '🎭',
+        slot: null,
+      },
+      event,
+    )
+
+    expect(dialogOpen).toHaveBeenCalledWith(
+      ConfirmDialog,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          confirmLabel: 'Supprimer la place',
+          message: expect.stringContaining('demandera une personne de moins'),
+        }),
+      }),
+    )
+    expect(deleteCompositionSlot).not.toHaveBeenCalled()
+
+    dialogAfterClosed.next(true)
+    await deletion
+
+    expect(deleteCompositionSlot).toHaveBeenCalledWith('season-1', 'event-1', 'player', 1)
   })
 
   it('genres role pill from assignee gender on filled slots', async () => {
