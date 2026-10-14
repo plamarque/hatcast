@@ -61,6 +61,18 @@ When adding or editing content, keep this separation. Do not put "Slice 2" or "P
 
 ---
 
+## Clôture d'une story
+
+- « Clôturer cette story », « termine cette story » ou équivalent autorise la clôture **locale** complète : vérifier l'état réel, exécuter les vérifications pertinentes, mettre le tracker de la story à `done` via son contrôleur prévu, committer uniquement les changements de la story, intégrer dans la branche d'intégration locale de HatCast (`v2`), puis vérifier ce checkout.
+- Si la story a été réalisée dans un worktree dédié, arrêter seulement les processus lancés pour lui, puis retirer ce worktree et sa branche locale après intégration vérifiée.
+- Ne jamais pousser, déployer, supprimer une branche distante ou retirer un autre worktree sans instruction explicite.
+- En cas de conflit, de test en échec, de changement non lié, de tracker ambigu ou de processus non identifié, interrompre la clôture et le signaler.
+- Ne jamais retirer le worktree actif du chat : effectuer sa suppression depuis le checkout d'intégration.
+
+Pour une clôture inter-projets, utiliser la skill globale `bmad-close-story` : elle lit la branche d'intégration, le tracker et le cycle de release du dépôt courant ; elle ne suppose jamais que `v2` existe.
+
+---
+
 ## Conflicts and ambiguity
 
 - If docs contradict the code: **stop and report.** List the conflict (file + line or component), then ask for direction. Do not silently "fix" code to match docs or vice versa without approval.

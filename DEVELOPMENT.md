@@ -93,6 +93,10 @@ Ce mode est le défaut sûr pour une recette locale : il démarre l’API Spring
 
 Avant de transmettre l’URL, vérifier la chaîne complète : le front doit répondre sur `/connexion`, `/actuator/health` doit répondre sur l’API et `/v1/auth/me` doit répondre `401` avant connexion. Garder le processus `start-dev.sh` actif pendant la recette. S’il faut libérer les ports `4200` ou `8080`, n’arrêter que la stack locale identifiée comme appartenant au même worktree.
 
+### Clôturer une story
+
+Une demande explicite de clôture suit la politique locale définie dans [AGENTS.md](AGENTS.md#clôture-dune-story). Elle met à jour le tracker par son contrôleur, intègre dans `v2`, puis retire seulement le worktree et la branche locale dédiés, une fois l'intégration vérifiée. Push, déploiement et suppression distante restent des autorisations séparées.
+
 **Mode offline (sans Neon / sans internet)** : si la branche Neon `local` est injoignable (train, avion, etc.), **ou** pour éviter de consommer des CU-h Free, lancer avec une base H2 locale et les seeds Les Improbots :
 
 ```bash
