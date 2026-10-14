@@ -30,6 +30,67 @@ class CompositionSlotStructureService(
     private val troupeAccess: TroupeAccessService,
     private val auditRecorder: AuditEventRecorder,
 ) {
+    /**
+     * A retained assignment is intentionally outside [EventEntity.roleSlots].
+     * It may be cleared by an organizer, but never repurposed as a required slot.
+     */
+    @Transactional
+    fun clearOutOfModelSlot(
+        seasonId: UUID,
+        eventId: UUID,
+        roleKey: String,
+        slotIndex: Int,
+        principal: SessionUserPrincipal,
+    ) {
+        val (event, target) = requireOutOfModelAssignedSlot(seasonId, eventId, roleKey, slotIndex, principal)
+        val before = AuditSnapshots.slotAssignment(target)
+        val now = Instant.now()
+        target.clearAssignee()
+        target.participationStatus = SlotParticipationStatus.PENDING
+        target.updatedAt = now
+        slotRepository.save(target)
+        auditRecorder.record(
+            AuditRecordRequest(
+                actionType = AuditActionType.SLOT_CLEARED,
+                actorUserId = principal.userId,
+                troupeId = event.season.troupe.id,
+                seasonId = seasonId,
+                eventId = eventId,
+                before = before,
+                after = AuditSnapshots.slotAssignment(target),
+                metadata = mapOf("roleKey" to roleKey, "slotIndex" to slotIndex, "outsideModel" to true),
+            ),
+        )
+    }
+
+    /** Removes a retained slot without changing the current role needs. */
+    @Transactional
+    fun deleteOutOfModelSlot(
+        seasonId: UUID,
+        eventId: UUID,
+        roleKey: String,
+        slotIndex: Int,
+        principal: SessionUserPrincipal,
+    ) {
+        val (event, target) = requireOutOfModelAssignedSlot(seasonId, eventId, roleKey, slotIndex, principal)
+        val before = AuditSnapshots.slotAssignment(target)
+        slotRepository.delete(target)
+        auditRecorder.record(
+            AuditRecordRequest(
+                actionType = AuditActionType.SLOT_DELETED,
+                actorUserId = principal.userId,
+                subjectSeasonParticipantId = target.seasonParticipantId,
+                subjectEventParticipantId = target.eventParticipantId,
+                troupeId = event.season.troupe.id,
+                seasonId = seasonId,
+                eventId = eventId,
+                before = before,
+                after = mapOf("deleted" to true, "outsideModel" to true),
+                metadata = mapOf("roleKey" to roleKey, "slotIndex" to slotIndex, "outsideModel" to true),
+            ),
+        )
+    }
+
     @Transactional
     fun deleteSlot(
         seasonId: UUID,
@@ -99,6 +160,27 @@ class CompositionSlotStructureService(
         if (!organizerAccess.canManageComposition(eventId, seasonId, principal)) {
             throw ResponseStatusException(HttpStatus.FORBIDDEN, "Accès refusé")
         }
+    }
+
+    private fun requireOutOfModelAssignedSlot(
+        seasonId: UUID,
+        eventId: UUID,
+        roleKey: String,
+        slotIndex: Int,
+        principal: SessionUserPrincipal,
+    ): Pair<EventEntity, EventCompositionSlotEntity> {
+        val event = loadAuthorizedEvent(seasonId, eventId, principal)
+        requireManageComposition(eventId, seasonId, principal)
+        val composition = compositionRepository.findByEventIdForUpdate(eventId).orElse(null)
+        if (composition?.validatedAt != null) {
+            throw ResponseStatusException(HttpStatus.CONFLICT, "Composition verrouillée")
+        }
+        val target = slotRepository.findByEventIdAndRoleKeyAndSlotIndex(eventId, roleKey, slotIndex)
+            ?: throw ResponseStatusException(HttpStatus.CONFLICT, "Cette place hors modèle n'existe plus")
+        if (target.isRequiredBy(RoleTemplates.normalize(event.roleSlots)) || !target.hasAssignee()) {
+            throw ResponseStatusException(HttpStatus.CONFLICT, "Cette place n'est plus hors modèle")
+        }
+        return event to target
     }
 
     private fun loadAuthorizedEvent(

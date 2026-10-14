@@ -240,6 +240,7 @@
             row.slot?.participantId && row.slot?.participationStatus === 'confirmed'
           "
           [class.event-equipe-tab__row--empty]="!row.slot?.participantId"
+          [class.event-equipe-tab__row--outside-model]="row.outsideModel"
           [class.event-equipe-tab__row--gap-empty]="canTapGapSlot(row)"
           [class.event-equipe-tab__row--editable]="canEditSlots() || canTapGapSlot(row)"
           [class.event-equipe-tab__row--participation]="isParticipationSlotTappable(row)"
@@ -253,6 +254,8 @@
               [class.event-equipe-tab__row-hit--readonly]="isForeignParticipationSlot(row)"
               [disabled]="isSlotRowHitDisabled(row)"
               [attr.aria-label]="slotRowAriaLabel(row)"
+              [attr.data-slot-key]="row.roleKey + ':' + row.slotIndex"
+              #slotAction
               (click)="onSlotRowClick(row)"
             >
               <span class="event-equipe-tab__slot">
@@ -310,6 +313,33 @@
             <span class="event-equipe-tab__slot event-equipe-tab__slot--readonly">
               <ng-container *ngTemplateOutlet="slotBody; context: { row: row }" />
             </span>
+            @if (row.outsideModel) {
+              <span class="event-equipe-tab__outside-model-label">Hors modèle</span>
+              @if (canEditSlots()) {
+                <span class="event-equipe-tab__structural-actions">
+                  <button
+                    type="button"
+                    mat-icon-button
+                    class="event-equipe-tab__clear"
+                    aria-label="Libérer la place hors modèle"
+                    matTooltip="Libérer la place"
+                    (click)="clearSlot(row, $event)"
+                  >
+                    <mat-icon aria-hidden="true">close</mat-icon>
+                  </button>
+                  <button
+                    type="button"
+                    mat-icon-button
+                    class="event-equipe-tab__delete-slot"
+                    aria-label="Supprimer cette place hors modèle"
+                    matTooltip="Supprimer cette place"
+                    (click)="deleteSlot(row, $event)"
+                  >
+                    <mat-icon aria-hidden="true">delete</mat-icon>
+                  </button>
+                </span>
+              }
+            }
           }
           <ng-container *ngTemplateOutlet="poolPreviewInline; context: { row }" />
           <div class="event-equipe-tab__warnings">

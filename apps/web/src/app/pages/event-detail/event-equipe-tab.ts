@@ -1,5 +1,5 @@
 import { NgTemplateOutlet } from '@angular/common'
-import { Component, computed, effect, inject, input, output, signal, viewChild } from '@angular/core'
+import { Component, computed, effect, ElementRef, inject, input, output, signal, viewChild, viewChildren } from '@angular/core'
 import { firstValueFrom } from 'rxjs'
 import { MatButtonModule } from '@angular/material/button'
 import { MatChipsModule } from '@angular/material/chips'
@@ -31,6 +31,7 @@ import {
   CompositionApiService,
   type CompositionDrawStep,
   type CompositionResponse,
+  type CompositionReconciliationItem,
   type CompositionSlot,
   type SlotParticipationUpdateStatus,
 } from '../../core/composition/composition-api.service'
@@ -104,6 +105,7 @@ interface SlotRow {
   roleLabel: string
   roleEmoji: string
   slot: CompositionSlot | null
+  outsideModel: boolean
 }
 
 @Component({
@@ -145,6 +147,7 @@ export class EventEquipeTab {
   private readonly chanceBreakdown = inject(ChanceBreakdownService)
 
   private readonly drawAnimation = viewChild(CompositionDrawAnimation)
+  private readonly slotActions = viewChildren<ElementRef<HTMLButtonElement>>('slotAction')
 
   readonly seasonId = input.required<string>()
   readonly seasonSlug = input.required<string>()
@@ -459,8 +462,9 @@ export class EventEquipeTab {
     const ev = this.event()
     const comp = this.composition()
     const roleSlots = normalizeRoleSlots(ev.roleSlots)
+    const reconciliationItems = this.canManageComposition() ? (comp?.reconciliationItems ?? []) : []
     const hasRequiredSlots = Object.values(roleSlots).some((n) => n > 0)
-    if (!hasRequiredSlots) {
+    if (!hasRequiredSlots && reconciliationItems.length === 0) {
       return []
     }
 
@@ -477,8 +481,18 @@ export class EventEquipeTab {
       slotsByKey.set(`${slot.roleKey}:${slot.slotIndex}`, slot)
     }
 
+    const reconciliationByRole = new Map<string, CompositionReconciliationItem[]>()
+    for (const item of reconciliationItems) {
+      const items = reconciliationByRole.get(item.roleKey) ?? []
+      items.push(item)
+      reconciliationByRole.set(item.roleKey, items)
+    }
+    const requiredRoleKeys: string[] = rolesWithSlots(roleSlots)
     const rows: SlotRow[] = []
-    for (const roleKey of rolesWithSlots(roleSlots)) {
+    for (const roleKey of [
+      ...requiredRoleKeys,
+      ...[...reconciliationByRole.keys()].filter((roleKey) => !requiredRoleKeys.includes(roleKey)),
+    ]) {
       const count = roleSlots[roleKey] ?? 0
       const label = ROLE_LABELS[roleKey as RoleKey] ?? roleKey
       const emoji = ROLE_EMOJIS[roleKey as RoleKey] ?? '•'
@@ -489,6 +503,23 @@ export class EventEquipeTab {
           roleLabel: label,
           roleEmoji: emoji,
           slot: slotsByKey.get(`${roleKey}:${index}`) ?? null,
+          outsideModel: false,
+        })
+      }
+      for (const item of (reconciliationByRole.get(roleKey) ?? []).sort((a, b) => a.slotIndex - b.slotIndex)) {
+        rows.push({
+          roleKey,
+          slotIndex: item.slotIndex,
+          roleLabel: label,
+          roleEmoji: emoji,
+          slot: {
+            roleKey: item.roleKey,
+            slotIndex: item.slotIndex,
+            participantId: item.participantId,
+            participantDisplayName: item.participantDisplayName,
+            participationStatus: item.participationStatus,
+          },
+          outsideModel: true,
         })
       }
     }
@@ -677,7 +708,7 @@ export class EventEquipeTab {
     if (!this.canManageComposition() || this.loading() || this.loadError()) {
       return false
     }
-    return row.slot?.participantId != null
+    return !row.outsideModel && row.slot?.participantId != null
   }
 
   protected canTapGapSlot(row: SlotRow): boolean {
@@ -706,7 +737,7 @@ export class EventEquipeTab {
 
   protected isSlotRowTappable(row: SlotRow): boolean {
     return (
-      this.canEditSlots() ||
+      (!row.outsideModel && this.canEditSlots()) ||
       this.canTapGapSlot(row) ||
       this.isParticipationSlotTappable(row) ||
       this.isForeignParticipationSlot(row)
@@ -726,7 +757,7 @@ export class EventEquipeTab {
     if (this.isParticipationSlotTappable(row)) {
       return name ? `Participation de ${name}, ${role}` : role
     }
-    if (this.canEditSlots() || this.canTapGapSlot(row)) {
+    if ((!row.outsideModel && this.canEditSlots()) || this.canTapGapSlot(row)) {
       return name ? `Modifier ${name}, ${role}` : `Assigner ${role}`
     }
     return name ? `${name}, ${role}` : role
@@ -775,7 +806,7 @@ export class EventEquipeTab {
         return
       }
     }
-    if (this.canEditSlots() || this.canTapGapSlot(row)) {
+    if ((!row.outsideModel && this.canEditSlots()) || this.canTapGapSlot(row)) {
       void this.openSlotPicker(row)
       return
     }
@@ -1490,6 +1521,7 @@ export class EventEquipeTab {
     const seasonId = this.seasonId()
     const eventId = this.event().id
     const roleSlots = normalizeRoleSlots(this.event().roleSlots)
+    const targetSlotKey = `${roleKey}:${roleSlots[roleKey] ?? 0}`
     roleSlots[roleKey] = (roleSlots[roleKey] ?? 0) + 1
     this.updatingStructure.set(true)
     try {
@@ -1503,6 +1535,7 @@ export class EventEquipeTab {
       }
       this.provisionalSlotVisible.set(false)
       this.eventUpdated.emit(result.data)
+      this.focusNewSlot(targetSlotKey)
       this.snack.open('Rôle ajouté.', 'OK', { duration: 4000 })
     } finally {
       this.updatingStructure.set(false)
@@ -1515,9 +1548,11 @@ export class EventEquipeTab {
       return
     }
     const name = row.slot?.participantDisplayName
-    const message = name
-      ? `Tu vas aussi retirer ${name} du rôle ${row.roleLabel}. Ce spectacle demandera une personne de moins pour ce rôle, même si le format le prévoit.`
-      : `Tu vas retirer une place de ${row.roleLabel}. Ce spectacle demandera une personne de moins pour ce rôle, même si le format le prévoit.`
+    const message = row.outsideModel
+      ? `Tu vas supprimer définitivement ${name ?? 'cette affectation'} hors modèle.`
+      : name
+        ? `Tu vas aussi retirer ${name} du rôle ${row.roleLabel}. Ce spectacle demandera une personne de moins pour ce rôle, même si le format le prévoit.`
+        : `Tu vas retirer une place de ${row.roleLabel}. Ce spectacle demandera une personne de moins pour ce rôle, même si le format le prévoit.`
     const confirmed = await firstValueFrom(
       this.dialog
         .open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
@@ -1537,6 +1572,22 @@ export class EventEquipeTab {
     const eventId = this.event().id
     this.updatingStructure.set(true)
     try {
+      if (row.outsideModel) {
+        const result = await this.compositionApi.deleteOutOfModelSlot(
+          seasonId,
+          eventId,
+          row.roleKey,
+          row.slotIndex,
+        )
+        if (this.event().id !== eventId) return
+        if (!result.ok || !result.data) {
+          this.snack.open(result.errorMessage ?? 'Suppression de la place impossible.', 'OK', { duration: 6000 })
+          return
+        }
+        this.applyCompositionUpdate(result.data)
+        this.snack.open('Place supprimée.', 'OK', { duration: 4000 })
+        return
+      }
       const result = await this.compositionApi.deleteCompositionSlot(
         seasonId,
         eventId,
@@ -1566,13 +1617,15 @@ export class EventEquipeTab {
     this.assigning.set(true)
     const seasonId = this.seasonId()
     const eventId = this.event().id
-    const result = await this.compositionApi.assignCompositionSlot(
-      seasonId,
-      eventId,
-      row.roleKey,
-      row.slotIndex,
-      participantId,
-    )
+    const result = row.outsideModel
+      ? await this.compositionApi.clearOutOfModelSlot(seasonId, eventId, row.roleKey, row.slotIndex)
+      : await this.compositionApi.assignCompositionSlot(
+          seasonId,
+          eventId,
+          row.roleKey,
+          row.slotIndex,
+          participantId,
+        )
     this.assigning.set(false)
     if (this.event().id !== eventId) {
       return
@@ -1586,6 +1639,21 @@ export class EventEquipeTab {
       return
     }
     this.applyCompositionUpdate(result.data)
+  }
+
+  private focusNewSlot(slotKey: string): void {
+    setTimeout(() => {
+      const target = this.slotActions().find(
+        (ref) => ref.nativeElement.dataset['slotKey'] === slotKey,
+      )?.nativeElement
+      if (!target) return
+      const isMobile = window.matchMedia?.('(max-width: 480px)').matches ?? false
+      const bounds = target.getBoundingClientRect()
+      if (isMobile || bounds.top < 0 || bounds.bottom > window.innerHeight) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+      target.focus()
+    })
   }
 
   private candidatesErrorMessage(status: number, apiMessage?: string): string {
