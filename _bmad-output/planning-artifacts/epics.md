@@ -3192,9 +3192,9 @@ En tant qu'**organisateur·ice**, je veux ajouter, affecter, désaffecter et sup
 
 **Acceptance Criteria**
 
-1. **Given** `+ Ajouter un rôle`, **when** activé, **then** un slot provisoire vide et sans rôle apparaît immédiatement au-dessus de cette action ; aucun besoin persistant ne change encore.
+1. **Given** « Ajouter », **when** activé, **then** un slot provisoire vide et sans rôle apparaît immédiatement au-dessus de cette action ; aucun besoin persistant ne change encore.
 2. **Given** le slot provisoire, **when** l'organisateur choisit un rôle, **then** le besoin persistant de ce rôle augmente et le slot rejoint la fin de son groupe de rôle ; il peut rester vide ou recevoir une affectation.
-3. **Given** une personne affectée, **when** l'organisateur utilise la croix dans sa zone d'affectation, **then** la personne est désassignée et le slot requis demeure ; tooltip : « Désassigner cette personne de ce rôle ».
+3. **Given** une personne affectée, **when** l'organisateur utilise la croix dans sa zone d'affectation, **then** la personne est désassignée et le slot requis demeure ; tooltip : « Libérer la place ».
 4. **Given** une poubelle de slot, **when** le slot est vide, **then** il est supprimé et le besoin associé diminue. **Given** le slot est affecté, **when** la poubelle est utilisée, **then** une confirmation explicite précède la suppression du slot et de son affectation.
 5. **Given** plusieurs slots d'un même rôle, **when** la composition est rendue, **then** les groupes de rôle sont stables et leur ordre interne suit la création ; aucun réordonnancement manuel n'est introduit.
 6. **Couverture :** FR14, FR21, UX-DR11. **Priorité :** P1. **Depends:** 22.1.

@@ -809,6 +809,8 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 
 **Supersession :** CN-2 ne doit pas être intégré comme surface de régularisation autonome. CN-1 reste le garde-fou de préservation/projection, à revalider dans 22.3. `sprint-status.yaml` reste géré uniquement par son synchroniseur.
 
+**Story 22.2 (draft, approval pending):** [_22-2-equipe-edition-libre-slots.md_](_bmad-output/implementation-artifacts/22-2-equipe-edition-libre-slots.md) fixe le provisoire local, les actions distinctes de désassignation et de suppression, et la mutation structurelle atomique proposée. Aucun code de production n'est engagé avant approbation.
+
 **Détail stories :** [_bmad-output/planning-artifacts/epics.md](_bmad-output/planning-artifacts/epics.md) § Epic 22.
 
 ---
