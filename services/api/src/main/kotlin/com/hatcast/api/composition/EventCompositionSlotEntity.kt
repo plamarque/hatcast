@@ -25,7 +25,7 @@ class EventCompositionSlotEntity(
     @Column(name = "role_key", nullable = false, length = 64)
     val roleKey: String,
     @Column(name = "slot_index", nullable = false)
-    val slotIndex: Int,
+    var slotIndex: Int,
     @Column(name = "season_participant_id")
     var seasonParticipantId: UUID? = null,
     @Column(name = "event_participant_id")

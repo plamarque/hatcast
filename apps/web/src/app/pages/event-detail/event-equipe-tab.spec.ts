@@ -66,6 +66,7 @@ describe('EventEquipeTab', () => {
   let getCompositionCandidates: ReturnType<typeof vi.fn>
   let getPoolPreview: ReturnType<typeof vi.fn>
   let assignCompositionSlot: ReturnType<typeof vi.fn>
+  let deleteCompositionSlot: ReturnType<typeof vi.fn>
   let validateComposition: ReturnType<typeof vi.fn>
   let unlockComposition: ReturnType<typeof vi.fn>
   let updateSlotParticipation: ReturnType<typeof vi.fn>
@@ -129,6 +130,7 @@ describe('EventEquipeTab', () => {
         ],
       },
     })
+    deleteCompositionSlot = vi.fn().mockResolvedValue({ ok: true, data: ev() })
     validateComposition = vi.fn()
     unlockComposition = vi.fn()
     updateSlotParticipation = vi.fn()
@@ -180,6 +182,7 @@ describe('EventEquipeTab', () => {
             getCompositionCandidates,
             getPoolPreview,
             assignCompositionSlot,
+            deleteCompositionSlot,
             validateComposition,
             unlockComposition,
             updateSlotParticipation,
@@ -269,6 +272,68 @@ describe('EventEquipeTab', () => {
 
     await vi.waitFor(() => {
       expect(fixture.nativeElement.querySelector('.event-equipe-tab__format')).toBeNull()
+    })
+  })
+
+  it('lets an organizer add one role through the provisional slot control', async () => {
+    const updatedEvent = ev({ roleSlots: { ...emptyRoleSlots(), player: 3 } })
+    updateEvent.mockResolvedValue({ ok: true, data: updatedEvent })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(
+        fixture.nativeElement.querySelector('button.event-equipe-tab__add-slot'),
+      ).toBeTruthy()
+    })
+    const addButton = fixture.nativeElement.querySelector(
+      'button.event-equipe-tab__add-slot',
+    ) as HTMLButtonElement
+    addButton.click()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('mat-select')).toBeTruthy()
+
+    await (
+      fixture.componentInstance as unknown as {
+        chooseProvisionalRole: (roleKey: 'player') => Promise<void>
+      }
+    ).chooseProvisionalRole('player')
+
+    expect(updateEvent).toHaveBeenCalledWith(
+      'season-1',
+      'event-1',
+      expect.objectContaining({ roleSlots: expect.objectContaining({ player: 3 }) }),
+    )
+  })
+
+  it('shows distinct release and structural-delete actions to an organizer', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-2',
+            participantDisplayName: 'Bob',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(
+        fixture.nativeElement.querySelector('button[aria-label="Libérer la place"]'),
+      ).toBeTruthy()
+      expect(
+        fixture.nativeElement.querySelector('button[aria-label="Supprimer ce slot"]'),
+      ).toBeTruthy()
     })
   })
 

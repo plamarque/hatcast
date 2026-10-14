@@ -271,15 +271,31 @@
                 }
               </span>
             }
-            @if (canEditSlots() && row.slot?.participantId) {
-              <button
-                type="button"
-                class="event-equipe-tab__clear"
-                aria-label="Retirer l'assignation"
-                (click)="clearSlot(row, $event)"
-              >
-                <mat-icon>close</mat-icon>
-              </button>
+            @if (canEditSlots()) {
+              <span class="event-equipe-tab__structural-actions">
+                @if (row.slot?.participantId) {
+                  <button
+                    type="button"
+                    mat-icon-button
+                    class="event-equipe-tab__clear"
+                    aria-label="Libérer la place"
+                    matTooltip="Libérer la place"
+                    (click)="clearSlot(row, $event)"
+                  >
+                    <mat-icon aria-hidden="true">close</mat-icon>
+                  </button>
+                }
+                <button
+                  type="button"
+                  mat-icon-button
+                  class="event-equipe-tab__delete-slot"
+                  aria-label="Supprimer ce slot"
+                  matTooltip="Supprimer ce slot"
+                  (click)="deleteSlot(row, $event)"
+                >
+                  <mat-icon aria-hidden="true">delete</mat-icon>
+                </button>
+              </span>
             }
           } @else {
             <ng-container *ngTemplateOutlet="rolePill; context: { row }" />
@@ -294,6 +310,34 @@
         </li>
       }
       </ul>
+
+      @if (canEditSlots()) {
+        @if (provisionalSlotVisible()) {
+          <section class="event-equipe-tab__provisional-slot" aria-label="Nouveau slot">
+            <mat-form-field appearance="outline">
+              <mat-label>Rôle du nouveau slot</mat-label>
+              <mat-select
+                [disabled]="updatingStructure()"
+                (selectionChange)="chooseProvisionalRole($event.value)"
+              >
+                @for (roleKey of roleKeys; track roleKey) {
+                  <mat-option [value]="roleKey">{{ roleLabels[roleKey] }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </section>
+        }
+        <button
+          type="button"
+          mat-stroked-button
+          class="event-equipe-tab__add-slot"
+          [disabled]="!canAddSlot()"
+          (click)="showProvisionalSlot()"
+        >
+          <mat-icon aria-hidden="true">add</mat-icon>
+          Ajouter
+        </button>
+      }
 
       @if (declineBadgeLabel(); as badge) {
         <div class="event-equipe-tab__declines">

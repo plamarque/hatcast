@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core'
 
 import type { MemberGender } from '../account/member-gender'
 import { effectiveMemberGender } from '../account/member-gender'
+import type { EventResponse } from '../events/event-api.service'
 import { csrfHeaders } from '../http/hatcast-csrf'
 
 export type CompositionVisibility =
@@ -376,6 +377,30 @@ export class CompositionApiService {
       }
       const data = normalizeCompositionResponse((await res.json()) as CompositionResponse)
       return { ok: true, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  async deleteCompositionSlot(
+    seasonId: string,
+    eventId: string,
+    roleKey: string,
+    slotIndex: number,
+  ): Promise<CompositionApiResult<EventResponse>> {
+    try {
+      const res = await fetch(
+        `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/composition/slots/${encodeURIComponent(roleKey)}/${slotIndex}`,
+        {
+          method: 'DELETE',
+          credentials: 'include',
+          headers: csrfHeaders(),
+        },
+      )
+      if (!res.ok) {
+        return { ok: false, status: res.status, errorMessage: await readApiErrorMessage(res) }
+      }
+      return { ok: true, status: res.status, data: (await res.json()) as EventResponse }
     } catch {
       return { ok: false, status: 0 }
     }
