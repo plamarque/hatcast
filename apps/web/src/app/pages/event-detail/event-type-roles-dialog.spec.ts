@@ -41,12 +41,10 @@ async function setup(data: EventTypeRolesDialogData) {
 
 type Harness = {
   onTemplateSelected: (id: EventTypeId) => void
-  confirmTemplateChange: () => void
-  cancelTemplateChange: () => void
   submit: () => void
-  showTemplateChangeConfirmation: boolean
+  hasSelectedTemplateChange: boolean
+  shouldWarnAboutTemplateNeeds: boolean
   selectedTemplateType: EventTypeId
-  roleSlots: Record<string, number>
 }
 
 function harness(fixture: ComponentFixture<EventTypeRolesDialog>): Harness {
@@ -54,7 +52,7 @@ function harness(fixture: ComponentFixture<EventTypeRolesDialog>): Harness {
 }
 
 describe('EventTypeRolesDialog', () => {
-  it('shows template change confirmation when roles differ from template', async () => {
+  it('shows the warning while keeping a changed template selection reversible', async () => {
     const customSlots = { ...applyTemplate('cabaret'), player: 99 }
     const { fixture } = await setup(
       dialogData({ templateType: 'cabaret', roleSlots: customSlots }),
@@ -64,11 +62,14 @@ describe('EventTypeRolesDialog', () => {
     h.onTemplateSelected('match')
     fixture.detectChanges()
 
-    expect(h.showTemplateChangeConfirmation).toBe(true)
+    expect(h.hasSelectedTemplateChange).toBe(true)
+    expect(h.shouldWarnAboutTemplateNeeds).toBe(true)
     expect(fixture.nativeElement.textContent).toContain('Changement de format')
+    expect(fixture.nativeElement.textContent).toContain('Appliquer ce format remplacera')
+    expect(fixture.nativeElement.textContent).not.toContain('Ignorer')
   })
 
-  it('keeps selected template after canceling template change', async () => {
+  it('removes the warning when the organizer selects the initial format again', async () => {
     const customSlots = { ...applyTemplate('cabaret'), player: 99 }
     const { fixture } = await setup(
       dialogData({ templateType: 'cabaret', roleSlots: customSlots }),
@@ -76,36 +77,22 @@ describe('EventTypeRolesDialog', () => {
     const h = harness(fixture)
 
     h.onTemplateSelected('match')
-    h.cancelTemplateChange()
+    h.onTemplateSelected('cabaret')
     fixture.detectChanges()
-    await fixture.whenStable()
 
     expect(h.selectedTemplateType).toBe('cabaret')
-    expect(h.showTemplateChangeConfirmation).toBe(false)
+    expect(h.hasSelectedTemplateChange).toBe(false)
+    expect(h.shouldWarnAboutTemplateNeeds).toBe(false)
   })
 
-  it('applies template slots on confirm', async () => {
+  it('closes with the selected template and its normalized needs on apply', async () => {
     const customSlots = { ...applyTemplate('cabaret'), player: 99 }
-    const { fixture } = await setup(
+    const { fixture, close } = await setup(
       dialogData({ templateType: 'cabaret', roleSlots: customSlots }),
     )
     const h = harness(fixture)
 
     h.onTemplateSelected('match')
-    h.confirmTemplateChange()
-    fixture.detectChanges()
-
-    expect(h.selectedTemplateType).toBe('match')
-    expect(h.roleSlots).toEqual(applyTemplate('match'))
-    expect(h.showTemplateChangeConfirmation).toBe(false)
-  })
-
-  it('closes with the selected template and its normalized needs on save', async () => {
-    const { fixture, close } = await setup(dialogData())
-    const h = harness(fixture)
-
-    h.onTemplateSelected('match')
-    h.confirmTemplateChange()
     h.submit()
 
     expect(close).toHaveBeenCalledWith({
@@ -123,6 +110,16 @@ describe('EventTypeRolesDialog', () => {
     cancel.click()
 
     expect(close).toHaveBeenCalledWith(undefined)
+  })
+
+  it('uses one footer apply action rather than an inline apply then save flow', async () => {
+    const { fixture } = await setup(dialogData())
+    const buttons = [...fixture.nativeElement.querySelectorAll('button')]
+
+    expect(buttons.map((button: HTMLButtonElement) => button.textContent?.trim())).toEqual([
+      'Annuler',
+      'Appliquer',
+    ])
   })
 
   it('does not render free role-count controls from story 22.2', async () => {

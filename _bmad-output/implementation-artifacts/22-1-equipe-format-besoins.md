@@ -16,7 +16,7 @@ afin de **configurer puis composer l'équipe sans quitter mon contexte de travai
 ## Acceptance Criteria
 
 1. **Given** `canManageComposition`, **when** l'onglet Équipe est ouvert, **then** il affiche le format courant et une action pour le modifier ; l'onglet Infos affiche le même format et le résumé des besoins, en lecture seule et sans CTA d'édition. [Source: Epic 22.1 AC1 ; SPEC.md « Flexible event composition »]
-2. **Given** un organisateur choisit un format dont le template diffère des `roleSlots` normalisés, **when** il le sélectionne, **then** une confirmation explicite est demandée avant toute mutation ; l'annulation conserve le format et les besoins actuels. [Source: Epic 22.1 AC2 ; SCP §2.2]
+2. **Given** un organisateur choisit un format dont le template diffère des `roleSlots` normalisés, **when** il le sélectionne, **then** un avertissement explicite apparaît avant toute mutation et le footer ne présente qu'une seule décision : **« Appliquer »** ou **« Annuler »** ; l'annulation conserve le format et les besoins actuels. [Source: Epic 22.1 AC2 ; SCP §2.2 ; amendement PO 2026-10-14]
 3. **Given** cette confirmation, **when** le format est appliqué, **then** la mutation envoie ensemble `templateType` et le template de `roleSlots`, crée les positions requises manquantes dans la représentation de la composition, retire les positions vides devenues inutiles, et ne supprime jamais une affectation existante silencieusement. [Source: Epic 22.1 AC3 ; SCP §2.2]
 4. **Given** une affectation dont la position sort des besoins, **when** le format est appliqué, **then** CN-1 la conserve et la réserve aux organisateur·ices ; les projections membre, agenda, destinataires et statistiques n'exposent que les positions requises. [Source: DOMAIN.md Format ; SPEC.md ; CN-1]
 5. **Given** un utilisateur sans `canManageComposition`, **when** il consulte Équipe ou Infos, **then** aucune action de format ou de structure n'est présente. [Source: Epic 22.1 AC4]
@@ -40,7 +40,7 @@ afin de **configurer puis composer l'équipe sans quitter mon contexte de travai
 ## Tasks / Subtasks
 
 - [x] **AC1, AC5 — Équipe et Infos :** déplacer l'entrée de changement de format de `EventInfosTab` vers `EventEquipeTab`; conserver dans Infos le rendu de format et des `RoleDisplayChipSet` sans import, méthode ou CTA d'édition.
-- [x] **AC2, AC3 — Dialog et persistance :** réduire le dialog déplacé à la sélection/application de template (l'édition libre de compteurs et de slots appartient à 22.2), conserver sa confirmation, puis appeler `EventApiService.updateEvent` avec le couple atomique `templateType` + `applyTemplate(templateType)`.
+- [x] **AC2, AC3 — Dialog et persistance :** réduire le dialog déplacé à la sélection/application de template (l'édition libre de compteurs et de slots appartient à 22.2) ; un avertissement et les seules actions footer **Appliquer / Annuler** remplacent le flux double Appliquer puis Enregistrer, avant l'appel atomique `EventApiService.updateEvent` avec `templateType` + `applyTemplate(templateType)`.
 - [x] **AC3, AC4 — Rafraîchissement :** faire remonter l'événement mis à jour et recharger la composition parent afin que ses besoins et sa projection CN-1 correspondent au même état.
 - [x] **AC1–AC5, M3-1–M3-4 — Tests :** déplacer/adapter les tests Infos, ajouter les parcours organisateur, annulation, template identique, non-organisateur et rafraîchissement ; exécuter les tests Angular ciblés, puis le build web.
 
@@ -97,6 +97,9 @@ GPT-5
 - 2026-10-14 : l'édition de format a été déplacée dans Équipe ; Infos est devenue un résumé sans CTA. Le dialog n'applique plus que des templates ; l'édition libre attend 22.2 et Hors modèle 22.3.
 - 2026-10-14 : une génération de requête de composition empêche une réponse antérieure de remplacer la projection post-changement de format.
 - 2026-10-14 : validation automatisée — 168 tests Angular ciblés et `npm run build` passent. Smoke humain validé : format éditable dans Équipe, Infos en lecture seule, confirmation de remplacement visible.
+- 2026-10-14 : après smoke humain, le dialogue de format a été corrigé pour supprimer le double niveau « Appliquer » puis « Enregistrer » ; une sélection avertie se confirme désormais une seule fois au footer.
+- 2026-10-14 : après smoke mobile, l'action « Modifier le format » devient à ≤ 480 px un vrai `mat-icon-button` crayon sans bordure ; elle conserve une cible tactile de 48 px et son `aria-label` français. Le bouton libellé reste visible sur desktop.
+- 2026-10-14 : validation humaine explicite : le parcours de format et son action mobile sont acceptés par le PO.
 
 ### File List
 
@@ -110,6 +113,8 @@ GPT-5
 
 - 2026-10-14 : first draft.
 - 2026-10-14 : implemented, reviewed and human-smoke validated.
+- 2026-10-14 : corrected single-action format confirmation after human smoke.
+- 2026-10-14 : compacted the mobile format-edit action to an accessible icon control.
 
 ---
 

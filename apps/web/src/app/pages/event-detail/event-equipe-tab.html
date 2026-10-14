@@ -52,11 +52,23 @@
         <button
           type="button"
           mat-stroked-button
+          class="event-equipe-tab__format-edit event-equipe-tab__format-edit--desktop"
+          aria-label="Modifier le format"
           [disabled]="compositionInteractionBlocked()"
           (click)="openFormatDialog()"
         >
           <mat-icon aria-hidden="true">edit</mat-icon>
-          Modifier le format
+          <span class="event-equipe-tab__format-edit-label">Modifier le format</span>
+        </button>
+        <button
+          type="button"
+          mat-icon-button
+          class="event-equipe-tab__format-edit event-equipe-tab__format-edit--mobile"
+          aria-label="Modifier le format"
+          [disabled]="compositionInteractionBlocked()"
+          (click)="openFormatDialog()"
+        >
+          <mat-icon aria-hidden="true">edit</mat-icon>
         </button>
       </section>
     }

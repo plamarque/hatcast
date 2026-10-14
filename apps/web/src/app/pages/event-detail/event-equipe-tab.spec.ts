@@ -233,9 +233,17 @@ describe('EventEquipeTab', () => {
     await vi.waitFor(() => {
       expect(fixture.nativeElement.textContent).toContain('Modifier le format')
     })
-    const button = [...fixture.nativeElement.querySelectorAll('button')].find(
-      (candidate: HTMLButtonElement) => candidate.textContent?.includes('Modifier le format'),
+    const button = fixture.nativeElement.querySelector(
+      'button.event-equipe-tab__format-edit--desktop[aria-label="Modifier le format"]',
     ) as HTMLButtonElement
+    expect(button.querySelector('.event-equipe-tab__format-edit-label')?.textContent).toContain(
+      'Modifier le format',
+    )
+    expect(
+      fixture.nativeElement.querySelector(
+        'button.event-equipe-tab__format-edit--mobile[aria-label="Modifier le format"]',
+      ),
+    ).toBeTruthy()
     button.click()
 
     expect(dialogOpen).toHaveBeenCalledWith(

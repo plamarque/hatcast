@@ -35,6 +35,10 @@
   white-space: nowrap;
 }
 
+.event-equipe-tab__format-edit--mobile {
+  display: none;
+}
+
 .event-equipe-tab__spinner {
   display: flex;
   justify-content: center;
@@ -170,12 +174,20 @@
 
 @media (max-width: 480px) {
   .event-equipe-tab__format {
-    align-items: stretch;
-    flex-direction: column;
+    align-items: center;
   }
 
-  .event-equipe-tab__format button {
-    width: 100%;
+  .event-equipe-tab__format-current {
+    flex: 1;
+  }
+
+  .event-equipe-tab__format-edit--desktop {
+    display: none;
+  }
+
+  .event-equipe-tab__format-edit--mobile {
+    display: inline-flex;
+    flex: 0 0 3rem;
   }
 
   .event-equipe-tab__trailing {
