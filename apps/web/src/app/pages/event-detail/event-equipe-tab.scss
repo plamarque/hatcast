@@ -35,6 +35,10 @@
   white-space: nowrap;
 }
 
+.event-equipe-tab__format-edit--mobile {
+  display: none;
+}
+
 .event-equipe-tab__spinner {
   display: flex;
   justify-content: center;
@@ -59,6 +63,34 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
+}
+
+.event-equipe-tab__row--provisional {
+  border: 1px dashed var(--mat-sys-outline);
+  background: var(--mat-sys-surface-container-low);
+}
+
+.event-equipe-tab__provisional-role {
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: start;
+  color: var(--mat-sys-primary);
+}
+
+.event-equipe-tab__provisional-copy {
+  grid-column: 2;
+  grid-row: 1;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-title-small);
+}
+
+.event-equipe-tab__delete-provisional {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.event-equipe-tab__add-slot {
+  align-self: flex-start;
+  min-height: 3rem;
 }
 
 .event-equipe-tab__parity-row {
@@ -170,12 +202,20 @@
 
 @media (max-width: 480px) {
   .event-equipe-tab__format {
-    align-items: stretch;
-    flex-direction: column;
+    align-items: center;
   }
 
-  .event-equipe-tab__format button {
-    width: 100%;
+  .event-equipe-tab__format-current {
+    flex: 1;
+  }
+
+  .event-equipe-tab__format-edit--desktop {
+    display: none;
+  }
+
+  .event-equipe-tab__format-edit--mobile {
+    display: inline-flex;
+    flex: 0 0 3rem;
   }
 
   .event-equipe-tab__trailing {

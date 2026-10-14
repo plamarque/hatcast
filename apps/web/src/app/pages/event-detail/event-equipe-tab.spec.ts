@@ -13,6 +13,7 @@ import {
 } from '../../core/draw/draw-policy-api.service'
 import { applyTemplate, emptyRoleSlots } from '../../core/events/event-types'
 import { EventApiService, type EventResponse } from '../../core/events/event-api.service'
+import { ConfirmDialog } from '../seasons-list/confirm-dialog'
 import { EventTypeRolesDialog } from './event-type-roles-dialog'
 import { EventEquipeTab } from './event-equipe-tab'
 
@@ -66,6 +67,7 @@ describe('EventEquipeTab', () => {
   let getCompositionCandidates: ReturnType<typeof vi.fn>
   let getPoolPreview: ReturnType<typeof vi.fn>
   let assignCompositionSlot: ReturnType<typeof vi.fn>
+  let deleteCompositionSlot: ReturnType<typeof vi.fn>
   let validateComposition: ReturnType<typeof vi.fn>
   let unlockComposition: ReturnType<typeof vi.fn>
   let updateSlotParticipation: ReturnType<typeof vi.fn>
@@ -129,6 +131,7 @@ describe('EventEquipeTab', () => {
         ],
       },
     })
+    deleteCompositionSlot = vi.fn().mockResolvedValue({ ok: true, data: ev() })
     validateComposition = vi.fn()
     unlockComposition = vi.fn()
     updateSlotParticipation = vi.fn()
@@ -180,6 +183,7 @@ describe('EventEquipeTab', () => {
             getCompositionCandidates,
             getPoolPreview,
             assignCompositionSlot,
+            deleteCompositionSlot,
             validateComposition,
             unlockComposition,
             updateSlotParticipation,
@@ -233,9 +237,17 @@ describe('EventEquipeTab', () => {
     await vi.waitFor(() => {
       expect(fixture.nativeElement.textContent).toContain('Modifier le format')
     })
-    const button = [...fixture.nativeElement.querySelectorAll('button')].find(
-      (candidate: HTMLButtonElement) => candidate.textContent?.includes('Modifier le format'),
+    const button = fixture.nativeElement.querySelector(
+      'button.event-equipe-tab__format-edit--desktop[aria-label="Modifier le format"]',
     ) as HTMLButtonElement
+    expect(button.querySelector('.event-equipe-tab__format-edit-label')?.textContent).toContain(
+      'Modifier le format',
+    )
+    expect(
+      fixture.nativeElement.querySelector(
+        'button.event-equipe-tab__format-edit--mobile[aria-label="Modifier le format"]',
+      ),
+    ).toBeTruthy()
     button.click()
 
     expect(dialogOpen).toHaveBeenCalledWith(
@@ -262,6 +274,122 @@ describe('EventEquipeTab', () => {
     await vi.waitFor(() => {
       expect(fixture.nativeElement.querySelector('.event-equipe-tab__format')).toBeNull()
     })
+  })
+
+  it('lets an organizer add one role through the provisional slot control', async () => {
+    const updatedEvent = ev({ roleSlots: { ...emptyRoleSlots(), player: 3 } })
+    updateEvent.mockResolvedValue({ ok: true, data: updatedEvent })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(
+        fixture.nativeElement.querySelector('button.event-equipe-tab__add-slot'),
+      ).toBeTruthy()
+    })
+    const addButton = fixture.nativeElement.querySelector(
+      'button.event-equipe-tab__add-slot',
+    ) as HTMLButtonElement
+    addButton.click()
+    fixture.detectChanges()
+    expect(
+      fixture.nativeElement.querySelector(
+        'button[aria-label="Choisir le rôle de cette place"]',
+      ),
+    ).toBeTruthy()
+    expect(
+      fixture.nativeElement.querySelector(
+        '.event-equipe-tab__row--provisional button.event-equipe-tab__delete-provisional[aria-label="Supprimer cette place"]',
+      ),
+    ).toBeTruthy()
+
+    await (
+      fixture.componentInstance as unknown as {
+        chooseProvisionalRole: (roleKey: 'player') => Promise<void>
+      }
+    ).chooseProvisionalRole('player')
+
+    expect(updateEvent).toHaveBeenCalledWith(
+      'season-1',
+      'event-1',
+      expect.objectContaining({ roleSlots: expect.objectContaining({ player: 3 }) }),
+    )
+  })
+
+  it('shows distinct release and structural-delete actions to an organizer', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-2',
+            participantDisplayName: 'Bob',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(
+        fixture.nativeElement.querySelector('button[aria-label="Libérer la place"]'),
+      ).toBeTruthy()
+      expect(
+        fixture.nativeElement.querySelector('button[aria-label="Supprimer cette place"]'),
+      ).toBeTruthy()
+    })
+  })
+
+  it('confirms every structural deletion and explains the reduced need', async () => {
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+    const event = new Event('click')
+    const deletion = (
+      fixture.componentInstance as unknown as {
+        deleteSlot: (
+          row: {
+            roleKey: string
+            slotIndex: number
+            roleLabel: string
+            roleEmoji: string
+            slot: null
+          },
+          event: Event,
+        ) => Promise<void>
+      }
+    ).deleteSlot(
+      {
+        roleKey: 'player',
+        slotIndex: 1,
+        roleLabel: 'Comédien·ne',
+        roleEmoji: '🎭',
+        slot: null,
+      },
+      event,
+    )
+
+    expect(dialogOpen).toHaveBeenCalledWith(
+      ConfirmDialog,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          confirmLabel: 'Supprimer la place',
+          message: expect.stringContaining('demandera une personne de moins'),
+        }),
+      }),
+    )
+    expect(deleteCompositionSlot).not.toHaveBeenCalled()
+
+    dialogAfterClosed.next(true)
+    await deletion
+
+    expect(deleteCompositionSlot).toHaveBeenCalledWith('season-1', 'event-1', 'player', 1)
   })
 
   it('genres role pill from assignee gender on filled slots', async () => {

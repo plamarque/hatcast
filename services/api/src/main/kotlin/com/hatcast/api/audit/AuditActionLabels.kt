@@ -35,6 +35,7 @@ object AuditActionLabels {
             AuditActionType.COMPOSITION_LIFECYCLE_CHANGED -> "Statut équipe"
             AuditActionType.SLOT_ASSIGNED -> "Créneau assigné"
             AuditActionType.SLOT_CLEARED -> "Créneau libéré"
+            AuditActionType.SLOT_DELETED -> "Créneau supprimé"
             AuditActionType.PARTICIPATION_CONFIRMED -> "Participation confirmée"
             AuditActionType.PARTICIPATION_DECLINED -> "Retrait de la compo"
             AuditActionType.PARTICIPATION_RESET -> "Participation réinitialisée"

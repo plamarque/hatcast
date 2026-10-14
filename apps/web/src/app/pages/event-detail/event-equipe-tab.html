@@ -52,11 +52,23 @@
         <button
           type="button"
           mat-stroked-button
+          class="event-equipe-tab__format-edit event-equipe-tab__format-edit--desktop"
+          aria-label="Modifier le format"
           [disabled]="compositionInteractionBlocked()"
           (click)="openFormatDialog()"
         >
           <mat-icon aria-hidden="true">edit</mat-icon>
-          Modifier le format
+          <span class="event-equipe-tab__format-edit-label">Modifier le format</span>
+        </button>
+        <button
+          type="button"
+          mat-icon-button
+          class="event-equipe-tab__format-edit event-equipe-tab__format-edit--mobile"
+          aria-label="Modifier le format"
+          [disabled]="compositionInteractionBlocked()"
+          (click)="openFormatDialog()"
+        >
+          <mat-icon aria-hidden="true">edit</mat-icon>
         </button>
       </section>
     }
@@ -186,6 +198,14 @@
       [class.event-equipe-tab__composition-body--draft]="showCompositionDraftZone()"
       [attr.aria-labelledby]="showCompositionDraftZone() ? 'composition-draft-zone-label' : null"
     >
+      <mat-menu #provisionalRoleMenu="matMenu">
+        @for (roleKey of roleKeys; track roleKey) {
+          <button type="button" mat-menu-item (click)="chooseProvisionalRole(roleKey)">
+            <span aria-hidden="true">{{ roleEmojis[roleKey] }}&nbsp;</span>
+            <span>{{ roleLabels[roleKey] }}</span>
+          </button>
+        }
+      </mat-menu>
       @if (showCompositionDraftZone()) {
         <div class="event-equipe-tab__draft-zone-head">
           <mat-chip-set aria-label="Statut de la composition">
@@ -259,15 +279,31 @@
                 }
               </span>
             }
-            @if (canEditSlots() && row.slot?.participantId) {
-              <button
-                type="button"
-                class="event-equipe-tab__clear"
-                aria-label="Retirer l'assignation"
-                (click)="clearSlot(row, $event)"
-              >
-                <mat-icon>close</mat-icon>
-              </button>
+            @if (canEditSlots()) {
+              <span class="event-equipe-tab__structural-actions">
+                @if (row.slot?.participantId) {
+                  <button
+                    type="button"
+                    mat-icon-button
+                    class="event-equipe-tab__clear"
+                    aria-label="Libérer la place"
+                    matTooltip="Libérer la place"
+                    (click)="clearSlot(row, $event)"
+                  >
+                    <mat-icon aria-hidden="true">close</mat-icon>
+                  </button>
+                }
+                <button
+                  type="button"
+                  mat-icon-button
+                  class="event-equipe-tab__delete-slot"
+                  aria-label="Supprimer cette place"
+                  matTooltip="Supprimer cette place"
+                  (click)="deleteSlot(row, $event)"
+                >
+                  <mat-icon aria-hidden="true">delete</mat-icon>
+                </button>
+              </span>
             }
           } @else {
             <ng-container *ngTemplateOutlet="rolePill; context: { row }" />
@@ -281,7 +317,47 @@
           </div>
         </li>
       }
+      @if (canEditSlots() && provisionalSlotVisible()) {
+        <li class="event-equipe-tab__row event-equipe-tab__row--provisional">
+          <button
+            type="button"
+            mat-icon-button
+            class="event-equipe-tab__provisional-role"
+            [matMenuTriggerFor]="provisionalRoleMenu"
+            aria-label="Choisir le rôle de cette place"
+            matTooltip="Choisir le rôle"
+          >
+            <mat-icon aria-hidden="true">theater_comedy</mat-icon>
+          </button>
+          <span class="event-equipe-tab__provisional-copy">Choisir le rôle</span>
+          <span class="event-equipe-tab__structural-actions">
+            <button
+              type="button"
+              mat-icon-button
+              class="event-equipe-tab__delete-provisional"
+              aria-label="Supprimer cette place"
+              matTooltip="Supprimer cette place"
+              (click)="provisionalSlotVisible.set(false)"
+            >
+              <mat-icon aria-hidden="true">delete_outline</mat-icon>
+            </button>
+          </span>
+        </li>
+      }
       </ul>
+
+      @if (canEditSlots()) {
+        <button
+          type="button"
+          mat-stroked-button
+          class="event-equipe-tab__add-slot"
+          [disabled]="!canAddSlot()"
+          (click)="showProvisionalSlot()"
+        >
+          <mat-icon aria-hidden="true">add</mat-icon>
+          Ajouter
+        </button>
+      }
 
       @if (declineBadgeLabel(); as badge) {
         <div class="event-equipe-tab__declines">

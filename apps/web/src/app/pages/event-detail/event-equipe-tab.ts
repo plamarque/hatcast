@@ -58,6 +58,7 @@ import {
   normalizeRoleSlots,
   getEventTypeIcon,
   getEventTypeLabel,
+  ROLE_KEYS,
   ROLE_EMOJIS,
   ROLE_LABELS,
   rolesWithSlots,
@@ -130,6 +131,9 @@ interface SlotRow {
 })
 export class EventEquipeTab {
   protected readonly roleChipDisplayText = roleActionChipDisplayText
+  protected readonly roleKeys = ROLE_KEYS
+  protected readonly roleLabels = ROLE_LABELS
+  protected readonly roleEmojis = ROLE_EMOJIS
 
   private readonly compositionApi = inject(CompositionApiService)
   private readonly eventsApi = inject(EventApiService)
@@ -167,6 +171,8 @@ export class EventEquipeTab {
   protected readonly restoringDeclineId = signal<string | null>(null)
   protected readonly updatingFormat = signal(false)
   protected readonly updatingParticipation = signal(false)
+  protected readonly updatingStructure = signal(false)
+  protected readonly provisionalSlotVisible = signal(false)
   protected readonly composition = signal<CompositionResponse | null>(null)
   protected readonly showConfirmOpened = signal(false)
   protected readonly declinesExpanded = signal(false)
@@ -234,6 +240,7 @@ export class EventEquipeTab {
       this.validating() ||
       this.unlocking() ||
       this.updatingParticipation() ||
+      this.updatingStructure() ||
       this.updatingFormat() ||
       this.restoringDeclineId() != null ||
       this.animatingDraw(),
@@ -386,6 +393,10 @@ export class EventEquipeTab {
       !this.isCompositionLocked() &&
       !this.compositionInteractionBlocked() &&
       !this.animatingDraw(),
+  )
+
+  protected readonly canAddSlot = computed(
+    () => this.canEditSlots() && !this.provisionalSlotVisible(),
   )
 
   protected readonly showActionsToolbar = computed(
@@ -1463,6 +1474,89 @@ export class EventEquipeTab {
       return
     }
     await this.assignSlot(row, null)
+  }
+
+  protected showProvisionalSlot(): void {
+    if (!this.canAddSlot()) {
+      return
+    }
+    this.provisionalSlotVisible.set(true)
+  }
+
+  protected async chooseProvisionalRole(roleKey: RoleKey): Promise<void> {
+    if (!this.provisionalSlotVisible() || !this.canEditSlots()) {
+      return
+    }
+    const seasonId = this.seasonId()
+    const eventId = this.event().id
+    const roleSlots = normalizeRoleSlots(this.event().roleSlots)
+    roleSlots[roleKey] = (roleSlots[roleKey] ?? 0) + 1
+    this.updatingStructure.set(true)
+    try {
+      const result = await this.eventsApi.updateEvent(seasonId, eventId, { roleSlots })
+      if (this.event().id !== eventId) {
+        return
+      }
+      if (!result.ok || !result.data) {
+        this.snack.open(result.errorMessage ?? 'Ajout du rôle impossible.', 'OK', { duration: 6000 })
+        return
+      }
+      this.provisionalSlotVisible.set(false)
+      this.eventUpdated.emit(result.data)
+      this.snack.open('Rôle ajouté.', 'OK', { duration: 4000 })
+    } finally {
+      this.updatingStructure.set(false)
+    }
+  }
+
+  protected async deleteSlot(row: SlotRow, event: Event): Promise<void> {
+    event.stopPropagation()
+    if (!this.canEditSlots()) {
+      return
+    }
+    const name = row.slot?.participantDisplayName
+    const message = name
+      ? `Tu vas aussi retirer ${name} du rôle ${row.roleLabel}. Ce spectacle demandera une personne de moins pour ce rôle, même si le format le prévoit.`
+      : `Tu vas retirer une place de ${row.roleLabel}. Ce spectacle demandera une personne de moins pour ce rôle, même si le format le prévoit.`
+    const confirmed = await firstValueFrom(
+      this.dialog
+        .open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
+          data: {
+            title: 'Supprimer cette place ?',
+            message,
+            confirmLabel: 'Supprimer la place',
+            destructive: true,
+          },
+        })
+        .afterClosed(),
+    )
+    if (!confirmed) {
+      return
+    }
+    const seasonId = this.seasonId()
+    const eventId = this.event().id
+    this.updatingStructure.set(true)
+    try {
+      const result = await this.compositionApi.deleteCompositionSlot(
+        seasonId,
+        eventId,
+        row.roleKey,
+        row.slotIndex,
+      )
+      if (this.event().id !== eventId) {
+        return
+      }
+      if (!result.ok || !result.data) {
+        this.snack.open(result.errorMessage ?? 'Suppression de la place impossible.', 'OK', {
+          duration: 6000,
+        })
+        return
+      }
+      this.eventUpdated.emit(result.data)
+      this.snack.open('Place supprimée.', 'OK', { duration: 4000 })
+    } finally {
+      this.updatingStructure.set(false)
+    }
   }
 
   private async assignSlot(row: SlotRow, participantId: string | null): Promise<void> {
