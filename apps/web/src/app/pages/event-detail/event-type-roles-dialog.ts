@@ -16,18 +16,13 @@ import {
   getEventTypeIcon,
   getEventTypeLabel,
   normalizeRoleSlots,
-  ROLE_COUNT_MAX,
   roleSlotsEqual,
   type RoleSlots,
   TEMPLATE_DISPLAY_ORDER,
 } from '../../core/events/event-types'
-import {
-  RoleSlotChipSet,
-  type RoleSlotCountChange,
-} from '../../shared/event-roles/role-slot-chip-set/role-slot-chip-set'
 
 export const FORMAT_AND_ROLES_HELP =
-  'Format du spectacle et effectifs par rôle nécessaires pour composer l’équipe.'
+  'Le format applique son modèle de besoins à la composition.'
 
 export interface EventTypeRolesDialogData {
   seasonId: string
@@ -47,13 +42,11 @@ export type EventTypeRolesDialogResult =
     MatDialogModule,
     MatFormFieldModule,
     MatSelectModule,
-    RoleSlotChipSet,
   ],
   templateUrl: './event-type-roles-dialog.html',
   styleUrl: './event-type-roles-dialog.scss',
 })
 export class EventTypeRolesDialog implements OnInit {
-  protected readonly roleCountMax = ROLE_COUNT_MAX
   protected readonly helpText = FORMAT_AND_ROLES_HELP
   private readonly ref = inject(MatDialogRef<EventTypeRolesDialog, EventTypeRolesDialogResult>)
   protected readonly data = inject<EventTypeRolesDialogData>(MAT_DIALOG_DATA)
@@ -105,10 +98,6 @@ export class EventTypeRolesDialog implements OnInit {
     queueMicrotask(() => {
       this.formatSelect?.writeValue(this.selectedTemplateType)
     })
-  }
-
-  protected onSlotCountChange(change: RoleSlotCountChange): void {
-    this.roleSlots = { ...this.roleSlots, [change.key]: change.count }
   }
 
   protected submit(): void {

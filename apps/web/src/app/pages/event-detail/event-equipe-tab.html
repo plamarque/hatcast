@@ -40,6 +40,27 @@
       </div>
     }
 
+    @if (canManageComposition()) {
+      <section class="event-equipe-tab__format" aria-label="Format et besoins">
+        <div class="event-equipe-tab__format-current">
+          <span class="event-equipe-tab__format-label">Format</span>
+          <span class="event-equipe-tab__format-value">
+            <span aria-hidden="true">{{ formatIcon() }}</span>
+            {{ formatLabel() }}
+          </span>
+        </div>
+        <button
+          type="button"
+          mat-stroked-button
+          [disabled]="compositionInteractionBlocked()"
+          (click)="openFormatDialog()"
+        >
+          <mat-icon aria-hidden="true">edit</mat-icon>
+          Modifier le format
+        </button>
+      </section>
+    }
+
     <ng-template #slotBody let-row="row">
       @if (row.slot?.participantDisplayName; as name) {
         <app-user-avatar

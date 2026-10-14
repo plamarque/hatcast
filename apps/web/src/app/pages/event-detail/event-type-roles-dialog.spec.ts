@@ -43,7 +43,6 @@ type Harness = {
   onTemplateSelected: (id: EventTypeId) => void
   confirmTemplateChange: () => void
   cancelTemplateChange: () => void
-  onSlotCountChange: (change: { key: 'player'; count: number }) => void
   submit: () => void
   showTemplateChangeConfirmation: boolean
   selectedTemplateType: EventTypeId
@@ -101,19 +100,18 @@ describe('EventTypeRolesDialog', () => {
     expect(h.showTemplateChangeConfirmation).toBe(false)
   })
 
-  it('closes with normalized result on save', async () => {
+  it('closes with the selected template and its normalized needs on save', async () => {
     const { fixture, close } = await setup(dialogData())
     const h = harness(fixture)
 
-    h.onSlotCountChange({ key: 'player', count: 25 })
+    h.onTemplateSelected('match')
+    h.confirmTemplateChange()
     h.submit()
 
-    expect(close).toHaveBeenCalledWith(
-      expect.objectContaining({
-        templateType: expect.any(String),
-        roleSlots: expect.objectContaining({ player: 25 }),
-      }),
-    )
+    expect(close).toHaveBeenCalledWith({
+      templateType: 'match',
+      roleSlots: applyTemplate('match'),
+    })
   })
 
   it('returns undefined when the footer cancel button is clicked', async () => {
@@ -127,20 +125,10 @@ describe('EventTypeRolesDialog', () => {
     expect(close).toHaveBeenCalledWith(undefined)
   })
 
-  it('keeps templateType when customizing role counts', async () => {
-    const { fixture, close } = await setup(
-      dialogData({ templateType: 'match', roleSlots: applyTemplate('match') }),
-    )
-    const h = harness(fixture)
+  it('does not render free role-count controls from story 22.2', async () => {
+    const { fixture } = await setup(dialogData())
 
-    h.onSlotCountChange({ key: 'player', count: 4 })
-    expect(h.selectedTemplateType).toBe('match')
-
-    h.submit()
-    expect(close).toHaveBeenCalledWith({
-      templateType: 'match',
-      roleSlots: expect.objectContaining({ player: 4 }),
-    })
+    expect(fixture.nativeElement.querySelector('app-role-slot-chip-set')).toBeNull()
   })
 
   it('initializes templateType from API value', async () => {

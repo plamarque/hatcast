@@ -60,7 +60,7 @@ import {
   computeRawCompositionLifecycle,
 } from '../../core/composition/composition-lifecycle'
 import { canValidateComposition as resolveCanValidateComposition } from '../../core/composition/composition-equipe-actions'
-import { normalizeRoleSlots } from '../../core/events/event-types'
+import { normalizeRoleSlots, roleSlotsEqual } from '../../core/events/event-types'
 import { EventEquipeTab } from './event-equipe-tab'
 import { EventInfosTab } from './event-infos-tab'
 import { isEventDraft } from '../../core/events/event-draft'
@@ -121,6 +121,7 @@ export class EventDetail implements OnDestroy, OnInit {
   private routeSubscription = Subscription.EMPTY
   private querySubscription = Subscription.EMPTY
   private loadRequestId = 0
+  private compositionLoadRequestId = 0
   private compositionLoadInFlight = false
   private tabBootstrapInFlight: { tab: EventPageTab } | null = null
   private lastNotificationLinkCaptureKey = ''
@@ -592,8 +593,25 @@ export class EventDetail implements OnDestroy, OnInit {
   }
 
   protected onEventInfosUpdated(updated: EventResponse): void {
+    const previous = this.event()
     this.event.set(updated)
     this.refreshDisposSummaryIfLoaded(updated)
+    if (
+      previous != null &&
+      !roleSlotsEqual(
+        normalizeRoleSlots(previous.roleSlots),
+        normalizeRoleSlots(updated.roleSlots),
+      )
+    ) {
+      this.composition.set(null)
+      this.compositionLoaded.set(false)
+      this.compositionLoadRequestId += 1
+      this.compositionLoadInFlight = false
+      const seasonId = this.seasonId()
+      if (seasonId) {
+        void this.loadComposition(seasonId, updated.id)
+      }
+    }
   }
 
   private maybeCaptureNotificationLinkOpened(params: ParamMap): void {
@@ -958,10 +976,14 @@ export class EventDetail implements OnDestroy, OnInit {
       return
     }
     this.compositionLoadInFlight = true
-    const requestId = this.loadRequestId
+    const pageRequestId = this.loadRequestId
+    const compositionRequestId = ++this.compositionLoadRequestId
     try {
       const result = await this.compositionApi.getComposition(seasonId, eventId)
-      if (requestId !== this.loadRequestId) {
+      if (
+        pageRequestId !== this.loadRequestId ||
+        compositionRequestId !== this.compositionLoadRequestId
+      ) {
         return
       }
       if (seasonId !== this.seasonId() || eventId !== this.event()?.id) {
@@ -974,7 +996,10 @@ export class EventDetail implements OnDestroy, OnInit {
       }
       this.compositionLoaded.set(true)
     } finally {
-      if (requestId === this.loadRequestId) {
+      if (
+        pageRequestId === this.loadRequestId &&
+        compositionRequestId === this.compositionLoadRequestId
+      ) {
         this.compositionLoadInFlight = false
       }
     }

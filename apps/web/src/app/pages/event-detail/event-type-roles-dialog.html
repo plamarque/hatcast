@@ -34,16 +34,6 @@
     </div>
   }
 
-  @if (!showTemplateChangeConfirmation) {
-    <p class="type-roles-dialog__slots-title">Effectifs par rôle</p>
-    <app-role-slot-chip-set
-      class="type-roles-dialog__slots"
-      [counts]="roleSlots"
-      [maxCount]="roleCountMax"
-      ariaLabel="Effectifs par rôle"
-      (countChange)="onSlotCountChange($event)"
-    />
-  }
   </div>
 </mat-dialog-content>
 <mat-dialog-actions align="end">

@@ -53,7 +53,6 @@
               [canManageEvents]="canManageEvents()"
               [canManageTroupe]="canManageTroupe()"
               [canManageEventOrganizers]="canManageEventOrganizersFor(ev.id)"
-              [canManageComposition]="canManageComposition()"
               [organizersReloadTrigger]="organizersReloadTrigger()"
               [bootstrapOrganizers]="infosOrganizers()"
               [bootstrapCategories]="infosCategories()"
@@ -112,6 +111,7 @@
             [parentComposition]="composition()"
             [parentCompositionLoaded]="compositionLoaded()"
             (compositionPublished)="syncCompositionFromEquipe($event)"
+            (eventUpdated)="onEventInfosUpdated($event)"
             (compositionInteractionBlockedChange)="onCompositionInteractionBlockedChange($event)"
           />
         }

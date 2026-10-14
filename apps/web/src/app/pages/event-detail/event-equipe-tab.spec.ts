@@ -11,8 +11,9 @@ import {
   DrawPolicyApiService,
   type EffectiveDrawPolicy,
 } from '../../core/draw/draw-policy-api.service'
-import { emptyRoleSlots } from '../../core/events/event-types'
-import type { EventResponse } from '../../core/events/event-api.service'
+import { applyTemplate, emptyRoleSlots } from '../../core/events/event-types'
+import { EventApiService, type EventResponse } from '../../core/events/event-api.service'
+import { EventTypeRolesDialog } from './event-type-roles-dialog'
 import { EventEquipeTab } from './event-equipe-tab'
 
 function ev(overrides: Partial<EventResponse> = {}): EventResponse {
@@ -69,16 +70,12 @@ describe('EventEquipeTab', () => {
   let unlockComposition: ReturnType<typeof vi.fn>
   let updateSlotParticipation: ReturnType<typeof vi.fn>
   let restoreDeclinedParticipant: ReturnType<typeof vi.fn>
+  let updateEvent: ReturnType<typeof vi.fn>
   let getEffectiveDrawPolicy: ReturnType<typeof vi.fn>
   let dialogOpen: ReturnType<typeof vi.fn>
   let snackOpen: ReturnType<typeof vi.fn>
   let getPreferences: ReturnType<typeof vi.fn>
-  let dialogAfterClosed: Subject<
-    | { participantId: string }
-    | { status: string; note?: string | null }
-    | boolean
-    | undefined
-  >
+  let dialogAfterClosed: Subject<unknown>
 
   beforeEach(async () => {
     getComposition = vi.fn().mockResolvedValue({
@@ -136,6 +133,7 @@ describe('EventEquipeTab', () => {
     unlockComposition = vi.fn()
     updateSlotParticipation = vi.fn()
     restoreDeclinedParticipant = vi.fn()
+    updateEvent = vi.fn()
     getEffectiveDrawPolicy = vi.fn().mockResolvedValue({
       ok: true,
       data: {
@@ -151,12 +149,7 @@ describe('EventEquipeTab', () => {
         requiresFormulaIdOnDraw: false,
       },
     })
-    dialogAfterClosed = new Subject<
-      | { participantId: string }
-      | { status: string; note?: string | null }
-      | boolean
-      | undefined
-    >()
+    dialogAfterClosed = new Subject<unknown>()
     dialogOpen = vi.fn().mockReturnValue({
       componentInstance: {
         updateState: vi.fn(),
@@ -193,6 +186,7 @@ describe('EventEquipeTab', () => {
             restoreDeclinedParticipant,
           },
         },
+        { provide: EventApiService, useValue: { updateEvent } },
         { provide: MatDialog, useValue: { open: dialogOpen } },
         { provide: MatSnackBar, useValue: { open: snackOpen } },
         {
@@ -222,6 +216,51 @@ describe('EventEquipeTab', () => {
     fixture.detectChanges()
     await vi.waitFor(() => {
       expect(fixture.nativeElement.textContent).toContain('Aucun tirage pour le moment')
+    })
+  })
+
+  it('lets an organizer change the format from Équipe and persists the template needs', async () => {
+    const updatedEvent = ev({
+      templateType: 'match',
+      roleSlots: applyTemplate('match'),
+    })
+    updateEvent.mockResolvedValue({ ok: true, data: updatedEvent })
+    const updated = vi.fn()
+    fixture.componentInstance.eventUpdated.subscribe(updated)
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Modifier le format')
+    })
+    const button = [...fixture.nativeElement.querySelectorAll('button')].find(
+      (candidate: HTMLButtonElement) => candidate.textContent?.includes('Modifier le format'),
+    ) as HTMLButtonElement
+    button.click()
+
+    expect(dialogOpen).toHaveBeenCalledWith(
+      EventTypeRolesDialog,
+      expect.objectContaining({
+        data: expect.objectContaining({ templateType: 'custom', roleSlots: ev().roleSlots }),
+      }),
+    )
+
+    dialogAfterClosed.next({ templateType: 'match', roleSlots: applyTemplate('match') })
+
+    await vi.waitFor(() => {
+      expect(updateEvent).toHaveBeenCalledWith('season-1', 'event-1', {
+        templateType: 'match',
+        roleSlots: applyTemplate('match'),
+      })
+      expect(updated).toHaveBeenCalledWith(updatedEvent)
+    })
+  })
+
+  it('does not show a format action to a member', async () => {
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.querySelector('.event-equipe-tab__format')).toBeNull()
     })
   })
 

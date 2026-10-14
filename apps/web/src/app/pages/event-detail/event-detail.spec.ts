@@ -25,7 +25,10 @@ import { emptyRoleSlots } from '../../core/events/event-types'
 type EventDetailHarness = {
   event: WritableSignal<EventResponse | null>
   activeTab: WritableSignal<string>
+  composition: WritableSignal<CompositionResponse | null>
   canManageEvents: () => boolean
+  loadComposition: (seasonId: string, eventId: string) => Promise<void>
+  onEventInfosUpdated: (event: EventResponse) => void
 }
 
 function ev(id: string, overrides: Partial<EventResponse> = {}): EventResponse {
@@ -302,6 +305,43 @@ describe('EventDetail', () => {
       expect(getEventPage).toHaveBeenCalledWith('season-1', 'event-2', expect.objectContaining({ tab: 'infos', bySlug: true }))
     })
     expect((fixture.componentInstance as unknown as EventDetailHarness).event()?.id).toBe('event-2')
+  })
+
+  it('keeps the post-format composition when an earlier load resolves late', async () => {
+    fixture.detectChanges()
+    const component = fixture.componentInstance as unknown as EventDetailHarness
+    await vi.waitFor(() => expect(component.event()).not.toBeNull())
+
+    let resolveEarlier!: (value: { ok: true; status: number; data: CompositionResponse }) => void
+    let resolveAfterFormat!: (value: { ok: true; status: number; data: CompositionResponse }) => void
+    const earlier = new Promise<{ ok: true; status: number; data: CompositionResponse }>((resolve) => {
+      resolveEarlier = resolve
+    })
+    const afterFormat = new Promise<{ ok: true; status: number; data: CompositionResponse }>((resolve) => {
+      resolveAfterFormat = resolve
+    })
+    getComposition.mockReset()
+    getComposition.mockReturnValueOnce(earlier).mockReturnValueOnce(afterFormat)
+
+    void component.loadComposition('season-1', 'event-2')
+    component.onEventInfosUpdated(ev('event-2', { roleSlots: { ...emptyRoleSlots(), player: 2 } }))
+
+    await vi.waitFor(() => expect(getComposition).toHaveBeenCalledTimes(2))
+    resolveAfterFormat({
+      ok: true,
+      status: 200,
+      data: { visibility: 'organizerDraft', slots: [{ roleKey: 'player', slotIndex: 2, participationStatus: 'pending' }] },
+    })
+    await vi.waitFor(() => expect(component.composition()?.slots[0]?.slotIndex).toBe(2))
+
+    resolveEarlier({
+      ok: true,
+      status: 200,
+      data: { visibility: 'organizerDraft', slots: [{ roleKey: 'player', slotIndex: 1, participationStatus: 'pending' }] },
+    })
+    await Promise.resolve()
+
+    expect(component.composition()?.slots[0]?.slotIndex).toBe(2)
   })
 
   it('replaces UUID route with canonical slug URL', async () => {

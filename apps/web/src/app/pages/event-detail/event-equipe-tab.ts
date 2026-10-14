@@ -52,10 +52,12 @@ import { computeCompositionPlayerGenderParity } from '../../core/composition/com
 import { canShowCompositionExplainability } from '../../core/composition/composition-explainability'
 import { resolveCompositionEquipeStatus } from '../../core/composition/composition-equipe-status'
 import { showCompositionDraftBanner } from '../../core/composition/composition-visibility'
-import type { EventResponse } from '../../core/events/event-api.service'
+import { EventApiService, type EventResponse } from '../../core/events/event-api.service'
 import { isEventDraft } from '../../core/events/event-draft'
 import {
   normalizeRoleSlots,
+  getEventTypeIcon,
+  getEventTypeLabel,
   ROLE_EMOJIS,
   ROLE_LABELS,
   rolesWithSlots,
@@ -89,6 +91,11 @@ import {
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 import { ConfirmDialog, type ConfirmDialogData } from '../seasons-list/confirm-dialog'
 import { EventEquipeEmpty } from './event-equipe-empty'
+import {
+  EventTypeRolesDialog,
+  type EventTypeRolesDialogData,
+  type EventTypeRolesDialogResult,
+} from './event-type-roles-dialog'
 
 interface SlotRow {
   roleKey: string
@@ -125,6 +132,7 @@ export class EventEquipeTab {
   protected readonly roleChipDisplayText = roleActionChipDisplayText
 
   private readonly compositionApi = inject(CompositionApiService)
+  private readonly eventsApi = inject(EventApiService)
   private readonly drawPolicyApi = inject(DrawPolicyApiService)
   private readonly mePreferencesApi = inject(MePreferencesApiService)
   private readonly analytics = inject(ProductAnalyticsService)
@@ -147,6 +155,7 @@ export class EventEquipeTab {
   readonly parentCompositionLoaded = input(false)
 
   readonly compositionPublished = output<CompositionResponse>()
+  readonly eventUpdated = output<EventResponse>()
   readonly compositionInteractionBlockedChange = output<boolean>()
 
   protected readonly loading = signal(true)
@@ -156,6 +165,7 @@ export class EventEquipeTab {
   protected readonly drawing = signal(false)
   protected readonly assigning = signal(false)
   protected readonly restoringDeclineId = signal<string | null>(null)
+  protected readonly updatingFormat = signal(false)
   protected readonly updatingParticipation = signal(false)
   protected readonly composition = signal<CompositionResponse | null>(null)
   protected readonly showConfirmOpened = signal(false)
@@ -224,6 +234,7 @@ export class EventEquipeTab {
       this.validating() ||
       this.unlocking() ||
       this.updatingParticipation() ||
+      this.updatingFormat() ||
       this.restoringDeclineId() != null ||
       this.animatingDraw(),
   )
@@ -320,6 +331,9 @@ export class EventEquipeTab {
     const ev = this.event()
     return !!ev && isEventDraft(ev)
   })
+
+  protected readonly formatIcon = computed(() => getEventTypeIcon(this.event().templateType))
+  protected readonly formatLabel = computed(() => getEventTypeLabel(this.event().templateType))
 
   protected readonly equipeActionFlags = computed(() => ({
     canValidate: this.canValidate(),
@@ -563,6 +577,60 @@ export class EventEquipeTab {
       this.showConfirmOpened.set(true)
       queueMicrotask(() => void this.openParticipationModal(row, { mode: 'self' }))
     })
+  }
+
+  protected openFormatDialog(): void {
+    if (!this.canManageComposition() || this.compositionInteractionBlocked()) {
+      return
+    }
+    const ev = this.event()
+    const ref = this.dialog.open<
+      EventTypeRolesDialog,
+      EventTypeRolesDialogData,
+      EventTypeRolesDialogResult
+    >(EventTypeRolesDialog, {
+      data: {
+        seasonId: this.seasonId(),
+        eventId: ev.id,
+        templateType: ev.templateType,
+        roleSlots: ev.roleSlots,
+      },
+      width: 'min(100vw - 2rem, 32rem)',
+    })
+    ref.afterClosed().subscribe((result) => {
+      if (!result) {
+        return
+      }
+      void this.persistFormat(result)
+    })
+  }
+
+  private async persistFormat(result: Exclude<EventTypeRolesDialogResult, undefined>): Promise<void> {
+    if (this.updatingFormat()) {
+      return
+    }
+    const seasonId = this.seasonId()
+    const eventId = this.event().id
+    this.updatingFormat.set(true)
+    try {
+      const apiResult = await this.eventsApi.updateEvent(seasonId, eventId, {
+        templateType: result.templateType,
+        roleSlots: normalizeRoleSlots(result.roleSlots),
+      })
+      if (this.event().id !== eventId) {
+        return
+      }
+      if (!apiResult.ok || !apiResult.data) {
+        this.snack.open(apiResult.errorMessage ?? 'Enregistrement impossible.', 'OK', {
+          duration: 6000,
+        })
+        return
+      }
+      this.eventUpdated.emit(apiResult.data)
+      this.snack.open('Format et besoins enregistrés.', 'OK', { duration: 4000 })
+    } finally {
+      this.updatingFormat.set(false)
+    }
   }
 
   protected readonly hasViewerParticipantIdentity = computed(
