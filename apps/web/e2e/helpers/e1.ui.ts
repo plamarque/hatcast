@@ -86,10 +86,10 @@ export async function seedMemberDisposForActivite(
   await seedMemberDisposRoles(page, fx, eventSlug, ['mc'])
 }
 
-export async function validateComposition(page: Page) {
-  const validate = page.getByRole('button', { name: 'Valider' }).first()
-  await expect(validate).toBeVisible({ timeout: 30_000 })
-  await validate.click()
+export async function publishComposition(page: Page) {
+  const publish = page.getByRole('button', { name: 'Publier' }).first()
+  await expect(publish).toBeVisible({ timeout: 30_000 })
+  await publish.click()
 }
 
 export async function openEventAdminMenu(page: Page) {

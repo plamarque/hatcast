@@ -4,7 +4,7 @@ import {
   openEventAdminMenu,
   openEventTab,
   runWeightedDraw,
-  validateComposition,
+  publishComposition,
 } from '../helpers/e1.ui'
 import { isStagingE2e, prepareE1Run, resolveE1Context } from '../helpers/e1-staging'
 
@@ -15,7 +15,7 @@ test.describe('E1 — orga composition (desktop)', () => {
     await prepareE1Run(page, request)
   })
 
-  test('E1-ORG-001–002 — tirage puis valider sur MVP 01', async ({ page, request }) => {
+  test('E1-ORG-001–002 — tirage puis publier sur MVP 01', async ({ page, request }) => {
     const fx = await resolveE1Context(request)
     await openEventTab(page, fx, fx.eventDrawSlug, 'equipe')
     const draw = page.getByRole('button', { name: 'Tirer au sort' })
@@ -25,7 +25,8 @@ test.describe('E1 — orga composition (desktop)', () => {
       return
     }
     await runWeightedDraw(page)
-    await validateComposition(page)
+    await publishComposition(page)
+    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 15_000 })
     await expect(page.locator('[data-testid="composition-actions-toolbar"]')).toBeVisible()
   })
 

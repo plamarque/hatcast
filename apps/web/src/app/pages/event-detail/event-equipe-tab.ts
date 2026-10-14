@@ -323,7 +323,7 @@ export class EventEquipeTab {
       composition: comp,
       canManageComposition: this.canManageComposition(),
       roleSlots: normalizeRoleSlots(ev.roleSlots),
-      suppressValidateCtaInGuideline: this.canValidate(),
+      suppressPublishCtaInGuideline: this.canValidate(),
     })
   })
 
@@ -399,7 +399,7 @@ export class EventEquipeTab {
       this.drawFormulaSelectorVisible(),
   )
 
-  /** Draw helper copy — not when validate lead already guides the forward action. */
+  /** Draw helper copy — not when publish lead already guides the forward action. */
   protected readonly showDrawActionHint = computed(
     () => this.canDraw() && !this.canValidate(),
   )
@@ -1538,7 +1538,7 @@ export class EventEquipeTab {
     }
   }
 
-  protected async validate(): Promise<void> {
+  protected async publish(): Promise<void> {
     if (!this.canValidate()) {
       return
     }
@@ -1551,7 +1551,7 @@ export class EventEquipeTab {
       return
     }
     if (!result.ok || !result.data) {
-      this.snack.open(this.validateUnlockErrorMessage('validate', result.status, result.errorMessage), 'OK', {
+      this.snack.open(this.publishUnlockErrorMessage('publish', result.status, result.errorMessage), 'OK', {
         duration: 6000,
       })
       return
@@ -1561,6 +1561,7 @@ export class EventEquipeTab {
       this.analytics.eventContext(eventId, seasonId, this.troupeId()),
       { validated_at: result.data.validatedAt ?? new Date().toISOString() },
     )
+    this.openShareDialog('composition')
     this.snack.open('Composition validée.', 'OK', { duration: 4000 })
   }
 
@@ -1577,7 +1578,7 @@ export class EventEquipeTab {
       return
     }
     if (!result.ok || !result.data) {
-      this.snack.open(this.validateUnlockErrorMessage('unlock', result.status, result.errorMessage), 'OK', {
+      this.snack.open(this.publishUnlockErrorMessage('unlock', result.status, result.errorMessage), 'OK', {
         duration: 6000,
       })
       return
@@ -1604,8 +1605,8 @@ export class EventEquipeTab {
     }
   }
 
-  private validateUnlockErrorMessage(
-    action: 'validate' | 'unlock',
+  private publishUnlockErrorMessage(
+    action: 'publish' | 'unlock',
     status: number,
     apiMessage?: string,
   ): string {
@@ -1613,16 +1614,16 @@ export class EventEquipeTab {
       return apiMessage
     }
     if (status === 403) {
-      return action === 'validate'
-        ? 'Vous ne pouvez pas valider cette composition.'
+      return action === 'publish'
+        ? 'Vous ne pouvez pas publier cette composition.'
         : 'Vous ne pouvez pas déverrouiller cette composition.'
     }
     if (status === 409) {
-      return action === 'validate'
-        ? 'Rien à valider pour le moment.'
+      return action === 'publish'
+        ? 'Rien à publier pour le moment.'
         : 'La composition n\'est pas verrouillée.'
     }
-    return action === 'validate' ? 'Validation impossible.' : 'Déverrouillage impossible.'
+    return action === 'publish' ? 'Publication impossible.' : 'Déverrouillage impossible.'
   }
 
   private async loadEffectiveDrawPolicy(

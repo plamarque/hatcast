@@ -25,8 +25,8 @@ export interface CompositionEquipeStatusInput {
   composition: CompositionResponse | null
   canManageComposition: boolean
   roleSlots: Record<string, number>
-  /** When true, draft guideline omits validate CTA (shown in actions lead instead). */
-  suppressValidateCtaInGuideline?: boolean
+  /** When true, draft guideline omits publish CTA (shown in actions lead instead). */
+  suppressPublishCtaInGuideline?: boolean
 }
 
 interface SlotView {
@@ -78,7 +78,7 @@ function withGuideline(
 export function resolveCompositionEquipeStatusFromEvent(
   event: { compositionLifecycle?: string; roleSlots?: Record<string, number> },
   canManageComposition: boolean,
-  suppressValidateCtaInGuideline = false,
+  suppressPublishCtaInGuideline = false,
 ): CompositionEquipeStatus | null {
   const roleSlots = normalizeRoleSlots(event.roleSlots ?? {})
   if (requiredSlotKeys(roleSlots).length === 0) {
@@ -109,9 +109,9 @@ export function resolveCompositionEquipeStatusFromEvent(
         canManageComposition,
       )
     case 'draftComposition': {
-      const draftGuideline = suppressValidateCtaInGuideline
+      const draftGuideline = suppressPublishCtaInGuideline
         ? `En préparation : Seuls les organisateur·ices et administrateur·ices voient cette composition. Partagez-la aux responsables si vous le désirez.`
-        : `En préparation : Seuls les organisateur·ices et administrateur·ices voient cette composition. Partagez-la via ${quotedEquipeActionLabel('share')} si besoin, puis ${quotedEquipeActionLabel('validate')} pour la rendre visible à tous.`
+        : `En préparation : Seuls les organisateur·ices et administrateur·ices voient cette composition. Partagez-la via ${quotedEquipeActionLabel('share')} si besoin, puis ${quotedEquipeActionLabel('publish')} pour la valider et l’annoncer.`
       return withGuideline(
         { type: 'draft', label: 'En préparation', tone: 'info' },
         draftGuideline,
@@ -127,7 +127,7 @@ export function resolveCompositionEquipeStatusFromEvent(
 export function resolveCompositionEquipeStatus(
   input: CompositionEquipeStatusInput,
 ): CompositionEquipeStatus | null {
-  const { composition, canManageComposition, roleSlots, suppressValidateCtaInGuideline } = input
+  const { composition, canManageComposition, roleSlots, suppressPublishCtaInGuideline } = input
   const required = requiredSlotKeys(roleSlots)
   if (required.length === 0) {
     return null
@@ -216,9 +216,9 @@ export function resolveCompositionEquipeStatus(
     )
   }
 
-  const draftGuideline = suppressValidateCtaInGuideline
+  const draftGuideline = suppressPublishCtaInGuideline
     ? `En préparation : Seuls les organisateur·ices et administrateur·ices voient cette composition. Partagez-la aux responsables si vous le désirez.`
-    : `En préparation : Seuls les organisateur·ices et administrateur·ices voient cette composition. Partagez-la via ${quotedEquipeActionLabel('share')} si besoin, puis ${quotedEquipeActionLabel('validate')} pour la rendre visible à tous.`
+    : `En préparation : Seuls les organisateur·ices et administrateur·ices voient cette composition. Partagez-la via ${quotedEquipeActionLabel('share')} si besoin, puis ${quotedEquipeActionLabel('publish')} pour la valider et l’annoncer.`
 
   return withGuideline(
     {

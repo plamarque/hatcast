@@ -345,7 +345,7 @@
       <div class="event-equipe-tab__actions-sticky">
         @if (canValidate()) {
           <p class="event-equipe-tab__actions-lead">
-            Prêt ? Validez pour rendre la composition visible à tout le monde.
+            Prêt ? Publiez pour valider la composition et l’annoncer.
           </p>
         }
 
@@ -369,37 +369,37 @@
           data-testid="composition-actions-toolbar"
         >
           <div class="event-equipe-tab__actions-grid">
-          @if (equipeActionInGrid('validate')) {
-            @if (isEquipePrimary('validate')) {
+          @if (equipeActionInGrid('publish')) {
+            @if (isEquipePrimary('publish')) {
               <button
                 mat-flat-button
                 color="primary"
                 type="button"
-                class="event-equipe-tab__action event-equipe-tab__validate"
+                class="event-equipe-tab__action event-equipe-tab__publish"
                 data-testid="composition-action-primary"
-                [attr.data-action]="'validate'"
+                [attr.data-action]="'publish'"
                 [disabled]="validating()"
-                (click)="validate()"
+                (click)="publish()"
               >
                 @if (validating()) {
                   <mat-spinner diameter="20" />
                 } @else {
-                  Valider
+                  Publier
                 }
               </button>
             } @else {
               <button
                 mat-stroked-button
                 type="button"
-                class="event-equipe-tab__action event-equipe-tab__validate"
-                data-testid="composition-action-validate"
+                class="event-equipe-tab__action event-equipe-tab__publish"
+                data-testid="composition-action-publish"
                 [disabled]="validating()"
-                (click)="validate()"
+                (click)="publish()"
               >
                 @if (validating()) {
                   <mat-spinner diameter="20" />
                 } @else {
-                  Valider
+                  Publier
                 }
               </button>
             }
