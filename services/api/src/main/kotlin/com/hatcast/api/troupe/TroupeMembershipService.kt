@@ -309,17 +309,12 @@ class TroupeMembershipService(
         userId: UUID,
         troupeId: UUID,
     ): TroupeMembershipEntity {
-        val troupe = requireOpenJoinPolicy(troupeId)
+        requireOpenJoinPolicy(troupeId)
         val prior = membershipRepository.findByTroupe_IdAndUser_Id(troupeId, userId)
         val wasNew = prior == null
         val wasReactivated = prior != null && prior.status != TroupeMembershipStatus.ACTIVE
         val beforeSnapshot = prior?.let { AuditSnapshots.membership(it) }
         val membership = ensureActiveMembership(userId, troupeId)
-        if (troupe.isDemo) {
-            seasonRepository.findByTroupe_IdAndIsActiveTrue(troupeId)?.let { season ->
-                membershipSync.ensureForMembership(season, membership)
-            }
-        }
         when {
             wasNew ->
                 auditRecorder.record(
@@ -367,7 +362,9 @@ class TroupeMembershipService(
                 applyAccountPreferences(existing, user, now)
                 existing.updatedAt = now
             }
-            return membershipRepository.save(existing)
+            val saved = membershipRepository.save(existing)
+            membershipSync.ensureForMembershipAcrossTroupe(saved)
+            return saved
         }
         val membership =
             TroupeMembershipEntity(
@@ -381,7 +378,9 @@ class TroupeMembershipService(
                 updatedAt = now,
             )
         return try {
-            membershipRepository.saveAndFlush(membership)
+            membershipRepository.saveAndFlush(membership).also {
+                membershipSync.ensureForMembershipAcrossTroupe(it)
+            }
         } catch (ex: DataIntegrityViolationException) {
             membershipRepository.findByTroupe_IdAndUser_Id(troupeId, userId)
                 ?: throw ex
@@ -485,6 +484,7 @@ class TroupeMembershipService(
             )
         return try {
             val saved = membershipRepository.saveAndFlush(membership)
+            membershipSync.ensureForMembershipAcrossTroupe(saved)
             auditRecorder.record(
                 AuditRecordRequest(
                     actionType = AuditActionType.TROUPE_MEMBER_ADDED,
@@ -784,11 +784,11 @@ class TroupeMembershipService(
         if (membership.baselineRole == TroupeBaselineRole.EXTERNE) {
             return
         }
-        if (previousStatus == targetStatus) {
-            return
-        }
         when (targetStatus) {
-            TroupeMembershipStatus.INACTIVE -> membershipSync.removeForMembershipAcrossTroupe(membership)
+            TroupeMembershipStatus.INACTIVE ->
+                if (previousStatus != targetStatus) {
+                    membershipSync.removeForMembershipAcrossTroupe(membership)
+                }
             TroupeMembershipStatus.ACTIVE -> membershipSync.ensureForMembershipAcrossTroupe(membership)
             else -> Unit
         }

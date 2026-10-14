@@ -10,6 +10,18 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Open Issues
 
+### BUG-033 — Une adhésion active peut manquer du roster de saison
+
+- **ID**: BUG-033
+- **Status**: Fixed locally — targeted verification passed; production data repair pending explicit approval
+- **Severity**: High (le membre peut ne plus voir les spectacles auxquels son adhésion de troupe lui donne accès)
+- **Affected area**: V2 membership lifecycle and season participant synchronization (`TroupeMembershipService`, CSV member import).
+- **Observed behavior**: Un membre ajouté par l'administration, importé par CSV, ou rejoignant une troupe ouverte pouvait avoir une adhésion `ACTIVE` sans ligne `season_participants`. Les projections Accueil / agenda s'appuient sur cette ligne et pouvaient donc n'afficher que les spectacles d'une autre troupe, par exemple la troupe démo.
+- **Expected behavior**: Toute création ou réactivation d'adhésion membre active synchronise le roster de toutes les saisons de la troupe. Les retraits CSV inactivent aussi ces participations sans écraser un retrait explicite par l'administration de saison.
+- **Cause**: Les chemins de création d'adhésion directe, d'import CSV et de self-join ne déclenchaient pas tous `SeasonParticipantMembershipSync`; seule une partie des réactivations était synchronisée.
+- **Fix**: Le correctif appelle la synchronisation centrale après chaque création/réactivation concernée et couvre les transitions CSV active/inactive ainsi que self-join. Un ré-ajout administratif ou une ligne CSV inchangée guérit aussi une participation manquante, sans réactiver un retrait explicite de saison.
+- **Notes/context**: Le code empêche une nouvelle dérive. Les adhésions créées avant son déploiement nécessitent un diagnostic de production en lecture seule puis une autorisation explicite avant toute réparation des données existantes.
+
 ### BUG-032 — Équipe mobile : le rôle masque les noms
 
 - **ID**: BUG-032
