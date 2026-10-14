@@ -290,7 +290,11 @@ class CompositionService(
             } else {
                 emptyList()
             }
-        val hasAssignedSlots = slots.any { it.hasAssignee() }
+        // An organizer must still receive presentation data for assigned slots that
+        // no longer belong to the current role model. Otherwise, the reconciliation
+        // UI can only show a generic "Participant" label before its explicit action.
+        val hasAssignedSlots =
+            slots.any { it.hasAssignee() } || reconciliationSlots.any { it.hasAssignee() }
         val compositionValidated = composition?.validatedAt != null
         val visibilityContent = hasAssignedSlots || compositionValidated
         val visibility =

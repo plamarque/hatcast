@@ -347,6 +347,39 @@ describe('EventEquipeTab', () => {
     })
   })
 
+  it('renders an organizer-only out-of-model assignment with explicit actions', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [],
+        reconciliationItems: [
+          {
+            roleKey: 'player',
+            slotIndex: 2,
+            participantId: 'p-2',
+            participantDisplayName: 'Bob',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Hors modèle')
+      expect(
+        fixture.nativeElement.querySelector('button[aria-label="Libérer la place hors modèle"]'),
+      ).toBeTruthy()
+      expect(
+        fixture.nativeElement.querySelector('button[aria-label="Supprimer cette place hors modèle"]'),
+      ).toBeTruthy()
+    })
+  })
+
   it('confirms every structural deletion and explains the reduced need', async () => {
     fixture.componentRef.setInput('canManageComposition', true)
     fixture.detectChanges()

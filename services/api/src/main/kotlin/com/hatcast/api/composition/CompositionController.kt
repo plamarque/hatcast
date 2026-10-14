@@ -181,4 +181,28 @@ class CompositionController(
             slotIndex,
             principal,
         )
+
+    @DeleteMapping("/out-of-model-slots/{roleKey}/{slotIndex}/assignee")
+    fun clearOutOfModelSlot(
+        @PathVariable seasonId: UUID,
+        @PathVariable eventId: UUID,
+        @PathVariable roleKey: String,
+        @PathVariable slotIndex: Int,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): CompositionResponseDto {
+        compositionSlotStructureService.clearOutOfModelSlot(seasonId, eventId, roleKey, slotIndex, principal)
+        return compositionService.getCompositionStateAfterMutation(seasonId, eventId, principal)
+    }
+
+    @DeleteMapping("/out-of-model-slots/{roleKey}/{slotIndex}")
+    fun deleteOutOfModelSlot(
+        @PathVariable seasonId: UUID,
+        @PathVariable eventId: UUID,
+        @PathVariable roleKey: String,
+        @PathVariable slotIndex: Int,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): CompositionResponseDto {
+        compositionSlotStructureService.deleteOutOfModelSlot(seasonId, eventId, roleKey, slotIndex, principal)
+        return compositionService.getCompositionStateAfterMutation(seasonId, eventId, principal)
+    }
 }

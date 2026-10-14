@@ -93,6 +93,18 @@
   min-height: 3rem;
 }
 
+.event-equipe-tab__row--outside-model {
+  border-color: var(--mat-sys-outline-variant);
+  background: var(--mat-sys-surface-container-low);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.event-equipe-tab__outside-model-label {
+  grid-column: 2;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-medium);
+}
+
 .event-equipe-tab__parity-row {
   display: flex;
   align-items: center;
