@@ -10,9 +10,11 @@
     delete or expose organizer-only reconciliation data to members.
 - id: "cn-2"
   title: Explain and regularize impacted selections
+  status: superseded
   description: >-
-    Implement CAP-1, CAP-2 and CAP-4 organizer impact UI, regularization surface,
-    and readable role-need audit deltas on top of CN-1.
+    Superseded by Epic 22 Flexible composition slots. Do not implement a separate
+    organizer regularization surface; preserve CN-1 safeguards and use normal
+    Équipe slots for format-application consequences.
   done_checkpoint: true
   invoke_dev_with: >-
     Read FRONTEND_UI.md first; use Material dialog patterns and validate mobile 480px.

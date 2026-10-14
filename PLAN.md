@@ -796,6 +796,23 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 
 ---
 
+### Epic 22 — Composition flexible pilotée par slots
+
+**Added:** 2026-10-14 — [Sprint Change Proposal — Flexible composition slots](_bmad-output/planning-artifacts/sprint-change-proposal-2026-10-14-flexible-composition-slots.md).
+
+| Story | Outcome | Depends on |
+|---|---|---|
+| **22.1** | Équipe devient l'unique surface d'édition format + besoins ; Infos devient le résumé lecture seule. | CN-1 safety contract |
+| **22.2** | Ajout libre de slot provisoire, choix de rôle, désassignation et suppression structurelle explicite. | 22.1 |
+| **22.3** | Application de template sûre : créer manquants, retirer vides, conserver affectés Hors modèle ; mobile focus/scroll. | 22.1, 22.2, CN-1 |
+| **22.4** | Retirer l'approche CN-2 et décider CN-3 pour une suppression explicite de slot affecté. | 22.3 |
+
+**Supersession :** CN-2 ne doit pas être intégré comme surface de régularisation autonome. CN-1 reste le garde-fou de préservation/projection, à revalider dans 22.3. `sprint-status.yaml` reste géré uniquement par son synchroniseur.
+
+**Détail stories :** [_bmad-output/planning-artifacts/epics.md](_bmad-output/planning-artifacts/epics.md) § Epic 22.
+
+---
+
 ### Epic 9 — Audit et historique des changements significatifs
 
 **Added:** 2026-06-02 — SCP [iso-V1 MEP scope](_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-02-iso-v1-mep-scope.md).  

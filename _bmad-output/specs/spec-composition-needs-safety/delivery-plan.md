@@ -2,14 +2,14 @@
 
 ## Classification and sequencing
 
-This is **one corrective epic**, not a set of independent quick fixes. The visible symptom crosses event editing, composition state, authorization-specific projections, notifications, and audit rendering. Ship the three stories in order on a dedicated worktree; do not parallelize their implementation because each later story consumes the prior domain contract.
+This corrective work is now a **safety dependency** of Epic 22, not a standalone organizer workflow. The visible symptom crosses event editing, composition state, authorization-specific projections, notifications, and audit rendering. Preserve the server safety contract before replacing the organizer UI.
 
 | Order | Proposed story | Outcome | Depends on |
 |---|---|---|---|
-| 1 | **CN-1 — Reconcile assignments after needs change** | Server detects assignments outside the new required positions, preserves them for organizers, and produces a member-safe projection. | SPEC CAP-1, CAP-2 |
-| 2 | **CN-2 — Explain and regularize impacted selections** | Event form shows a specific impact confirmation; organizer Team view exposes an actionable “À régulariser” area; activity formats need diffs. | CN-1; SPEC CAP-1, CAP-2, CAP-4 |
-| 3 | **CN-3 — Notify removals from a visible composition** | After-commit removal notifications are emitted only for affected assignees when the prior composition was member-visible. | CN-1; SPEC CAP-3 |
-| Gate | **Patch verification and release** | Full regression evidence, staging smoke, approved patch release. | CN-1 to CN-3 |
+| 1 | **CN-1 — Reconcile assignments after needs change** | Retained safety capability: preserve assignments outside changed needs and produce member-safe projections. | SPEC CAP-1, CAP-2 |
+| 2 | **CN-2 — Explain and regularize impacted selections** | **Superseded.** Its separate organizer regularization UI is replaced by Epic 22 slot editing in Équipe. | Epic 22 |
+| 3 | **Epic 22 — Flexible composition slots** | Move format and slot editing to Équipe; apply templates safely; permit arbitrary slot creation and explicit structural deletion. | CN-1; SPEC CAP-1, CAP-2, CAP-4 |
+| 4 | **CN-3 — Notify removals from a visible composition** | Re-scope after Epic 22: decide notifications for an explicit deletion of an assigned structural slot, not merely Hors modèle retention. | Epic 22; SPEC CAP-3 |
 
 ## Existing integration points to preserve
 
@@ -36,14 +36,13 @@ This is **one corrective epic**, not a set of independent quick fixes. The visib
 - Increasing needs and unrelated event edits create no reconciliation items.
 - A failed update leaves needs and assignments unchanged.
 
-### CN-2 — Explain and regularize impacted selections
+### CN-2 — Explain and regularize impacted selections (**superseded**)
 
 **Scope**
 
-- Before save, show impact only when the proposed needs affect assigned slots. Name affected people and state that member visibility will change if the composition is visible.
-- After save, display a distinct organizer/admin-only “À régulariser” section in Équipe, with the affected person, former role, and normal reassign/remove actions.
-- Keep ordinary members on the valid team only; do not expose an error or empty-state ambiguity.
-- Render `roleSlots` audit diffs as role labels and counts, for example `Comédien·ne : 5 → 0`, together with existing event property diffs.
+- Do not implement or integrate a distinct organizer/admin-only “À régulariser” section.
+- Epic 22 replaces this scope with format confirmation and Hors modèle slots in the normal Équipe role groups.
+- Preserve audit rendering of `roleSlots` diffs for Epic 22.
 
 **UI and accessibility checks**
 

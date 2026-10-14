@@ -1902,9 +1902,11 @@ afin d’**aligner la navigation** avec l’Epic 17 (ADR 0013).
 
 #### Story 17.14 : Onglet Infos — type de spectacle et rôles (modales)
 
+> **Amended 2026-10-14 — Epic 22:** the completed extraction from `EventFormDialog` remains valid. Its placement decision is superseded: Infos becomes a read-only summary and Équipe owns format/template and role-slot editing.
+
 **Acceptance Criteria**
 
-- **Given** onglet Infos, **when** chargé, **then** type et résumé des rôles visibles ; CTA ouvre modale(s) de personnalisation.
+- **Given** onglet Infos, **when** chargé, **then** type et résumé des rôles visibles en lecture seule ; l'édition est dans Équipe (Epic 22).
 - **Given** `EventFormDialog`, **when** création/édition, **then** type, confirmation changement de modèle et grille rôles **retirés** (noyau : titre, date/heure, lieu, description).
 
 **Story file:** [_bmad-output/implementation-artifacts/17-14-onglet-infos-type-roles-modales.md](../implementation-artifacts/17-14-onglet-infos-type-roles-modales.md)
@@ -3159,3 +3161,64 @@ afin que **l’intégration vers `v2` soit traçable, contrôlée et sûre**.
 4. **Given** une décision courante et valide, **when** l’intégration est explicitement demandée, **then** le contrôleur délègue uniquement à `scripts/v2/story-branch.sh integrate`; cette commande conserve seule les responsabilités de push, vérification distante et suppression locale.
 5. **Given** un état ambigu, stale ou échoué, **when** une opération mutante est demandée, **then** elle est refusée avant toute approbation, label, commentaire, merge, push, déploiement, release ou suppression.
 6. **Couverture :** workflow développeur V2. **Priorité :** P1. **Depends :** contrat `story-branch.sh integrate`. **UI :** N/A.
+
+---
+
+### Epic 22 — Composition flexible pilotée par slots
+
+**Added:** 2026-10-14 — [Sprint Change Proposal — Flexible composition slots](sprint-change-proposal-2026-10-14-flexible-composition-slots.md).
+
+Les organisateur·ices composent entièrement une équipe dans l'onglet **Équipe** : format/template, structure par rôle, affectations et tirage. Le format propose un modèle de départ ; les besoins `roleSlots` restent le contrat métier persistant. L'onglet **Infos** en montre un résumé, sans devenir une seconde surface d'édition.
+
+**FRs couverts :** extension de FR12, FR14, FR19–FR22, FR35.
+**Depends:** sécurité de projections CN-1 ; **CN-2 est superseded**.
+**UX:** Material 3/mobile-first, avec [FRONTEND_UI.md](../../docs/v2/technical/FRONTEND_UI.md) obligatoire.
+
+#### Story 22.1 : Équipe — format et besoins au même endroit
+
+En tant qu'**organisateur·ice**, je veux choisir et appliquer le format d'un spectacle depuis **Équipe**, afin de configurer et composer l'équipe sans quitter son contexte de travail.
+
+**Acceptance Criteria**
+
+1. **Given** `canManageComposition`, **when** Équipe est ouverte, **then** le format courant et son action de changement sont disponibles avec la composition ; Infos affiche le même format et le résumé de besoins sans CTA d'édition.
+2. **Given** un format proposé dont le template diffère de `roleSlots`, **when** l'organisateur le choisit, **then** une confirmation explicite précède toute mutation.
+3. **Given** confirmation, **when** le template est appliqué, **then** les slots requis manquants sont créés, les slots vides devenus inutiles sont retirés, et aucune affectation n'est supprimée silencieusement.
+4. **Given** un utilisateur sans permission de gestion, **when** il consulte Équipe ou Infos, **then** aucune action de structure ou de changement de format n'est exposée.
+5. **Couverture :** FR12, FR14, UX-DR11. **Priorité :** P1. **Depends:** CN-1.
+
+#### Story 22.2 : Équipe — édition libre de la structure des slots
+
+En tant qu'**organisateur·ice**, je veux ajouter, affecter, désaffecter et supprimer explicitement des slots, afin d'adapter librement la composition aux besoins réels du spectacle.
+
+**Acceptance Criteria**
+
+1. **Given** `+ Ajouter un rôle`, **when** activé, **then** un slot provisoire vide et sans rôle apparaît immédiatement au-dessus de cette action ; aucun besoin persistant ne change encore.
+2. **Given** le slot provisoire, **when** l'organisateur choisit un rôle, **then** le besoin persistant de ce rôle augmente et le slot rejoint la fin de son groupe de rôle ; il peut rester vide ou recevoir une affectation.
+3. **Given** une personne affectée, **when** l'organisateur utilise la croix dans sa zone d'affectation, **then** la personne est désassignée et le slot requis demeure ; tooltip : « Désassigner cette personne de ce rôle ».
+4. **Given** une poubelle de slot, **when** le slot est vide, **then** il est supprimé et le besoin associé diminue. **Given** le slot est affecté, **when** la poubelle est utilisée, **then** une confirmation explicite précède la suppression du slot et de son affectation.
+5. **Given** plusieurs slots d'un même rôle, **when** la composition est rendue, **then** les groupes de rôle sont stables et leur ordre interne suit la création ; aucun réordonnancement manuel n'est introduit.
+6. **Couverture :** FR14, FR21, UX-DR11. **Priorité :** P1. **Depends:** 22.1.
+
+#### Story 22.3 : Application sûre d'un template et slots Hors modèle
+
+En tant qu'**organisateur·ice**, je veux appliquer un template sans perdre une personne déjà affectée, afin de pouvoir changer de format de façon sûre et explicable.
+
+**Acceptance Criteria**
+
+1. **Given** un template retirant un rôle ou une position qui contient une affectation, **when** il est confirmé, **then** cette affectation est conservée dans son groupe de rôle, rendue avec un état neutre/gris « Hors modèle », et exclue des projections membres, agenda, destinataires et statistiques.
+2. **Given** une même application de template, **when** une position retirée est vide, **then** le slot est supprimé sans créer de Hors modèle.
+3. **Given** un slot Hors modèle affecté, **when** il est désassigné ou structurellement supprimé, **then** il disparaît de la composition et les projections restent cohérentes, sans mutation partielle en cas de conflit.
+4. **Given** une largeur mobile, **when** le rôle d'un slot provisoire est choisi et son picker se ferme, **then** le slot final est amené à l'écran et le focus passe à « Affecter une personne ». Sur desktop, le scroll n'intervient que s'il est hors champ.
+5. **Given** les tests, **when** ils couvrent l'application de template, **then** ils prouvent conservation affectée, suppression vide, redaction membre, concurrence atomique, focus mobile et absence de notification implicite.
+6. **Couverture :** FR19–FR22, FR35, UX-DR11. **Priorité :** P1. **Depends:** 22.1, 22.2, CN-1.
+
+#### Story 22.4 : Retrait CN-2 et décision de notification
+
+En tant que **propriétaire produit**, je veux retirer l'approche CN-2 devenue obsolète et statuer sur les notifications de suppression explicite, afin que la documentation, le code et les communications décrivent une seule expérience cohérente.
+
+**Acceptance Criteria**
+
+1. **Given** l'audit CN-2, **when** Epic 22 est couvert, **then** aucune section ou wording de régularisation autonome ne reste dans l'expérience ou les contrats actifs ; l'historique demeure traçable comme superseded.
+2. **Given** une suppression explicite de slot affecté, **when** la décision produit CN-3 est prise, **then** la règle de notification est définie séparément de la simple conservation Hors modèle et testée après commit.
+3. **Given** une migration des comportements existants, **when** elle est livrée, **then** CN-1 est revalidé comme garde-fou de préservation et les projections ordinaires ne voient jamais de détail organisateur.
+4. **Couverture :** FR35. **Priorité :** P1. **Depends:** 22.3.

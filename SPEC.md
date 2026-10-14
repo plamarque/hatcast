@@ -26,6 +26,20 @@ This section complements the **legacy** admin behaviour described elsewhere in t
 
 ---
 
+## Flexible event composition (V2 target)
+
+An organizer who can manage an event composition configures its structure and fills it in the **Équipe** tab. The tab owns format/template selection, role-slot editing, assignments, and draw. The **Infos** tab is a read-only summary of the resulting format and role counts.
+
+- A format is a starting template. Selecting a different template whose role needs differ requires confirmation before it is applied.
+- Applying a template creates missing slots and removes obsolete empty slots. It never silently removes an assigned person: an affected assignment remains organizer-visible as a neutral **Hors modèle** slot until an organizer explicitly changes it.
+- An organizer can add a provisional empty slot, choose its role, then assign a person or leave it empty. The persisted role need changes only when a role is chosen.
+- Unassigning a person and deleting a structural slot are distinct actions. Deleting an assigned slot requires explicit confirmation.
+- Member projections, agendas, notifications, and statistics include only slots required by the effective `roleSlots`; organizer-only out-of-template details must not leak.
+
+Exact UI placement, focus behavior, and implementation sequencing are defined by Epic 22 and its UX specification.
+
+---
+
 ## Organizer share and announce (V2 target)
 
 Normative intent for organizers with **`canManageComposition`** (UI chrome in [_ux-design-share-announce-manual-only.md_](_bmad-output/planning-artifacts/ux-design-share-announce-manual-only.md) — story **6.23** ; DOMAIN glossary). Applies to the Angular + Spring V2 stack.
