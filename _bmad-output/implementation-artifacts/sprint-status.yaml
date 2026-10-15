@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 10-14-2026 17:55
-last_updated: 10-14-2026 17:55
+last_updated: 10-15-2026 23:20
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -268,5 +268,5 @@ development_status:
   22-1-équipe-format-et-besoins-au-même-endroit: done
   22-2-équipe-édition-libre-de-la-structure-des-slots: done
   22-3-application-sûre-d-un-template-et-slots-hors-modèle: done
-  22-4-retrait-cn-2-et-décision-de-notification: backlog
+  22-4-retrait-cn-2-et-décision-de-notification: done
   epic-22-retrospective: optional

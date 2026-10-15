@@ -34,6 +34,7 @@ An organizer who can manage an event composition configures its structure and fi
 - Applying a template creates missing slots and removes obsolete empty slots. It never silently removes an assigned person: an affected assignment remains organizer-visible as a neutral **Hors modèle** slot until an organizer explicitly changes it.
 - An organizer can add a provisional empty slot, choose its role, then assign a person or leave it empty. The persisted role need changes only when a role is chosen.
 - Unassigning a person and deleting a structural slot are distinct actions. Deleting an assigned slot requires explicit confirmation.
+- After unlock, an explicit deletion of an assigned slot is silent while the draft is edited. If the draft successfully revalidates, the still-removed linked member receives the established removal notification after commit; Hors modèle retention does not notify.
 - Member projections, agendas, notifications, and statistics include only slots required by the effective `roleSlots`; organizer-only out-of-template details must not leak.
 
 Exact UI placement, focus behavior, and implementation sequencing are defined by Epic 22 and its UX specification.

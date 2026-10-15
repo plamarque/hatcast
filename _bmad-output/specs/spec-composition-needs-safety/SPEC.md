@@ -27,8 +27,8 @@ This corrective patch prevents an organizer from changing event role needs and u
   - **success:** An organizer sees affected assignments as neutral Hors modèle slots in their role group; member views and member agenda projections show only assignments in current required positions.
 
 - **CAP-3 — Member removal notification**
-  - **intent:** A member is told when a needs change removes them from a composition that was already visible to members.
-  - **success:** Each affected assignee receives the established removal notification only after the persisted update succeeds and only when the prior composition was member-visible; unpublished changes send none.
+  - **intent:** A member is told only when an organizer explicitly deletes their assigned slot from an unlocked composition that was already visible to members.
+  - **success:** The deletion remains silent while the draft is edited. On successful revalidation, each still-removed affected assignee receives the established removal notification after commit; unpublished changes, Hors modèle retention, and failed revalidations send none.
 
 - **CAP-4 — Explainable structure history**
   - **intent:** An organizer can see role-need changes as part of event activity without needing a separate regularization screen.
@@ -38,7 +38,7 @@ This corrective patch prevents an organizer from changing event role needs and u
 
 - Changing needs remains permitted; the system must neither silently delete selected people nor block a legitimate format change.
 - Assigned slots outside current needs are organizer/admin-only Hors modèle details; they must not leak through member composition, agenda, notification-recipient, or statistics projections.
-- Removal delivery is an after-commit domain event and uses existing eligibility/preferences; a failed or rolled-back update sends nothing.
+- Removal delivery is an after-commit domain event emitted only by successful revalidation and uses existing eligibility/preferences; a failed or rolled-back deletion or revalidation sends nothing.
 - UI work follows the Material 3 and mobile-first requirements in `FRONTEND_UI.md`.
 
 ## Non-goals
