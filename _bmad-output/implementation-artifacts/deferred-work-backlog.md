@@ -1,5 +1,24 @@
 # Deferred Work
 
+## Historical notes archived from the active ledger (2026-10-16)
+
+These notes remain searchable context, but are not active DW entries.
+
+- **Season selection tie-break** — source spec:
+  `spec-fix-stats-current-season.md`; candidates from a set need a stable final
+  ID comparator when active state, dates, and title are identical. This is a
+  product-direction decision under the approved spec.
+- **19.20 review context** — no end-to-end Formules-to-Équipe assignment chain
+  in that diff; the mock-up footnote “une catégorie = une formule” was outside
+  its AC; `defaultRule.allowedFormulaIds` needs a re-GET after publishing a
+  formula.
+- **BUG-023 context** — preserve the saved Home-card state when inbox refresh
+  fails; the prior `member-home-todo` flow discarded `result.item`.
+- **E2E-WD-07 context** — distinct draw formulas should yield distinct preview
+  chances when their rules differ; split from the staging release gate.
+- **DW-126 (resolved 2026-08-27)** — fresh-clone BMad skill provisioning is
+  covered by `story-worktree-bootstrap.sh` and `story-branch.test.sh`.
+
 ### DW-129: Versions `posthog-js` divergentes entre legacy (^1.391.2) et web (^1.379.2) — aligner à terme, hors scope critique cutover M4.
 
 origin: migrated from legacy ledger ("Deferred from: code review of 11-3-v1-v2-cutover-funnel-posthog (2026-06-19)"), 2026-08-26

@@ -8,7 +8,30 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ---
 
-## Open Issues
+## Current follow-up
+
+This index is the active reading surface. Full evidence remains in the
+historical registry below.
+
+### Open defects and limitations
+
+BUG-031 (format cancellation), BUG-029 (date-sensitive agenda fixture),
+BUG-028 (mobile season chart), BUG-023 (stale Home badge), LIMIT-009 (Dispos
+view), BUG-018 (staging traffic), LIMIT-008 (Loop policy), LIMIT-007 (web unit
+stability), LIMIT-004 (seed roster), BUG-008 (push preferences), LIMIT-001
+(legacy E2E), LIMIT-003 (development PWA install), and LIMIT-002 (shared API
+integration database).
+
+### Pending verification or operational follow-up
+
+BUG-033 needs an authorised production data repair. BUG-027, BUG-026, BUG-025,
+BUG-024, and BUG-021 have local fixes but still require their stated review,
+human-smoke, integration, or validation gate.
+
+### Historical registry
+
+Entries below preserve the original evidence. A `Fixed` status means history,
+not active work; items listed in the two sections above remain actionable.
 
 ### BUG-033 — Une adhésion active peut manquer du roster de saison
 
