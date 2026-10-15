@@ -22,7 +22,7 @@ LEGAL_STATUSES = {
 KEY_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 EPIC_RE = re.compile(r"^### Epic ([0-9]+)\s+[—-]\s+.+$", re.MULTILINE)
 STORY_RE = re.compile(r"^#### Story ([0-9]+)\.([0-9]+[a-z]?)\s*:\s*(.+?)\s*$", re.MULTILINE)
-STATUS_ENTRY_RE = re.compile(r"^  ([a-z0-9]+(?:-[a-z0-9]+)*): ([a-z-]+)(?:[ \t]+#.*)?\r?$")
+STATUS_ENTRY_RE = re.compile(r"^  ([^\s:]+): ([a-z-]+)(?:[ \t]+#.*)?\r?$")
 
 
 class SyncError(Exception):
@@ -81,9 +81,14 @@ def parse_statuses(lines: list[str], start: int, end: int) -> dict[str, str]:
         if not match:
             raise SyncError("TRACKING_MALFORMED")
         key, status = match.groups()
-        if status not in LEGAL_STATUSES or key in statuses:
+        canonical_key = slugify(key)
+        if (
+            status not in LEGAL_STATUSES
+            or not KEY_RE.fullmatch(canonical_key)
+            or canonical_key in statuses
+        ):
             raise SyncError("TRACKING_MALFORMED")
-        statuses[key] = status
+        statuses[canonical_key] = status
     return statuses
 
 

@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.hatcast.api.auth.GoogleIdTokenService
 import com.hatcast.api.auth.IdpIdTokenVerifier
 import com.hatcast.api.auth.SessionUserPrincipal
+import com.hatcast.api.audit.AuditActionType
+import com.hatcast.api.audit.AuditEventRepository
 import com.hatcast.api.composition.CompositionService
 import com.hatcast.api.composition.EventCompositionEntity
 import com.hatcast.api.composition.EventCompositionRepository
@@ -17,6 +19,7 @@ import com.hatcast.api.troupe.TroupeBaselineRole
 import com.hatcast.api.troupe.TroupeMembershipRepository
 import com.hatcast.api.user.UserRepository
 import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
@@ -38,6 +41,7 @@ import org.springframework.http.MediaType
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
@@ -89,6 +93,9 @@ class CompositionNotificationTriggerMatrixIntegrationTest {
 
     @Autowired
     private lateinit var rollbackProbe: ValidateCompositionRollbackProbe
+
+    @Autowired
+    private lateinit var auditEventRepository: AuditEventRepository
 
     private val seedTroupeId: UUID = UUID.fromString("a0000001-0000-4000-8000-000000000001")
     private val mapper = ObjectMapper()
@@ -187,12 +194,23 @@ class CompositionNotificationTriggerMatrixIntegrationTest {
     fun `M-RB validate rollback does not dispatch any intent`() {
         val googleSub = "sub-matrix-rollback-admin"
         val admin = adminCookie(googleSub)
-        memberCookie("sub-matrix-rollback-assignee")
+        memberCookie("sub-matrix-rollback-former")
         val seasonId = createSeason(admin)
         ensureParticipants(seasonId)
-        val eventId = createEvent(admin, seasonId)
-        val assigneeId = participantIdForUser(seasonId, "sub-matrix-rollback-assignee")
-        seedDraftSlots(eventId, listOf(assigneeId))
+        val eventId = createEvent(admin, seasonId, playerCount = 2)
+        val formerId = participantIdForUser(seasonId, "sub-matrix-rollback-former")
+        val keptId = createSeasonParticipant(seasonId, "Rollback Kept")
+        seedDraftSlots(eventId, listOf(formerId, keptId))
+        validate(admin, seasonId, eventId)
+        unlock(admin, seasonId, eventId)
+        mockMvc
+            .perform(delete(slotPath(seasonId, eventId, 0)).cookie(admin).with(csrf()))
+            .andExpect(status().isOk)
+
+        val audits = auditEventRepository.findByEventIdOrderByOccurredAtDesc(eventId)
+        val deletion = audits.first { it.actionType == AuditActionType.SLOT_DELETED }
+        val unlock = audits.first { it.actionType == AuditActionType.COMPOSITION_UNLOCKED }
+        assertTrue(deletion.occurredAt > unlock.occurredAt)
         org.mockito.kotlin.reset(notificationDispatcher)
         val principal = adminPrincipal(googleSub)
 
@@ -379,6 +397,100 @@ class CompositionNotificationTriggerMatrixIntegrationTest {
                     .content("""{"participantId":null}""")
                     .with(csrf()),
             ).andExpect(status().isOk)
+
+        verify(notificationDispatcher, never()).dispatch(
+            argThat { intent == NotificationIntent.REMOVED_FROM_COMPOSITION },
+        )
+    }
+
+    // --- M-E3 explicit structural deletion after unlock ---
+
+    @Test
+    fun `M-E3 explicit deletion stays silent until successful revalidation`() {
+        val admin = adminCookie("sub-matrix-delete-admin")
+        memberCookie("sub-matrix-delete-former")
+        val seasonId = createSeason(admin)
+        ensureParticipants(seasonId)
+        val eventId = createEvent(admin, seasonId, playerCount = 2)
+        val formerId = participantIdForUser(seasonId, "sub-matrix-delete-former")
+        val keptId = createSeasonParticipant(seasonId, "Delete Kept")
+        seedDraftSlots(eventId, listOf(formerId, keptId))
+        validate(admin, seasonId, eventId)
+        unlock(admin, seasonId, eventId)
+        org.mockito.kotlin.reset(notificationDispatcher)
+
+        mockMvc
+            .perform(delete(slotPath(seasonId, eventId, 0)).cookie(admin).with(csrf()))
+            .andExpect(status().isOk)
+
+        verify(notificationDispatcher, never()).dispatch(
+            argThat { intent == NotificationIntent.REMOVED_FROM_COMPOSITION },
+        )
+
+        validate(admin, seasonId, eventId)
+
+        verify(notificationDispatcher, times(1)).dispatch(
+            argThat {
+                intent == NotificationIntent.REMOVED_FROM_COMPOSITION &&
+                    assigneeParticipantIds == listOf(formerId) &&
+                    roleKey == "player" &&
+                    slotIndex == 0
+            },
+        )
+    }
+
+    @Test
+    fun `M-E4 reselected former assignee is not notified on revalidation`() {
+        val admin = adminCookie("sub-matrix-reselect-admin")
+        val former = memberCookie("sub-matrix-reselect-former")
+        val seasonId = createSeason(admin)
+        ensureParticipants(seasonId)
+        val eventId = createEvent(admin, seasonId, playerCount = 2)
+        val formerId = participantIdForUser(seasonId, "sub-matrix-reselect-former")
+        val keptId = createSeasonParticipant(seasonId, "Reselect Kept")
+        seedDraftSlots(eventId, listOf(formerId, keptId))
+        validate(admin, seasonId, eventId)
+        unlock(admin, seasonId, eventId)
+        mockMvc
+            .perform(delete(slotPath(seasonId, eventId, 0)).cookie(admin).with(csrf()))
+            .andExpect(status().isOk)
+        setAvailability(former, seasonId, eventId, "available")
+        mockMvc
+            .perform(
+                put(slotPath(seasonId, eventId, 0))
+                    .cookie(admin)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"participantId":"$formerId"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+        org.mockito.kotlin.reset(notificationDispatcher)
+
+        validate(admin, seasonId, eventId)
+
+        verify(notificationDispatcher, never()).dispatch(
+            argThat { intent == NotificationIntent.REMOVED_FROM_COMPOSITION },
+        )
+    }
+
+    @Test
+    fun `M-E5 deleting an out of model slot does not notify on revalidation`() {
+        val admin = adminCookie("sub-matrix-out-of-model-admin")
+        memberCookie("sub-matrix-out-of-model-required")
+        memberCookie("sub-matrix-out-of-model-retained")
+        val seasonId = createSeason(admin)
+        ensureParticipants(seasonId)
+        val eventId = createEvent(admin, seasonId)
+        val requiredId = participantIdForUser(seasonId, "sub-matrix-out-of-model-required")
+        val retainedId = participantIdForUser(seasonId, "sub-matrix-out-of-model-retained")
+        seedDraftSlots(eventId, listOf(requiredId, retainedId))
+        validate(admin, seasonId, eventId)
+        unlock(admin, seasonId, eventId)
+        org.mockito.kotlin.reset(notificationDispatcher)
+
+        mockMvc
+            .perform(delete(outOfModelSlotPath(seasonId, eventId, 1)).cookie(admin).with(csrf()))
+            .andExpect(status().isOk)
+        validate(admin, seasonId, eventId)
 
         verify(notificationDispatcher, never()).dispatch(
             argThat { intent == NotificationIntent.REMOVED_FROM_COMPOSITION },
@@ -642,6 +754,9 @@ class CompositionNotificationTriggerMatrixIntegrationTest {
 
     private fun participationPath(seasonId: UUID, eventId: UUID): String =
         "/v1/seasons/$seasonId/events/$eventId/composition/slots/player/0/participation"
+
+    private fun outOfModelSlotPath(seasonId: UUID, eventId: UUID, slotIndex: Int): String =
+        "/v1/seasons/$seasonId/events/$eventId/composition/out-of-model-slots/player/$slotIndex"
 
     private fun proxyAvailabilityPath(seasonId: UUID, eventId: UUID, participantId: UUID): String =
         "/v1/seasons/$seasonId/events/$eventId/availability/participants/$participantId"

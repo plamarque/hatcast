@@ -15,7 +15,7 @@ This corrective work is now a **safety dependency** of Epic 22, not a standalone
 
 - `EventService.update` already records an `EVENT_UPDATED` audit snapshot containing `roleSlots`, but event-detail notification and display summaries currently cover date, location, and format only.
 - `EventEquipeTab.slotRows` currently iterates only current `event.roleSlots`; this caused affected stored assignments to disappear from the organizer view.
-- `NotificationIntent.REMOVED_FROM_COMPOSITION` and its payload already exist. Its `publishAssigneeRemoved` helper is not currently called, and no current role-needs update produces the removal event.
+- `NotificationIntent.REMOVED_FROM_COMPOSITION` and its payload already exist. Explicit structural deletion persists `SLOT_DELETED`; successful revalidation is the only path that turns this bounded audit diff into an after-commit removal event.
 - Member-facing composition visibility and all downstream projections must continue to honor the existing member/organizer authorization boundary.
 
 ## Story contracts
@@ -25,8 +25,8 @@ This corrective work is now a **safety dependency** of Epic 22, not a standalone
 **Scope**
 
 - Compute affected assigned slots by comparing the persisted slots with the post-update required positions.
-- Preserve those slots as organizer-only regularization data; do not silently clear, reassign, or count them as current team members.
-- Return an explicit, permission-gated reconciliation model instead of asking clients to infer it from hidden or missing slots.
+- Preserve those slots as organizer-only Hors modèle data; do not silently clear, reassign, or count them as current team members.
+- Return an explicit, permission-gated Hors modèle model instead of asking clients to infer it from hidden or missing slots.
 - Keep member composition, agenda focus, recipient resolution, and participation/statistics projections limited to current required positions.
 
 **Acceptance evidence**
@@ -53,14 +53,14 @@ This corrective work is now a **safety dependency** of Epic 22, not a standalone
 
 **Scope**
 
-- Emit an after-commit removal event for every newly affected assignee only when the composition was visible to members before the needs update (published or otherwise member-visible under the domain rule).
+- Persist explicit assigned-slot deletion as `SLOT_DELETED` after unlock, without immediate delivery. On successful revalidation, emit an after-commit removal event for each still-removed assignee from the audits after the latest unlock boundary.
 - Reuse `REMOVED_FROM_COMPOSITION`; the message states that the person is no longer in the composition and links to the event, without exposing organizer-only rationale.
-- Define idempotency at the needs-update transition level so retries do not duplicate notification, while a later genuine re-selection and removal can notify again.
+- Reuse the existing one-shot `(intent, event, user)` delivery mark so retries do not duplicate notification; no generic audit-diff system is introduced.
 
 **Acceptance evidence**
 
-- Visible composition plus affected assignee: one eligible recipient receives one notification after commit.
-- Draft/invisible composition: no removal notification.
+- Explicit deletion after unlock: no immediate delivery; successful revalidation produces one eligible recipient notification after commit.
+- Draft/invisible composition, Hors modèle retention, or a former assignee reselected before revalidation: no removal notification.
 - Unaffected assignee, disabled preference, no linked user, rollback, and retry are safe no-send/no-duplicate cases.
 
 ## Test matrix
@@ -70,15 +70,15 @@ This corrective work is now a **safety dependency** of Epic 22, not a standalone
 | API/domain | Role reduction/removal/increase; update rollback; visibility-gated reconciliation; permission-gated response; lifecycle and statistics regressions; after-commit removal event and idempotency. |
 | Notification | Recipient selection, category eligibility, payload copy/link, no sends for drafts, retries, or non-affected assignees. |
 | Audit | Stored before/after `roleSlots` maps and rendered French role/count deltas, including mixed property changes. |
-| Angular | No-warning safe edit; impact confirmation; organizer-only regularization section; member projection excludes mismatches; action refreshes state; M3 and narrow viewport checks. |
-| E2E | Seeded event with a member-visible composition, reduce/remove a role, verify organizer reconciliation, member team truth, and notification delivery record. Avoid mutable shared-state fixtures. |
+| Angular | No-warning safe edit; explicit deletion confirmation; organizer-only Hors modèle row; member projection excludes mismatches; action refreshes state; M3 and narrow viewport checks. |
+| E2E | Seeded event with a member-visible composition, explicit assigned-slot deletion after unlock, successful revalidation, member team truth, and notification delivery record. Avoid mutable shared-state fixtures. |
 | Regression | Targeted API/web tests, full `./gradlew test`, web unit suite, web production build, and the affected Playwright flow. |
 
 ## Patch gates
 
 1. Review the final behavior against this SPEC and the Material 3 checklist.
 2. Run the test matrix in a dedicated prepared worktree; capture command output and a real organizer/member smoke.
-3. Perform a staging smoke using a disposable seeded event: published composition, role reduction, organizer regularization, member view, and notification evidence.
+3. Perform a staging smoke using a disposable seeded event: validated composition, explicit deletion after unlock, revalidation, member view, and notification evidence.
 4. Review code and release notes; obtain explicit approval for tracker update, commit, push, and the patch release separately.
 5. Follow the HatCast V2 release procedure for the approved patch version; do not select or publish a version as part of this planning document.
 

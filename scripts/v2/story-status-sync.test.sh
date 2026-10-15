@@ -45,6 +45,14 @@ output="$(python3 "${controller}" --project-root "${project}" --story-key 21-6-g
 after="$(shasum -a 256 "${project}/_bmad-output/implementation-artifacts/sprint-status.yaml" | awk '{print $1}')"
 [[ "${output}" == *$'TRACKING=present'* && "${before}" == "${after}" ]] || fail "idempotency changed bytes"
 
+accented="$(make_project accented)"
+accented_file="${accented}/_bmad-output/implementation-artifacts/sprint-status.yaml"
+sed -i '' 's/legacy-key: done  # must remain/21-6-github-réview-decision-controller: backlog/' "${accented_file}"
+accented_before="$(shasum -a 256 "${accented_file}" | awk '{print $1}')"
+output="$(python3 "${controller}" --project-root "${accented}" --story-key 21-6-github-review-decision-controller)"
+accented_after="$(shasum -a 256 "${accented_file}" | awk '{print $1}')"
+[[ "${output}" == *$'TRACKING=present'* && "${accented_before}" == "${accented_after}" ]] || fail "accented canonical key was not recognized unchanged"
+
 historical="$(make_project historical)"
 historical_file="${historical}/_bmad-output/implementation-artifacts/sprint-status.yaml"
 historical_entries="$(for number in $(seq 1 238); do printf '  historical-%s: done\\n' "${number}"; done)"

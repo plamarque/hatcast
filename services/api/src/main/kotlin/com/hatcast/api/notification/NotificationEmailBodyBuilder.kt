@@ -302,10 +302,12 @@ class NotificationEmailBodyBuilder(
         return listOf(
             NotificationEmailHtml.paragraphHtml(
                 "La composition de ${NotificationEmailHtml.bold(eventTitle)} le " +
-                    "${NotificationEmailHtml.bold(eventDate)} a été mise à jour : tu n'y figures plus$rolePart.",
+                    "${NotificationEmailHtml.bold(eventDate)} a été mise à jour. " +
+                    "Malheureusement, tu ne fais plus partie de la composition$rolePart.",
             ),
             NotificationEmailHtml.paragraph(
-                "Désolé pour ce changement. Tu peux consulter la composition actuelle sur HatCast.",
+                "Pour en savoir plus, rapproche-toi des organisateur·ices du spectacle. " +
+                    "Tu peux aussi consulter la composition actuelle sur HatCast.",
             ),
         )
     }

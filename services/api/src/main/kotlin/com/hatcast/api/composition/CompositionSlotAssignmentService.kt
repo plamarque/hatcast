@@ -492,26 +492,6 @@ class CompositionSlotAssignmentService(
         )
     }
 
-    private fun publishAssigneeRemoved(
-        eventId: UUID,
-        seasonId: UUID,
-        actorUserId: UUID,
-        formerAssigneeParticipantId: UUID,
-        roleKey: String,
-        slotIndex: Int,
-    ) {
-        eventPublisher.publishEvent(
-            CompositionAssigneeRemovedEvent(
-                eventId = eventId,
-                seasonId = seasonId,
-                actorUserId = actorUserId,
-                formerAssigneeParticipantId = formerAssigneeParticipantId,
-                roleKey = roleKey,
-                slotIndex = slotIndex,
-            ),
-        )
-    }
-
     private fun requireManageComposition(
         eventId: UUID,
         seasonId: UUID,

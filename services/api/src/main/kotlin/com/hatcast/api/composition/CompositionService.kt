@@ -170,6 +170,17 @@ class CompositionService(
             compositionRepository.save(composition)
             val isRevalidation =
                 auditEventRepository.existsByEventIdAndActionType(eventId, AuditActionType.COMPOSITION_VALIDATED)
+            val pendingRemovalNotifications =
+                if (isRevalidation) {
+                    removalNotificationsSinceLatestUnlock(
+                        eventId = eventId,
+                        seasonId = seasonId,
+                        actorUserId = principal.userId,
+                        currentSlots = slots,
+                    )
+                } else {
+                    emptyList()
+                }
             val assigneesNeedingConfirm =
                 slots
                     .filter { it.hasAssignee() && it.participationStatus != SlotParticipationStatus.CONFIRMED }
@@ -217,10 +228,56 @@ class CompositionService(
                     after = AuditSnapshots.compositionLifecycle(composition),
                 ),
             )
+            pendingRemovalNotifications.forEach(eventPublisher::publishEvent)
         }
 
         lifecycleAuditRecorder.recordIfChanged(event, seasonId, beforeRawLifecycle)
         return buildResponse(event, principal, canManage = true, includeSlotExplainability = false)
+    }
+
+    /**
+     * Structural deletion is silent while an organizer edits an unlocked draft. The
+     * latest unlock audit boundary supplies the persisted diff for revalidation.
+     */
+    private fun removalNotificationsSinceLatestUnlock(
+        eventId: UUID,
+        seasonId: UUID,
+        actorUserId: UUID,
+        currentSlots: List<EventCompositionSlotEntity>,
+    ): List<CompositionAssigneeRemovedEvent> {
+        val audits = auditEventRepository.findByEventIdOrderByOccurredAtDesc(eventId)
+        val latestUnlockIndex = audits.indexOfFirst { it.actionType == AuditActionType.COMPOSITION_UNLOCKED }
+        if (latestUnlockIndex < 0) {
+            return emptyList()
+        }
+
+        val currentAssigneeIds = currentSlots.mapNotNull { it.assignedParticipantId() }.toSet()
+        return audits
+            .take(latestUnlockIndex)
+            .asSequence()
+            .filter {
+                it.actionType == AuditActionType.SLOT_DELETED &&
+                    it.metadataJson?.get("outsideModel") != true
+            }
+            .mapNotNull { audit ->
+                val formerAssigneeId = audit.subjectSeasonParticipantId ?: audit.subjectEventParticipantId
+                    ?: return@mapNotNull null
+                if (formerAssigneeId in currentAssigneeIds) {
+                    return@mapNotNull null
+                }
+                val roleKey = audit.metadataJson?.get("roleKey") as? String ?: return@mapNotNull null
+                val slotIndex = (audit.metadataJson?.get("slotIndex") as? Number)?.toInt() ?: return@mapNotNull null
+                CompositionAssigneeRemovedEvent(
+                    eventId = eventId,
+                    seasonId = seasonId,
+                    actorUserId = actorUserId,
+                    formerAssigneeParticipantId = formerAssigneeId,
+                    roleKey = roleKey,
+                    slotIndex = slotIndex,
+                )
+            }
+            .distinctBy { it.formerAssigneeParticipantId }
+            .toList()
     }
 
     @Transactional
