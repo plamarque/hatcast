@@ -1533,6 +1533,25 @@ afin de mesurer les indicateurs avancés (délai première dispo, délai confirm
 
 ---
 
+#### Story 11.4 : Observabilité parcours organisateur PostHog
+
+En tant qu’**opérateur produit**,
+je veux distinguer les parcours **membre** et **organisateur dans leur contexte de troupe, saison et événement**,
+afin de comprendre l’adoption, les abandons et les issues des outils de gestion sans collecter de données métier ou personnelles inutiles.
+
+**Acceptance Criteria**
+
+- **Given** un événement analytics métier émis depuis un détail d’événement, **when** le contexte de permissions est connu, **then** l’événement porte un `actor_scope` borné et calculé pour cet événement (`member`, `event_organizer`, `season_organizer`, `troupe_admin`, `platform_admin`) ; il ne dépend pas d’un rôle global de personne qui deviendrait faux hors périmètre.
+- **Given** un organisateur utilise les surfaces de composition, **when** il ouvre l’espace, modifie un créneau, lance/consulte un tirage, valide, publie, annonce ou relance les disponibilités, **then** des événements sémantiques permettent de reconstruire les étapes et leur issue sans contenir de nom, email, message libre, commentaire, participant ciblé ou contenu de notification.
+- **Given** une action organisateur échoue ou est refusée, **when** elle est instrumentée, **then** seule une catégorie d’issue bornée est enregistrée ; aucun détail brut d’erreur, payload API ou donnée personnelle n’est envoyé.
+- **Given** PostHog, **when** un opérateur analyse l’usage, **then** il peut filtrer les événements par `actor_scope`, contexte troupe/saison/événement déjà pseudonymisé et `is_demo_troupe`, et comparer un funnel organisateur aux parcours membre pertinents.
+- **Given** les nouveaux événements, **when** ils sont livrés, **then** leurs noms, propriétés autorisées, règles de déduplication et requêtes/funnels opérateur sont documentés ; la création ou modification de dashboards PostHog reste une action explicitement autorisée.
+- **And** les tests protègent le contrat de propriétés et l’absence de PII sur les événements.
+
+**Couverture :** FR47 ; NFR-S2 ; complète les stories 11.1, 11.2 et OPS-9.
+
+---
+
 ### Epic 12 — Parcours membre & agenda utilisateur
 
 Les membres ont un **agenda personnel** multi-ligues et multi-troupes, un **routage post-connexion** sans écran intermédiaire, et une **navigation claire** depuis le détail événement vers la ligue et la troupe.

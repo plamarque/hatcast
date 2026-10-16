@@ -72,6 +72,8 @@ scripts/replay/output/
 .agents/skills/*
 !.agents/skills/hatcast-v2-release/
 !.agents/skills/hatcast-v2-release/**
+!.agents/skills/hatcast-posthog-smoke-analysis/
+!.agents/skills/hatcast-posthog-smoke-analysis/**
 .cursor/skills/
 
 # BMad personal install answers (user_name, communication_language — per developer)
