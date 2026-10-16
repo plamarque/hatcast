@@ -26,7 +26,8 @@ integration database).
 
 BUG-033 needs an authorised production data repair. BUG-027, BUG-026, BUG-025,
 BUG-024, and BUG-021 have local fixes but still require their stated review,
-human-smoke, integration, or validation gate.
+human-smoke, integration, or validation gate. PERF-003 needs a production CLS
+check on `/accueil` after release.
 
 ### Historical registry
 
@@ -502,6 +503,17 @@ not active work; items listed in the two sections above remain actionable.
 - **Expected behavior**: Bouton secondaire Material (`mat-stroked-button`).
 - **Fix**: Story **6.11** — `mat-stroked-button` sur Déverrouiller.
 - **Notes/context**: Recette validée 2026-05-27.
+
+### PERF-003 — Accueil layout shift when « Tout est à jour » appears after SWR revalidation
+- **ID**: PERF-003
+- **Status**: Fixed locally — production CLS check pending
+- **Severity**: Medium (Web Vitals CLS « poor » on `/accueil`, mobile)
+- **Affected area**: V2 `apps/web` — `MemberHomeTodo` (`/accueil`)
+- **Observed behavior**: An in-app navigation to Accueil with a fresh inbox cache and no required action shows « Prochain spectacle » and « Accès rapides » first. When the background refresh ends, the « Tout est à jour » banner is inserted above them and pushes them down (one shift of about 0.14 at 375×766).
+- **Expected behavior**: The banner does not move other content when it appears.
+- **Cause**: PERF-12 hides the banner during SWR revalidation (no stale « Tout est à jour » flash), so the banner had no layout box until the refresh ended.
+- **Fix**: The banner box stays in the layout during revalidation, with `visibility: hidden` and `aria-hidden`. It becomes visible when the refresh confirms the state.
+- **Notes/context**: A stale cache that differs from the fresh inbox still moves content, because the content changes.
 
 ### PERF-001 — Actions composition (API + rechargements) anormalement lentes en dev
 - **ID**: PERF-001

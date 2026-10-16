@@ -218,7 +218,7 @@ describe('MemberHomeTodo', () => {
     expect(fixture.nativeElement.textContent).toContain('Spectacle en cache')
   })
 
-  it('n’affiche pas « Tout est à jour » pendant la revalidation SWR', async () => {
+  it('masque « Tout est à jour » pendant la revalidation SWR sans libérer sa place', async () => {
     inboxApi.peekFreshCache.mockReturnValue(inboxResponse([]))
 
     let resolveBackground!: (value: unknown) => void
@@ -238,7 +238,10 @@ describe('MemberHomeTodo', () => {
     }
     fixture.detectChanges()
 
-    expect(fixture.nativeElement.textContent).not.toContain('Tout est à jour')
+    const pending = fixture.nativeElement.querySelector('[data-testid="todo-caught-up"]') as HTMLElement
+    expect(pending).toBeTruthy()
+    expect(pending.classList).toContain('member-home-todo__celebration--pending')
+    expect(pending.getAttribute('aria-hidden')).toBe('true')
 
     resolveBackground({
       ok: true,
@@ -246,7 +249,10 @@ describe('MemberHomeTodo', () => {
       data: inboxResponse([]),
     })
     await settle(fixture)
-    expect(fixture.nativeElement.textContent).toContain('Tout est à jour')
+    const shown = fixture.nativeElement.querySelector('[data-testid="todo-caught-up"]') as HTMLElement
+    expect(shown.classList).not.toContain('member-home-todo__celebration--pending')
+    expect(shown.hasAttribute('aria-hidden')).toBe(false)
+    expect(shown.textContent).toContain('Tout est à jour')
   })
 
   it('affiche les accès rapides même en erreur de chargement inbox', async () => {

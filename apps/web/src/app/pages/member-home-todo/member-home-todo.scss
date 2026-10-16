@@ -133,6 +133,11 @@
   background: color-mix(in srgb, var(--mat-sys-tertiary) 10%, var(--mat-sys-surface));
 }
 
+// Revalidating a cached « Tout est à jour »: keep the box, hide the content until confirmed.
+.member-home-todo__celebration--pending {
+  visibility: hidden;
+}
+
 .member-home-todo__celebration-icon {
   width: 2.75rem;
   height: 2.75rem;

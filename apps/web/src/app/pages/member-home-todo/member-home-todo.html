@@ -97,8 +97,14 @@
         </section>
       }
 
-      @if (showAllCaughtUpBanner()) {
-        <section class="member-home-todo__celebration" aria-labelledby="todo-caught-up-heading">
+      @if (reserveAllCaughtUpBanner()) {
+        <section
+          class="member-home-todo__celebration"
+          [class.member-home-todo__celebration--pending]="!showAllCaughtUpBanner()"
+          [attr.aria-hidden]="showAllCaughtUpBanner() ? null : 'true'"
+          aria-labelledby="todo-caught-up-heading"
+          data-testid="todo-caught-up"
+        >
           <mat-icon class="member-home-todo__celebration-icon" aria-hidden="true">check_circle</mat-icon>
           <h2 id="todo-caught-up-heading" class="member-home-todo__celebration-title">Tout est à jour</h2>
           @if (showNoUpcomingEventsEmpty()) {
