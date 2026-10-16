@@ -1,5 +1,38 @@
 # Changelog
 
+## [2.6.2] - 2026-10-16
+
+### ✨ New Features
+- feat(story): merge 22-4-retrait-cn-2-et-decision-de-notification
+- feat(composition): Notify slot removal
+- feat(story): Merge 22.3
+- feat(equipe): Preserve out-of-model slots
+- feat(story): Merge 22.2
+- feat(composition): Streamline publish flow
+- feat(equipe): Add free slot editing
+- feat(equipe): Move format editing to team
+
+### 🐛 Bug Fixes
+- fix(tracker): Support accented story keys
+- fix(equipe): Refine free slot editing
+- fix(membership): Sync season participants
+- fix(equipe): Polish format editing
+- fix(equipe): Preserve mobile member names
+
+### 📝 Other Changes
+- chore(v2): promote v2 to staging-v2
+- docs(release): Add v2.6.2 user changelog cutover
+- docs: Clean up planning records
+- chore(tracker): Complete composition epic
+- chore(tracker): Reconcile sprint status
+- chore(neon): Add MCP server configuration
+- docs(workflow): Define story closure
+- docs(planning): Prepare free slot editing
+- docs(dev): Document worktree smoke startup
+- docs(planning): Add flexible slots epic
+
+---
+
 ## [2.6.1] - 2026-10-13
 
 ### ✨ New Features
