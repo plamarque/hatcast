@@ -8,7 +8,53 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ---
 
-## Open Issues
+## Current follow-up
+
+This index is the active reading surface. Full evidence remains in the
+historical registry below.
+
+### Open defects and limitations
+
+BUG-031 (format cancellation), BUG-029 (date-sensitive agenda fixture),
+BUG-028 (mobile season chart), BUG-023 (stale Home badge), LIMIT-009 (Dispos
+view), BUG-018 (staging traffic), LIMIT-008 (Loop policy), LIMIT-007 (web unit
+stability), LIMIT-004 (seed roster), BUG-008 (push preferences), LIMIT-001
+(legacy E2E), LIMIT-003 (development PWA install), and LIMIT-002 (shared API
+integration database).
+
+### Pending verification or operational follow-up
+
+BUG-033 needs an authorised production data repair. BUG-027, BUG-026, BUG-025,
+BUG-024, and BUG-021 have local fixes but still require their stated review,
+human-smoke, integration, or validation gate.
+
+### Historical registry
+
+Entries below preserve the original evidence. A `Fixed` status means history,
+not active work; items listed in the two sections above remain actionable.
+
+### BUG-033 — Une adhésion active peut manquer du roster de saison
+
+- **ID**: BUG-033
+- **Status**: Fixed locally — targeted verification passed; production data repair pending explicit approval
+- **Severity**: High (le membre peut ne plus voir les spectacles auxquels son adhésion de troupe lui donne accès)
+- **Affected area**: V2 membership lifecycle and season participant synchronization (`TroupeMembershipService`, CSV member import).
+- **Observed behavior**: Un membre ajouté par l'administration, importé par CSV, ou rejoignant une troupe ouverte pouvait avoir une adhésion `ACTIVE` sans ligne `season_participants`. Les projections Accueil / agenda s'appuient sur cette ligne et pouvaient donc n'afficher que les spectacles d'une autre troupe, par exemple la troupe démo.
+- **Expected behavior**: Toute création ou réactivation d'adhésion membre active synchronise le roster de toutes les saisons de la troupe. Les retraits CSV inactivent aussi ces participations sans écraser un retrait explicite par l'administration de saison.
+- **Cause**: Les chemins de création d'adhésion directe, d'import CSV et de self-join ne déclenchaient pas tous `SeasonParticipantMembershipSync`; seule une partie des réactivations était synchronisée.
+- **Fix**: Le correctif appelle la synchronisation centrale après chaque création/réactivation concernée et couvre les transitions CSV active/inactive ainsi que self-join. Un ré-ajout administratif ou une ligne CSV inchangée guérit aussi une participation manquante, sans réactiver un retrait explicite de saison.
+- **Notes/context**: Le code empêche une nouvelle dérive. Les adhésions créées avant son déploiement nécessitent un diagnostic de production en lecture seule puis une autorisation explicite avant toute réparation des données existantes.
+
+### BUG-032 — Équipe mobile : le rôle masque les noms
+
+- **ID**: BUG-032
+- **Status**: Fixed (2026-10-14)
+- **Severity**: Medium (la composition reste visible, mais les personnes assignées ne sont plus identifiables sur un téléphone étroit)
+- **Affected area**: V2 `apps/web` — onglet Équipe, lignes de créneaux de composition.
+- **Observed behavior**: À largeur mobile, la colonne fixe du rôle et son libellé occupaient assez de place pour tronquer, voire masquer visuellement, le nom de la personne assignée.
+- **Expected behavior**: À `≤ 480 px`, chaque rôle reste identifiable par son emoji, tandis que le nom de la personne conserve l'espace horizontal prioritaire. Les libellés complets restent affichés au-delà de ce breakpoint.
+- **Fix**: La colonne de rôle passe de `7.5rem` à `2.75rem` sur mobile, et le chip Équipe n'affiche que son emoji ; les actions et la grille existantes sont inchangées.
+- **Notes/context**: Signalé avec la capture de l'onglet Équipe sur iPhone. Le contrôle de pool interactif conserve son `aria-label` complet.
 
 ### BUG-031 — « Annuler » dans Format et besoins vide les besoins
 

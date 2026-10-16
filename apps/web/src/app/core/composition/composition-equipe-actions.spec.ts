@@ -23,9 +23,9 @@ function flags(overrides: Partial<EquipeActionFlags> = {}): EquipeActionFlags {
 }
 
 describe('resolveEquipePrimaryAction', () => {
-  it('returns validate when canValidate', () => {
+  it('returns publish when canValidate', () => {
     expect(resolveEquipePrimaryAction(flags({ canValidate: true, hasAssignedSlot: true }))).toBe(
-      'validate',
+      'publish',
     )
   })
 
@@ -49,7 +49,7 @@ describe('resolveEquipePrimaryAction', () => {
 })
 
 describe('shouldPutShareInOverflow', () => {
-  it('keeps share in grid during draft validate + draw', () => {
+  it('keeps share in grid during draft publish + draw', () => {
     expect(
       shouldPutShareInOverflow(
         flags({
@@ -118,7 +118,7 @@ describe('canValidateComposition', () => {
 
 describe('EQUIPE_ACTION_LABELS', () => {
   it('matches event-equipe-tab toolbar button copy', () => {
-    expect(EQUIPE_ACTION_LABELS.validate).toBe('Valider')
+    expect(EQUIPE_ACTION_LABELS.publish).toBe('Publier')
     expect(EQUIPE_ACTION_LABELS.draw).toBe('Tirer au sort')
     expect(EQUIPE_ACTION_LABELS.announce).toBe('Annoncer la compo')
     expect(EQUIPE_ACTION_LABELS.fill).toBe('Compléter')
@@ -128,7 +128,7 @@ describe('EQUIPE_ACTION_LABELS', () => {
 })
 
 describe('resolveEquipeToolbarLayout', () => {
-  it('shows validate, draw and share in grid for draft toolbar', () => {
+  it('shows publish, draw and share in grid for draft toolbar', () => {
     const layout = resolveEquipeToolbarLayout(
       flags({
         canValidate: true,
@@ -137,8 +137,8 @@ describe('resolveEquipeToolbarLayout', () => {
         hasAssignedSlot: true,
       }),
     )
-    expect(layout.primary).toBe('validate')
-    expect(layout.grid).toEqual(['validate', 'draw', 'share'])
+    expect(layout.primary).toBe('publish')
+    expect(layout.grid).toEqual(['publish', 'draw', 'share'])
     expect(layout.overflow).toEqual([])
   })
 

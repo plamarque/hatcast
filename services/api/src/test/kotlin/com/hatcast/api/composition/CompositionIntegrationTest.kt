@@ -15,6 +15,7 @@ import com.hatcast.api.user.UserRepository
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -30,6 +31,7 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.mock.web.MockMultipartFile
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
@@ -435,6 +437,83 @@ class CompositionIntegrationTest {
             .andExpect(jsonPath("$.reconciliationItems.length()").value(0))
 
         assertEquals(2, slotRepository.findByEventId(eventId).size)
+    }
+
+    @Test
+    fun `organizer can clear an assigned out-of-model slot in a draft`() {
+        val adminCookie = memberCookie("sub-compo-clear-outside-model", admin = true)
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, "Clear outside model")
+        val participantId = createSeasonParticipant(seasonId, "Affected player")
+        val now = Instant.now()
+        compositionRepository.save(EventCompositionEntity(eventId = eventId, createdAt = now, updatedAt = now))
+        slotRepository.save(
+            EventCompositionSlotEntity(
+                eventId = eventId,
+                roleKey = "player",
+                slotIndex = 1,
+                seasonParticipantId = participantId,
+                participationStatus = SlotParticipationStatus.PENDING,
+            ),
+        )
+        mockMvc.perform(
+            patch("/v1/seasons/$seasonId/events/$eventId")
+                .cookie(adminCookie)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"roleSlots":{"player":1}}""")
+                .with(csrf()),
+        ).andExpect(status().isOk)
+
+        mockMvc.perform(
+            get("/v1/seasons/$seasonId/events/$eventId/composition")
+                .cookie(adminCookie),
+        ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.reconciliationItems.length()").value(1))
+            .andExpect(jsonPath("$.reconciliationItems[0].participantDisplayName").value("Affected player"))
+
+        mockMvc.perform(
+            delete("/v1/seasons/$seasonId/events/$eventId/composition/out-of-model-slots/player/1/assignee")
+                .cookie(adminCookie)
+                .with(csrf()),
+        ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.reconciliationItems.length()").value(0))
+
+        assertNull(slotRepository.findByEventId(eventId).single().assignedParticipantId())
+    }
+
+    @Test
+    fun `organizer can delete an assigned out-of-model slot without changing needs`() {
+        val adminCookie = memberCookie("sub-compo-delete-outside-model", admin = true)
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, "Delete outside model")
+        val participantId = createSeasonParticipant(seasonId, "Affected player")
+        val now = Instant.now()
+        compositionRepository.save(EventCompositionEntity(eventId = eventId, createdAt = now, updatedAt = now))
+        slotRepository.save(
+            EventCompositionSlotEntity(
+                eventId = eventId,
+                roleKey = "player",
+                slotIndex = 1,
+                seasonParticipantId = participantId,
+                participationStatus = SlotParticipationStatus.PENDING,
+            ),
+        )
+        mockMvc.perform(
+            patch("/v1/seasons/$seasonId/events/$eventId")
+                .cookie(adminCookie)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"roleSlots":{"player":1}}""")
+                .with(csrf()),
+        ).andExpect(status().isOk)
+
+        mockMvc.perform(
+            delete("/v1/seasons/$seasonId/events/$eventId/composition/out-of-model-slots/player/1")
+                .cookie(adminCookie)
+                .with(csrf()),
+        ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.reconciliationItems.length()").value(0))
+
+        assertEquals(0, slotRepository.findByEventId(eventId).size)
     }
 
     @Test

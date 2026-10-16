@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core'
 
 import type { MemberGender } from '../account/member-gender'
 import { effectiveMemberGender } from '../account/member-gender'
+import type { EventResponse } from '../events/event-api.service'
 import { csrfHeaders } from '../http/hatcast-csrf'
 
 export type CompositionVisibility =
@@ -136,6 +137,15 @@ export interface CompositionDecline {
   note?: string | null
 }
 
+/** Organizer-only assignment retained after its slot no longer matches event needs. */
+export interface CompositionReconciliationItem {
+  roleKey: string
+  slotIndex: number
+  participantId: string
+  participantDisplayName: string
+  participationStatus: 'pending' | 'confirmed' | 'declined'
+}
+
 export type SlotParticipationUpdateStatus = 'confirmed' | 'pending' | 'declined'
 
 export interface CompositionResponse {
@@ -143,6 +153,7 @@ export interface CompositionResponse {
   validatedAt?: string | null
   visibility: CompositionVisibility
   slots: CompositionSlot[]
+  reconciliationItems?: CompositionReconciliationItem[]
   declines?: CompositionDecline[]
   viewerParticipantIds?: string[]
 }
@@ -376,6 +387,65 @@ export class CompositionApiService {
       }
       const data = normalizeCompositionResponse((await res.json()) as CompositionResponse)
       return { ok: true, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  async deleteCompositionSlot(
+    seasonId: string,
+    eventId: string,
+    roleKey: string,
+    slotIndex: number,
+  ): Promise<CompositionApiResult<EventResponse>> {
+    try {
+      const res = await fetch(
+        `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/composition/slots/${encodeURIComponent(roleKey)}/${slotIndex}`,
+        {
+          method: 'DELETE',
+          credentials: 'include',
+          headers: csrfHeaders(),
+        },
+      )
+      if (!res.ok) {
+        return { ok: false, status: res.status, errorMessage: await readApiErrorMessage(res) }
+      }
+      return { ok: true, status: res.status, data: (await res.json()) as EventResponse }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  async clearOutOfModelSlot(
+    seasonId: string,
+    eventId: string,
+    roleKey: string,
+    slotIndex: number,
+  ): Promise<CompositionApiResult<CompositionResponse>> {
+    return this.mutateOutOfModelSlot(seasonId, eventId, roleKey, slotIndex, 'assignee')
+  }
+
+  async deleteOutOfModelSlot(
+    seasonId: string,
+    eventId: string,
+    roleKey: string,
+    slotIndex: number,
+  ): Promise<CompositionApiResult<CompositionResponse>> {
+    return this.mutateOutOfModelSlot(seasonId, eventId, roleKey, slotIndex)
+  }
+
+  private async mutateOutOfModelSlot(
+    seasonId: string,
+    eventId: string,
+    roleKey: string,
+    slotIndex: number,
+    suffix = '',
+  ): Promise<CompositionApiResult<CompositionResponse>> {
+    try {
+      const path = `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/composition/out-of-model-slots/${encodeURIComponent(roleKey)}/${slotIndex}${suffix ? `/${suffix}` : ''}`
+      const res = await fetch(path, { method: 'DELETE', credentials: 'include', headers: csrfHeaders() })
+      if (!res.ok) return { ok: false, status: res.status, errorMessage: await readApiErrorMessage(res) }
+      return { ok: true, status: res.status, data: normalizeCompositionResponse((await res.json()) as CompositionResponse) }
     } catch {
       return { ok: false, status: 0 }
     }

@@ -16,6 +16,7 @@ import com.hatcast.api.troupe.TroupeMembershipRepository
 import com.hatcast.api.troupe.TroupeMembershipStatus
 import com.hatcast.api.user.UserRepository
 import jakarta.servlet.http.Cookie
+import org.hamcrest.Matchers.hasItems
 import org.hamcrest.Matchers.hasSize
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -30,6 +31,7 @@ import org.springframework.http.MediaType
 import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf
 import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.annotation.DirtiesContext
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
@@ -42,6 +44,7 @@ import java.util.UUID
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class TroupeMembershipLifecycleIntegrationTest {
     @Autowired
     private lateinit var mockMvc: MockMvc
@@ -299,7 +302,7 @@ class TroupeMembershipLifecycleIntegrationTest {
         mockMvc
             .perform(get("/v1/me/agenda").cookie(memberCookie))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.content", hasSize<Any>(2)))
+            .andExpect(jsonPath("$.content[*].title", hasItems("Guest show", "Sibling show")))
 
         mockMvc
             .perform(

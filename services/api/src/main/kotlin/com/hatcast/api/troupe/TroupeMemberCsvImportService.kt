@@ -1,5 +1,6 @@
 package com.hatcast.api.troupe
 
+import com.hatcast.api.participant.SeasonParticipantMembershipSync
 import com.hatcast.api.troupe.dto.MemberCsvRowDto
 import com.hatcast.api.troupe.dto.MemberImportRowResultDto
 import com.hatcast.api.user.UserAccountService
@@ -17,6 +18,7 @@ class TroupeMemberCsvImportService(
     private val troupeRepository: TroupeRepository,
     private val userAccountService: UserAccountService,
     private val userMemberPreferencesService: UserMemberPreferencesService,
+    private val membershipSync: SeasonParticipantMembershipSync,
 ) {
     fun importRow(
         troupeId: UUID,
@@ -85,6 +87,7 @@ class TroupeMemberCsvImportService(
                 existing.displayName == resolvedDisplayName &&
                 (targetDisplayName == null || accountDisplayName == targetDisplayName)
             ) {
+                syncSeasonParticipants(existing)
                 return MemberImportRowResultDto(
                     rowNumber = row.rowNumber,
                     outcome = MemberImportRowOutcome.SKIPPED,
@@ -113,10 +116,12 @@ class TroupeMemberCsvImportService(
                 existing.preferredRoleKeys = user.preferredRoleKeys
             }
             existing.updatedAt = now
-            membershipRepository.save(existing)
+            var saved = membershipRepository.save(existing)
             if (targetDisplayName != null) {
                 userMemberPreferencesService.updateMemberDisplayName(user.id, targetDisplayName)
+                saved = membershipRepository.findByTroupe_IdAndUser_Id(troupeId, user.id) ?: saved
             }
+            syncSeasonParticipants(saved)
             return rowSuccess(row.rowNumber, email)
         }
         if (targetDisplayName != null) {
@@ -134,11 +139,19 @@ class TroupeMemberCsvImportService(
                 updatedAt = now,
             )
         return try {
-            membershipRepository.saveAndFlush(membership)
+            val saved = membershipRepository.saveAndFlush(membership)
+            syncSeasonParticipants(saved)
             rowSuccess(row.rowNumber, email)
         } catch (ex: DataIntegrityViolationException) {
             if (membershipRepository.findByTroupe_IdAndUser_Id(troupeId, user.id) == null) throw ex
             importRow(troupeId, row)
+        }
+    }
+
+    private fun syncSeasonParticipants(membership: TroupeMembershipEntity) {
+        when (membership.status) {
+            TroupeMembershipStatus.ACTIVE -> membershipSync.ensureForMembershipAcrossTroupe(membership)
+            TroupeMembershipStatus.INACTIVE -> membershipSync.removeForMembershipAcrossTroupe(membership)
         }
     }
 

@@ -6,6 +6,7 @@ import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.participant.ParticipantStatus
 import com.hatcast.api.participant.SeasonParticipantEntity
+import com.hatcast.api.participant.SeasonParticipantRemovalSource
 import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.season.SeasonEntity
 import com.hatcast.api.season.SeasonRepository
@@ -118,6 +119,56 @@ class TroupeMembershipIntegrationTest {
             .andExpect(jsonPath("$.[0].isDemo").value(false))
             .andExpect(jsonPath("$.[0].membership.status").value("ACTIVE"))
             .andExpect(jsonPath("$.[0].membership.baselineRole").value("MEMBER"))
+
+        val user = userRepository.findByGoogleSub("sub-membership-1")!!
+        val membership = membershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, user.id)!!
+        val participants =
+            seasonParticipantRepository.findBySeason_IdAndTroupeMembership_IdIn(
+                seedSeasonId,
+                listOf(membership.id),
+            )
+        assertEquals(1, participants.size)
+        assertEquals(ParticipantStatus.ACTIVE, participants.single().status)
+    }
+
+    @Test
+    fun `troupe admin add enrolls the member in the troupe season`() {
+        val adminCookie = signInAndJoin("sub-admin-add-season", "admin-add-season@example.com", "Season Admin")
+        promoteSeedMemberToAdmin("sub-admin-add-season")
+        signIn("sub-member-add-season", "member-add-season@example.com", "Season Member")
+
+        mockMvc
+            .perform(
+                post("/v1/troupes/$seedTroupeId/members")
+                    .cookie(adminCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"email":"member-add-season@example.com"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        val member = userRepository.findByGoogleSub("sub-member-add-season")!!
+        val membership = membershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, member.id)!!
+        val participant =
+            seasonParticipantRepository.findBySeason_IdAndTroupeMembership_Id(seedSeasonId, membership.id)
+                ?: error("Admin member add must synchronize the season participant")
+        assertEquals(ParticipantStatus.ACTIVE, participant.status)
+
+        seasonParticipantRepository.delete(participant)
+        seasonParticipantRepository.flush()
+
+        mockMvc
+            .perform(
+                post("/v1/troupes/$seedTroupeId/members")
+                    .cookie(adminCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"email":"member-add-season@example.com"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        assertNotNull(
+            seasonParticipantRepository.findBySeason_IdAndTroupeMembership_Id(seedSeasonId, membership.id),
+            "Re-adding an active member must heal a missing season participant",
+        )
     }
 
     @Test
@@ -175,7 +226,7 @@ class TroupeMembershipIntegrationTest {
             .andExpect(jsonPath("$.length()").value(2))
             .andExpect(
                 jsonPath("$.[?(@.slug == 'les-improbots')].upcomingEventCount")
-                    .value(org.hamcrest.Matchers.contains(0)),
+                    .value(org.hamcrest.Matchers.everyItem(org.hamcrest.Matchers.greaterThan(0))),
             )
             .andExpect(
                 jsonPath("$.[?(@.slug == 'les-improbots')].activeMemberCount")
@@ -925,6 +976,88 @@ class TroupeMembershipIntegrationTest {
             "Export Target Updated",
             findMemberInAdminList(adminCookie, "csv-target-1@example.com").get("displayName").asText(),
         )
+        val firstMembership =
+            membershipRepository.findByTroupe_IdAndUser_Id(
+                seedTroupeId,
+                userRepository.findFirstByEmailIgnoreCase("csv-target-1@example.com")!!.id,
+            )!!
+        val secondMembership =
+            membershipRepository.findByTroupe_IdAndUser_Id(
+                seedTroupeId,
+                userRepository.findFirstByEmailIgnoreCase("csv-target-2@example.com")!!.id,
+            )!!
+        val participants =
+            seasonParticipantRepository.findBySeason_IdAndTroupeMembership_IdIn(
+                seedSeasonId,
+                listOf(firstMembership.id, secondMembership.id),
+            )
+        assertEquals(2, participants.size)
+        assertTrue(participants.all { it.status == ParticipantStatus.ACTIVE })
+        assertEquals(
+            "Export Target Updated",
+            participants.single { it.troupeMembership?.id == firstMembership.id }.displayName,
+        )
+        assertEquals(
+            "Nouveau membre",
+            participants.single { it.troupeMembership?.id == secondMembership.id }.displayName,
+        )
+        assertEquals(
+            setOf(firstMembership.id, secondMembership.id),
+            participants.mapNotNull { it.troupeMembership?.id }.toSet(),
+        )
+
+        val firstParticipant =
+            seasonParticipantRepository.findBySeason_IdAndTroupeMembership_Id(seedSeasonId, firstMembership.id)!!
+        seasonParticipantRepository.delete(firstParticipant)
+        seasonParticipantRepository.flush()
+        importMembersCsv(
+            adminCookie,
+            """
+            email,displayName,baselineRole,status
+            csv-target-1@example.com,Export Target Updated,MEMBER,active
+            """.trimIndent(),
+            expectedOutcome = "SKIPPED",
+        )
+        assertNotNull(
+            seasonParticipantRepository.findBySeason_IdAndTroupeMembership_Id(seedSeasonId, firstMembership.id),
+            "An unchanged CSV row must heal a missing season participant",
+        )
+
+        val inactiveCsv =
+            """
+            email,displayName,baselineRole,status
+            csv-target-2@example.com,Nouveau membre,MEMBER,inactive
+            """.trimIndent()
+        importMembersCsv(adminCookie, inactiveCsv)
+        var secondParticipant =
+            seasonParticipantRepository.findBySeason_IdAndTroupeMembership_Id(seedSeasonId, secondMembership.id)!!
+        assertEquals(ParticipantStatus.REMOVED, secondParticipant.status)
+        assertEquals(SeasonParticipantRemovalSource.MEMBERSHIP_INACTIVE, secondParticipant.removalSource)
+
+        val activeCsv =
+            """
+            email,displayName,baselineRole,status
+            csv-target-2@example.com,Nouveau membre,MEMBER,active
+            """.trimIndent()
+        importMembersCsv(adminCookie, activeCsv)
+        secondParticipant =
+            seasonParticipantRepository.findBySeason_IdAndTroupeMembership_Id(seedSeasonId, secondMembership.id)!!
+        assertEquals(ParticipantStatus.ACTIVE, secondParticipant.status)
+
+        secondParticipant.status = ParticipantStatus.REMOVED
+        secondParticipant.removalSource = SeasonParticipantRemovalSource.SEASON_ADMIN
+        secondParticipant.removedAt = Instant.now()
+        seasonParticipantRepository.save(secondParticipant)
+        val renamedActiveCsv =
+            """
+            email,displayName,baselineRole,status
+            csv-target-2@example.com,Nouveau membre renommé,MEMBER,active
+            """.trimIndent()
+        importMembersCsv(adminCookie, renamedActiveCsv)
+        secondParticipant =
+            seasonParticipantRepository.findBySeason_IdAndTroupeMembership_Id(seedSeasonId, secondMembership.id)!!
+        assertEquals(ParticipantStatus.REMOVED, secondParticipant.status)
+        assertEquals(SeasonParticipantRemovalSource.SEASON_ADMIN, secondParticipant.removalSource)
     }
 
     @Test
@@ -1441,17 +1574,10 @@ class TroupeMembershipIntegrationTest {
                 ),
             )
         val memberParticipant =
-            seasonParticipantRepository.save(
-                SeasonParticipantEntity(
-                    season = season,
-                    displayName = "Cascade Member",
-                    user = memberMembership.user,
-                    troupeMembership = memberMembership,
-                    status = ParticipantStatus.ACTIVE,
-                    createdAt = now,
-                    updatedAt = now,
-                ),
-            )
+            seasonParticipantRepository.findBySeason_IdAndTroupeMembership_Id(
+                season.id,
+                memberMembership.id,
+            ) ?: error("Member creation must synchronize its season participant")
 
         mockMvc
             .perform(
@@ -1752,6 +1878,27 @@ class TroupeMembershipIntegrationTest {
         email: String,
         name: String,
     ) = TestAuthSupport.sessionCookieFromGoogleSignIn(mockMvc, googleIdTokenService, googleSub, email, name)
+
+    private fun importMembersCsv(
+        adminCookie: Cookie,
+        csv: String,
+        expectedOutcome: String = "SUCCESS",
+    ) {
+        mockMvc
+            .perform(
+                multipart("/v1/troupes/$seedTroupeId/members/import")
+                    .file(
+                        org.springframework.mock.web.MockMultipartFile(
+                            "file",
+                            "members.csv",
+                            "text/csv",
+                            csv.toByteArray(),
+                        ),
+                    ).cookie(adminCookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.rows[0].outcome").value(expectedOutcome))
+    }
 
     private fun promoteSeedMemberToAdmin(googleSub: String) {
         val user = userRepository.findByGoogleSub(googleSub) ?: error("Missing test user $googleSub")

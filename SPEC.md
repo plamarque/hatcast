@@ -26,6 +26,21 @@ This section complements the **legacy** admin behaviour described elsewhere in t
 
 ---
 
+## Flexible event composition (V2 target)
+
+An organizer who can manage an event composition configures its structure and fills it in the **Équipe** tab. The tab owns format/template selection, role-slot editing, assignments, and draw. The **Infos** tab is a read-only summary of the resulting format and role counts.
+
+- A format is a starting template. Selecting a different template whose role needs differ requires confirmation before it is applied.
+- Applying a template creates missing slots and removes obsolete empty slots. It never silently removes an assigned person: an affected assignment remains organizer-visible as a neutral **Hors modèle** slot until an organizer explicitly changes it.
+- An organizer can add a provisional empty slot, choose its role, then assign a person or leave it empty. The persisted role need changes only when a role is chosen.
+- Unassigning a person and deleting a structural slot are distinct actions. Deleting an assigned slot requires explicit confirmation.
+- After unlock, an explicit deletion of an assigned slot is silent while the draft is edited. If the draft successfully revalidates, the still-removed linked member receives the established removal notification after commit; Hors modèle retention does not notify.
+- Member projections, agendas, notifications, and statistics include only slots required by the effective `roleSlots`; organizer-only out-of-template details must not leak.
+
+Exact UI placement, focus behavior, and implementation sequencing are defined by Epic 22 and its UX specification.
+
+---
+
 ## Organizer share and announce (V2 target)
 
 Normative intent for organizers with **`canManageComposition`** (UI chrome in [_ux-design-share-announce-manual-only.md_](_bmad-output/planning-artifacts/ux-design-share-announce-manual-only.md) — story **6.23** ; DOMAIN glossary). Applies to the Angular + Spring V2 stack.
@@ -263,8 +278,8 @@ Slices below describe desired behaviour to be implemented later. Implementation 
   - **Auto-draw cross-role rule:** A weighted draw must **never** assign the same participant to two roles on one event. Pre-existing assignees on the draft composition count toward cross-role exclusion before roles are processed in priority order (see DOMAIN.md and [draw-weight-engine-v1-spec.md](docs/v2/technical/draw-weight-engine-v1-spec.md)).
   - **Gender parity hint (organizer UX, Story 6.21):** A **non-blocking** summary of female/male counts among filled **`player`** slots with known gender (see SPEC § Member gender & team parity). Distinct from consecutive-show warning.
   - **Composition validate & unlock participation (V2, FR23):** **Unlock** clears structural validation only — assignees and each slot's participation status are **preserved**. **Validate** (first or revalidate) sets **non-`confirmed`** assignees to `pending` before notification dispatch; **`confirmed`** slots stay confirmed and are excluded from `CONFIRMATION_REQUEST` / `RECONFIRMATION_REQUEST`. Organizer **proxy** in organizer draft may update status without notification until validate. See DOMAIN.md and [`spec-composition-unlock-preserve-confirmations.md`](_bmad-output/implementation-artifacts/spec-composition-unlock-preserve-confirmations.md).
-  - **Composition organizer draft zone (V2 UX):** While composition is organizer draft, orga/admin see a **violet draft zone** inside the **Équipe** tab (not global event chrome) with chip *Brouillon* and coordination copy; **Partager** is visible in the action grid alongside **Valider** and **Tirer au sort**. See [_ux-design-hatcast-v2.md_ § Pattern: Composition organizer draft zone](_bmad-output/planning-artifacts/ux-design-hatcast-v2.md#pattern-composition-organizer-draft-zone).
-  - **Composition actions** (Tirage, Simuler, Valider, Déverrouiller, Annoncer, Effacer, Remplir, Envoyer, clear slot) are visible and usable only for users who can manage composition (Super Admin, Season Admin, Event Admin, or Caster). **Manual selection** (click on an empty slot to choose a player) is reserved for **administrators only** (Season Admin, Event Admin, Super Admin); casters cannot fill slots manually.
+  - **Composition organizer draft zone (V2 UX):** While composition is organizer draft, orga/admin see a **violet draft zone** inside the **Équipe** tab (not global event chrome) with chip *Brouillon* and coordination copy; **Partager** and **Tirer au sort** remain available, while **Publier** replaces **Valider**. **Publier** validates the composition then opens the existing *Annoncer la compo* dialog; dismissing that dialog keeps the composition validated and leaves **Annoncer la compo** available for later use. See [_ux-design-hatcast-v2.md_ § Pattern: Composition organizer draft zone](_bmad-output/planning-artifacts/ux-design-hatcast-v2.md#pattern-composition-organizer-draft-zone).
+  - **Composition actions** (Tirage, Simuler, Publier, Déverrouiller, Annoncer, Effacer, Remplir, Envoyer, clear slot) are visible and usable only for users who can manage composition (Super Admin, Season Admin, Event Admin, or Caster). **Manual selection** (click on an empty slot to choose a player) is reserved for **administrators only** (Season Admin, Event Admin, Super Admin); casters cannot fill slots manually.
   - Slot click in the Composition tab continues to open the confirmation flow (confirm/decline) for the selected player as today; no change to that behaviour.
   - Entry points that previously opened a composition popup now open or focus **event details with the Composition tab selected**: on the full-screen event view there is no footer "Composition Équipe" button — users open the Composition tab via the **Équipe** tab; TimelineView and similar triggers open event details on the Composition tab; URL `modal=selection` is treated like opening event details with `tab=compo`. No separate modal layer for composition.
   - User experience is a single place (event details) with one tab (Composition) where users see and perform only the actions their permissions allow.

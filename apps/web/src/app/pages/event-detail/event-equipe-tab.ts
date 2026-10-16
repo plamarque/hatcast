@@ -1,5 +1,5 @@
 import { NgTemplateOutlet } from '@angular/common'
-import { Component, computed, effect, inject, input, output, signal, viewChild } from '@angular/core'
+import { Component, computed, effect, ElementRef, inject, input, output, signal, viewChild, viewChildren } from '@angular/core'
 import { firstValueFrom } from 'rxjs'
 import { MatButtonModule } from '@angular/material/button'
 import { MatChipsModule } from '@angular/material/chips'
@@ -31,6 +31,7 @@ import {
   CompositionApiService,
   type CompositionDrawStep,
   type CompositionResponse,
+  type CompositionReconciliationItem,
   type CompositionSlot,
   type SlotParticipationUpdateStatus,
 } from '../../core/composition/composition-api.service'
@@ -52,10 +53,13 @@ import { computeCompositionPlayerGenderParity } from '../../core/composition/com
 import { canShowCompositionExplainability } from '../../core/composition/composition-explainability'
 import { resolveCompositionEquipeStatus } from '../../core/composition/composition-equipe-status'
 import { showCompositionDraftBanner } from '../../core/composition/composition-visibility'
-import type { EventResponse } from '../../core/events/event-api.service'
+import { EventApiService, type EventResponse } from '../../core/events/event-api.service'
 import { isEventDraft } from '../../core/events/event-draft'
 import {
   normalizeRoleSlots,
+  getEventTypeIcon,
+  getEventTypeLabel,
+  ROLE_KEYS,
   ROLE_EMOJIS,
   ROLE_LABELS,
   rolesWithSlots,
@@ -89,6 +93,11 @@ import {
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 import { ConfirmDialog, type ConfirmDialogData } from '../seasons-list/confirm-dialog'
 import { EventEquipeEmpty } from './event-equipe-empty'
+import {
+  EventTypeRolesDialog,
+  type EventTypeRolesDialogData,
+  type EventTypeRolesDialogResult,
+} from './event-type-roles-dialog'
 
 interface SlotRow {
   roleKey: string
@@ -96,6 +105,7 @@ interface SlotRow {
   roleLabel: string
   roleEmoji: string
   slot: CompositionSlot | null
+  outsideModel: boolean
 }
 
 @Component({
@@ -123,8 +133,12 @@ interface SlotRow {
 })
 export class EventEquipeTab {
   protected readonly roleChipDisplayText = roleActionChipDisplayText
+  protected readonly roleKeys = ROLE_KEYS
+  protected readonly roleLabels = ROLE_LABELS
+  protected readonly roleEmojis = ROLE_EMOJIS
 
   private readonly compositionApi = inject(CompositionApiService)
+  private readonly eventsApi = inject(EventApiService)
   private readonly drawPolicyApi = inject(DrawPolicyApiService)
   private readonly mePreferencesApi = inject(MePreferencesApiService)
   private readonly analytics = inject(ProductAnalyticsService)
@@ -133,6 +147,7 @@ export class EventEquipeTab {
   private readonly chanceBreakdown = inject(ChanceBreakdownService)
 
   private readonly drawAnimation = viewChild(CompositionDrawAnimation)
+  private readonly slotActions = viewChildren<ElementRef<HTMLButtonElement>>('slotAction')
 
   readonly seasonId = input.required<string>()
   readonly seasonSlug = input.required<string>()
@@ -147,6 +162,7 @@ export class EventEquipeTab {
   readonly parentCompositionLoaded = input(false)
 
   readonly compositionPublished = output<CompositionResponse>()
+  readonly eventUpdated = output<EventResponse>()
   readonly compositionInteractionBlockedChange = output<boolean>()
 
   protected readonly loading = signal(true)
@@ -156,7 +172,10 @@ export class EventEquipeTab {
   protected readonly drawing = signal(false)
   protected readonly assigning = signal(false)
   protected readonly restoringDeclineId = signal<string | null>(null)
+  protected readonly updatingFormat = signal(false)
   protected readonly updatingParticipation = signal(false)
+  protected readonly updatingStructure = signal(false)
+  protected readonly provisionalSlotVisible = signal(false)
   protected readonly composition = signal<CompositionResponse | null>(null)
   protected readonly showConfirmOpened = signal(false)
   protected readonly declinesExpanded = signal(false)
@@ -224,6 +243,8 @@ export class EventEquipeTab {
       this.validating() ||
       this.unlocking() ||
       this.updatingParticipation() ||
+      this.updatingStructure() ||
+      this.updatingFormat() ||
       this.restoringDeclineId() != null ||
       this.animatingDraw(),
   )
@@ -312,7 +333,7 @@ export class EventEquipeTab {
       composition: comp,
       canManageComposition: this.canManageComposition(),
       roleSlots: normalizeRoleSlots(ev.roleSlots),
-      suppressValidateCtaInGuideline: this.canValidate(),
+      suppressPublishCtaInGuideline: this.canValidate(),
     })
   })
 
@@ -320,6 +341,9 @@ export class EventEquipeTab {
     const ev = this.event()
     return !!ev && isEventDraft(ev)
   })
+
+  protected readonly formatIcon = computed(() => getEventTypeIcon(this.event().templateType))
+  protected readonly formatLabel = computed(() => getEventTypeLabel(this.event().templateType))
 
   protected readonly equipeActionFlags = computed(() => ({
     canValidate: this.canValidate(),
@@ -374,6 +398,10 @@ export class EventEquipeTab {
       !this.animatingDraw(),
   )
 
+  protected readonly canAddSlot = computed(
+    () => this.canEditSlots() && !this.provisionalSlotVisible(),
+  )
+
   protected readonly showActionsToolbar = computed(
     () =>
       this.canShareDraw() ||
@@ -385,7 +413,7 @@ export class EventEquipeTab {
       this.drawFormulaSelectorVisible(),
   )
 
-  /** Draw helper copy — not when validate lead already guides the forward action. */
+  /** Draw helper copy — not when publish lead already guides the forward action. */
   protected readonly showDrawActionHint = computed(
     () => this.canDraw() && !this.canValidate(),
   )
@@ -434,8 +462,9 @@ export class EventEquipeTab {
     const ev = this.event()
     const comp = this.composition()
     const roleSlots = normalizeRoleSlots(ev.roleSlots)
+    const reconciliationItems = this.canManageComposition() ? (comp?.reconciliationItems ?? []) : []
     const hasRequiredSlots = Object.values(roleSlots).some((n) => n > 0)
-    if (!hasRequiredSlots) {
+    if (!hasRequiredSlots && reconciliationItems.length === 0) {
       return []
     }
 
@@ -452,8 +481,18 @@ export class EventEquipeTab {
       slotsByKey.set(`${slot.roleKey}:${slot.slotIndex}`, slot)
     }
 
+    const reconciliationByRole = new Map<string, CompositionReconciliationItem[]>()
+    for (const item of reconciliationItems) {
+      const items = reconciliationByRole.get(item.roleKey) ?? []
+      items.push(item)
+      reconciliationByRole.set(item.roleKey, items)
+    }
+    const requiredRoleKeys: string[] = rolesWithSlots(roleSlots)
     const rows: SlotRow[] = []
-    for (const roleKey of rolesWithSlots(roleSlots)) {
+    for (const roleKey of [
+      ...requiredRoleKeys,
+      ...[...reconciliationByRole.keys()].filter((roleKey) => !requiredRoleKeys.includes(roleKey)),
+    ]) {
       const count = roleSlots[roleKey] ?? 0
       const label = ROLE_LABELS[roleKey as RoleKey] ?? roleKey
       const emoji = ROLE_EMOJIS[roleKey as RoleKey] ?? '•'
@@ -464,6 +503,23 @@ export class EventEquipeTab {
           roleLabel: label,
           roleEmoji: emoji,
           slot: slotsByKey.get(`${roleKey}:${index}`) ?? null,
+          outsideModel: false,
+        })
+      }
+      for (const item of (reconciliationByRole.get(roleKey) ?? []).sort((a, b) => a.slotIndex - b.slotIndex)) {
+        rows.push({
+          roleKey,
+          slotIndex: item.slotIndex,
+          roleLabel: label,
+          roleEmoji: emoji,
+          slot: {
+            roleKey: item.roleKey,
+            slotIndex: item.slotIndex,
+            participantId: item.participantId,
+            participantDisplayName: item.participantDisplayName,
+            participationStatus: item.participationStatus,
+          },
+          outsideModel: true,
         })
       }
     }
@@ -565,6 +621,60 @@ export class EventEquipeTab {
     })
   }
 
+  protected openFormatDialog(): void {
+    if (!this.canManageComposition() || this.compositionInteractionBlocked()) {
+      return
+    }
+    const ev = this.event()
+    const ref = this.dialog.open<
+      EventTypeRolesDialog,
+      EventTypeRolesDialogData,
+      EventTypeRolesDialogResult
+    >(EventTypeRolesDialog, {
+      data: {
+        seasonId: this.seasonId(),
+        eventId: ev.id,
+        templateType: ev.templateType,
+        roleSlots: ev.roleSlots,
+      },
+      width: 'min(100vw - 2rem, 32rem)',
+    })
+    ref.afterClosed().subscribe((result) => {
+      if (!result) {
+        return
+      }
+      void this.persistFormat(result)
+    })
+  }
+
+  private async persistFormat(result: Exclude<EventTypeRolesDialogResult, undefined>): Promise<void> {
+    if (this.updatingFormat()) {
+      return
+    }
+    const seasonId = this.seasonId()
+    const eventId = this.event().id
+    this.updatingFormat.set(true)
+    try {
+      const apiResult = await this.eventsApi.updateEvent(seasonId, eventId, {
+        templateType: result.templateType,
+        roleSlots: normalizeRoleSlots(result.roleSlots),
+      })
+      if (this.event().id !== eventId) {
+        return
+      }
+      if (!apiResult.ok || !apiResult.data) {
+        this.snack.open(apiResult.errorMessage ?? 'Enregistrement impossible.', 'OK', {
+          duration: 6000,
+        })
+        return
+      }
+      this.eventUpdated.emit(apiResult.data)
+      this.snack.open('Format et besoins enregistrés.', 'OK', { duration: 4000 })
+    } finally {
+      this.updatingFormat.set(false)
+    }
+  }
+
   protected readonly hasViewerParticipantIdentity = computed(
     () => this.viewerParticipantIds().size > 0,
   )
@@ -598,7 +708,7 @@ export class EventEquipeTab {
     if (!this.canManageComposition() || this.loading() || this.loadError()) {
       return false
     }
-    return row.slot?.participantId != null
+    return !row.outsideModel && row.slot?.participantId != null
   }
 
   protected canTapGapSlot(row: SlotRow): boolean {
@@ -627,7 +737,7 @@ export class EventEquipeTab {
 
   protected isSlotRowTappable(row: SlotRow): boolean {
     return (
-      this.canEditSlots() ||
+      (!row.outsideModel && this.canEditSlots()) ||
       this.canTapGapSlot(row) ||
       this.isParticipationSlotTappable(row) ||
       this.isForeignParticipationSlot(row)
@@ -647,7 +757,7 @@ export class EventEquipeTab {
     if (this.isParticipationSlotTappable(row)) {
       return name ? `Participation de ${name}, ${role}` : role
     }
-    if (this.canEditSlots() || this.canTapGapSlot(row)) {
+    if ((!row.outsideModel && this.canEditSlots()) || this.canTapGapSlot(row)) {
       return name ? `Modifier ${name}, ${role}` : `Assigner ${role}`
     }
     return name ? `${name}, ${role}` : role
@@ -696,7 +806,7 @@ export class EventEquipeTab {
         return
       }
     }
-    if (this.canEditSlots() || this.canTapGapSlot(row)) {
+    if ((!row.outsideModel && this.canEditSlots()) || this.canTapGapSlot(row)) {
       void this.openSlotPicker(row)
       return
     }
@@ -1397,6 +1507,109 @@ export class EventEquipeTab {
     await this.assignSlot(row, null)
   }
 
+  protected showProvisionalSlot(): void {
+    if (!this.canAddSlot()) {
+      return
+    }
+    this.provisionalSlotVisible.set(true)
+  }
+
+  protected async chooseProvisionalRole(roleKey: RoleKey): Promise<void> {
+    if (!this.provisionalSlotVisible() || !this.canEditSlots()) {
+      return
+    }
+    const seasonId = this.seasonId()
+    const eventId = this.event().id
+    const roleSlots = normalizeRoleSlots(this.event().roleSlots)
+    const targetSlotKey = `${roleKey}:${roleSlots[roleKey] ?? 0}`
+    roleSlots[roleKey] = (roleSlots[roleKey] ?? 0) + 1
+    this.updatingStructure.set(true)
+    try {
+      const result = await this.eventsApi.updateEvent(seasonId, eventId, { roleSlots })
+      if (this.event().id !== eventId) {
+        return
+      }
+      if (!result.ok || !result.data) {
+        this.snack.open(result.errorMessage ?? 'Ajout du rôle impossible.', 'OK', { duration: 6000 })
+        return
+      }
+      this.provisionalSlotVisible.set(false)
+      this.eventUpdated.emit(result.data)
+      this.focusNewSlot(targetSlotKey)
+      this.snack.open('Rôle ajouté.', 'OK', { duration: 4000 })
+    } finally {
+      this.updatingStructure.set(false)
+    }
+  }
+
+  protected async deleteSlot(row: SlotRow, event: Event): Promise<void> {
+    event.stopPropagation()
+    if (!this.canEditSlots()) {
+      return
+    }
+    const name = row.slot?.participantDisplayName
+    const message = row.outsideModel
+      ? `Tu vas supprimer définitivement ${name ?? 'cette affectation'} hors modèle.`
+      : name
+        ? `Tu vas aussi retirer ${name} du rôle ${row.roleLabel}. Ce spectacle demandera une personne de moins pour ce rôle, même si le format le prévoit.`
+        : `Tu vas retirer une place de ${row.roleLabel}. Ce spectacle demandera une personne de moins pour ce rôle, même si le format le prévoit.`
+    const confirmed = await firstValueFrom(
+      this.dialog
+        .open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
+          data: {
+            title: 'Supprimer cette place ?',
+            message,
+            confirmLabel: 'Supprimer la place',
+            destructive: true,
+          },
+        })
+        .afterClosed(),
+    )
+    if (!confirmed) {
+      return
+    }
+    const seasonId = this.seasonId()
+    const eventId = this.event().id
+    this.updatingStructure.set(true)
+    try {
+      if (row.outsideModel) {
+        const result = await this.compositionApi.deleteOutOfModelSlot(
+          seasonId,
+          eventId,
+          row.roleKey,
+          row.slotIndex,
+        )
+        if (this.event().id !== eventId) return
+        if (!result.ok || !result.data) {
+          this.snack.open(result.errorMessage ?? 'Suppression de la place impossible.', 'OK', { duration: 6000 })
+          return
+        }
+        this.applyCompositionUpdate(result.data)
+        this.snack.open('Place supprimée.', 'OK', { duration: 4000 })
+        return
+      }
+      const result = await this.compositionApi.deleteCompositionSlot(
+        seasonId,
+        eventId,
+        row.roleKey,
+        row.slotIndex,
+      )
+      if (this.event().id !== eventId) {
+        return
+      }
+      if (!result.ok || !result.data) {
+        this.snack.open(result.errorMessage ?? 'Suppression de la place impossible.', 'OK', {
+          duration: 6000,
+        })
+        return
+      }
+      this.eventUpdated.emit(result.data)
+      this.snack.open('Place supprimée.', 'OK', { duration: 4000 })
+    } finally {
+      this.updatingStructure.set(false)
+    }
+  }
+
   private async assignSlot(row: SlotRow, participantId: string | null): Promise<void> {
     if (this.assigning()) {
       return
@@ -1404,13 +1617,15 @@ export class EventEquipeTab {
     this.assigning.set(true)
     const seasonId = this.seasonId()
     const eventId = this.event().id
-    const result = await this.compositionApi.assignCompositionSlot(
-      seasonId,
-      eventId,
-      row.roleKey,
-      row.slotIndex,
-      participantId,
-    )
+    const result = row.outsideModel
+      ? await this.compositionApi.clearOutOfModelSlot(seasonId, eventId, row.roleKey, row.slotIndex)
+      : await this.compositionApi.assignCompositionSlot(
+          seasonId,
+          eventId,
+          row.roleKey,
+          row.slotIndex,
+          participantId,
+        )
     this.assigning.set(false)
     if (this.event().id !== eventId) {
       return
@@ -1424,6 +1639,21 @@ export class EventEquipeTab {
       return
     }
     this.applyCompositionUpdate(result.data)
+  }
+
+  private focusNewSlot(slotKey: string): void {
+    setTimeout(() => {
+      const target = this.slotActions().find(
+        (ref) => ref.nativeElement.dataset['slotKey'] === slotKey,
+      )?.nativeElement
+      if (!target) return
+      const isMobile = window.matchMedia?.('(max-width: 480px)').matches ?? false
+      const bounds = target.getBoundingClientRect()
+      if (isMobile || bounds.top < 0 || bounds.bottom > window.innerHeight) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+      target.focus()
+    })
   }
 
   private candidatesErrorMessage(status: number, apiMessage?: string): string {
@@ -1470,7 +1700,7 @@ export class EventEquipeTab {
     }
   }
 
-  protected async validate(): Promise<void> {
+  protected async publish(): Promise<void> {
     if (!this.canValidate()) {
       return
     }
@@ -1483,7 +1713,7 @@ export class EventEquipeTab {
       return
     }
     if (!result.ok || !result.data) {
-      this.snack.open(this.validateUnlockErrorMessage('validate', result.status, result.errorMessage), 'OK', {
+      this.snack.open(this.publishUnlockErrorMessage('publish', result.status, result.errorMessage), 'OK', {
         duration: 6000,
       })
       return
@@ -1493,6 +1723,7 @@ export class EventEquipeTab {
       this.analytics.eventContext(eventId, seasonId, this.troupeId()),
       { validated_at: result.data.validatedAt ?? new Date().toISOString() },
     )
+    this.openShareDialog('composition')
     this.snack.open('Composition validée.', 'OK', { duration: 4000 })
   }
 
@@ -1509,7 +1740,7 @@ export class EventEquipeTab {
       return
     }
     if (!result.ok || !result.data) {
-      this.snack.open(this.validateUnlockErrorMessage('unlock', result.status, result.errorMessage), 'OK', {
+      this.snack.open(this.publishUnlockErrorMessage('unlock', result.status, result.errorMessage), 'OK', {
         duration: 6000,
       })
       return
@@ -1536,8 +1767,8 @@ export class EventEquipeTab {
     }
   }
 
-  private validateUnlockErrorMessage(
-    action: 'validate' | 'unlock',
+  private publishUnlockErrorMessage(
+    action: 'publish' | 'unlock',
     status: number,
     apiMessage?: string,
   ): string {
@@ -1545,16 +1776,16 @@ export class EventEquipeTab {
       return apiMessage
     }
     if (status === 403) {
-      return action === 'validate'
-        ? 'Vous ne pouvez pas valider cette composition.'
+      return action === 'publish'
+        ? 'Vous ne pouvez pas publier cette composition.'
         : 'Vous ne pouvez pas déverrouiller cette composition.'
     }
     if (status === 409) {
-      return action === 'validate'
-        ? 'Rien à valider pour le moment.'
+      return action === 'publish'
+        ? 'Rien à publier pour le moment.'
         : 'La composition n\'est pas verrouillée.'
     }
-    return action === 'validate' ? 'Validation impossible.' : 'Déverrouillage impossible.'
+    return action === 'publish' ? 'Publication impossible.' : 'Déverrouillage impossible.'
   }
 
   private async loadEffectiveDrawPolicy(

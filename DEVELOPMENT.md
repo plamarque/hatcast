@@ -79,6 +79,24 @@ Stack : [`services/api/`](services/api/) (Kotlin / Spring Boot) et [`apps/web/`]
 
 **Tout-en-un (recommandé) :** `./scripts/start-dev.sh` à la racine — démarre l’API puis le client Angular (`ng serve --host`, HTTPS). Dans un worktree, il recharge le `.env` du checkout `v2` si le worktree n’en a pas, et réutilise le certificat mkcert `localhost` partagé sous `v2/.local/hatcast-dev-certs/`; ces fichiers locaux ne sont pas versionnés. Les variables `HATCAST_WEB_SSL_CERT` et `HATCAST_WEB_SSL_KEY` permettent de fournir un autre couple certificat/clé. **E2E :** arrêter ce script puis `./scripts/run_e2e.sh` (voir § Tests).
 
+### Recette manuelle V2 depuis un worktree
+
+Pour remettre une URL à une personne afin qu’elle teste un développement V2, démarrer la **stack complète** depuis le worktree :
+
+```bash
+./scripts/start-dev.sh --offline
+```
+
+Ce mode est le défaut sûr pour une recette locale : il démarre l’API Spring en profil `dev,offline`, une base H2 gitignorée propre au worktree et le front HTTPS sur `https://localhost:4200`. Il ne demande ni `.env`, ni Neon, ni Identity Platform réel. Pour les comptes seed, utiliser l’adresse complète `prenom@seed.improbots.test` — par exemple `patrice@seed.improbots.test` / `patricep`.
+
+`npm run dev:web:v2` et `ng serve` ne démarrent que le front et son proxy `/v1` : ils sont utiles uniquement si une API **compatible et déjà vérifiée** écoute sur `127.0.0.1:8080`. Ne pas les utiliser seuls pour une recette humaine, sinon la connexion et les actions métier échouent avec une indisponibilité du service.
+
+Avant de transmettre l’URL, vérifier la chaîne complète : le front doit répondre sur `/connexion`, `/actuator/health` doit répondre sur l’API et `/v1/auth/me` doit répondre `401` avant connexion. Garder le processus `start-dev.sh` actif pendant la recette. S’il faut libérer les ports `4200` ou `8080`, n’arrêter que la stack locale identifiée comme appartenant au même worktree.
+
+### Clôturer une story
+
+Une demande explicite de clôture suit la politique locale définie dans [AGENTS.md](AGENTS.md#clôture-dune-story). Elle met à jour le tracker par son contrôleur, intègre dans `v2`, puis retire seulement le worktree et la branche locale dédiés, une fois l'intégration vérifiée. Push, déploiement et suppression distante restent des autorisations séparées.
+
 **Mode offline (sans Neon / sans internet)** : si la branche Neon `local` est injoignable (train, avion, etc.), **ou** pour éviter de consommer des CU-h Free, lancer avec une base H2 locale et les seeds Les Improbots :
 
 ```bash
@@ -93,7 +111,7 @@ Stack : [`services/api/`](services/api/) (Kotlin / Spring Boot) et [`apps/web/`]
 - Prérequis : `npm install` et dépendances Gradle déjà en cache (première install nécessite internet).
 - Polices et icônes Material : embarquées dans le build Angular (plus de chargement depuis Google Fonts).
 
-Scripts racine optionnels : `npm run dev:api`, `npm run dev:web:v2`. Détail : [services/api/README.md](services/api/README.md), [apps/web/README.md](apps/web/README.md), [docs/v2/technical/V2_GOOGLE_OAUTH_SETUP.md](docs/v2/technical/V2_GOOGLE_OAUTH_SETUP.md).
+Scripts racine optionnels : `npm run dev:api`, `npm run dev:web:v2` (front seul : voir les préconditions de recette ci-dessus). Détail : [services/api/README.md](services/api/README.md), [apps/web/README.md](apps/web/README.md), [docs/v2/technical/V2_GOOGLE_OAUTH_SETUP.md](docs/v2/technical/V2_GOOGLE_OAUTH_SETUP.md).
 
 **Trois troupes en local (`./scripts/start-dev.sh`, profil `dev`, Neon branche `local`) :**
 

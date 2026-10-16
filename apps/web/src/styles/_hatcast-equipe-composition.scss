@@ -17,10 +17,14 @@
 
 .event-equipe-tab__row {
   --equipe-role-col: 7.5rem;
-  --equipe-clear-col: 2.5rem;
+  --equipe-structural-actions-col: 5.15rem;
 
   display: grid;
-  grid-template-columns: var(--equipe-role-col) minmax(0, 1fr) minmax(0, auto) var(--equipe-clear-col);
+  grid-template-columns:
+    var(--equipe-role-col)
+    minmax(0, 1fr)
+    minmax(0, auto)
+    var(--equipe-structural-actions-col);
   grid-template-rows: auto auto;
   column-gap: 0.5rem;
   row-gap: 0.3rem;
@@ -30,7 +34,7 @@
   background: rgba(255, 255, 255, 0.05);
 }
 
-.event-equipe-tab__row:not(:has(.event-equipe-tab__clear)) {
+.event-equipe-tab__row:not(:has(.event-equipe-tab__structural-actions)) {
   grid-template-columns: var(--equipe-role-col) minmax(0, 1fr) minmax(0, auto);
 }
 
@@ -124,6 +128,41 @@
 .event-equipe-tab__clear {
   grid-column: 4;
   grid-row: 1;
+}
+
+.event-equipe-tab__structural-actions {
+  grid-column: 4;
+  grid-row: 1;
+  display: inline-flex;
+  width: var(--equipe-structural-actions-col);
+  min-width: var(--equipe-structural-actions-col);
+  justify-self: end;
+  justify-content: space-between;
+  gap: 0.15rem;
+}
+
+.event-equipe-tab__delete-slot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  color: var(--mat-sys-error);
+
+  mat-icon {
+    width: 1.1rem;
+    height: 1.1rem;
+    font-size: 1.1rem;
+  }
+
+  &:hover,
+  &:focus-visible {
+    background: color-mix(in srgb, var(--mat-sys-error-container) 72%, transparent);
+    outline: none;
+  }
 }
 
 .event-equipe-tab__trailing {
@@ -358,5 +397,29 @@
   &:focus-visible:not(:disabled) {
     background: color-mix(in srgb, #fff 24%, transparent);
     outline: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .event-equipe-tab__row {
+    --equipe-role-col: 2.75rem;
+  }
+
+  .event-equipe-tab__row > app-role-action-chip .role-action-chip {
+    min-height: 2.75rem;
+    justify-content: center;
+    padding-inline: 0;
+  }
+
+  .event-equipe-tab__row > app-role-action-chip .role-action-chip__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 }

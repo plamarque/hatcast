@@ -1,370 +1,272 @@
-# generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-08-04T12:00:00+02:00
-# project: hatcast
-# project_key: NOKEY
-# tracking_system: file-system
-# story_location: {project-root}/_bmad-output/implementation-artifacts
-#
 # STATUS DEFINITIONS:
 # ==================
 # Epic Status:
 #   - backlog: Epic not yet started
 #   - in-progress: Epic actively being worked on
 #   - done: All stories in epic completed
-#
-# Epic Status Transitions:
-#   - backlog → in-progress: Automatically when first story is created (via create-story)
-#   - in-progress → done: Manually when all stories reach 'done' status
-#
+
 # Story Status:
 #   - backlog: Story only exists in epic file
-#   - ready-for-dev: Story file created in stories folder
+#   - ready-for-dev: Story file created, ready for development
 #   - in-progress: Developer actively working on implementation
-#   - review: Ready for code review (via Dev's code-review workflow)
+#   - review: Implementation complete, ready for review
 #   - done: Story completed
-#
+
 # Retrospective Status:
 #   - optional: Can be completed but not required
 #   - done: Retrospective has been completed
-#
+
+# Action Item Status:
+#   - open: Committed during a retrospective, not yet addressed
+#   - in-progress: Actively being worked on
+#   - done: Completed
+
 # WORKFLOW NOTES:
 # ===============
-# - Epic transitions to 'in-progress' automatically when first story is created
+# - Epic transitions to 'in-progress' automatically when its first story starts (via build's sprint sync)
 # - Stories can be worked in parallel if team capacity allows
-# - Developer typically creates next story after previous one is 'done' to incorporate learnings
+# - Developer typically creates the next story after the previous one is 'done' to incorporate learnings
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
-#
-# MVP V2 (PLAN.md): 12.1, 12.2, 12.5, 12.4, 6.5, 6.6, 6.7, 6.4, 6.9
-
-generated: "2026-04-18T12:00:00Z"
-last_updated: 2026-09-15
+# - Retrospective appends its action items to action_items; the status view surfaces open ones
+generated: 10-14-2026 17:55
+last_updated: 10-15-2026 23:44
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
-story_location: "{project-root}/_bmad-output/implementation-artifacts"
-
+story_location: '{project-root}/_bmad-output/implementation-artifacts'
 development_status:
-  # Hygiene / ops (PLAN backlog — SCP 2026-05-28)
-  ops-2-ci-integration-tests-postgres: done
-  ops-4-release-staging-tag-rc: done  # P0 V2.0.0 — SCP 2026-06-02
-  ops-5-prod-deploy-from-semver-tag: done
-  ops-6-version-changelog-pipeline: done
-  ops-11-simplified-release-cli: done
-  ops-12-neon-hikari-scale-to-zero: done  # P0 — BUG-013 Fixed ; Hikari min-idle 0 + session cleanup daily ; Idle+auth /me vérifiés local ; CR 2026-08-04
-  ops-m4-1-v1-cutover-announcement-banner: ready-for-dev  # P0 M4 — V1 comms → https://hatcast.app ; PO schedules deploy ; SCP 2026-06-19
-  ops-7-branch-cutover-post-m4: backlog
-  ops-8-prod-domain-hatcast-app: done  # P0 V2.0.0 — prod https://hatcast.app live 2026-06-04 ; gate M4 prérequis OK
-  ops-9-posthog-hatcast-app: done  # P1 V2.0.0 — G-005
-  ops-10-email-hatcast-app: done  # P1 — staging 2026-06-05 + prod reset MDP 2026-06-19 ; Routing + CF Sending
-
-  # Migration V1 → V2 (PLAN MIG-*, ADR-0016)
-  mig-2-export-v1-seasons-events-and-mapping-manifest: done
-  mig-3-availability-compositions-migration-pipeline: done
-  mig-4-deplacements-category-import: done
-  mig-7-backfill-users-gender-from-v1: done  # P1 — Track A: prod CSV backfill ; Track B: V57+improbots seeds ; code review 2026-06-06
-
   epic-1: in-progress
   1-1-connexion-avec-fournisseur-oauth-google: done
-  1-2-inscription-et-connexion-email-mot-de-passe: done  # recette gate V2.0.0 — SCP amend 2026-06-03
-  1-2b-ux-inscription-dediee-parite-v1: done  # P0 V2.0.0 — Wave B
-  1-3-reinitialisation-et-recuperation-de-mot-de-passe-par-email: done
+  1-2-inscription-et-connexion-email-mot-de-passe: done
+  1-3-mot-de-passe-oublié-récupération-par-email-hors-session: done
   1-4-session-persistante-se-souvenir-de-moi: done
-  1-5-deconnexion: done
-  1-6-mise-a-jour-des-identifiants-et-champs-de-compte-supportes: done
+  1-5-déconnexion-et-accès-depuis-le-menu-utilisateur: done
+  1-6-mon-compte-email-mot-de-passe-connecté-champs-supportés: done
   1-7-suppression-de-compte: done
-  1-8-recuperation-inscription-apres-echec-api-idp: done  # DW-104 T0 — investigation dw-104-investigation.md
   epic-1-retrospective: optional
 
   epic-2: in-progress
-  2-11-creation-troupe-api-ui-minimale: done
-  2-1-adhesion-a-une-troupe-et-profil-membre-minimal: done
-  2-2-administration-des-membres-et-roles-de-base: done
+  2-1-adhésion-à-une-troupe-et-profil-membre-minimal: done
+  2-2-administration-des-membres-et-rôles-de-base: done
   2-3-import-export-csv-des-membres-de-troupe: done
+  2-8-route-admin-membres-ux-dr10: done
   2-4-navigation-entre-troupes: done
-  2-5-pseudo-affiche-par-troupe: done
+  2-5-pseudo-affiché-par-troupe: done
   2-6-avatar-et-option-image-de-profil-google: done
-  2-7-popover-profil-membre-stats-saison-grille-mensuelle-roles-favoris: done
-  2-8-admin-membres-route-ui-ux-dr10: done
-  2-9-post-login-et-derniere-ligue-visitee-v1-parity: done
-  2-10-liste-membres-corriger-n1-emails: done
-  2-12-genre-optionnel-profil-membre-api-mon-compte: done  # P1 — SCP 2026-06-05 G-011 ; V1 parity foundation
-  2-12b-libelles-roles-adaptes-genre: done  # P1 — depends 2.12
-  2-12c-avatars-repli-selon-genre: done  # P1 — depends 2.12, 2.6 ; closure with 2.12b
-  2-12d-genre-participant-admin-roster: done  # P2 — SCP 2026-06-06 Lot B phase 1 ; ADR 0020
-  2-21-troupe-externes-carnet: done  # P1 — SCP 2026-06-06 ADR-0021 ; blocks 3.23, 3.8d
-  2-26-participation-mode-role-lifecycle: done  # P1 — ADR-0022 ; role chip UX ; LIMIT-005 closed
+  2-7-popover-profil-membre-stats-saison-grille-mensuelle-rôles-fa: done
+  2-12-genre-optionnel-profil-membre-api-mon-compte-p1-scp-2026-06: done
+  2-12b-libellés-de-rôles-adaptés-au-genre-p1-scp-2026-06-05: done
+  2-12c-avatars-de-repli-selon-le-genre-p1-scp-2026-06-05: done
+  2-12d-genre-participant-saisie-orga-et-cascade-mon-compte-p2-scp-2: done
+  2-21-troupe-externes-carnet-externe-p1-adr-0021-scp-2026-06-06: done
+  2-26-mode-de-participation-saison-et-lifecycle-membre-externe-p1: done
+  2-9-post-login-et-dernière-ligue-visitée-v1-parity: done
   epic-2-retrospective: done
 
-  epic-3: in-progress  # 3.21 draft/publish — SCP 2026-06-01 notifications
-  3-1-gestion-des-saisons-creation-edition-archivage-et-liste-saisons: done
-  3-2-spectacles-dans-la-saison-et-liste-pour-les-membres: done
-  3-3-vue-calendrier-agenda-saison-filtres-bascule-agenda-historique: done
-  3-4-types-devenement-et-roles-requis-optionnels: done
-  3-5-delegation-des-organisateurs-perimetre-saison-evenement: done
-  3-6-vue-historique-colonnes-roles-mois-export-masquage: done
-  3-6b-vue-historique-ligue-chronologie-export: done
-  3-7-suppression-de-saisons-admins-troupe-ou-plateforme: done
-  3-8-rosters-participants-saison-et-evenement: done
-  3-19-retrait-roster-saison-sans-desactivation-troupe: done
-  3-20-statistiques-cellules-evenement-participation-couleur-emoji: done
-  3-21-brouillon-evenement-et-publication-ouverture-dispos: done  # P0 MEP — unblocks 8.3
-  3-22-match-template-coach-api-seeds: done  # P0 — DW-101/102 done ; coach:1 API + seeds dev + review fixes
-  3-8c-participant-add-typeahead: done  # Lot A — plan-participant-roster-ux-enhancements.md ; code review 2026-06-06
-  3-23-invitation-scope-cascade-add: done  # P2 — SCP 2026-06-06 ADR-0021 ; depends 2.21 ; code review + TEA PASS 2026-06-06
-  3-24-admin-membres-edit-dialog: done  # P2 — UX dette 3.23 scénario F ; web-only ; code review 2026-06-06
-  3-8d-participant-add-typeahead-carnet: done  # P3 — Lot A-ext ; depends 2.21, 3.23 ; code review 2026-06-06
-  3-25-externe-guest-scoped-access: done  # P4 — SCP 2026-06-06 ADR-0021 ; depends 3.23, Epic 12
+  epic-3: in-progress
+  3-1-gestion-des-saisons-création-édition-archivage-et-liste-sais: done
+  3-2-spectacles-dans-la-saison-et-liste-pour-les-membres-et-parti: done
+  3-3-vue-calendrier-agenda-saison-filtres-bascule-agenda-historiq: done
+  3-4-types-d-événement-et-rôles-requis-optionnels: done
+  3-5-délégation-des-organisateurs-périmètre-saison-événement: done
+  3-6-vue-ligue-statistiques-colonnes-rôles-mois-export-masquage: done
+  3-6b-vue-ligue-historique-chronologie-événements-passés: done
+  3-7-suppression-de-saisons-admin-troupe-ou-admin-plateforme: done
+  3-8-rosters-participants-saison-et-événement: done
+  3-23-scope-d-invitation-et-cascade-à-l-ajout-p2-adr-0021-scp-2026: done
+  3-8d-typeahead-ajout-participant-pool-carnet-p3-adr-0021-lot-a-ex: done
+  3-25-accès-invité-scopé-pour-externes-liés-p4-adr-0021: done
+  3-21-brouillon-événement-et-publication-ouverture-aux-disponibili: done
   epic-3-retrospective: optional
 
   epic-4: in-progress
   4-1-annuaire-public-des-troupes: done
-  4-2-pages-publiques-saison-et-evenements: backlog
-  4-3-troupe-logo-description-cartes: done
-  4-4-guides-video-page-connexion: done  # P0 M4 — 3 CTAs guides vidéo /connexion ; URLs Drive interim (PO 2026-07-11) → YouTube later
+  4-2-pages-publiques-saison-et-événements: backlog
+  4-4-guides-vidéo-sur-la-page-connexion: done
   epic-4-retrospective: optional
 
   epic-5: in-progress
-  5-1-saisie-de-disponibilite-par-evenement-etats-dispo-pas-dispo-non-renseigne: done
-  5-2-disponibilite-par-role-lorsque-le-type-devenement-lexige: done
-  5-3-vue-organisateur-disponibilites-par-role-et-vues-moi-tous: done
-  5-4-commentaire-optionnel-sur-la-disponibilite: done
-  5-5-saisie-de-disponibilite-pour-un-autre-membre-proxy-avec-audit: done
-  5-6-dispos-onglet-material-3-et-commentaire: done
-  5-7-summary-dispos-lecture-sans-ecriture: done
-  5-8-dispos-onglet-sondage-unifie: done
-  5-9-dispos-explainability-gate-decouple: done  # SCP 2026-06-09 — split Dispos vs Équipe explainability gates
+  5-1-saisie-de-disponibilité-par-événement-états-dispo-pas-dispo: done
+  5-2-disponibilité-par-rôle-et-rôles-favoris-pré-sélectionnés: done
+  5-3-vue-organisateur-disponibilités-par-rôle-et-vues-moi-tous: done
+  5-4-commentaire-optionnel-sur-la-disponibilité: done
+  5-5-saisie-de-disponibilité-pour-un-autre-participant-proxy-avec: done
+  5-9-portes-explainability-dispos-vs-équipe-scp-2026-06-09: done
   epic-5-retrospective: optional
 
   epic-6: in-progress
-  6-1-etats-de-cycle-de-vie-de-composition-et-coherence-ui: done
-  6-2-detail-evenement-plein-ecran-onglets-infos-dispos-equipe: done
-  6-3-composition-brouillon-non-visible-aux-membres-ordinaires: done
-  6-4-tirage-aleatoire-pondere-et-affichage-des-cotes-explainability: done
-  6-5-assignation-manuelle-et-reassignation-des-roles: done
-  6-6-validation-verrouillage-de-la-composition: done
-  6-7-confirmation-ou-declinaison-de-participation-membre: done
-  6-8-confirmation-ou-declinaison-pour-le-compte-d-un-membre-proxy: done
-  6-9-creneaux-vacants-apres-declin-et-actions-de-suivi: done
-  6-10-partage-et-annonce-message-editable-canaux: done
-  6-10b-rappel-manuel-disponibilite-garde-anti-spam: done  # P1 — SCP 2026-06-01 ; entry toolbar → 6.10c
-  6-10c-deplacer-rappel-dispos-menu-gear-evenement: done  # UX D11 2026-06-04 — gear Relance dispos ; code review OK
-  6-11-retour-visuel-et-performances-onglet-equipe: done
-  6-12-barre-actions-onglet-equipe-hierarchie-et-overflow: done
-  6-13-publish-notifications-hors-transaction: done
-  6-14-snapshot-chances-au-tirage: done
-  6-15-refonte-modales-annonces-notify-manuel: done  # P0 V2.0.0 — code review 2026-06-03
-  6-16-statut-canal-destinataires-modales-partager-annoncer: done  # D10 UX 2026-06-04 — recette + review OK
-  6-17-dispatch-annonce-manuelle-transparence-dates: done  # tech-spec-share-announce-transparency-6-17.md
-  6-18-aide-contextuelle-statut-composition: done  # UX ux-design-composition-status-help.md — approved 2026-06-05
-  6-19-export-calendrier-et-navigation-lieu-onglet-infos: done  # UX ux-hatcast-2026-06-05 EXPERIENCE.md — parité V1 calendrier + maps Infos
-  6-21-hint-parite-genre-composition-player: done  # P2 — SCP 2026-06-05 G-011 ; depends 2.12* (done) ; UI strip only
-  6-22-composition-unlock-preserve-participation: done  # SCP 2026-06-06 — unlock preserve statuses + draft org proxy (G-014)
-  6-23-modales-partager-annoncer-manuel-compact: done  # UX ux-design-share-announce-manual-only.md — approved 2026-06-09 ; Copier/WhatsApp only ; ligne compacte ; code review 2026-06-09
-  6-24-participation-copy-declinaison-desistement-retrait: done  # Copy V2 — DOMAIN § déclinaison/désistement/retrait ; API + web + notifs + audit
+  6-1-états-de-cycle-de-vie-de-composition-et-cohérence-ui: done
+  6-2-détail-événement-plein-écran-onglets-infos-dispos-équipe: done
+  6-3-composition-brouillon-publication-et-visibilité: done
+  6-4-tirage-aléatoire-pondéré-et-affichage-des-cotes-explainabili: done
+  6-5-assignation-manuelle-et-réassignation-des-rôles: done
+  6-6-validation-verrouillage-et-déverrouillage-de-la-composition: done
+  6-7-confirmation-ou-déclinaison-de-participation-participant-lié: done
+  6-8-confirmation-ou-déclinaison-pour-le-compte-d-un-participant: done
+  6-9-créneaux-vacants-après-déclin-et-actions-de-suivi: done
+  6-11-retour-visuel-et-performances-onglet-équipe-profilage: done
+  6-10-partage-et-annonce-message-éditable-canaux: done
+  6-10b-rappel-manuel-de-disponibilité-garde-anti-spam-p1-scp-2026-0: done
+  6-20-avertissement-rejeu-spectacle-précédent-même-rôle-même-compa: backlog
+  6-21-hint-parité-de-genre-sur-composition-rôle-player-p2-scp-2026: done
   epic-6-retrospective: optional
 
   epic-7: backlog
-  7-1-inviter-un-non-membre-sur-un-role-et-un-perimetre-devenements: backlog
-  7-2-disponibilites-invite-et-modes-de-selection-alternatifs: backlog
+  7-1-invitations-self-service-pour-contributeurs-externes-post-mv: backlog
+  7-2-modes-de-sélection-alternatifs-pour-contributeurs-externes-p: backlog
   epic-7-retrospective: optional
 
   epic-8: in-progress
-  8-1-opt-in-aux-notifications-navigateur-et-categories: done
-  8-2-preferences-de-notification: done  # P1 — code review 2026-06-01: patches applied
-  8-2b-preferences-membre-copy-masquage-d6: done  # P0 — UX as-shipped 2026-06-08 : D6 + Me prévenir + Cet appareil + cartes
-  8-3-notifications-mep-dispos-et-confirmation-assignes: done  # P0 MEP — depends 3.21, 8.1
-  8-4-notifications-ops-organisateurs: done  # P2 post-MEP — FR31b
-  8-4b-notifications-orga-v2: done  # P2 — extension 8.4 / FR31b ; spec notifications-orga-v2 ; VD Paige 2026-06-09
-  8-5-extensions-notifications-membre: done  # P1 post-MEP initial — code review patches applied
-  8-5b-garde-rappels-membres-desactives-dw-107: done  # DW-107 T0 — 8.5 review W3 ; guard AssigneePresenceReminderJob
-  8-6-notifications-proxy-confirmation-membre-concerne: done  # P1 — proxy 5.5/6.8 → subject ack
-  8-7-rappels-automatiques-disponibilite-cadence-5-jours: done  # P1 — AVAILABILITY_WEEKLY_REMINDER scheduler ; cadence 5 j ; PO 2026-06-07 ; code review 2026-06-07
-  8-8-notifications-membre-event-details-et-archivage: done  # P1 — EVENT_DETAILS_CHANGED + EVENT_ARCHIVED ; engaged roster + guest email ; code review 2026-06-08
-  8-9-notification-equipe-confirmee-member: done  # P1 — G-012 TEAM_COMPLETE_MEMBER ; orgas événement + assignés confirmés ; pref TEAM_CONFIRMED ; code review 2026-06-08
-  8-10-email-notification-templates-shell: done  # P1 polish — shell HTML email table-based ; variantes A/B/C ; contexte event ; CTA pill ; code review 2026-06-09
+  8-1-opt-in-global-aux-notifications-push-navigateur: done
+  8-2-préférences-de-notification-post-mvp-pour-catégories: done
+  8-3-notifications-mep-ouverture-dispos-et-confirmation-assignés: done
+  8-4-notifications-ops-organisateurs-post-mep-p2-scp-2026-06-01: done
+  8-5-extensions-notifications-membre-p1-scp-2026-06-01: done
+  8-6-notifications-proxy-confirmation-au-membre-concerné-p1-scp-2: done
   epic-8-retrospective: optional
 
   epic-9: in-progress
-  9-0-capture-backend-piste-audit: done
-  9-1-consultation-de-la-piste-d-audit-pour-utilisateurs-autorises: done  # post-MEP UI admin/orga — code review 2026-06-01
-  9-2-consultation-audit-changements-me-concernant: backlog  # post-MEP UI membre
+  9-0-capture-backend-de-la-piste-d-audit-mep-plan-epic-9: done
+  9-1-consultation-de-la-piste-d-audit-pour-utilisateurs-autorisés: done
+  9-2-consultation-audit-changements-me-concernant-post-mep-initia: backlog
   epic-9-retrospective: optional
 
   epic-10: in-progress
-  10-1-installabilite-pwa-raccourci-ajouter-a-lecran-d-accueil: done
-  10-2-detection-de-mise-a-jour-client-action-utilisateur-rechargement-au-clic: done
-  10-3-version-app-changelog-dialog: done  # P0 V2.0.0
-  10-3b-about-build-metadata: done  # retro 2026-06-14 — meta build ligne À propos + pipeline canal
-  10-4-recette-pwa-manifest-icons-sw: done
-  10-5-aides-install-contextuelles-ios-android: done
-  10-6-opt-in-notifications-post-install: done
-  10-7-icone-pwa-hatcast-2: done
+  10-1-installabilité-pwa-raccourci-ajouter-à-l-écran-d-accueil: done
+  10-2-détection-de-mise-à-jour-client-action-utilisateur-rechargem: done
   epic-10-retrospective: optional
 
   epic-11: in-progress
-  11-1-evenements-analytics-anonymises-indicateurs-success-criteria: backlog
-  11-2-posthog-identify-person-properties-m4-cutover: done
-  11-3-v1-v2-cutover-funnel-posthog: done
+  11-1-événements-analytics-anonymisés-pour-indicateurs-success-cri: backlog
   epic-11-retrospective: optional
 
   epic-12: in-progress
   12-1-api-agenda-utilisateur: done
-  12-2-ecran-mon-agenda: done
-  12-3-filtres-troupe-ligue-agenda: done
-  12-4-bandeau-contexte-evenement: done
-  12-5-routage-post-connexion-agenda: done
+  12-2-écran-mon-agenda-agenda: done
+  12-3-filtres-troupe-et-ligue: done
+  12-4-bandeau-contexte-sur-détail-événement: done
+  12-5-finaliser-routage-post-connexion-vers-agenda: done
   12-6-alias-route-ligue-slug: done
-  12-7-agenda-annulation-requetes-obsoletes-verrou-navigation-post-login: done
   epic-12-retrospective: optional
 
   epic-13: in-progress
   13-1-migration-multi-active-leagues: backlog
-  13-2-api-activation-sans-desactivation-globale: backlog
-  13-3-roster-ligue-tous-membres-ou-manuel: backlog
-  13-4-ui-creation-ligue-multi-active: backlog
-  13-5-retest-flows-epic-3: backlog
-  13-6-ligues-deplacements-creation-conventions: backlog
+  13-2-api-activation-sans-désactivation-globale: backlog
+  13-3-roster-initial-tous-membres-vs-manuel: backlog
+  13-4-ui-création-ligue-liste-multi-active: backlog
+  13-5-retest-flows-archivage-activation-epic-3: backlog
+  13-6-ligues-déplacements-création-et-conventions-reportée-remplac: backlog
   epic-13-retrospective: optional
 
-  epic-14: backlog  # SUPERSEDED by Epic 17 — SCP 2026-06-01 ; do not schedule 14.x
-  14-1-page-hub-troupe: backlog  # → 17.4, 17-29
-  14-2-ligues-actives-et-archivees: backlog  # → 17.4
-  14-3-pseudo-sur-hub-troupe: backlog  # → 17.4, 2.5
-  14-4-redirection-seasons: backlog  # → 17.5
-  14-5-lien-annuaire-public: backlog  # → 17.3 ; Epic 4 public
+  epic-14: backlog
+  14-1-page-hub-troupe-superseded-17-4-17-29: backlog
+  14-2-ligues-actives-et-archivées-superseded-17-4: backlog
+  14-3-pseudo-sur-hub-troupe-superseded-17-4-2-5: backlog
+  14-4-redirection-seasons-superseded-17-5: backlog
+  14-5-lien-annuaire-public-superseded-17-3-annuaire-epic-4: backlog
   epic-14-retrospective: optional
 
   epic-15: backlog
-  15-1-entite-encounter-lien-events: backlog
+  15-1-entité-encounter-lien-events: backlog
   15-2-ui-admin-liaison-rencontre: backlog
   epic-15-retrospective: optional
 
   epic-16: in-progress
-  16-1-route-membre-saison-clin-oeil-filtres: done
-  16-2-statistiques-avatar-navigation-profil-membre: done
-  16-3-statistiques-parite-genre-saison-player: backlog  # P2 — SCP 2026-06-05 G-011 ; depends 2.12
+  16-1-route-membre-userslug-filtres: done
+  16-3-statistiques-de-parité-de-genre-saison-rôle-player-p2-scp-20: backlog
   epic-16-retrospective: optional
 
   epic-17: in-progress
   17-1-breadcrumb-contexte-responsive: done
-  17-2-bandeau-administration-par-scope: done
-  17-3-page-troupes-mes-troupes-decouvrir: done
+  17-2-menu-administration-par-scope-icône-engrenage: done
+  17-3-page-troupes-mes-troupes-découvrir: done
   17-4-hub-troupes-slug: done
-  17-5-redirects-fin-seasons-hub-troupe: done
-  17-11-breadcrumb-pages-admin-back-office: done
-  17-16-route-admin-participants-evenement: done
-  17-6-slug-evenement-dans-les-urls: done
-  17-7-api-tag-equite-glossaire-troupe: done
-  17-8-ui-onglet-infos-tag-equite: done
-  17-9-tirage-chances-par-tag: done
-  17-10-statistiques-filtre-groupes-spectacles: done
-  17-12-slug-spectacle-sans-saisie-formulaire: done
-  17-13-formulaire-spectacle-datepicker-heure: done
-  17-14-onglet-infos-type-roles-modales: done
-  17-15-onglet-infos-organisateurs-retrait-participants-formulaire: done
-  17-17-chip-organisateur-promouvoir-listes-admin: done
-  17-18-raccourcis-croises-agenda-saison: done
-  17-19-hub-accueil-a-faire-mvp: done
-  17-21-api-me-inbox-hub-membre: done
-  17-22-navigation-bar-m3-membre: done
-  17-20-remember-last-member-entry-path: done
-  17-23-selecteur-contexte-troupe-saison: done
-  17-24-ecran-mon-compte-alignement-hub-membre: done
-  17-25-menu-compte-rail-desktop-avatar-mobile: done
-  17-27-panneau-filtres-unifie: done
-  17-28-filtres-hub-pickers: done
-  17-29-refonte-hub-troupe-mon-compte-preferences: done
-  17-30-season-event-count-resync: done
-  17-31-modifier-saison-gear-workspace: done
-  17-33-preferences-membre-compte-utilisateur: done
-  17-34-mon-compte-onglets-securite-preferences: done  # P0 V2.0.0 — SCP 2026-06-02
-  17-35-mon-compte-pseudo-identite-rail-label: done  # UX amend 2026-06-04 — C2/C2b/C11
-  17-36-mon-compte-onglet-mon-profil: done  # UX amend 2026-06-04b — fusion Identité+Sécurité
-  17-37-format-stable-role-customization: done  # SCP 2026-06-08 — format stable on role customize
-  17-38-category-glossary-api: done  # SCP 2026-06-08 — admin CRUD + stop auto-create on event save
-  17-39-ui-category-selection: done  # amend v4 2026-06-09 — inline chips ; depends 17.38 ; code review 2026-06-09
-  17-40-troupe-settings-categories: done  # SCP 2026-06-08 — page Paramètres troupe onglet Catégories ; depends 17.38
-  17-41-nav-shell-ma-troupe: done  # UX ma-troupe-hub MT1–MT3 — 4th nav tab + lastVisitedTroupeSlug ; code review 2026-06-12
-  17-42-hub-troupe-dashboard-collectif: done  # UX ma-troupe-hub MT6–MT14 — dashboard saison + participants + teaser
-  17-43-event-detail-contexte-infos: done  # UX ma-troupe-hub ED1–ED5 — retrait breadcrumb, titre inline, Saison chips, badge Équipe
-  17-44-hub-troupe-mini-chart-saison: done  # UX ma-troupe-hub MT15 — phase 2 mini-chart mois
-  17-45-nav-stats-before-troupe: done  # PO 2026-07-12 — Mes stats avant Ma troupe (nav rail + bottom)
+  17-5-redirects-et-fin-de-seasons-comme-hub: done
+  17-11-fil-d-ariane-sur-pages-admin-back-office: done
+  17-6-slug-événement-dans-les-urls: done
+  17-7-api-tag-d-équité-et-glossaire-troupe: done
+  17-8-ui-onglet-infos-tag-d-équité-optionnel: done
+  17-9-tirage-et-chances-par-tag-durcissement-epic-19-8: done
+  17-10-statistiques-filtre-par-groupes-de-spectacles-compartiments: done
+  17-12-slug-spectacle-sans-saisie-dans-le-formulaire: done
+  17-13-formulaire-spectacle-date-et-heure-material: done
+  17-14-onglet-infos-type-de-spectacle-et-rôles-modales: done
+  17-15-onglet-infos-organisateur-ices-retrait-participants-du-formu: done
+  17-18-raccourcis-croisés-agenda-saison-app-bar: done
+  17-19-hub-membre-accueil-à-faire-mvp: done
+  17-20-remember-last-visit-lastmemberentrypath-optionnel: done
+  17-21-api-get-me-inbox-confirmations-et-résumé-hub: done
+  17-22-shell-navigation-bar-m3-à-faire-agenda-saison: done
+  17-23-sélecteur-de-contexte-troupe-saison-fil-menu: done
+  17-25-menu-compte-rail-footer-desktop-avatar-shell-mobile: done
+  17-27-panneau-de-filtres-unifié-icône-chips: done
+  17-28-filtres-hub-pickers-individuels-correctif-ux-dr22-1: done
+  17-31-modifier-la-saison-gear-workspace-fr11-gap-post-17-5: done
+  17-32-exporter-statistiques-menu-admin-saison-fr54-correct-course: backlog
+  17-37-détail-spectacle-rangée-titre-statut-ux-polish-2026-06-06: done
+  17-41-nav-shell-onglet-ma-troupe-lastvisitedtroupeslug-ux-2026-06: done
+  17-42-hub-troupe-dashboard-collectif-ux-2026-06-10: done
+  17-43-détail-spectacle-contexte-infos-retrait-breadcrumb-ux-2026-0: done
+  17-44-hub-troupe-mini-chart-mois-saison-ux-phase-2: done
+  17-45-nav-shell-mes-stats-avant-ma-troupe-po-2026-07-12: done
   epic-17-retrospective: optional
 
   epic-18: in-progress
-  18-0-renommer-seed-dev-les-improbots: done
-  18-1-modele-join-policy-is-demo: done
+  18-0-renommer-le-seed-dev-les-improbots-chore: done
+  18-1-modèle-join_policy-et-flag-is_demo-persistance: done
   18-2-self-join-open-api-super-admin-join-policy: done
-  18-3-seed-production-troupe-demo: done
-  18-4-ux-onboarding-rejoindre-demo: done
-  18-5-configuration-prod-tests-separation-demo: done
+  18-3-seed-production-troupe-démo-saison-20-spectacles-participant: done
+  18-4-ux-onboarding-rejoindre-la-démo-contexte-redirection: done
+  18-5-configuration-prod-tests-séparation-démo-improbots-la-malice: done
   epic-18-retrospective: optional
 
-  epic-19: in-progress  # Sprint Wave D 19.15→19.21 — formules admin + choix orga ; 19.11–19.14 parked
-  19-1-spec-normative-v1-adr-draw-weight-engine: done
-  19-2-golden-tests-v1-js-kotlin: done
-  19-3-fixtures-orchestration-draw-complet: done
-  19-4-doc-orga-membre-comprendre-les-cotes: done
-  19-5-pipeline-draw-weight-factor: done
-  19-6-facteur-past-participation-v1: done
-  19-7-breakdown-explicabilite-par-facteur: done
-  19-8-facteur-equity-tag-history-ex-17-9: done  # harden 17.9 (category compartment) into factor pipeline + golden
-  19-9-facteur-rejouer-immediatement: done
-  19-10-facteur-nombre-demandes-role: done
-  19-11-facteur-parite-genre: backlog  # parked — post Wave D demo
-  19-12-facteur-mix-equipe: backlog  # parked — post Wave D demo
-  19-13-facteur-prestige-history-ex-19-13: backlog  # parked — post Wave D demo ; depends 19.6 + 20.6
-  19-14-facteur-bonus-malus-benevole: backlog  # parked — post Wave D demo
-  19-15-spec-formules-politiques-adr: done  # sprint Wave D S1 ; normative spec + SPEC/DOMAIN/ADR ; code review 2026-06-15
-  19-16-persistance-formules-defaut-v1: done  # sprint Wave D S2
-  19-17-api-crud-formules-tirage: done  # sprint Wave D S3
-  19-18-api-politiques-tirage-troupe-saison: done  # sprint Wave D S5 — Demo 2 runtime ; code review 2026-06-19
-  19-19-ui-admin-editeur-formules: cancelled  # superseded SCP 2026-06-16 → 19.19a/b/c
-  19-19a-spec-factor-params-draw: done  # Wave D S4a — params catalogue + amend spec/ADR
-  19-19b-factor-params-runtime-tests: done  # Wave D S4b — engine + validator + golden (code review approved)
-  19-19c-ui-admin-editeur-formules: done  # Wave D S4c — UI admin formula editor ; E2E recette ; merged 2026-06-18
-  19-20-ui-admin-politiques-tirage: done  # phase 2 sprint — hors MVP Wave D
-  19-21-ui-orga-choix-formule-tirage: done  # sprint Wave D S6 — Demo 2
-  19-22-snapshot-formule-au-tirage: backlog  # phase 2 sprint — hors MVP Wave D
+  epic-19: in-progress
+  19-1-spécification-normative-v1-et-adr-0019: done
+  19-2-suite-golden-v1-js-kotlin: done
+  19-3-fixtures-d-orchestration-draw-complet: done
+  19-4-documentation-orga-membre-comprendre-les-cotes: done
+  19-5-pipeline-drawweightfactor-sans-nouveau-facteur: done
+  19-6-facteur-pastparticipationfactor-v1: done
+  19-7-breakdown-explicabilité-par-facteur-optionnel-mvp-pipeline: done
+  19-8-facteur-historique-partitionné-par-category-durcissement-ex: done
+  19-9-facteur-rejouer-immédiatement: done
+  19-10-facteur-nombre-de-demandes-de-rôle-bonus-aspiration: done
+  19-11-facteur-parité-de-genre: backlog
+  19-12-facteur-mix-équipe-éviter-mêmes-co-équipiers: backlog
+  19-13-facteur-historique-prestige-prestigehistoryfactor: backlog
+  19-14-facteur-bonus-malus-bénévole: backlog
+  19-15-spécification-formules-de-tirage-et-politiques-spec-adr: done
+  19-16-persistance-formules-formule-système-v1: done
+  19-17-api-admin-crud-formules-de-tirage: done
+  19-18-api-admin-politiques-de-tirage-troupe-saison: done
+  19-19-ui-admin-éditeur-de-formules-de-tirage: backlog
+  19-19a-spec-factor-params-malus-bonus-catalogue: done
+  19-19b-runtime-parameterized-factors-golden-tests: done
+  19-19c-ui-admin-éditeur-de-formules-coefficients: done
+  19-20-ui-admin-politiques-de-tirage-troupe-saison: done
+  19-21-ui-orga-formule-de-tirage-discrète-overflow-équipe: done
+  19-22-snapshot-formule-au-tirage-audit-explainability: backlog
   epic-19-retrospective: optional
 
-  epic-20: backlog  # P2 post-MEP ; prestige stars capture/display/stats ; SCP 2026-06-05 (G-009)
-  20-1-spec-domain-modele-prestige: backlog
-  20-2-api-prestige-stars-evenement: backlog
-  20-3-ui-orga-selecteur-etoiles-formulaire: backlog
-  20-4-ui-etoiles-fiche-infos: backlog
-  20-5-ui-etoiles-agenda: backlog
-  20-6-api-prestige-points-total-participant-saison: backlog
-  20-7-ui-score-prestige-stats-saison: backlog
+  epic-20: backlog
+  20-1-spec-domain-modèle-prestige-spectacle: backlog
+  20-2-api-prestigestars-sur-événement: backlog
+  20-3-ui-orga-sélecteur-étoiles-formulaire-spectacle: backlog
+  20-4-ui-étoiles-sur-fiche-événement-infos: backlog
+  20-5-ui-étoiles-sur-agenda-et-listes-saison: backlog
+  20-6-api-points-de-prestige-participant-saison: backlog
+  20-7-ui-score-prestige-dans-les-statistiques-saison: backlog
   epic-20-retrospective: optional
 
-  # Perf V2 — front + API read paths (plan 2026-06-09)
-  epic-perf-v2: in-progress
-  perf-01-deduplicate-me-preferences: done
-  perf-02-inbox-badge-cache: done
-  perf-03-event-detail-tab-gated-load: review
-  perf-04-session-context-cache: done
-  perf-05-viewer-gender-props: done
-  perf-06-inbox-api-profiling: done
-  perf-07-season-workspace-bootstrap-bff: done
-  perf-08-lazy-routes-angular: done
-  epic-perf-v2-retrospective: optional
-
-  # Perf V2 wave 2 — high-traffic pages (plan 2026-06-09)
-  perf-10-event-detail-page-bff: ready-for-dev
-  perf-11-me-agenda-api-hot-path: done
-  perf-12-accueil-progressive-render: done
-  perf-13-dispos-lazy-composition-explainability: done
-  perf-09-member-shell-bootstrap-resolver: done
-  perf-14-profiling-script-in-app-nav: done
-  perf-15-composition-summary-api-hot-path: done
-  perf-16-db-latency-observability: done
-
-  # Epic 21 — Worktree delivery readiness (approved plan 2026-08-25)
   epic-21: in-progress
-  21-1-loop-readiness-contract: done
-  21-2-worktree-runtime-readiness: done
-  21-3-targeted-e2e-evidence: done
-  21-4-human-smoke-handoff: awaiting-operator
-  21-5-delivery-gates-integration: awaiting-operator
+  21-4-human-smoke-handoff: review
+  21-5-delivery-gates-integration: review
   21-6-github-review-decision-controller: backlog
+  epic-21-retrospective: optional
+
+  epic-22: done
+  22-1-équipe-format-et-besoins-au-même-endroit: done
+  22-2-équipe-édition-libre-de-la-structure-des-slots: done
+  22-3-application-sûre-d-un-template-et-slots-hors-modèle: done
+  22-4-retrait-cn-2-et-décision-de-notification: done
+  epic-22-retrospective: optional

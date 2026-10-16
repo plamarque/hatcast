@@ -14,6 +14,24 @@ Slices are incremental deliverables to stabilise and evolve the repo. SPEC.md de
 - **Known gaps:** Some docs in `docs/` are topic-heavy and not yet cross-referenced with SPEC/DOMAIN. No formal "definition of done" for feature work beyond "tests pass and deploy works."
 - **V2 deploy (Cloud Run + Neon):** **Release train V2.0.x** validé (**E3**, prod **v2.4.1** sur **`https://hatcast.app`**). **Epic 19** Wave D livré (**19.15→19.21** done ; **19.11–19.14** parked). **M4** bascule audience — **préparation immédiate** (décision PO **2026-07-11** : plus de spectacles été ; membres inactifs jusqu’à fin été ; fenêtre technique ouverte). Correctifs patch **v2.4.2** sur branche `v2` (non publiés). Pipeline : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WORKFLOW.md) + **OPS-11**.
 
+## Current roadmap (2026-10-16)
+
+This index separates current candidate work from the historical slice record
+below. It does not replace the canonical epic definitions or their generated
+tracker.
+
+- **Delivery workflow:** complete the review of human-smoke and delivery gates
+  (21.4–21.5), then decide whether the GitHub review controller (21.6) is the
+  next workflow investment.
+- **User-visible fixes:** resolve the tracked cancellation, mobile chart, and
+  test-fixture defects in `ISSUES.md` before starting unrelated feature work.
+- **Planned product work:** public season/event pages; composition draw warning;
+  guest invitations; audit follow-up; analytics; multi-league; member-stat
+  parity; the remaining troupe-hub export; draw factors/formulas; and prestige.
+- **Completed recently:** Epic 22, flexible composition slots.
+- **Historical/superseded:** Epic 14 and old completed slices remain below for
+  traceability and must not be mistaken for active commitments.
+
 ---
 
 ## Slices (incremental deliverables)
@@ -793,6 +811,25 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 **Lien Epic 19 :** **19.13** `PrestigeHistoryFactor` — **after 19.6 + 20.6** ; factor off by default.
 
 **Détail stories :** [_bmad-output/planning-artifacts/epics.md](_bmad-output/planning-artifacts/epics.md) § Epic 20.
+
+---
+
+### Epic 22 — Composition flexible pilotée par slots
+
+**Added:** 2026-10-14 — [Sprint Change Proposal — Flexible composition slots](_bmad-output/planning-artifacts/sprint-change-proposal-2026-10-14-flexible-composition-slots.md).
+
+| Story | Outcome | Depends on |
+|---|---|---|
+| **22.1** | Équipe devient l'unique surface d'édition format + besoins ; Infos devient le résumé lecture seule. | CN-1 safety contract |
+| **22.2** | Ajout libre de slot provisoire, choix de rôle, désassignation et suppression structurelle explicite. | 22.1 |
+| **22.3** | Application de template sûre : créer manquants, retirer vides, conserver affectés Hors modèle ; mobile focus/scroll. | 22.1, 22.2, CN-1 |
+| **22.4** | Retirer l'approche CN-2 et décider CN-3 pour une suppression explicite de slot affecté. | 22.3 |
+
+**Supersession :** CN-2 ne doit pas être intégré comme surface de régularisation autonome. CN-1 reste le garde-fou de préservation/projection, à revalider dans 22.3. `sprint-status.yaml` reste géré uniquement par son synchroniseur.
+
+**Story 22.2 (draft, approval pending):** [_22-2-equipe-edition-libre-slots.md_](_bmad-output/implementation-artifacts/22-2-equipe-edition-libre-slots.md) fixe le provisoire local, les actions distinctes de désassignation et de suppression, et la mutation structurelle atomique proposée. Aucun code de production n'est engagé avant approbation.
+
+**Détail stories :** [_bmad-output/planning-artifacts/epics.md](_bmad-output/planning-artifacts/epics.md) § Epic 22.
 
 ---
 

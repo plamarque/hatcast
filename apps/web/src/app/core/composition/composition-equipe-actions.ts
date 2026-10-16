@@ -1,12 +1,12 @@
 import type { CompositionResponse } from './composition-api.service'
 
-export type EquipeActionId = 'validate' | 'fill' | 'announce' | 'draw' | 'unlock' | 'share'
+export type EquipeActionId = 'publish' | 'fill' | 'announce' | 'draw' | 'unlock' | 'share'
 
-export type EquipePrimaryAction = 'validate' | 'fill' | 'announce' | 'draw'
+export type EquipePrimaryAction = 'publish' | 'fill' | 'announce' | 'draw'
 
 /** Visible toolbar / overflow labels — keep in sync with event-equipe-tab.html. */
 export const EQUIPE_ACTION_LABELS: Record<EquipeActionId, string> = {
-  validate: 'Valider',
+  publish: 'Publier',
   draw: 'Tirer au sort',
   announce: 'Annoncer la compo',
   fill: 'Compléter',
@@ -58,11 +58,11 @@ export interface EquipeToolbarLayout {
   overflow: EquipeActionId[]
 }
 
-const GRID_ORDER: EquipeActionId[] = ['validate', 'draw', 'share', 'announce', 'fill', 'unlock']
+const GRID_ORDER: EquipeActionId[] = ['publish', 'draw', 'share', 'announce', 'fill', 'unlock']
 
 function isActionVisible(id: EquipeActionId, flags: EquipeActionFlags): boolean {
   switch (id) {
-    case 'validate':
+    case 'publish':
       return flags.canValidate
     case 'fill':
       return flags.canFillGaps
@@ -80,7 +80,7 @@ function isActionVisible(id: EquipeActionId, flags: EquipeActionFlags): boolean 
 /** Single forward CTA — first match wins (state matrix in story 6.12). */
 export function resolveEquipePrimaryAction(flags: EquipeActionFlags): EquipePrimaryAction | null {
   if (flags.canValidate) {
-    return 'validate'
+    return 'publish'
   }
   if (flags.canFillGaps) {
     return 'fill'

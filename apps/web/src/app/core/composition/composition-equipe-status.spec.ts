@@ -184,10 +184,10 @@ describe('resolveCompositionEquipeStatus', () => {
       roleSlots,
     })
     expect(status?.managerGuideline).toContain('En préparation')
-    expect(status?.managerGuideline).toContain('Valider')
+    expect(status?.managerGuideline).toContain('Publier')
   })
 
-  it('omits validate CTA from draft guideline when suppressValidateCtaInGuideline', () => {
+  it('omits publish CTA from draft guideline when suppressPublishCtaInGuideline', () => {
     const status = resolveCompositionEquipeStatus({
       composition: comp({
         slots: [
@@ -201,10 +201,10 @@ describe('resolveCompositionEquipeStatus', () => {
       }),
       canManageComposition: true,
       roleSlots,
-      suppressValidateCtaInGuideline: true,
+      suppressPublishCtaInGuideline: true,
     })
     expect(status?.managerGuideline).toContain('En préparation')
-    expect(status?.managerGuideline).not.toContain('Valider')
+    expect(status?.managerGuideline).not.toContain('Publier')
   })
 
   it('quotes exact toolbar button labels in manager guidelines', () => {
@@ -294,16 +294,16 @@ describe('resolveCompositionEquipeStatusFromEvent', () => {
       true,
     )
     expect(status?.label).toBe('En préparation')
-    expect(status?.managerGuideline).toContain('« Valider »')
+    expect(status?.managerGuideline).toContain('« Publier »')
   })
 
-  it('suppresses validate CTA in draft guideline when requested', () => {
+  it('suppresses publish CTA in draft guideline when requested', () => {
     const status = resolveCompositionEquipeStatusFromEvent(
       { compositionLifecycle: 'draftComposition', roleSlots },
       true,
       true,
     )
-    expect(status?.managerGuideline).not.toContain('Valider la compo')
+    expect(status?.managerGuideline).not.toContain('Publier la compo')
     expect(status?.managerGuideline).toContain('Partagez-la aux responsables')
   })
 
