@@ -1,5 +1,24 @@
 [
   {
+    "version": "2.6.2",
+    "date": "2026-10-16",
+    "changes": [
+      "✨ Équipe — choisis le format, ajuste les rôles et compose ton équipe au même endroit.",
+      "🐛 Composition — annuler un changement de format ne vide plus ton équipe.",
+      "🔧 Composition — les personnes hors modèle restent visibles aux orgas, au lieu de disparaître.",
+      "🔧 Équipe — libérer une personne et supprimer une place sont désormais deux actions distinctes.",
+      "✨ Composition — une personne retirée d’une équipe déjà visible reçoit une notification."
+    ]
+  },
+  {
+    "version": "2.6.1",
+    "date": "2026-10-13",
+    "changes": [
+      "🐛 Composition — annuler la modification du format ou des besoins ne vide plus ton équipe",
+      "🔧 Composition — les affectations devenues hors besoin restent préservées pour les orgas"
+    ]
+  },
+  {
     "version": "2.6.0",
     "date": "2026-09-29",
     "changes": [
