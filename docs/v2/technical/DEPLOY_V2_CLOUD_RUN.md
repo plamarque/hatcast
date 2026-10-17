@@ -463,6 +463,27 @@ Hors scope : session replay, feature flags, `defaults: '2026-01-30'` (on fixe le
 
 **Événement `notification_link_opened` (MVP)** : déclenché dès que l’URL contient `?tab=dispos|equipe`, `?showConfirm=true` ou `?showAvailability=true` — y compris navigation manuelle ou favori, pas seulement un clic email/push (pas de param `src=notif` dans cette story). Interpréter les KPI « suivi notification » comme indicateur de **deep-link tab**, pas de source notif exclusive.
 
+#### PWA adoption PostHog (Story 11.5)
+
+HatCast ne fournit que deux signaux bornés, via `ProductAnalyticsService` :
+
+| Événement | Moment | Propriétés applicatives autorisées | Limite |
+|---|---|---|---|
+| `pwa_access_mode_observed` | Après `identify`, une fois par personne/session navigateur | `access_mode`: `standalone` ou `web` | Le mode vient de `display-mode: standalone` ou iOS `navigator.standalone`; le stockage local n’est jamais une preuve. |
+
+Les captures n’ajoutent aucune propriété People et excluent user-agent brut, URL, identifiant appareil, texte libre et fingerprint. PostHog fournit déjà ses métadonnées serveur `$browser`, `$browser_version`, `$os`, `$os_version` et `$device_type`; HatCast ne les recopie donc pas.
+
+**Recette opérateur (PostHog, sans objet provisionné par le code) :** ouvrir l’intervalle des **30 derniers jours**, limiter aux personnes identifiées, puis :
+
+1. **PWA-used** : personnes uniques sur `pwa_access_mode_observed` où `access_mode = standalone`.
+2. **Web-only** : personnes uniques avec au moins un `access_mode = web` et aucune observation `standalone` sur le même intervalle.
+3. **Mixed-use** : intersection des deux populations, à présenter séparément.
+4. Pour les populations web-only, décomposer avec les métadonnées serveur PostHog par browser/browser version puis OS/OS version/device type; ne pas créer de propriété People pour cette analyse.
+
+Appliquer une exclusion démo/interne uniquement si un filtre déterministe, documenté et applicable à ces événements existe. À ce jour, `is_demo_troupe` n’est pas attachable à une observation globale de mode d’accès sans inventer un contexte de troupe : ne pas l’utiliser comme filtre de substitution. La création ou la modification d’insights, cohortes ou dashboards PostHog nécessite une autorisation explicite distincte.
+
+**Vérification production après déploiement :** avec deux comptes de test, ouvrir une session web normale et une session standalone, puis vérifier dans Live Events exactement une observation par compte/session et l’absence de propriétés interdites.
+
 #### Proxy managé (recommandé)
 
 1. PostHog → **Organization settings** → **Proxy** → **New managed proxy**.
