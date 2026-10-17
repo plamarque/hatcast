@@ -1552,6 +1552,23 @@ afin de comprendre l’adoption, les abandons et les issues des outils de gestio
 
 ---
 
+#### Story 11.5 : Observabilité installation PWA PostHog
+
+En tant qu’**opérateur produit**,
+je veux analyser a posteriori les cas où HatCast affiche des instructions d’installation PWA,
+afin d’identifier les compatibilités et les chemins d’aide qui nécessitent une amélioration sans collecter de données techniques excessives.
+
+**Acceptance Criteria**
+
+- **Given** l’ouverture effective des instructions manuelles d’installation, **when** elle résulte d’un prompt indisponible, échoué ou d’un contexte de développement non fiable, **then** un événement PostHog borné décrit le motif et la variante d’instructions, sans User-Agent brut, modèle matériel, identifiant d’appareil, donnée libre ou propriété People supplémentaire.
+- **Given** un prompt natif ou l’événement navigateur `appinstalled`, **when** son issue est observable, **then** elle est mesurée séparément de l’aide manuelle et d’un usage ultérieur en mode standalone ; l’installation manuelle iOS n’est jamais présentée comme une absence d’installation.
+- **Given** le tableau de bord PostHog des opérateurs, **when** il est consulté, **then** il présente par défaut les 30 derniers jours, permet de changer la période, filtre les cas d’aide par motif/variante et exploite uniquement les métadonnées navigateur, OS et type d’appareil interprétées par PostHog.
+- **Given** une personne concernée, **when** un opérateur autorisé la recherche dans PostHog, **then** l’investigation s’appuie sur le profil People existant sans enrichir son identité ; le tableau de bord n’envoie ni alerte ni digest.
+
+**Couverture :** Epic 11 / FR47 ; FR40 ; NFR-S2. Dépend de 10.1/10.5, OPS-9 et conserve les contrats de 11.1–11.4.
+
+---
+
 ### Epic 12 — Parcours membre & agenda utilisateur
 
 Les membres ont un **agenda personnel** multi-ligues et multi-troupes, un **routage post-connexion** sans écran intermédiaire, et une **navigation claire** depuis le détail événement vers la ligue et la troupe.
