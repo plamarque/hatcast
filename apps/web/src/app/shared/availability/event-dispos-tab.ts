@@ -10,12 +10,12 @@ import {
 } from '../../core/availability/availability-api.service'
 import type { EventResponse } from '../../core/events/event-api.service'
 import { isEventDraft } from '../../core/events/event-draft'
-import type { ParticipantSelector } from '../../core/participants/participant-api.service'
 import { AvailabilityPoll, type AvailabilityPollSavedPayload } from './availability-poll'
 import { AvailabilitySubjectSelector } from './availability-subject-selector'
 import {
   resolveDefaultSubjectParticipantId,
   summaryParticipantsToSelectors,
+  type AvailabilitySubjectSelectorOption,
 } from './availability-subject-options'
 
 @Component({
@@ -80,7 +80,7 @@ export class EventDisposTab implements OnDestroy {
     return subject.userId !== this.currentUserId()
   })
 
-  protected readonly subjectSelectorOptions = computed((): ParticipantSelector[] =>
+  protected readonly subjectSelectorOptions = computed((): AvailabilitySubjectSelectorOption[] =>
     summaryParticipantsToSelectors(this.summary()?.participants ?? []),
   )
 

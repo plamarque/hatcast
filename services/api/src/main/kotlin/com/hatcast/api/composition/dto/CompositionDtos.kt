@@ -109,6 +109,8 @@ data class CompositionCandidateDto(
     val alreadyAssignedRoleKeys: List<String>? = null,
     val avatarUrl: String? = null,
     val gender: String = "non_specified",
+    /** Organizer-only note entered with the candidate's event availability. */
+    val availabilityComment: String? = null,
 )
 
 data class CompositionCandidateListResponseDto(

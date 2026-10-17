@@ -43,6 +43,7 @@ describe('CompositionSlotPickerDialog', () => {
                 displayName: 'Alice',
                 chancePercent: 60,
                 pastSelectionCount: 0,
+                availabilityComment: 'Je dois partir à 22 h',
               },
             ],
             loading: false,
@@ -59,6 +60,7 @@ describe('CompositionSlotPickerDialog', () => {
   it('lists candidates with percent', () => {
     expect(fixture.nativeElement.textContent).toContain('Alice')
     expect(fixture.nativeElement.textContent).toContain('60')
+    expect(fixture.nativeElement.textContent).toContain('Commentaire : Je dois partir à 22 h')
   })
 
   it('closes with participantId on row click', () => {

@@ -159,6 +159,7 @@ class CompositionSlotAssignmentIntegrationTest {
         eventId: UUID,
         status: String,
         roleKeys: List<String> = listOf("player"),
+        comment: String? = null,
     ) {
         val roleKeysJson =
             if (roleKeys.isEmpty()) {
@@ -171,7 +172,9 @@ class CompositionSlotAssignmentIntegrationTest {
                 put("/v1/seasons/$seasonId/events/$eventId/availability/me")
                     .cookie(cookie)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"status":"$status","roleKeys":$roleKeysJson}""")
+                    .content(
+                        """{"status":"$status","roleKeys":$roleKeysJson,"comment":${comment?.let { "\"$it\"" } ?: "null"}}""",
+                    )
                     .with(csrf()),
             ).andExpect(status().isOk)
     }
@@ -282,7 +285,7 @@ class CompositionSlotAssignmentIntegrationTest {
         val member2 = memberCookie("sub-assign-member-3b")
         val seasonId = createSeason(adminCookie)
         val eventId = createEvent(adminCookie, seasonId, """{ "player": 1 }""")
-        setAvailability(member1, seasonId, eventId, "available")
+        setAvailability(member1, seasonId, eventId, "available", comment = "Arrive après 19 h")
         setAvailability(member2, seasonId, eventId, "available")
         seasonParticipantService.ensureMembershipParticipants(seasonRepository.findById(seasonId).orElseThrow())
 
@@ -296,6 +299,7 @@ class CompositionSlotAssignmentIntegrationTest {
                 ).andExpect(status().isOk)
                 .andExpect(jsonPath("$.candidates.length()").value(Matchers.greaterThanOrEqualTo(1)))
                 .andExpect(jsonPath("$.candidates[0].chancePercent").exists())
+                .andExpect(jsonPath("$.candidates[?(@.availabilityComment == 'Arrive après 19 h')]").isNotEmpty)
                 .andReturn()
         val candidates = mapper.readTree(res.response.contentAsString).get("candidates")
         if (candidates.size() >= 2) {

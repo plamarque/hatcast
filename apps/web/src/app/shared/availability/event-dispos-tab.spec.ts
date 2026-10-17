@@ -202,6 +202,25 @@ describe('EventDisposTab', () => {
     expect(names).toContain('Guest Artist')
   })
 
+  it('marks organizer subject options that have an availability comment', async () => {
+    const summaryWithComment: EventAvailabilitySummary = {
+      ...mockSummary,
+      participants: mockSummary.participants.map((participant) =>
+        participant.participantId === 'p2'
+          ? { ...participant, comment: 'Arrive après 19 h' }
+          : participant,
+      ),
+    }
+    const { fixture } = await setup(true, 'user-1', null, summaryWithComment)
+    const comp = fixture.componentInstance as unknown as {
+      subjectSelectorOptions: () => { id: string; hasAvailabilityComment: boolean }[]
+    }
+
+    expect(
+      comp.subjectSelectorOptions().find((option) => option.id === 'p2')?.hasAvailabilityComment,
+    ).toBe(true)
+  })
+
   it('allows organizer to edit another subject (not read-only poll)', async () => {
     const { fixture } = await setup(true)
     const comp = fixture.componentInstance as unknown as {

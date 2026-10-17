@@ -17,11 +17,17 @@
             [size]="24"
           />
           <span>{{ selected.displayName }}</span>
+          @if (selected.hasAvailabilityComment) {
+            <mat-icon class="subject-selector__comment-icon" aria-hidden="true">comment</mat-icon>
+          }
         </span>
       </mat-select-trigger>
     }
     @for (p of participants(); track p.id) {
-      <mat-option [value]="p.id">
+      <mat-option
+        [value]="p.id"
+        [attr.aria-label]="p.hasAvailabilityComment ? p.displayName + ', commentaire disponible' : p.displayName"
+      >
         <span class="subject-selector__option">
           <app-user-avatar
             class="subject-selector__avatar"
@@ -31,6 +37,9 @@
             [size]="24"
           />
           <span>{{ p.displayName }}</span>
+          @if (p.hasAvailabilityComment) {
+            <mat-icon class="subject-selector__comment-icon" aria-hidden="true">comment</mat-icon>
+          }
         </span>
       </mat-option>
     }
