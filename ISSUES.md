@@ -33,6 +33,26 @@ human-smoke, integration, or validation gate.
 Entries below preserve the original evidence. A `Fixed` status means history,
 not active work; items listed in the two sections above remain actionable.
 
+### BUG-035 — Organiser view does not restore the selected participant's availability checks
+- **ID**: BUG-035
+- **Status**: Open — reported from replay; not reproduced by the focused regression test on the current checkout
+- **Severity**: Medium (an organiser can mistake an already-recorded response for an unanswered one)
+- **Affected area**: V2 event-detail **Dispos** tab, `EventDisposTab` / `AvailabilityPoll` subject switch.
+- **Observed behavior**: An organiser opens **Dispos**, selects another participant, and their already-recorded availability checks appear unloaded.
+- **Expected behavior**: Switching the subject must immediately render the selected participant's persisted status and every selected role; it must not inherit the previous participant's state or show an empty response.
+- **Code evidence / current hypothesis**: The current path carries `SummaryParticipant.status` and `roleKeys` from the availability summary into `AvailabilityPoll`; `isRoleChecked()` derives each check from that selected subject. The regression now drives the organizer subject selector to a participant with two saved roles and asserts both are checked, an unsaved role remains unchecked, and neither self nor proxy availability API is written. It passes on the current checkout. No root cause is established; the replay may involve production data, a different deployed revision, or another interaction sequence.
+- **Repro to complete**: Repeat the focused scenario against the replay's deployed revision and original event data. Capture the event id, participant id, stored response, and screen/replay timestamp if it fails.
+
+### BUG-034 — Availability comments are persisted but unavailable to organisers outside the selected poll subject
+- **ID**: BUG-034
+- **Status**: Open — code-backed; no production replay reproduction claimed
+- **Severity**: Medium (information entered by a participant cannot inform composition)
+- **Affected area**: V2 availability summary, **Dispos** tab and composition workspace.
+- **Observed behavior**: A participant can save an availability comment, but an organiser cannot see it while composing the team. In **Dispos**, it is only displayed in the editable/read-only comment field for the single participant selected in the subject picker; opening a candidate/name or filtering a member does not surface it.
+- **Expected behavior**: An organiser can consult a participant's saved availability comment from the availability and composition decision paths, without editing that response.
+- **Cause**: The API persists and returns `SummaryParticipant.comment`, and the Dispos subject poll binds it to the selected person's textarea. No candidate list, availability pool, composition slot/picker, or participant filter renders this field.
+- **Verification**: `apps/web` focused `event-dispos-tab` + `availability-poll` tests: 34/34 passed on 2026-10-17. This verifies the existing poll behavior, not the missing organiser presentation.
+
 ### BUG-033 — Une adhésion active peut manquer du roster de saison
 
 - **ID**: BUG-033
