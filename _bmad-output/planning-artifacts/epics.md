@@ -1569,6 +1569,23 @@ afin d’identifier les compatibilités et les chemins d’aide qui nécessitent
 
 ---
 
+#### Story 11.6 : Adoption PWA PostHog
+
+En tant qu’**opérateur produit**,
+je veux distinguer l’usage de HatCast en navigateur et en PWA installée,
+afin de suivre l’adoption PWA et les compatibilités sans enrichir les profils People ni exposer de données personnelles.
+
+**Acceptance Criteria**
+
+- **Given** une session identifiée, **when** le navigateur expose `display-mode: standalone` ou iOS `navigator.standalone === true`, **then** HatCast émet une seule observation `pwa_access_mode_observed` avec `access_mode: standalone` pour cette session ; sinon il émet `access_mode: web`.
+- **Given** PostHog est désactivé, **when** les parcours PWA s’exécutent, **then** aucune capture n’est envoyée et le comportement PWA existant reste inchangé.
+- **Given** les événements sont inspectés, **when** ils sont capturés, **then** l’allow-list se limite à `access_mode`; aucun user agent brut, URL, identifiant appareil, texte libre ni People property n’est ajouté.
+- **Given** un opérateur configure ultérieurement le dashboard PostHog, **when** il applique la recette documentée sur les 30 derniers jours, **then** il peut séparer PWA-used, web-only et mixed-use, avec les métadonnées serveur PostHog pour les compatibilités. La création/modification de ces objets PostHog reste soumise à autorisation explicite.
+
+**Couverture :** SPEC-pwa-adoption-posthog CAP-1 à CAP-5 ; NFR-S2.
+
+---
+
 ### Epic 12 — Parcours membre & agenda utilisateur
 
 Les membres ont un **agenda personnel** multi-ligues et multi-troupes, un **routage post-connexion** sans écran intermédiaire, et une **navigation claire** depuis le détail événement vers la ligue et la troupe.

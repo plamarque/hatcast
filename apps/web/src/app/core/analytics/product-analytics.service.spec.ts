@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { environment } from '../../../environments/environment'
-import { FR47_AVAILABILITY_FIRST_SUBMISSION, FR47_NOTIFICATION_LINK_OPENED, V1_CUTOVER_SRC, V2_CUTOVER_REFERRAL_LANDING, V2_MIGRATION_FIRST_SESSION } from './fr47-event-names'
+import { FR47_AVAILABILITY_FIRST_SUBMISSION, FR47_NOTIFICATION_LINK_OPENED, PWA_ACCESS_MODE_OBSERVED, V1_CUTOVER_SRC, V2_CUTOVER_REFERRAL_LANDING, V2_MIGRATION_FIRST_SESSION } from './fr47-event-names'
 import { resolveNotificationLinkTab } from './notification-link-tab'
 import { setPostHogBrowserFacadeForTests } from './posthog-browser.client'
 import { ProductAnalyticsService } from './product-analytics.service'
@@ -36,6 +36,10 @@ describe('ProductAnalyticsService', () => {
     }
   }
 
+  function clearPwaAccessModeDedupe(userId: string): void {
+    sessionStorage.removeItem(`hatcast:pwa-access-mode-observed:${userId}`)
+  }
+
   beforeEach(() => {
     if (typeof window !== 'undefined') {
       savedLocation = window.location.href
@@ -60,9 +64,11 @@ describe('ProductAnalyticsService', () => {
     Object.assign(environment, savedEnv)
     clearSessionStorage()
     clearV2MigrationDedupe('00000000-0000-4000-8000-000000000001')
+    clearPwaAccessModeDedupe('00000000-0000-4000-8000-000000000001')
     if (typeof window !== 'undefined') {
       window.history.replaceState({}, '', savedLocation)
     }
+    vi.unstubAllGlobals()
   })
 
   function service(): ProductAnalyticsService {
@@ -192,7 +198,7 @@ describe('ProductAnalyticsService', () => {
     clearV2MigrationDedupe(userId)
     service().identifyUser(userId, { email: 'alice@example.com', displayName: 'Alice' })
     service().identifyUser(userId, { email: 'alice@example.com', displayName: 'Alice' })
-    expect(capture).toHaveBeenCalledTimes(1)
+    expect(capture).toHaveBeenCalledTimes(2)
     expect(capture).toHaveBeenCalledWith(
       V2_MIGRATION_FIRST_SESSION,
       expect.objectContaining({
@@ -204,6 +210,27 @@ describe('ProductAnalyticsService', () => {
       V2_MIGRATION_FIRST_SESSION,
       expect.objectContaining({ email: expect.anything() }),
     )
+  })
+
+  it('captures the standalone PWA access mode only once per identified browser session', async () => {
+    environment.posthogApiKey = 'phc_test'
+    environment.posthogApiHost = 'https://e.hatcast.app'
+    vi.spyOn(await import('./posthog-browser.client'), 'initPostHogBrowser').mockResolvedValue(true)
+    vi.stubGlobal('matchMedia', (query: string) => ({ matches: query === '(display-mode: standalone)' }))
+    await service().bootstrap()
+    const userId = '00000000-0000-4000-8000-000000000001'
+    clearV2MigrationDedupe(userId)
+    clearPwaAccessModeDedupe(userId)
+    service().identifyUser(userId)
+    service().identifyUser(userId)
+    expect(capture).toHaveBeenCalledWith(PWA_ACCESS_MODE_OBSERVED, { access_mode: 'standalone' })
+    expect(capture.mock.calls.filter(([event]) => event === PWA_ACCESS_MODE_OBSERVED)).toHaveLength(1)
+  })
+
+  it('does not capture PWA events when disabled', async () => {
+    await service().bootstrap()
+    service().capturePwaAccessModeObserved('user-uuid')
+    expect(capture).not.toHaveBeenCalled()
   })
 
   it('dedupes composition_all_confirmations_received per event in session', async () => {

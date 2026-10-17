@@ -138,6 +138,7 @@ development_status:
 
   epic-11: in-progress
   11-1-événements-analytics-anonymisés-pour-indicateurs-success-cri: backlog
+  11-6-adoption-pwa-posthog: done
   epic-11-retrospective: optional
 
   epic-12: in-progress

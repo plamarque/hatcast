@@ -10,12 +10,14 @@ import {
   V1_CUTOVER_SRC,
   V2_CUTOVER_REFERRAL_LANDING,
   V2_MIGRATION_FIRST_SESSION,
+  PWA_ACCESS_MODE_OBSERVED,
 } from './fr47-event-names'
 import {
   getPostHogBrowserFacade,
   initPostHogBrowser,
   type PostHogPersonProperties,
 } from './posthog-browser.client'
+import { resolvePwaAccessMode } from '../pwa/pwa-access-mode'
 
 const ALL_CONFIRMATIONS_DEDUPE_PREFIX = 'hatcast:fr47:all-confirmations:'
 const V2_MIGRATION_FIRST_SESSION_PREFIX = 'hatcast:v2-migration-first-session:'
@@ -23,6 +25,7 @@ const V1_CUTOVER_PH_REF_KEY = 'hatcast:v1-cutover-ph-ref'
 const V1_CUTOVER_REFERRAL_CAPTURED_KEY = 'hatcast:v1-cutover-referral-captured'
 const V1_CUTOVER_ALIAS_APPLIED_PREFIX = 'hatcast:v1-cutover-alias-applied:'
 const V1_CUTOVER_PH_REF_IDENTIFIED_PREFIX = 'hatcast:v1-cutover-ph-ref-identified:'
+const PWA_ACCESS_MODE_OBSERVED_PREFIX = 'hatcast:pwa-access-mode-observed:'
 
 export type IdentifyUserInput = {
   email?: string | null
@@ -55,6 +58,7 @@ export class ProductAnalyticsService {
     this.facade()?.identify(id, personProperties)
     this.applyV1CutoverAlias(id)
     this.captureV2MigrationFirstSession(id)
+    this.capturePwaAccessModeObserved(id)
   }
 
   captureV2MigrationFirstSession(userId: string): void {
@@ -83,6 +87,26 @@ export class ProductAnalyticsService {
       props['src'] = V1_CUTOVER_SRC
     }
     this.capture(V2_MIGRATION_FIRST_SESSION, props)
+  }
+
+  /** Records the browser's current access mode once per identified user/session. */
+  capturePwaAccessModeObserved(userId: string): void {
+    const id = userId.trim()
+    if (!id || !this.enabled) {
+      return
+    }
+    if (typeof sessionStorage !== 'undefined') {
+      try {
+        const key = `${PWA_ACCESS_MODE_OBSERVED_PREFIX}${id}`
+        if (sessionStorage.getItem(key) === '1') {
+          return
+        }
+        sessionStorage.setItem(key, '1')
+      } catch {
+        /* storage blocked — capture remains best-effort */
+      }
+    }
+    this.capture(PWA_ACCESS_MODE_OBSERVED, { access_mode: resolvePwaAccessMode() })
   }
 
   /** Parse cutover query params, persist ph_ref, capture landing once per session, clean URL. */
