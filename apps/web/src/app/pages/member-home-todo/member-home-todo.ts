@@ -109,16 +109,20 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
 
   protected readonly showActionsSection = computed(() => this.actions().length > 0)
 
-  protected readonly showAllCaughtUpBanner = computed(
+  /** Cached inbox says « Tout est à jour » — keeps the banner box laid out during SWR revalidation (no CLS). */
+  protected readonly reserveAllCaughtUpBanner = computed(
     () =>
       this.inboxLoaded() &&
-      !this.inboxRevalidating() &&
       !this.noParticipation() &&
       !this.loadingSession() &&
       !this.loadingInbox() &&
       !this.loadError() &&
       this.actions().length === 0 &&
       this.completedGhosts().length === 0,
+  )
+
+  protected readonly showAllCaughtUpBanner = computed(
+    () => this.reserveAllCaughtUpBanner() && !this.inboxRevalidating(),
   )
 
   protected readonly showActionsSkeleton = computed(
@@ -142,7 +146,7 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
   )
 
   protected readonly showNoUpcomingEventsEmpty = computed(
-    () => this.showAllCaughtUpBanner() && !this.nextEvent() && !this.noParticipation(),
+    () => this.reserveAllCaughtUpBanner() && !this.nextEvent() && !this.noParticipation(),
   )
 
   async ngOnInit(): Promise<void> {
