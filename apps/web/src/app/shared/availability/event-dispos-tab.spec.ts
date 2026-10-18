@@ -202,6 +202,25 @@ describe('EventDisposTab', () => {
     expect(names).toContain('Guest Artist')
   })
 
+  it('marks organizer subject options that have an availability comment', async () => {
+    const summaryWithComment: EventAvailabilitySummary = {
+      ...mockSummary,
+      participants: mockSummary.participants.map((participant) =>
+        participant.participantId === 'p2'
+          ? { ...participant, comment: 'Arrive après 19 h' }
+          : participant,
+      ),
+    }
+    const { fixture } = await setup(true, 'user-1', null, summaryWithComment)
+    const comp = fixture.componentInstance as unknown as {
+      subjectSelectorOptions: () => { id: string; hasAvailabilityComment: boolean }[]
+    }
+
+    expect(
+      comp.subjectSelectorOptions().find((option) => option.id === 'p2')?.hasAvailabilityComment,
+    ).toBe(true)
+  })
+
   it('allows organizer to edit another subject (not read-only poll)', async () => {
     const { fixture } = await setup(true)
     const comp = fixture.componentInstance as unknown as {
@@ -274,6 +293,10 @@ describe('EventDisposTab', () => {
 
   it('calls proxy API when organizer votes for another subject', async () => {
     const { fixture, setParticipantAvailability, setMyAvailability } = await setup(true)
+    fixture.componentRef.setInput('actorScope', 'event_organizer')
+    fixture.componentRef.setInput('event', {
+      ...fixture.componentInstance.event(), availabilityOpenedAt: '2026-01-01T00:00:00Z',
+    })
     const comp = fixture.componentInstance as unknown as {
       onSubjectChange: (id: string) => void
     }
@@ -297,6 +320,9 @@ describe('EventDisposTab', () => {
       expect.objectContaining({ status: 'available', comment: null }),
     )
     expect(setMyAvailability).not.toHaveBeenCalled()
+    expect(TestBed.inject(ProductAnalyticsService).captureAvailabilityFirstSubmission).toHaveBeenCalledWith(
+      expect.objectContaining({ actor_scope: 'event_organizer' }), expect.objectContaining({ is_proxy: true }),
+    )
   })
 
   it('does not eager-load chances on initial summary fetch', async () => {

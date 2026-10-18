@@ -15,6 +15,8 @@ historical registry below.
 
 ### Open defects and limitations
 
+BUG-BMAD-001 (accented versus ASCII story keys in sprint controller).
+
 BUG-031 (format cancellation), BUG-029 (date-sensitive agenda fixture),
 BUG-028 (mobile season chart), BUG-023 (stale Home badge), LIMIT-009 (Dispos
 view), BUG-018 (staging traffic), LIMIT-008 (Loop policy), LIMIT-007 (web unit
@@ -29,6 +31,24 @@ BUG-024, and BUG-021 have local fixes but still require their stated review,
 human-smoke, integration, or validation gate.
 
 ### Historical registry
+
+### BUG-BMAD-001 — Sprint controller disagrees with registered ASCII story keys
+
+- **Status:** Open; explicit PO exception for the targeted 11.5 closure only (2026-10-18).
+- **Severity:** Low (local tracking tooling).
+- **Affected area:** BMad `sprint_plan.py generate --set` and `story-status-sync.py` key compatibility.
+- **Observed behavior:** The registered `11-5-observabilite-installation-pwa-posthog` key is rejected by the sprint generator, which derives `11-5-observabilité-installation-pwa-posthog` from the canonical heading. The additive registration controller cannot change statuses.
+- **Expected behavior:** Registered story keys can be updated without replacing historical entries or regenerating unrelated tracking state.
+- **Notes/context:** The PO explicitly authorized correcting only the existing ASCII 11.5 entry to `done`. The controller itself is unchanged; the exception does not authorize future manual tracker changes.
+
+### BUG-036 — Incomplete organizer analytics at composition boundaries
+
+- **Status:** Fixed in Story 11.4; automated verification and human local smoke passed. Live PostHog delivery remains a post-deployment check.
+- **Severity:** Medium (product observability).
+- **Affected area:** V2 organizer composition and announcement analytics.
+- **Observed behavior:** Direct Équipe bootstrap could omit workspace entry; animated draws could omit a persisted success; closing an announcement after choosing a channel could record an abandonment. Storage denial and cross-account dedupe could also lose or duplicate entries.
+- **Expected behavior:** Count actual workspace entries once per event/session, confirmed mutations independently of animation, and dismissal only without a channel choice.
+- **Fix:** Shared workspace capture boundary, API-success draw capture, explicit bounded announcement choices, storage fallback/session reset, allow-listed payload projection and caller regression tests. Operator funnels exclude refused outcomes and hold event context constant.
 
 Entries below preserve the original evidence. A `Fixed` status means history,
 not active work; items listed in the two sections above remain actionable.

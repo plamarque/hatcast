@@ -3,6 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { environment } from '../../../environments/environment'
 import {
+  AVAILABILITY_REMINDER_SENT,
+  COMPOSITION_MUTATION_COMPLETED,
+  COMPOSITION_WORKSPACE_OPENED,
   FR47_AVAILABILITY_FIRST_SUBMISSION,
   FR47_NOTIFICATION_LINK_OPENED,
   PWA_INSTALL_COMPLETED,
@@ -11,6 +14,7 @@ import {
   PWA_UPDATE_APPLY_REQUESTED,
   PWA_UPDATE_AVAILABLE,
   PWA_UPDATE_DISMISSED,
+  PWA_ACCESS_MODE_OBSERVED,
   V1_CUTOVER_SRC,
   V2_CUTOVER_REFERRAL_LANDING,
   V2_MIGRATION_FIRST_SESSION,
@@ -49,6 +53,10 @@ describe('ProductAnalyticsService', () => {
     }
   }
 
+  function clearPwaAccessModeDedupe(userId: string): void {
+    sessionStorage.removeItem(`hatcast:pwa-access-mode-observed:${userId}`)
+  }
+
   beforeEach(() => {
     if (typeof window !== 'undefined') {
       savedLocation = window.location.href
@@ -73,9 +81,11 @@ describe('ProductAnalyticsService', () => {
     Object.assign(environment, savedEnv)
     clearSessionStorage()
     clearV2MigrationDedupe('00000000-0000-4000-8000-000000000001')
+    clearPwaAccessModeDedupe('00000000-0000-4000-8000-000000000001')
     if (typeof window !== 'undefined') {
       window.history.replaceState({}, '', savedLocation)
     }
+    vi.unstubAllGlobals()
   })
 
   function service(): ProductAnalyticsService {
@@ -233,6 +243,33 @@ describe('ProductAnalyticsService', () => {
     }
   })
 
+  it('keeps adoption, organizer and lifecycle contracts independent on the same identity', async () => {
+    await enableReleaseAnalytics()
+    const id = '00000000-0000-4000-8000-000000000001'
+    service().identifyUser(id)
+    service().identifyUser(id)
+    const ctx = { ...service().eventContext('ev-coexist', 's1', 't1'), actor_scope: 'event_organizer' as const }
+    service().captureCompositionWorkspaceOpened(ctx, 'draft')
+    service().captureCompositionWorkspaceOpened(ctx, 'draft')
+    service().capturePwaInstallCompleted()
+
+    expect(capture.mock.calls.filter(([event]) => event === PWA_ACCESS_MODE_OBSERVED)).toHaveLength(1)
+    expect(capture.mock.calls.filter(([event]) => event === 'app_release_observed')).toHaveLength(1)
+    expect(capture.mock.calls.filter(([event]) => event === COMPOSITION_WORKSPACE_OPENED)).toEqual([
+      [COMPOSITION_WORKSPACE_OPENED, { ...ctx, lifecycle: 'draft' }],
+    ])
+    expect(capture).toHaveBeenCalledWith(PWA_INSTALL_COMPLETED, { release_id: '2.6.3:abcdef12', app_version: '2.6.3' })
+    expect(identify).toHaveBeenCalledWith(id, { has_ever_organized: true })
+
+    service().resetSession()
+    identify.mockClear()
+    capture.mockClear()
+    service().capturePwaInstallCompleted()
+    service().captureCompositionWorkspaceOpened(ctx, 'draft')
+    expect(identify).not.toHaveBeenCalled()
+    expect(capture.mock.calls.map(([event]) => event)).toEqual([COMPOSITION_WORKSPACE_OPENED])
+  })
+
   it('captures FR47 events when key is set and client is initialized', async () => {
     environment.posthogApiKey = 'phc_test'
     environment.posthogApiHost = 'https://e.hatcast.app'
@@ -270,6 +307,23 @@ describe('ProductAnalyticsService', () => {
     service().resetSession()
     expect(identify).not.toHaveBeenCalled()
     expect(reset).not.toHaveBeenCalled()
+  })
+
+  it('does not retain an identified user after a session reset', async () => {
+    environment.posthogApiKey = 'phc_test'
+    environment.posthogApiHost = 'https://e.hatcast.app'
+    vi.spyOn(await import('./posthog-browser.client'), 'initPostHogBrowser').mockResolvedValue(true)
+    await service().bootstrap()
+    service().identifyUser('00000000-0000-4000-8000-000000000009')
+    service().resetSession()
+    identify.mockClear()
+
+    service().captureCompositionWorkspaceOpened(
+      { ...service().eventContext('ev-after-reset', 's1', 't1'), actor_scope: 'event_organizer' },
+      'draft',
+    )
+
+    expect(identify).not.toHaveBeenCalled()
   })
 
   it('identifies opaque user id when enabled', async () => {
@@ -341,7 +395,7 @@ describe('ProductAnalyticsService', () => {
     clearV2MigrationDedupe(userId)
     service().identifyUser(userId, { email: 'alice@example.com', displayName: 'Alice' })
     service().identifyUser(userId, { email: 'alice@example.com', displayName: 'Alice' })
-    expect(capture).toHaveBeenCalledTimes(1)
+    expect(capture).toHaveBeenCalledTimes(2)
     expect(capture).toHaveBeenCalledWith(
       V2_MIGRATION_FIRST_SESSION,
       expect.objectContaining({
@@ -353,6 +407,27 @@ describe('ProductAnalyticsService', () => {
       V2_MIGRATION_FIRST_SESSION,
       expect.objectContaining({ email: expect.anything() }),
     )
+  })
+
+  it('captures the standalone PWA access mode only once per identified browser session', async () => {
+    environment.posthogApiKey = 'phc_test'
+    environment.posthogApiHost = 'https://e.hatcast.app'
+    vi.spyOn(await import('./posthog-browser.client'), 'initPostHogBrowser').mockResolvedValue(true)
+    vi.stubGlobal('matchMedia', (query: string) => ({ matches: query === '(display-mode: standalone)' }))
+    await service().bootstrap()
+    const userId = '00000000-0000-4000-8000-000000000001'
+    clearV2MigrationDedupe(userId)
+    clearPwaAccessModeDedupe(userId)
+    service().identifyUser(userId)
+    service().identifyUser(userId)
+    expect(capture).toHaveBeenCalledWith(PWA_ACCESS_MODE_OBSERVED, { access_mode: 'standalone' })
+    expect(capture.mock.calls.filter(([event]) => event === PWA_ACCESS_MODE_OBSERVED)).toHaveLength(1)
+  })
+
+  it('does not capture PWA events when disabled', async () => {
+    await service().bootstrap()
+    service().capturePwaAccessModeObserved('user-uuid')
+    expect(capture).not.toHaveBeenCalled()
   })
 
   it('dedupes composition_all_confirmations_received per event in session', async () => {
@@ -386,6 +461,113 @@ describe('ProductAnalyticsService', () => {
     expect(capture).toHaveBeenCalledWith(FR47_NOTIFICATION_LINK_OPENED, expect.objectContaining({
       link_tab: 'confirm',
     }))
+  })
+
+  it('captures only bounded organizer journey properties and dedupes workspace opens', async () => {
+    environment.posthogApiKey = 'phc_test'
+    environment.posthogApiHost = 'https://e.hatcast.app'
+    vi.spyOn(await import('./posthog-browser.client'), 'initPostHogBrowser').mockResolvedValue(true)
+    await service().bootstrap()
+    const ctx = { ...service().eventContext('ev-organizer', 's1', 't1'), actor_scope: 'event_organizer' as const }
+    service().captureCompositionWorkspaceOpened(ctx, 'draft')
+    service().captureCompositionWorkspaceOpened(ctx, 'draft')
+    service().captureCompositionMutation(ctx, {
+      action: 'slot', outcome: 'succeeded', operation: 'remove_slot', participant_id: 'forbidden', message: 'forbidden',
+    } as never)
+    service().captureAvailabilityReminder(ctx, { outcome: 'succeeded', recipient_count_bucket: '2_5' })
+    expect(capture).toHaveBeenCalledTimes(3)
+    expect(capture).toHaveBeenCalledWith(COMPOSITION_WORKSPACE_OPENED, expect.objectContaining({ actor_scope: 'event_organizer', lifecycle: 'draft' }))
+    expect(capture).toHaveBeenCalledWith(COMPOSITION_MUTATION_COMPLETED, expect.objectContaining({ action: 'slot', outcome: 'succeeded', operation: 'remove_slot' }))
+    expect(capture).toHaveBeenCalledWith(AVAILABILITY_REMINDER_SENT, expect.objectContaining({ recipient_count_bucket: '2_5' }))
+    for (const [, properties] of capture.mock.calls) {
+      expect(properties).not.toHaveProperty('participant_id')
+      expect(properties).not.toHaveProperty('message')
+      expect(properties).not.toHaveProperty('email')
+    }
+
+    capture.mockClear()
+    service().captureCompositionWorkspaceOpened(ctx, 'unexpected' as never)
+    service().captureCompositionMutation(ctx, { action: 'unexpected', outcome: 'succeeded' } as never)
+    service().captureCompositionMutation(ctx, { action: 'slot', outcome: 'unexpected' } as never)
+    service().captureAvailabilityReminder(ctx, { outcome: 'unexpected' } as never)
+    expect(capture).not.toHaveBeenCalled()
+  })
+
+  it('sets the sole permitted organizer People trait after an identified organizer capture', async () => {
+    environment.posthogApiKey = 'phc_test'
+    environment.posthogApiHost = 'https://e.hatcast.app'
+    vi.spyOn(await import('./posthog-browser.client'), 'initPostHogBrowser').mockResolvedValue(true)
+    await service().bootstrap()
+    service().identifyUser('00000000-0000-4000-8000-000000000009')
+    identify.mockClear()
+    service().captureCompositionWorkspaceOpened(
+      { ...service().eventContext('ev-organizer-person', 's1', 't1'), actor_scope: 'event_organizer' },
+      'draft',
+    )
+    expect(identify).toHaveBeenCalledWith('00000000-0000-4000-8000-000000000009', { has_ever_organized: true })
+  })
+
+  it('dedupes workspace opens with blocked storage and allows a new session', async () => {
+    environment.posthogApiKey = 'phc_test'
+    environment.posthogApiHost = 'https://e.hatcast.app'
+    vi.spyOn(await import('./posthog-browser.client'), 'initPostHogBrowser').mockResolvedValue(true)
+    await service().bootstrap()
+    const storage = vi.spyOn(sessionStorage, 'getItem').mockImplementation(() => { throw new Error('blocked') })
+    const ctx = service().eventContext('blocked-event', 's1', 't1')
+    service().captureCompositionWorkspaceOpened(ctx, 'draft')
+    service().captureCompositionWorkspaceOpened(ctx, 'draft')
+    expect(capture).toHaveBeenCalledTimes(1)
+    service().resetSession()
+    service().captureCompositionWorkspaceOpened(ctx, 'draft')
+    expect(capture).toHaveBeenCalledTimes(2)
+    storage.mockRestore()
+  })
+
+  it('uses memory when accessing the storage object itself throws', async () => {
+    environment.posthogApiKey = 'phc_test'
+    vi.spyOn(await import('./posthog-browser.client'), 'initPostHogBrowser').mockResolvedValue(true)
+    await service().bootstrap()
+    const storage = vi.spyOn(window, 'sessionStorage', 'get').mockImplementation(() => { throw new Error('denied') })
+    try {
+      const ctx = service().eventContext('denied-storage', 's1', 't1')
+      service().captureCompositionWorkspaceOpened(ctx, 'draft')
+      service().captureCompositionWorkspaceOpened(ctx, 'draft')
+      expect(capture).toHaveBeenCalledTimes(1)
+    } finally {
+      storage.mockRestore()
+    }
+  })
+
+  it('sets the organizer trait for enriched FR47 events but never for member scope', async () => {
+    environment.posthogApiKey = 'phc_test'
+    vi.spyOn(await import('./posthog-browser.client'), 'initPostHogBrowser').mockResolvedValue(true)
+    await service().bootstrap()
+    service().identifyUser('00000000-0000-4000-8000-000000000009')
+    identify.mockClear()
+    const ctx = service().eventContext('trait-event', 's1', 't1')
+    const props = { is_proxy: false, opened_at: 'opened', submitted_at: 'submitted' }
+    service().captureAvailabilityFirstSubmission({ ...ctx, actor_scope: 'member' }, props)
+    expect(identify).not.toHaveBeenCalled()
+    service().captureAvailabilityFirstSubmission({ ...ctx, actor_scope: 'event_organizer' }, props)
+    expect(identify).toHaveBeenCalledWith('00000000-0000-4000-8000-000000000009', { has_ever_organized: true })
+  })
+
+  it('projects contaminated FR47 contexts and properties onto the approved keys', async () => {
+    environment.posthogApiKey = 'phc_test'
+    vi.spyOn(await import('./posthog-browser.client'), 'initPostHogBrowser').mockResolvedValue(true)
+    await service().bootstrap()
+    const ctx = { ...service().eventContext('privacy-event', 's1', 't1'), email: 'forbidden', participant_id: 'forbidden' }
+    const availability = { is_proxy: false, opened_at: 'opened', submitted_at: 'submitted', message: 'forbidden' }
+    service().captureAvailabilityFirstSubmission(ctx, availability)
+    service().captureCompositionValidated(ctx, { validated_at: 'validated', message: 'forbidden' } as never)
+    service().captureCompositionAllConfirmationsReceived(ctx, { validated_at: 'validated', completed_at: 'complete', message: 'forbidden' } as never)
+    service().captureNotificationLinkOpened(ctx, { link_tab: 'dispos', message: 'forbidden' } as never)
+    expect(capture.mock.calls.map(([, props]) => props)).toEqual([
+      { ...service().eventContext('privacy-event', 's1', 't1'), is_proxy: false, opened_at: 'opened', submitted_at: 'submitted' },
+      { ...service().eventContext('privacy-event', 's1', 't1'), validated_at: 'validated' },
+      { ...service().eventContext('privacy-event', 's1', 't1'), validated_at: 'validated', completed_at: 'complete' },
+      { ...service().eventContext('privacy-event', 's1', 't1'), link_tab: 'dispos' },
+    ])
   })
 
   it('captures v2_cutover_referral_landing once per session from URL params', async () => {

@@ -2,7 +2,7 @@
 title: 'PWA installation, updates and release notes observability in PostHog'
 type: 'feature'
 created: '2026-10-17'
-status: 'in-progress'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 0
 baseline_commit: '74e59d5b866041ce9ba48f4f54a88cbd88062635'
@@ -93,6 +93,8 @@ context:
 
 ## Review Triage Log
 
+2026-10-18 post-conflict local self-review against current `v2`: organizer methods, safe context projection, `has_ever_organized`, workspace deduplication/reset and adoption session deduplication are retained unchanged; lifecycle observes the same identified UUID without introducing parallel identity state. The combined regression proves independent adoption/release/workspace captures and logout boundaries. Workflow review confirms a production-only successful-deploy dependency, no check-mode deployment, and no new secret output. This is a local self-review, not an independent BMad review.
+
 2026-10-18 formal local self-review: corrected release identity to be bundled (live version fetch cannot prove client update); moved manual-help capture after actual MatDialog opening; prevent a notes-close event from being attributed after an identity change; CI promotion uses deployment completion date rather than retry date; added Actions read permission and duplicate/cross-origin provisioning guards. These fixes were re-tested. Material 3: existing MatDialog/template/theme/focus/dismiss controls retained; no visual/style/navigation changes. Remaining external verification: real PostHog schema/query execution and two-release smoke.
 
 ## Design Notes
@@ -100,6 +102,10 @@ context:
 The story separates manual help, browser-confirmed native installation, update availability, dismissal, apply request, and a changed bundled release observed later. A request alone is not confirmation. Adoption remains a separate contract. Visible reading time and scroll buckets do not imply comprehension.
 
 ## Verification
+
+Final reconciled-tree evidence, 2026-10-18: 297 Angular tests passed across 16 files (analytics, PWA, changelog, organizer/detail, availability and announcements); all 5 Node provisioning tests passed. Production build succeeded, and bundled `2.6.2:5009b980` identity was found in generated JavaScript. Workflow YAML gate/isolation assertions passed. Tracker delta against `v2` is exactly the addition of the 11.5 `done` entry, leaving 11.4 and 11.6 unchanged. Integration and process/worktree cleanup are verified separately after this commit; no push or deployment.
+
+2026-10-18 local closure: PO explicitly authorized resolving integration conflicts while preserving 11.4 organizer and 11.6 adoption contracts, and a targeted manual tracker correction because the supported controller rejects the registered ASCII key (BUG-BMAD-001). No unrelated tracker entry is changed. Merge reconciliation retains organizer allow-lists, deduplication and identity reset; lifecycle uses that same identified UUID. A combined regression checks the three event families and reset behavior. Production build and Node tests pass; historical Sass/style-budget warnings remain. No UI styling, controls, focus, layout or navigation changed (Material 3 checklist: existing MatDialog retained; visual change checks N/A). Real events and the two-release sequence remain explicitly deferred, not claimed as verified.
 
 2026-10-18 closure decision: the PO explicitly requests a local commit, integration into `v2`, and closure without waiting for client traffic. Real client payloads and the two-release update sequence remain unverified and are deferred to release validation. This is an accepted verification boundary, not a claim of live runtime success. No additional push or deployment is authorized by this local closure.
 

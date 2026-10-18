@@ -104,5 +104,5 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="end" class="share-announce-dialog__footer">
-  <app-hatcast-dialog-dismiss label="fermer" [dialogClose]="true" />
+  <app-hatcast-dialog-dismiss label="fermer" [dialogClose]="true" (clicked)="dismissCompositionAnnouncement()" />
 </mat-dialog-actions>

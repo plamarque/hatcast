@@ -5,7 +5,7 @@ baseline_commit:
 
 # Story 11.4 : Observabilité parcours organisateur PostHog
 
-Status: backlog
+Status: done
 
 **Story ID:** 11.4
 **Story key:** `11-4-observabilite-parcours-organisateur-posthog`
@@ -55,13 +55,20 @@ afin de comprendre l’adoption, les abandons et les issues des outils de gestio
 
 ## Tasks / Subtasks
 
-- [ ] **Contrat analytics (AC: 1, 2, 7, 8)** — Définir types, constantes et allow-lists dans `apps/web/src/app/core/analytics/`; documenter la précédence du contexte de permissions.
-- [ ] **Résolution du contexte (AC: 1, 2, 8)** — Réutiliser `MySeasonPermissions` et la réponse déjà chargée de l’événement ; ne pas introduire d’appel de permissions pour la seule analytics ; ne pas stocker un rôle global périssable comme vérité d’autorisation.
-- [ ] **Équipe / composition (AC: 3, 4)** — Instrumenter uniquement les ouvertures chargées et mutations réussies dans `event-detail` / `event-equipe-tab` et les services réellement responsables des opérations.
-- [ ] **Relances disponibilités (AC: 5)** — Instrumenter après succès avec catégories d’issue et tranches de volume, sans destinataires ni texte.
-- [ ] **Cohortes et exploitation (AC: 6, 9)** — Ajouter les recettes de requêtes/funnels au runbook ; créer des insights PostHog uniquement si l’autorisation est donnée dans la story.
-- [ ] **Tests (AC: 1, 2, 3, 4, 5, 7, 8)** — Étendre `product-analytics.service.spec.ts` et les specs des composants/services appelants ; vérifier compatibilité des événements FR47 existants et absence de propriétés interdites.
-- [ ] **Documentation et planning (AC: 9)** — Mettre à jour le runbook PostHog et les références de la skill d’analyse si le contrat livré le nécessite.
+- [x] **Contrat analytics (AC: 1, 2, 7, 8)** — Définir types, constantes et allow-lists dans `apps/web/src/app/core/analytics/`; documenter la précédence du contexte de permissions.
+- [x] **Résolution du contexte (AC: 1, 2, 8)** — Réutiliser `MySeasonPermissions` et la réponse déjà chargée de l’événement ; ne pas introduire d’appel de permissions pour la seule analytics ; ne pas stocker un rôle global périssable comme vérité d’autorisation.
+- [x] **Équipe / composition (AC: 3, 4)** — Instrumenter uniquement les ouvertures chargées et mutations réussies dans `event-detail` / `event-equipe-tab` et les services réellement responsables des opérations.
+- [x] **Relances disponibilités (AC: 5)** — Instrumenter après succès avec catégories d’issue et tranches de volume, sans destinataires ni texte.
+- [x] **Cohortes et exploitation (AC: 6, 9)** — Ajouter les recettes de requêtes/funnels au runbook ; créer des insights PostHog uniquement si l’autorisation est donnée dans la story.
+- [x] **Tests (AC: 1, 2, 3, 4, 5, 7, 8)** — Étendre `product-analytics.service.spec.ts` et les specs des composants/services appelants ; vérifier compatibilité des événements FR47 existants et absence de propriétés interdites.
+- [x] **Documentation et planning (AC: 9)** — Mettre à jour le runbook PostHog et les références de la skill d’analyse si le contrat livré le nécessite.
+
+### Local closure evidence — 2026-10-18
+
+- Four independent BMad review layers completed and retained findings corrected; 17 targeted test files / 266 tests passed and production build passed.
+- Patrice completed the local organizer journey without error and explicitly approved local closure in the story chat. Smoke used the offline full stack on the match-vs-gand Équipe route; health and front/proxy were verified before handoff.
+- Analytics events were verified through automated facade/caller tests; live PostHog ingestion was not part of this offline smoke.
+- Tracker advanced to done using BMad Loop's targeted sprintstatus.advance controller, preserving other rows. No remote operation or deployment is included in local closure.
 
 ## Dev Notes
 
@@ -69,7 +76,7 @@ afin de comprendre l’adoption, les abandons et les issues des outils de gestio
 
 - Un rôle HatCast est contextuel : troupe, saison et parfois événement. `actor_scope` est donc une propriété **d’événement**, pas une autorisation persistée dans PostHog.
 - Les identifiants de contexte FR47 déjà présents sont pseudonymes mais restent des données produit : ils sont réservés au projet PostHog EU et aux opérateurs autorisés.
-- Capturer le succès serveur ou une issue bornée, jamais l’intention seule si l’action métier n’a pas abouti. L’ouverture de l’espace Équipe est l’exception utile pour mesurer le haut de funnel.
+- Capturer le succès serveur ou une issue bornée pour les mutations métier. Décision PO du 2026-10-17 : « Publier » rend la composition visible et ouvre la fenêtre d'annonce ; cette réussite émet `publish`. Dans la fenêtre d'annonce, mesurer les clics Copier/WhatsApp avec un canal borné et les fermetures sans choix comme abandon, sans prétendre mesurer l'envoi ou la réception. Les notifications automatiques à la validation restent distinctes.
 - Les champs libres et identités de tiers sont interdits dans les propriétés d’événements, y compris sous forme d’objet sérialisé.
 - Cette story ne décide pas du retrait de `email` / `name` envoyés par 11.2 : ce changement de gouvernance devra être explicitement demandé et traité séparément.
 
