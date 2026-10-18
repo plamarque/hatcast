@@ -1,5 +1,13 @@
 [
   {
+    "version": "2.6.3",
+    "date": "2026-10-18",
+    "changes": [
+      "🐛 Équipe — les orga voient les commentaires de disponibilité au moment de composer une équipe.",
+      "🐛 Dispos — repère les commentaires disponibles directement dans la liste des participant·es."
+    ]
+  },
+  {
     "version": "2.6.2",
     "date": "2026-10-16",
     "changes": [
