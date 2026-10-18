@@ -11,6 +11,7 @@ import {
 import type { EventResponse } from '../../core/events/event-api.service'
 import { isEventDraft } from '../../core/events/event-draft'
 import type { ParticipantSelector } from '../../core/participants/participant-api.service'
+import type { ActorScope } from '../../core/analytics/organizer-analytics'
 import { AvailabilityPoll, type AvailabilityPollSavedPayload } from './availability-poll'
 import { AvailabilitySubjectSelector } from './availability-subject-selector'
 import {
@@ -43,6 +44,7 @@ export class EventDisposTab implements OnDestroy {
   readonly linkedParticipantId = input<string | null>(null)
   readonly canSwitchSubject = input(false)
   readonly canManageComposition = input(false)
+  readonly actorScope = input<ActorScope | undefined>(undefined)
   readonly explainabilityEnabled = input(false)
   readonly bootstrapSummary = input<EventAvailabilitySummary | null>(null)
 

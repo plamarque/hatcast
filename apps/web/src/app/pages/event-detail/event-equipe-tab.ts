@@ -26,6 +26,7 @@ import {
   type ParticipationLiveStatus,
 } from '../../core/participation/participation-withdrawal-copy'
 import { ProductAnalyticsService } from '../../core/analytics/product-analytics.service'
+import type { ActorScope } from '../../core/analytics/organizer-analytics'
 import { computeRawCompositionLifecycle } from '../../core/composition/composition-lifecycle'
 import {
   CompositionApiService,
@@ -153,6 +154,7 @@ export class EventEquipeTab {
   readonly seasonSlug = input.required<string>()
   readonly troupeSlug = input.required<string>()
   readonly troupeId = input.required<string>()
+  readonly actorScope = input<ActorScope | undefined>(undefined)
   readonly event = input.required<EventResponse>()
   readonly canManageComposition = input(false)
   readonly showConfirmPending = input(false)
@@ -669,6 +671,10 @@ export class EventEquipeTab {
         return
       }
       this.eventUpdated.emit(apiResult.data)
+      this.analytics.captureCompositionMutation(this.analyticsContext(), {
+        action: 'slot',
+        outcome: 'succeeded',
+      })
       this.snack.open('Format et besoins enregistrés.', 'OK', { duration: 4000 })
     } finally {
       this.updatingFormat.set(false)
@@ -859,6 +865,8 @@ export class EventEquipeTab {
           availabilityOpenedAt: ev.availabilityOpenedAt ?? null,
           compositionValidatedAt:
             intent === 'composition' ? (this.composition()?.validatedAt ?? null) : null,
+          troupeId: this.troupeId(),
+          actorScope: this.actorScope(),
         },
         width: 'min(42rem, 96vw)',
         maxHeight: '92vh',
@@ -1108,6 +1116,7 @@ export class EventEquipeTab {
       return
     }
 
+    this.analytics.captureCompositionMutation(this.analyticsContext(), { action: 'draw_execute', outcome: 'succeeded' })
     if (this.prefersReducedMotion() || result.data.steps.length === 0) {
       this.clearDrawPrepareSnapshot()
       this.applyCompositionUpdate(result.data.composition)
@@ -1143,6 +1152,7 @@ export class EventEquipeTab {
       return
     }
     this.applyCompositionUpdate(result.data)
+    this.analytics.captureCompositionMutation(this.analyticsContext(), { action: 'slot', outcome: 'succeeded', operation: 'restore_slot' })
     this.snack.open('Participant remis en composition.', 'OK', { duration: 4000 })
   }
 
@@ -1177,6 +1187,7 @@ export class EventEquipeTab {
       return
     }
 
+    this.analytics.captureCompositionMutation(this.analyticsContext(), { action: 'draw_execute', outcome: 'succeeded' })
     if (this.prefersReducedMotion() || result.data.steps.length === 0) {
       this.clearDrawPrepareSnapshot()
       this.applyCompositionUpdate(result.data.composition)
@@ -1351,6 +1362,10 @@ export class EventEquipeTab {
       }
       if (result.ok && result.data) {
         this.poolPreviewSegments.set(result.data.segments)
+        this.analytics.captureCompositionMutation(this.analyticsContext(), {
+          action: 'draw_preview',
+          outcome: 'succeeded',
+        })
       } else {
         this.poolPreviewSegments.set([])
         this.poolPreviewError.set(
@@ -1535,6 +1550,10 @@ export class EventEquipeTab {
       }
       this.provisionalSlotVisible.set(false)
       this.eventUpdated.emit(result.data)
+      this.analytics.captureCompositionMutation(this.analyticsContext(), {
+        action: 'slot',
+        outcome: 'succeeded',
+      })
       this.focusNewSlot(targetSlotKey)
       this.snack.open('Rôle ajouté.', 'OK', { duration: 4000 })
     } finally {
@@ -1585,6 +1604,7 @@ export class EventEquipeTab {
           return
         }
         this.applyCompositionUpdate(result.data)
+        this.analytics.captureCompositionMutation(this.analyticsContext(), { action: 'slot', outcome: 'succeeded', operation: 'remove_slot' })
         this.snack.open('Place supprimée.', 'OK', { duration: 4000 })
         return
       }
@@ -1604,6 +1624,7 @@ export class EventEquipeTab {
         return
       }
       this.eventUpdated.emit(result.data)
+      this.analytics.captureCompositionMutation(this.analyticsContext(), { action: 'slot', outcome: 'succeeded', operation: 'remove_slot' })
       this.snack.open('Place supprimée.', 'OK', { duration: 4000 })
     } finally {
       this.updatingStructure.set(false)
@@ -1639,6 +1660,11 @@ export class EventEquipeTab {
       return
     }
     this.applyCompositionUpdate(result.data)
+    this.analytics.captureCompositionMutation(this.analyticsContext(), {
+      action: 'slot',
+      outcome: 'succeeded',
+      operation: row.outsideModel ? 'remove_slot' : participantId ? 'assign' : 'unassign',
+    })
   }
 
   private focusNewSlot(slotKey: string): void {
@@ -1720,11 +1746,21 @@ export class EventEquipeTab {
     }
     this.applyCompositionUpdate(result.data)
     this.analytics.captureCompositionValidated(
-      this.analytics.eventContext(eventId, seasonId, this.troupeId()),
+      this.analyticsContext(),
       { validated_at: result.data.validatedAt ?? new Date().toISOString() },
     )
+    this.analytics.captureCompositionMutation(this.analyticsContext(), { action: 'validate', outcome: 'succeeded' })
+    this.analytics.captureCompositionMutation(this.analyticsContext(), { action: 'publish', outcome: 'succeeded' })
     this.openShareDialog('composition')
     this.snack.open('Composition validée.', 'OK', { duration: 4000 })
+  }
+
+  private analyticsContext() {
+    const actorScope = this.actorScope()
+    return {
+      ...this.analytics.eventContext(this.event().id, this.seasonId(), this.troupeId()),
+      ...(actorScope ? { actor_scope: actorScope } : {}),
+    }
   }
 
   protected async unlock(): Promise<void> {
@@ -1758,7 +1794,7 @@ export class EventEquipeTab {
     const nextLifecycle = computeRawCompositionLifecycle(next, roleSlots)
     if (nextLifecycle === 'complete' && prevLifecycle !== 'complete') {
       this.analytics.captureCompositionAllConfirmationsReceived(
-        this.analytics.eventContext(this.event().id, this.seasonId(), this.troupeId()),
+        this.analyticsContext(),
         {
           validated_at: next.validatedAt ?? null,
           completed_at: new Date().toISOString(),

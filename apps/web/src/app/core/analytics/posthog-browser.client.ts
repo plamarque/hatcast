@@ -10,6 +10,7 @@ export type PostHogPersonProperties = {
   email?: string
   name?: string
   v1_cutover_ph_ref?: string
+  has_ever_organized?: true
 }
 
 export interface PostHogBrowserFacade {

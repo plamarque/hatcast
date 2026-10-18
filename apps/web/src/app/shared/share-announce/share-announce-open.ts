@@ -1,4 +1,5 @@
 import { MatDialog } from '@angular/material/dialog'
+import type { ActorScope } from '../../core/analytics/organizer-analytics'
 
 import type { EventResponse } from '../../core/events/event-api.service'
 import type {
@@ -18,6 +19,8 @@ export interface OpenShareAnnounceDialogContext {
   event: EventResponse
   roleLines?: RoleAssignmentLine[]
   compositionValidatedAt?: string | null
+  troupeId?: string
+  actorScope?: ActorScope
 }
 
 export function openShareAnnounceDialog(
@@ -40,6 +43,8 @@ export function openShareAnnounceDialog(
         roleLines: ctx.roleLines ?? [],
         availabilityOpenedAt: ev.availabilityOpenedAt ?? null,
         compositionValidatedAt: ctx.compositionValidatedAt ?? null,
+        troupeId: ctx.troupeId,
+        actorScope: ctx.actorScope,
       },
       width: 'min(42rem, 96vw)',
       maxHeight: '92vh',

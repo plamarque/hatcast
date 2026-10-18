@@ -3,6 +3,9 @@ import { Injectable } from '@angular/core'
 import { environment } from '../../../environments/environment'
 import type { Fr47EventContext, Fr47NotificationLinkTab } from './fr47-event-names'
 import {
+  AVAILABILITY_REMINDER_SENT,
+  COMPOSITION_MUTATION_COMPLETED,
+  COMPOSITION_WORKSPACE_OPENED,
   FR47_AVAILABILITY_FIRST_SUBMISSION,
   FR47_COMPOSITION_ALL_CONFIRMATIONS_RECEIVED,
   FR47_COMPOSITION_VALIDATED,
@@ -11,6 +14,8 @@ import {
   V2_CUTOVER_REFERRAL_LANDING,
   V2_MIGRATION_FIRST_SESSION,
 } from './fr47-event-names'
+import type { AnnouncementChannel, BoundedOutcome, RecipientCountBucket, SlotOperation } from './organizer-analytics'
+import type { ActorScope } from './organizer-analytics'
 import {
   getPostHogBrowserFacade,
   initPostHogBrowser,
@@ -18,6 +23,7 @@ import {
 } from './posthog-browser.client'
 
 const ALL_CONFIRMATIONS_DEDUPE_PREFIX = 'hatcast:fr47:all-confirmations:'
+const WORKSPACE_OPENED_DEDUPE_PREFIX = 'hatcast:fr47:composition-workspace:'
 const V2_MIGRATION_FIRST_SESSION_PREFIX = 'hatcast:v2-migration-first-session:'
 const V1_CUTOVER_PH_REF_KEY = 'hatcast:v1-cutover-ph-ref'
 const V1_CUTOVER_REFERRAL_CAPTURED_KEY = 'hatcast:v1-cutover-referral-captured'
@@ -33,6 +39,8 @@ export type IdentifyUserInput = {
 export class ProductAnalyticsService {
   private initPromise: Promise<boolean> | null = null
   private enabled = false
+  private identifiedUserId: string | null = null
+  private readonly workspaceOpenedEvents = new Set<string>()
 
   /** Called once at app bootstrap (provideAppInitializer). */
   bootstrap(): Promise<void> {
@@ -53,6 +61,7 @@ export class ProductAnalyticsService {
     }
     const personProperties = buildPersonProperties(input, readV1CutoverPhRef())
     this.facade()?.identify(id, personProperties)
+    this.identifiedUserId = id
     this.applyV1CutoverAlias(id)
     this.captureV2MigrationFirstSession(id)
   }
@@ -134,6 +143,16 @@ export class ProductAnalyticsService {
   }
 
   resetSession(): void {
+    this.identifiedUserId = null
+    this.workspaceOpenedEvents.clear()
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        const keys = Array.from({ length: sessionStorage.length }, (_, index) => sessionStorage.key(index))
+        for (const key of keys) {
+          if (key?.startsWith(WORKSPACE_OPENED_DEDUPE_PREFIX)) sessionStorage.removeItem(key)
+        }
+      }
+    } catch { /* in-memory dedupe has already been reset */ }
     if (!this.enabled) {
       return
     }
@@ -149,8 +168,10 @@ export class ProductAnalyticsService {
     },
   ): void {
     this.capture(FR47_AVAILABILITY_FIRST_SUBMISSION, {
-      ...ctx,
-      ...props,
+      ...safeEventContext(ctx),
+      is_proxy: props.is_proxy,
+      opened_at: props.opened_at,
+      submitted_at: props.submitted_at,
     })
   }
 
@@ -159,8 +180,8 @@ export class ProductAnalyticsService {
     props: { validated_at: string },
   ): void {
     this.capture(FR47_COMPOSITION_VALIDATED, {
-      ...ctx,
-      ...props,
+      ...safeEventContext(ctx),
+      validated_at: props.validated_at,
     })
   }
 
@@ -176,8 +197,9 @@ export class ProductAnalyticsService {
       sessionStorage.setItem(key, '1')
     }
     this.capture(FR47_COMPOSITION_ALL_CONFIRMATIONS_RECEIVED, {
-      ...ctx,
-      ...props,
+      ...safeEventContext(ctx),
+      validated_at: props.validated_at,
+      completed_at: props.completed_at,
     })
   }
 
@@ -186,9 +208,60 @@ export class ProductAnalyticsService {
     props: { link_tab: Fr47NotificationLinkTab },
   ): void {
     this.capture(FR47_NOTIFICATION_LINK_OPENED, {
-      ...ctx,
-      ...props,
+      ...safeEventContext(ctx),
+      link_tab: props.link_tab,
     })
+  }
+
+  captureCompositionWorkspaceOpened(
+    ctx: Fr47EventContext,
+    lifecycle: 'draft' | 'validated' | 'published',
+  ): void {
+    if (!this.enabled || !isCompositionLifecycle(lifecycle) || this.workspaceOpenedEvents.has(ctx.event_id)) return
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        const key = `${WORKSPACE_OPENED_DEDUPE_PREFIX}${ctx.event_id}`
+        if (sessionStorage.getItem(key) === '1') return
+        sessionStorage.setItem(key, '1')
+      }
+    } catch { /* storage blocked — retain in-memory dedupe */ }
+    this.workspaceOpenedEvents.add(ctx.event_id)
+    this.captureOrganizerEvent(COMPOSITION_WORKSPACE_OPENED, ctx, { lifecycle })
+  }
+
+  captureCompositionMutation(
+    ctx: Fr47EventContext,
+    props: {
+      action: 'slot' | 'draw_preview' | 'draw_execute' | 'validate' | 'publish' | 'announce'
+      outcome: BoundedOutcome
+      operation?: SlotOperation
+      announcement_channel?: AnnouncementChannel
+    },
+  ): void {
+    if (!isOrganizerAction(props.action) || !isBoundedOutcome(props.outcome)) return
+    const operation = props.action === 'slot' && isSlotOperation(props.operation)
+      ? { operation: props.operation }
+      : {}
+    const announcementChannel = props.action === 'announce' && isAnnouncementChannel(props.announcement_channel)
+      ? { announcement_channel: props.announcement_channel }
+      : {}
+    this.captureOrganizerEvent(COMPOSITION_MUTATION_COMPLETED, ctx, {
+      action: props.action,
+      outcome: props.outcome,
+      ...operation,
+      ...announcementChannel,
+    })
+  }
+
+  captureAvailabilityReminder(
+    ctx: Fr47EventContext,
+    props: { outcome: BoundedOutcome; recipient_count_bucket?: RecipientCountBucket },
+  ): void {
+    if (!isBoundedOutcome(props.outcome)) return
+    const bucket = props.outcome === 'succeeded' && isRecipientCountBucket(props.recipient_count_bucket)
+      ? { recipient_count_bucket: props.recipient_count_bucket }
+      : {}
+    this.captureOrganizerEvent(AVAILABILITY_REMINDER_SENT, ctx, { outcome: props.outcome, ...bucket })
   }
 
   eventContext(eventId: string, seasonId: string, troupeId: string): Fr47EventContext {
@@ -263,12 +336,70 @@ export class ProductAnalyticsService {
     if (!this.enabled) {
       return
     }
+    if (isActorScope(properties['actor_scope']) && properties['actor_scope'] !== 'member' && this.identifiedUserId) {
+      this.facade()?.identify(this.identifiedUserId, { has_ever_organized: true })
+    }
     this.facade()?.capture(event, properties)
+  }
+
+  private captureOrganizerEvent(
+    event: string,
+    ctx: Fr47EventContext,
+    properties: Record<string, unknown>,
+  ): void {
+    const safeContext = safeEventContext(ctx)
+    this.capture(event, { ...safeContext, ...properties })
   }
 
   private facade() {
     return getPostHogBrowserFacade()
   }
+}
+
+/**
+ * The event context is shared with older FR47 captures. Rebuild it instead of
+ * spreading caller input so a future caller cannot accidentally add personal
+ * or business content to a PostHog event.
+ */
+function safeEventContext(ctx: Fr47EventContext): Record<string, unknown> {
+  const safeContext: Record<string, unknown> = {
+    event_id: ctx.event_id,
+    season_id: ctx.season_id,
+    troupe_id: ctx.troupe_id,
+    is_demo_troupe: ctx.is_demo_troupe,
+  }
+  if (isActorScope(ctx.actor_scope)) {
+    safeContext['actor_scope'] = ctx.actor_scope
+  }
+  return safeContext
+}
+
+function isActorScope(value: unknown): value is ActorScope {
+  return value === 'member' || value === 'event_organizer' || value === 'season_organizer' || value === 'troupe_admin' || value === 'platform_admin'
+}
+
+function isSlotOperation(value: unknown): value is SlotOperation {
+  return value === 'assign' || value === 'unassign' || value === 'remove_slot' || value === 'restore_slot'
+}
+
+function isRecipientCountBucket(value: unknown): value is RecipientCountBucket {
+  return value === '0' || value === '1' || value === '2_5' || value === '6_20' || value === '21_plus'
+}
+
+function isBoundedOutcome(value: unknown): value is BoundedOutcome {
+  return value === 'succeeded' || value === 'failed' || value === 'refused'
+}
+
+function isOrganizerAction(value: unknown): value is 'slot' | 'draw_preview' | 'draw_execute' | 'validate' | 'publish' | 'announce' {
+  return value === 'slot' || value === 'draw_preview' || value === 'draw_execute' || value === 'validate' || value === 'publish' || value === 'announce'
+}
+
+function isCompositionLifecycle(value: unknown): value is 'draft' | 'validated' | 'published' {
+  return value === 'draft' || value === 'validated' || value === 'published'
+}
+
+function isAnnouncementChannel(value: unknown): value is AnnouncementChannel {
+  return value === 'copy' || value === 'whatsapp'
 }
 
 function readV1CutoverPhRef(): string | null {

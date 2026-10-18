@@ -4,6 +4,9 @@ export const FR47_COMPOSITION_VALIDATED = 'composition_validated' as const
 export const FR47_COMPOSITION_ALL_CONFIRMATIONS_RECEIVED =
   'composition_all_confirmations_received' as const
 export const FR47_NOTIFICATION_LINK_OPENED = 'notification_link_opened' as const
+export const COMPOSITION_WORKSPACE_OPENED = 'composition_workspace_opened' as const
+export const COMPOSITION_MUTATION_COMPLETED = 'composition_mutation_completed' as const
+export const AVAILABILITY_REMINDER_SENT = 'availability_reminder_sent' as const
 export const V2_MIGRATION_FIRST_SESSION = 'v2_migration_first_session' as const
 export const V2_CUTOVER_REFERRAL_LANDING = 'v2_cutover_referral_landing' as const
 
@@ -17,4 +20,5 @@ export type Fr47EventContext = {
   season_id: string
   troupe_id: string
   is_demo_troupe: boolean
+  actor_scope?: import('./organizer-analytics').ActorScope
 }

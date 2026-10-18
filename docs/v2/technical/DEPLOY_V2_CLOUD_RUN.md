@@ -446,6 +446,16 @@ Après `GET /v1/auth/me`, `ProductAnalyticsService.identifyUser` appelle `postho
 
 **Gouvernance :** accès projet PostHog EU **restreint** (opérateurs produit / PO — pas admins troupe). Les captures FR47 restent **anonymisées** (ids + timestamps) ; **ne pas** exporter `email` / `name` sur les événements workflow. Filtre dashboard **`is_demo_troupe != true`** inchangé.
 
+#### Parcours organisateur (Story 11.4)
+
+Chaque événement organisateur porte un `actor_scope` **local à l'événement** : `platform_admin`, `troupe_admin`, `season_organizer`, `event_organizer`, puis `member` (dans cet ordre de précédence). Ce n'est pas une propriété People ni une autorisation persistée. Le seul trait People supplémentaire permis est `has_ever_organized: true` lorsqu'il est explicitement pris en charge par la façade.
+
+Catalogue borné : `composition_workspace_opened` (une fois par événement/session, `lifecycle` = `draft`/`validated`/`published`), `composition_mutation_completed` (`action` et `outcome` bornés ; `operation` de créneau = `assign`/`unassign`/`remove_slot`/`restore_slot`) et `availability_reminder_sent` (`outcome`, plus une tranche de volume `0`/`1`/`2_5`/`6_20`/`21_plus` seulement en cas de succès). Les événements FR47 du détail conservent leur nom et leurs propriétés, avec `actor_scope` lorsque le contexte chargé le permet.
+
+`action=publish` correspond au succès de « Publier » : la composition devient visible et la fenêtre d'annonce s'ouvre. `action=announce` mesure les choix dans cette fenêtre : `outcome=succeeded` et `announcement_channel=copy|whatsapp` au clic, sans présumer l'envoi ou la réception. Une fermeture sans choix émet `outcome=refused`, sans canal ; fermer après un choix n'émet aucun abandon. Les notifications automatiques déclenchées par la validation restent distinctes. Les modifications de format/besoins et l'ajout d'une place sont des mutations `slot` sans `operation`, celles-ci étant réservées aux quatre opérations détaillées ci-dessus. La déduplication workspace utilise sessionStorage avec repli mémoire ; une réinitialisation de session l'efface.
+
+N'envoyer ni identifiant ou nom de participant, ni rôle libre, slug, contenu de notification, commentaire, avatar, email, payload API ou détail d'erreur. Dans PostHog, appliquer `is_demo_troupe != true`, puis construire les funnels `composition_workspace_opened → composition_mutation_completed(action=draw_execute|slot, outcome=succeeded) → composition_validated` et `composition_validated → composition_mutation_completed(action=publish, outcome=succeeded) → composition_mutation_completed(action=announce, outcome=succeeded)`. Maintenir `event_id` constant entre les étapes (et filtrer `season_id`/`troupe_id`) afin de ne pas mélanger plusieurs compositions. Mesurer les abandons séparément avec `action=announce, outcome=refused`. Filtrer ensuite par `actor_scope` si nécessaire. La création d'insights reste soumise à autorisation explicite.
+
 **Recette People (post-déploiement 11.2) :**
 
 1. Connexion membre test sur `https://hatcast.app`.

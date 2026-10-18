@@ -49,6 +49,7 @@
       [explainabilityEnabled]="explainabilityEnabled()"
       [currentUserId]="currentUserId()"
       [availabilityOpenedAt]="event().availabilityOpenedAt ?? null"
+      [actorScope]="actorScope()"
       (summaryPatch)="onSummaryPatch($event)"
       (saved)="onSaved($event)"
     />
