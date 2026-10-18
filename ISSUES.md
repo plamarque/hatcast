@@ -36,7 +36,7 @@ not active work; items listed in the two sections above remain actionable.
 ### BUG-POSTHOG-001 — Lifecycle provisioning sends a scalar dashboard filter
 
 - **ID**: BUG-POSTHOG-001
-- **Status**: Fixed locally — regression passed; CI revalidation pending
+- **Status**: Fixed — regression passed and real CI validation succeeded on 2026-10-18
 - **Severity**: Medium (lifecycle dashboard provisioning stops before insights are created)
 - **Affected area**: `scripts/v2/posthog-lifecycle-dashboard.mjs`, manual PostHog CI validation.
 - **Observed behavior**: CI run `39099092816`, attempt 2, reached PostHog but `GET /insights/?dashboards=<id>` returned HTTP 500.
@@ -44,6 +44,7 @@ not active work; items listed in the two sections above remain actionable.
 - **Cause**: Official PostHog Insights code JSON-decodes `dashboards` and iterates dashboard IDs; a scalar number is not iterable.
 - **Fix**: Send URL-encoded `[dashboard_id]` and assert that exact decoded array in the provisioning regression.
 - **Notes/context**: No deployment or release-promotion event was sent. The temporary GitHub production branch exception was removed after the failed run. The dashboard itself may have been created before the list failure; the next attempt finds it by its ownership marker.
+- **Verification**: Corrected commit `83bf536b`, CI run `39099343937`: all six owned insights computed successfully; lifecycle dashboard `1032942`. The temporary branch exception was removed after success and the original `v*` tag-only environment policy was verified restored.
 
 ### BUG-035 — Organiser view does not restore the selected participant's availability checks
 - **ID**: BUG-035

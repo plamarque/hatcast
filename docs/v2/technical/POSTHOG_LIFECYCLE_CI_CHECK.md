@@ -30,3 +30,11 @@ git diff --check
 ```
 
 The default script mode prints the manifest without network requests. `--validate` provisions and computes saved insights; `--apply` additionally records a real release promotion and is reserved for the post-deployment job. The modes cannot be combined.
+
+## Verified execution — 2026-10-18
+
+- [Successful CI run 39099343937](https://github.com/plamarque/hatcast/actions/runs/39099343937), commit `83bf536b`: `events`, `guidance`, `versions`, `lag`, `notes` and `engagement` all returned computed results.
+- [Lifecycle dashboard](https://eu.posthog.com/project/193437/dashboard/1032942), separate from the adoption dashboard.
+- Production secrets were successfully used. The production environment only admits tags `v*`; the PO explicitly authorized a temporary rule for the exact Story 11.5 branch for this check. That rule was removed after each attempt, and tag-only policy was verified restored after success. Future branch checks need the same explicit operational authorization or an independently configured analytics environment.
+- Deployment, staging gates, E2E and promotion capture jobs were skipped. No synthetic promotion or client event was sent.
+- This verifies API access, provisioning and query execution. It does not verify client-event content, release-day reference ingestion, or the actual two-release update path; those remain pending application delivery and runtime verification.
