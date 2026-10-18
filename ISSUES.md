@@ -15,6 +15,8 @@ historical registry below.
 
 ### Open defects and limitations
 
+BUG-038 (intermittent composition smoke assertions observed on v2.6.3-rc.2).
+
 BUG-BMAD-001 (accented versus ASCII story keys in sprint controller).
 
 BUG-031 (format cancellation),
@@ -33,6 +35,15 @@ human-smoke, integration, or validation gate.
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
 
 ### Historical registry
+
+### BUG-038 — Composition smoke tests intermittently require retry
+- **ID**: BUG-038
+- **Status**: Open — observed during v2.6.3-rc.2 validation; cause not established
+- **Severity**: Medium (smoke reliability; no confirmed production defect)
+- **Affected area**: `apps/web/e2e/e1/orga-composition.desktop.spec.ts` and `apps/web/e2e/draw-formula-choice.spec.ts`.
+- **Observed behavior (2026-10-18)**: [RC2 workflow 39105565455](https://github.com/plamarque/hatcast/actions/runs/39105565455), commit `a5fb7f487d73672a3388e4b32ef200c4f314d1aa`: E1-ORG-001–002 first failed waiting for the dialog after publication (15 s); E2E-WD-05 first failed pool preview with HTTP 400 `Rôle inconnu pour cet événement`. Both passed on automatic retry. Final local-profile CI smoke: 92 passed, 2 flaky, 4 skipped; job succeeded. This is not evidence of a clean first-attempt run.
+- **Expected behavior**: Composition smoke journeys pass without retry, with deterministic fixture state and assertions aligned to supported behavior.
+- **Notes/context**: Local preflight passed 94 tests with four skips. The separate deployed-staging E1 gate passed 34 tests with two skips, without reported retries. No tests were disabled or changed for these observations. Investigation and any fix remain separate from the API fixture correction; the production promotion and human staging smoke are not authorized by these green automated jobs.
 
 ### BUG-037 — API regression fixtures assume unsynchronized shared memberships
 - **ID**: BUG-037
