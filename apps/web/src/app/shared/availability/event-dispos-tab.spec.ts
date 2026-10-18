@@ -3,15 +3,17 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { describe, expect, it, vi } from 'vitest'
 
-import { AvailabilityApiService } from '../../core/availability/availability-api.service'
+import { AvailabilityApiService, type EventAvailabilitySummary } from '../../core/availability/availability-api.service'
 import { MemberProfileApiService } from '../../core/member-profile/member-profile-api.service'
 import { ProductAnalyticsService } from '../../core/analytics/product-analytics.service'
 import { ROLE_TEMPLATES } from '../../core/events/event-types'
 import { AvailabilityPoll } from './availability-poll'
+import { AvailabilityPollRow } from './availability-poll-row'
 import { AvailabilityPersistService } from './availability-persist.service'
+import { AvailabilitySubjectSelector } from './availability-subject-selector'
 import { EventDisposTab } from './event-dispos-tab'
 
-const mockSummary = {
+const mockSummary: EventAvailabilitySummary = {
   eventId: 'event-1',
   roleSlots: ROLE_TEMPLATES.cabaret,
   participants: [
@@ -72,11 +74,12 @@ async function setup(
   canSwitchSubject = false,
   currentUserId = 'user-1',
   linkedParticipantId: string | null = null,
+  summary: EventAvailabilitySummary = mockSummary,
 ) {
   const getEventAvailabilitySummary = vi.fn().mockResolvedValue({
     ok: true,
     status: 200,
-    data: mockSummary,
+    data: summary,
   })
   const setMyAvailability = vi.fn().mockResolvedValue({
     ok: true,
@@ -199,6 +202,25 @@ describe('EventDisposTab', () => {
     expect(names).toContain('Guest Artist')
   })
 
+  it('marks organizer subject options that have an availability comment', async () => {
+    const summaryWithComment: EventAvailabilitySummary = {
+      ...mockSummary,
+      participants: mockSummary.participants.map((participant) =>
+        participant.participantId === 'p2'
+          ? { ...participant, comment: 'Arrive après 19 h' }
+          : participant,
+      ),
+    }
+    const { fixture } = await setup(true, 'user-1', null, summaryWithComment)
+    const comp = fixture.componentInstance as unknown as {
+      subjectSelectorOptions: () => { id: string; hasAvailabilityComment: boolean }[]
+    }
+
+    expect(
+      comp.subjectSelectorOptions().find((option) => option.id === 'p2')?.hasAvailabilityComment,
+    ).toBe(true)
+  })
+
   it('allows organizer to edit another subject (not read-only poll)', async () => {
     const { fixture } = await setup(true)
     const comp = fixture.componentInstance as unknown as {
@@ -215,8 +237,66 @@ describe('EventDisposTab', () => {
     expect(readOnly === 'false' || readOnly === null).toBe(true)
   })
 
+  it('restores saved role checks when organizer switches to another participant', async () => {
+    const summaryWithSavedAlexAvailability: EventAvailabilitySummary = {
+      ...mockSummary,
+      participants: mockSummary.participants.map((participant) =>
+        participant.participantId === 'p2'
+          ? {
+              ...participant,
+              status: 'available' as const,
+              roleKeys: ['player', 'mc'],
+              comment: 'Disponible après 19h',
+            }
+          : participant,
+      ),
+      roles: [
+        {
+          ...mockSummary.roles[0],
+          candidates: [
+            ...mockSummary.roles[0].candidates,
+            { participantId: 'p2', displayName: 'Alex', avatarUrl: null, chancePercent: 50 },
+          ],
+        },
+        {
+          roleKey: 'mc',
+          requiredCount: 1,
+          candidates: [{ participantId: 'p2', displayName: 'Alex', avatarUrl: null, chancePercent: 50 }],
+        },
+        { roleKey: 'dj', requiredCount: 1, candidates: [] },
+      ],
+    }
+    const { fixture, setMyAvailability, setParticipantAvailability } = await setup(
+      true,
+      'user-1',
+      null,
+      summaryWithSavedAlexAvailability,
+    )
+
+    const selector = fixture.debugElement.query(
+      (d) => d.componentInstance instanceof AvailabilitySubjectSelector,
+    ).componentInstance as AvailabilitySubjectSelector
+    selector.selectedParticipantIdChange.emit('p2')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    const rows = fixture.debugElement
+      .queryAll((d) => d.componentInstance instanceof AvailabilityPollRow)
+      .map((d) => d.componentInstance as AvailabilityPollRow)
+    expect(rows.find((row) => row.roleKey() === 'player')?.checked()).toBe(true)
+    expect(rows.find((row) => row.roleKey() === 'mc')?.checked()).toBe(true)
+    expect(rows.find((row) => row.roleKey() === 'dj')?.checked()).toBe(false)
+    expect(setParticipantAvailability).not.toHaveBeenCalled()
+    expect(setMyAvailability).not.toHaveBeenCalled()
+  })
+
   it('calls proxy API when organizer votes for another subject', async () => {
     const { fixture, setParticipantAvailability, setMyAvailability } = await setup(true)
+    fixture.componentRef.setInput('actorScope', 'event_organizer')
+    fixture.componentRef.setInput('event', {
+      ...fixture.componentInstance.event(), availabilityOpenedAt: '2026-01-01T00:00:00Z',
+    })
     const comp = fixture.componentInstance as unknown as {
       onSubjectChange: (id: string) => void
     }
@@ -240,6 +320,9 @@ describe('EventDisposTab', () => {
       expect.objectContaining({ status: 'available', comment: null }),
     )
     expect(setMyAvailability).not.toHaveBeenCalled()
+    expect(TestBed.inject(ProductAnalyticsService).captureAvailabilityFirstSubmission).toHaveBeenCalledWith(
+      expect.objectContaining({ actor_scope: 'event_organizer' }), expect.objectContaining({ is_proxy: true }),
+    )
   })
 
   it('does not eager-load chances on initial summary fetch', async () => {

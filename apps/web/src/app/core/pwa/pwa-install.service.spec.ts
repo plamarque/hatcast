@@ -4,6 +4,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 
+import { ProductAnalyticsService } from '../analytics/product-analytics.service';
 import {
   PWA_BANNER_DISMISSED_KEY,
   PWA_INSTALLED_KEY,
@@ -12,6 +13,11 @@ import {
 
 describe('PwaInstallService', () => {
   let storage: Record<string, string>;
+  let analytics: {
+    capturePwaInstallInstructionsViewed: ReturnType<typeof vi.fn>;
+    capturePwaNativePromptResolved: ReturnType<typeof vi.fn>;
+    capturePwaInstallCompleted: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(() => {
     storage = {};
@@ -33,6 +39,11 @@ describe('PwaInstallService', () => {
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
     }));
+    analytics = {
+      capturePwaInstallInstructionsViewed: vi.fn(),
+      capturePwaNativePromptResolved: vi.fn(),
+      capturePwaInstallCompleted: vi.fn(),
+    };
   });
 
   afterEach(() => {
@@ -46,6 +57,7 @@ describe('PwaInstallService', () => {
         { provide: PLATFORM_ID, useValue: 'browser' },
         { provide: MatDialog, useValue: { open: vi.fn() } },
         { provide: MatSnackBar, useValue: { open: snackOpen } },
+        { provide: ProductAnalyticsService, useValue: analytics },
       ],
     });
     return TestBed.inject(PwaInstallService);
@@ -154,6 +166,7 @@ describe('PwaInstallService', () => {
         { provide: PLATFORM_ID, useValue: 'browser' },
         { provide: MatDialog, useValue: { open: dialogOpen } },
         { provide: MatSnackBar, useValue: { open: vi.fn() } },
+        { provide: ProductAnalyticsService, useValue: analytics },
       ],
     });
     const service = TestBed.inject(PwaInstallService);
@@ -181,6 +194,13 @@ describe('PwaInstallService', () => {
         }),
       }),
     );
+    expect(analytics.capturePwaInstallInstructionsViewed).toHaveBeenCalledTimes(1);
+    expect(analytics.capturePwaInstallInstructionsViewed).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entry_point: 'banner',
+        fallback_reason: 'untrusted_development_origin',
+      }),
+    );
   });
 
   it('sets allowNativeRetry when native prompt is available on trusted origin', () => {
@@ -196,5 +216,121 @@ describe('PwaInstallService', () => {
     event.prompt = vi.fn();
     window.dispatchEvent(event);
     expect(service.canRetryNativeInstall()).toBe(true);
+  });
+
+  it('captures the unavailable-prompt help transition with its bounded allow-list', async () => {
+    const service = createService();
+
+    await service.promptInstall();
+
+    expect(analytics.capturePwaInstallInstructionsViewed).toHaveBeenCalledTimes(1);
+    const properties = analytics.capturePwaInstallInstructionsViewed.mock.calls[0][0];
+    expect(properties).toMatchObject({
+      entry_point: 'banner',
+      fallback_reason: 'native_prompt_unavailable',
+    });
+    expect(Object.keys(properties).sort()).toEqual([
+      'entry_point',
+      'fallback_reason',
+      'instruction_variant',
+    ]);
+  });
+
+  it('captures native prompt dismissal without opening manual instructions', async () => {
+    const dialogOpen = vi.fn();
+    TestBed.configureTestingModule({
+      providers: [
+        PwaInstallService,
+        { provide: PLATFORM_ID, useValue: 'browser' },
+        { provide: MatDialog, useValue: { open: dialogOpen } },
+        { provide: MatSnackBar, useValue: { open: vi.fn() } },
+        { provide: ProductAnalyticsService, useValue: analytics },
+      ],
+    });
+    const service = TestBed.inject(PwaInstallService);
+    const event = new Event('beforeinstallprompt', { cancelable: true }) as Event & {
+      platforms: string[];
+      userChoice: Promise<{ outcome: 'dismissed' }>;
+      prompt: () => Promise<void>;
+    };
+    event.platforms = ['web'];
+    event.userChoice = Promise.resolve({ outcome: 'dismissed' });
+    event.prompt = vi.fn().mockResolvedValue(undefined);
+    window.dispatchEvent(event);
+
+    await service.promptInstall();
+
+    expect(analytics.capturePwaNativePromptResolved).toHaveBeenCalledWith('dismissed');
+    expect(analytics.capturePwaInstallInstructionsViewed).not.toHaveBeenCalled();
+    expect(dialogOpen).not.toHaveBeenCalled();
+  });
+
+  it('captures native prompt acceptance separately from appinstalled', async () => {
+    const service = createService();
+    const event = new Event('beforeinstallprompt', { cancelable: true }) as Event & {
+      platforms: string[];
+      userChoice: Promise<{ outcome: 'accepted' }>;
+      prompt: () => Promise<void>;
+    };
+    event.platforms = ['web'];
+    event.userChoice = Promise.resolve({ outcome: 'accepted' });
+    event.prompt = vi.fn().mockResolvedValue(undefined);
+    window.dispatchEvent(event);
+
+    await service.promptInstall();
+
+    expect(analytics.capturePwaNativePromptResolved).toHaveBeenCalledWith('accepted');
+    expect(analytics.capturePwaInstallCompleted).not.toHaveBeenCalled();
+  });
+
+  it('captures native prompt failure before showing manual instructions', async () => {
+    const service = createService();
+    const event = new Event('beforeinstallprompt', { cancelable: true }) as Event & {
+      platforms: string[];
+      userChoice: Promise<{ outcome: 'accepted' }>;
+      prompt: () => Promise<void>;
+    };
+    event.platforms = ['web'];
+    event.userChoice = Promise.resolve({ outcome: 'accepted' });
+    event.prompt = vi.fn().mockRejectedValue(new Error('unavailable'));
+    window.dispatchEvent(event);
+
+    await service.promptInstall('account_menu');
+
+    expect(analytics.capturePwaInstallInstructionsViewed).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entry_point: 'account_menu',
+        fallback_reason: 'native_prompt_failure',
+      }),
+    );
+  });
+
+  it('captures appinstalled at most once for this service lifetime', () => {
+    createService();
+
+    window.dispatchEvent(new Event('appinstalled'));
+    window.dispatchEvent(new Event('appinstalled'));
+
+    expect(analytics.capturePwaInstallCompleted).toHaveBeenCalledTimes(1);
+  });
+
+  it('still opens manual instructions when analytics capture fails', async () => {
+    const dialogOpen = vi.fn();
+    analytics.capturePwaInstallInstructionsViewed.mockImplementation(() => {
+      throw new Error('analytics unavailable');
+    });
+    TestBed.configureTestingModule({
+      providers: [
+        PwaInstallService,
+        { provide: PLATFORM_ID, useValue: 'browser' },
+        { provide: MatDialog, useValue: { open: dialogOpen } },
+        { provide: MatSnackBar, useValue: { open: vi.fn() } },
+        { provide: ProductAnalyticsService, useValue: analytics },
+      ],
+    });
+
+    await TestBed.inject(PwaInstallService).promptInstall();
+
+    expect(dialogOpen).toHaveBeenCalledTimes(1);
   });
 });

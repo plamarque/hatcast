@@ -3,6 +3,12 @@ import { isPlatformBrowser } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
+import { ProductAnalyticsService } from '../analytics/product-analytics.service';
+import type {
+  PwaInstallEntryPoint,
+  PwaInstallFallbackReason,
+  PwaInstallInstructionVariant,
+} from '../analytics/fr47-event-names';
 import { getPwaBrowserInfo } from './pwa-browser-info';
 import {
   isDevUntrustedInstallOrigin,
@@ -29,8 +35,10 @@ export class PwaInstallService {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly dialog = inject(MatDialog);
   private readonly snack = inject(MatSnackBar);
+  private readonly analytics = inject(ProductAnalyticsService);
 
   private deferredPrompt: BeforeInstallPromptEvent | null = null;
+  private appInstalledCaptured = false;
   private readonly appInstalledListeners = new Set<() => void>();
 
   readonly showBanner = signal(false);
@@ -51,6 +59,10 @@ export class PwaInstallService {
       this.bannerDismissedSession.set(true);
       localStorage.setItem(PWA_INSTALLED_KEY, 'true');
       this.showBanner.set(false);
+      if (!this.appInstalledCaptured) {
+        this.appInstalledCaptured = true;
+        this.captureAnalytics(() => this.analytics.capturePwaInstallCompleted());
+      }
       for (const listener of this.appInstalledListeners) {
         listener();
       }
@@ -78,7 +90,7 @@ export class PwaInstallService {
     }
     localStorage.removeItem(PWA_BANNER_DISMISSED_KEY);
     this.bannerDismissedSession.set(false);
-    await this.promptInstall();
+    await this.promptInstall('account_menu');
   }
 
   isPwaInstalled(): boolean {
@@ -151,13 +163,13 @@ export class PwaInstallService {
     return this.hasNativeInstallPrompt() && !isDevUntrustedInstallOrigin();
   }
 
-  async promptInstall(): Promise<void> {
+  async promptInstall(entryPoint: PwaInstallEntryPoint = 'banner'): Promise<void> {
     if (this.isPwaInstalled()) {
       return;
     }
     if (this.deferredPrompt) {
       if (isDevUntrustedInstallOrigin()) {
-        this.openManualInstructions();
+        this.openManualInstructions(entryPoint, 'untrusted_development_origin');
         return;
       }
       const prompt = this.deferredPrompt;
@@ -167,6 +179,7 @@ export class PwaInstallService {
             await prompt.prompt();
             const { outcome } = await prompt.userChoice;
             this.deferredPrompt = null;
+            this.captureAnalytics(() => this.analytics.capturePwaNativePromptResolved(outcome));
             if (outcome === 'accepted') {
               localStorage.setItem(PWA_INSTALLED_KEY, 'true');
               this.showBanner.set(false);
@@ -180,14 +193,17 @@ export class PwaInstallService {
         ]);
       } catch {
         this.deferredPrompt = null;
-        this.openManualInstructions();
+        this.openManualInstructions(entryPoint, 'native_prompt_failure');
       }
       return;
     }
-    this.openManualInstructions();
+    this.openManualInstructions(entryPoint, 'native_prompt_unavailable');
   }
 
-  openManualInstructions(): void {
+  openManualInstructions(
+    entryPoint: PwaInstallEntryPoint = 'banner',
+    fallbackReason: PwaInstallFallbackReason = 'native_prompt_unavailable',
+  ): void {
     const browserInfo = getPwaBrowserInfo(navigator.userAgent);
     this.showBanner.set(false);
     this.dialog.open(PwaInstallInstructionsDialog, {
@@ -199,5 +215,39 @@ export class PwaInstallService {
       maxWidth: '95vw',
       maxHeight: '90vh',
     });
+    this.captureAnalytics(() =>
+      this.analytics.capturePwaInstallInstructionsViewed({
+        entry_point: entryPoint,
+        fallback_reason: fallbackReason,
+        instruction_variant: instructionVariant(browserInfo),
+      }),
+    );
   }
+
+  private captureAnalytics(action: () => void): void {
+    try {
+      action();
+    } catch {
+      // Product analytics must never prevent PWA support or installation UX.
+    }
+  }
+}
+
+function instructionVariant(browserInfo: ReturnType<typeof getPwaBrowserInfo>): PwaInstallInstructionVariant {
+  if (browserInfo.isIOS) {
+    return 'ios';
+  }
+  if (browserInfo.isFirefox) {
+    return 'firefox';
+  }
+  if (browserInfo.isAndroid) {
+    return 'android';
+  }
+  if (browserInfo.isChromeDesktop || browserInfo.isEdge) {
+    return 'desktop_chromium';
+  }
+  if (browserInfo.isSafariDesktop) {
+    return 'desktop_safari';
+  }
+  return 'other';
 }

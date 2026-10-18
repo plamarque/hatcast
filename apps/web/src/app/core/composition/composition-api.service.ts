@@ -65,6 +65,8 @@ export interface CompositionCandidate {
   alreadyAssignedRoleKeys?: string[] | null
   avatarUrl?: string | null
   gender?: MemberGender
+  /** Organizer-only availability note used while assigning a composition slot. */
+  availabilityComment?: string | null
 }
 
 export interface CompositionCandidateListResponse {

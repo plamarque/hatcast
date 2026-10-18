@@ -30,6 +30,11 @@
               @if (assignedElsewhereLabel(candidate.alreadyAssignedRoleKeys); as subtitle) {
                 <span class="composition-slot-picker__subtitle">{{ subtitle }}</span>
               }
+              @if (candidate.availabilityComment; as comment) {
+                <span class="composition-slot-picker__availability-comment">
+                  Commentaire : {{ comment }}
+                </span>
+              }
             </span>
           </button>
           @if (data.explainabilityEnabled && candidate.chancePercent != null) {

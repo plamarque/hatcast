@@ -1,5 +1,6 @@
 import { Component, computed, input, output } from '@angular/core'
 import { MatFormFieldModule } from '@angular/material/form-field'
+import { MatIconModule } from '@angular/material/icon'
 import { MatSelectModule } from '@angular/material/select'
 
 import type { ParticipantSelector } from '../../core/participants/participant-api.service'
@@ -7,7 +8,7 @@ import { UserAvatarComponent } from '../user-avatar/user-avatar'
 
 @Component({
   selector: 'app-availability-subject-selector',
-  imports: [MatFormFieldModule, MatSelectModule, UserAvatarComponent],
+  imports: [MatFormFieldModule, MatIconModule, MatSelectModule, UserAvatarComponent],
   templateUrl: './availability-subject-selector.html',
   styleUrl: './availability-subject-selector.scss',
 })

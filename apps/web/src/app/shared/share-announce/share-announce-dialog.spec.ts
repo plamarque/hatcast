@@ -7,6 +7,7 @@ import { of } from 'rxjs'
 
 import { buildWhatsAppSendUrl } from '../../core/messaging/share-announce-messages'
 import { ShareAnnounceApiService } from '../../core/share-announce/share-announce-api.service'
+import { ProductAnalyticsService } from '../../core/analytics/product-analytics.service'
 import { ShareAnnounceDialog, type ShareAnnounceDialogData } from './share-announce-dialog'
 
 const recipientsMock = {
@@ -44,6 +45,7 @@ const baseDialogData: ShareAnnounceDialogData = {
   intent: 'draw',
   seasonId: 'season-1',
   eventId: 'event-1',
+  troupeId: 'troupe-1',
   seasonSlug: 'saison-a',
   troupeSlug: 'troupe-a',
   eventSlug: 'event-1',
@@ -127,8 +129,9 @@ describe('ShareAnnounceDialog', () => {
   })
 
   it('copies message to clipboard and shows snack', async () => {
-    const fixture = await configureDialog(baseDialogData)
+    const fixture = await configureDialog({ ...baseDialogData, intent: 'composition', troupeId: 'troupe-1', actorScope: 'event_organizer' })
     const snack = TestBed.inject(MatSnackBar)
+    const captureMutation = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureCompositionMutation')
     const writeText = vi.fn().mockResolvedValue(undefined)
     const originalNavigator = globalThis.navigator
     vi.stubGlobal('navigator', {
@@ -147,13 +150,22 @@ describe('ShareAnnounceDialog', () => {
     await vi.waitFor(() => {
       expect(writeText).toHaveBeenCalled()
       expect(snack.open).toHaveBeenCalledWith('Message copié.', 'OK', { duration: 3000 })
+      expect(captureMutation).toHaveBeenCalledWith(
+        expect.objectContaining({ actor_scope: 'event_organizer', troupe_id: 'troupe-1' }),
+        { action: 'announce', outcome: 'succeeded', announcement_channel: 'copy' },
+      )
     })
+
+    fixture.componentInstance['dismissCompositionAnnouncement']()
+    fixture.componentInstance.ngOnDestroy()
+    expect(captureMutation).toHaveBeenCalledTimes(1)
 
     vi.stubGlobal('navigator', originalNavigator)
   })
 
   it('opens WhatsApp with edited message text', async () => {
-    const fixture = await configureDialog(baseDialogData)
+    const fixture = await configureDialog({ ...baseDialogData, intent: 'composition', troupeId: 'troupe-1' })
+    const captureMutation = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureCompositionMutation')
     await vi.waitFor(() => {
       expect(fixture.nativeElement.querySelector('textarea')).toBeTruthy()
     })
@@ -173,6 +185,24 @@ describe('ShareAnnounceDialog', () => {
 
     fixture.componentInstance['openWhatsApp']()
     expect(navigatedTo).toBe(buildWhatsAppSendUrl(edited))
+    expect(captureMutation).toHaveBeenCalledWith(
+      expect.objectContaining({ troupe_id: 'troupe-1' }),
+      { action: 'announce', outcome: 'succeeded', announcement_channel: 'whatsapp' },
+    )
+  })
+
+  it('records a refused composition announcement when the dialog is closed', async () => {
+    const fixture = await configureDialog({ ...baseDialogData, intent: 'composition', troupeId: 'troupe-1' })
+    const captureMutation = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureCompositionMutation')
+
+    fixture.componentInstance['dismissCompositionAnnouncement']()
+    fixture.componentInstance.ngOnDestroy()
+
+    expect(captureMutation).toHaveBeenCalledWith(
+      expect.objectContaining({ troupe_id: 'troupe-1' }),
+      { action: 'announce', outcome: 'refused' },
+    )
+    expect(captureMutation).toHaveBeenCalledTimes(1)
   })
 
   it('prefills composition template with confirm link', async () => {
@@ -203,13 +233,14 @@ describe('ShareAnnounceDialog', () => {
     const sendNotifications = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
-      data: { accepted: true, notifiedCount: 0, manualCount: 1, acceptedCount: 1, intent: 'availability_nudge' },
+      data: { accepted: true, notifiedCount: 0, manualCount: 1, acceptedCount: 0, intent: 'availability_nudge' },
     })
     const dialog = { open: vi.fn().mockReturnValue({ afterClosed: () => of(['p-1']) }) }
     const fixture = await configureDialog(
       { ...baseDialogData, intent: 'availability_nudge' },
       { getRecipients, sendNotifications, dialog },
     )
+    const captureReminder = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureAvailabilityReminder')
 
     await vi.waitFor(() => expect(fixture.nativeElement.textContent).toContain('Notifier'))
     fixture.componentInstance['openNotificationConfirmation']()
@@ -219,6 +250,58 @@ describe('ShareAnnounceDialog', () => {
       expect(dialog.open).toHaveBeenCalledTimes(1)
       expect(sendNotifications).toHaveBeenCalledWith(
         'season-1', 'event-1', 'availability_nudge', expect.any(String), 'preview-1', ['p-1'],
+      )
+      expect(captureReminder).toHaveBeenCalledWith(
+        expect.objectContaining({ event_id: 'event-1' }),
+        { outcome: 'succeeded', recipient_count_bucket: '0' },
+      )
+    })
+  })
+
+  it('records a bounded refused outcome without selected recipient data', async () => {
+    const getRecipients = vi.fn().mockResolvedValue({
+      ...recipientsMock,
+      data: { ...recipientsMock.data, confirmationFingerprint: 'preview-1' },
+    })
+    const sendNotifications = vi.fn().mockResolvedValue({ ok: false, status: 409 })
+    const dialog = { open: vi.fn().mockReturnValue({ afterClosed: () => of(['p-1']) }) }
+    const fixture = await configureDialog(
+      { ...baseDialogData, intent: 'availability_nudge' },
+      { getRecipients, sendNotifications, dialog },
+    )
+    const captureReminder = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureAvailabilityReminder')
+
+    await vi.waitFor(() => expect(fixture.nativeElement.textContent).toContain('Notifier'))
+    fixture.componentInstance['openNotificationConfirmation']()
+
+    await vi.waitFor(() => {
+      expect(captureReminder).toHaveBeenCalledWith(
+        expect.objectContaining({ event_id: 'event-1' }),
+        { outcome: 'refused' },
+      )
+    })
+  })
+
+  it('records a bounded failed outcome when reminder delivery rejects', async () => {
+    const getRecipients = vi.fn().mockResolvedValue({
+      ...recipientsMock,
+      data: { ...recipientsMock.data, confirmationFingerprint: 'preview-1' },
+    })
+    const sendNotifications = vi.fn().mockRejectedValue(new Error('network'))
+    const dialog = { open: vi.fn().mockReturnValue({ afterClosed: () => of(['p-1']) }) }
+    const fixture = await configureDialog(
+      { ...baseDialogData, intent: 'availability_nudge', troupeId: 'troupe-1', actorScope: 'event_organizer' },
+      { getRecipients, sendNotifications, dialog },
+    )
+    const captureReminder = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureAvailabilityReminder')
+
+    await vi.waitFor(() => expect(fixture.nativeElement.textContent).toContain('Notifier'))
+    fixture.componentInstance['openNotificationConfirmation']()
+
+    await vi.waitFor(() => {
+      expect(captureReminder).toHaveBeenCalledWith(
+        expect.objectContaining({ event_id: 'event-1', troupe_id: 'troupe-1', actor_scope: 'event_organizer' }),
+        { outcome: 'failed' },
       )
     })
   })

@@ -15,6 +15,8 @@ historical registry below.
 
 ### Open defects and limitations
 
+BUG-BMAD-001 (accented versus ASCII story keys in sprint controller).
+
 BUG-031 (format cancellation), BUG-029 (date-sensitive agenda fixture),
 BUG-028 (mobile season chart), BUG-023 (stale Home badge), LIMIT-009 (Dispos
 view), BUG-018 (staging traffic), LIMIT-008 (Loop policy), LIMIT-007 (web unit
@@ -30,8 +32,59 @@ human-smoke, integration, or validation gate.
 
 ### Historical registry
 
+### BUG-BMAD-001 — Sprint controller disagrees with registered ASCII story keys
+
+- **Status:** Open; explicit PO exception for the targeted 11.5 closure only (2026-10-18).
+- **Severity:** Low (local tracking tooling).
+- **Affected area:** BMad `sprint_plan.py generate --set` and `story-status-sync.py` key compatibility.
+- **Observed behavior:** The registered `11-5-observabilite-installation-pwa-posthog` key is rejected by the sprint generator, which derives `11-5-observabilité-installation-pwa-posthog` from the canonical heading. The additive registration controller cannot change statuses.
+- **Expected behavior:** Registered story keys can be updated without replacing historical entries or regenerating unrelated tracking state.
+- **Notes/context:** The PO explicitly authorized correcting only the existing ASCII 11.5 entry to `done`. The controller itself is unchanged; the exception does not authorize future manual tracker changes.
+
+### BUG-036 — Incomplete organizer analytics at composition boundaries
+
+- **Status:** Fixed in Story 11.4; automated verification and human local smoke passed. Live PostHog delivery remains a post-deployment check.
+- **Severity:** Medium (product observability).
+- **Affected area:** V2 organizer composition and announcement analytics.
+- **Observed behavior:** Direct Équipe bootstrap could omit workspace entry; animated draws could omit a persisted success; closing an announcement after choosing a channel could record an abandonment. Storage denial and cross-account dedupe could also lose or duplicate entries.
+- **Expected behavior:** Count actual workspace entries once per event/session, confirmed mutations independently of animation, and dismissal only without a channel choice.
+- **Fix:** Shared workspace capture boundary, API-success draw capture, explicit bounded announcement choices, storage fallback/session reset, allow-listed payload projection and caller regression tests. Operator funnels exclude refused outcomes and hold event context constant.
+
 Entries below preserve the original evidence. A `Fixed` status means history,
 not active work; items listed in the two sections above remain actionable.
+
+### BUG-POSTHOG-001 — Lifecycle provisioning sends a scalar dashboard filter
+
+- **ID**: BUG-POSTHOG-001
+- **Status**: Fixed — regression passed and real CI validation succeeded on 2026-10-18
+- **Severity**: Medium (lifecycle dashboard provisioning stops before insights are created)
+- **Affected area**: `scripts/v2/posthog-lifecycle-dashboard.mjs`, manual PostHog CI validation.
+- **Observed behavior**: CI run `39099092816`, attempt 2, reached PostHog but `GET /insights/?dashboards=<id>` returned HTTP 500.
+- **Expected behavior**: List the owned dashboard's insights using the API's JSON-encoded array parameter.
+- **Cause**: Official PostHog Insights code JSON-decodes `dashboards` and iterates dashboard IDs; a scalar number is not iterable.
+- **Fix**: Send URL-encoded `[dashboard_id]` and assert that exact decoded array in the provisioning regression.
+- **Notes/context**: No deployment or release-promotion event was sent. The temporary GitHub production branch exception was removed after the failed run. The dashboard itself may have been created before the list failure; the next attempt finds it by its ownership marker.
+- **Verification**: Corrected commit `83bf536b`, CI run `39099343937`: all six owned insights computed successfully; lifecycle dashboard `1032942`. The temporary branch exception was removed after success and the original `v*` tag-only environment policy was verified restored.
+
+### BUG-035 — Organiser view does not restore the selected participant's availability checks
+- **ID**: BUG-035
+- **Status**: Open — reported from replay; not reproduced by the focused regression test on the current checkout
+- **Severity**: Medium (an organiser can mistake an already-recorded response for an unanswered one)
+- **Affected area**: V2 event-detail **Dispos** tab, `EventDisposTab` / `AvailabilityPoll` subject switch.
+- **Observed behavior**: An organiser opens **Dispos**, selects another participant, and their already-recorded availability checks appear unloaded.
+- **Expected behavior**: Switching the subject must immediately render the selected participant's persisted status and every selected role; it must not inherit the previous participant's state or show an empty response.
+- **Code evidence / current hypothesis**: The current path carries `SummaryParticipant.status` and `roleKeys` from the availability summary into `AvailabilityPoll`; `isRoleChecked()` derives each check from that selected subject. The regression now drives the organizer subject selector to a participant with two saved roles and asserts both are checked, an unsaved role remains unchecked, and neither self nor proxy availability API is written. It passes on the current checkout. No root cause is established; the replay may involve production data, a different deployed revision, or another interaction sequence.
+- **Repro to complete**: Repeat the focused scenario against the replay's deployed revision and original event data. Capture the event id, participant id, stored response, and screen/replay timestamp if it fails.
+
+### BUG-034 — Availability comments are persisted but unavailable to organisers outside the selected poll subject
+- **ID**: BUG-034
+- **Status**: Open — code-backed; no production replay reproduction claimed
+- **Severity**: Medium (information entered by a participant cannot inform composition)
+- **Affected area**: V2 availability summary, **Dispos** tab and composition workspace.
+- **Observed behavior**: A participant can save an availability comment, but an organiser cannot see it while composing the team. In **Dispos**, it is only displayed in the editable/read-only comment field for the single participant selected in the subject picker; opening a candidate/name or filtering a member does not surface it.
+- **Expected behavior**: An organiser can consult a participant's saved availability comment from the availability and composition decision paths, without editing that response.
+- **Cause**: The API persists and returns `SummaryParticipant.comment`, and the Dispos subject poll binds it to the selected person's textarea. No candidate list, availability pool, composition slot/picker, or participant filter renders this field.
+- **Verification**: `apps/web` focused `event-dispos-tab` + `availability-poll` tests: 34/34 passed on 2026-10-17. This verifies the existing poll behavior, not the missing organiser presentation.
 
 ### BUG-033 — Une adhésion active peut manquer du roster de saison
 

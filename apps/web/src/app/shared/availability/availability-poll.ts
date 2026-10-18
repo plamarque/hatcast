@@ -14,6 +14,7 @@ import { MatInputModule } from '@angular/material/input'
 import { MatSnackBar } from '@angular/material/snack-bar'
 
 import type { CompositionPoolPreviewSegment } from '../../core/composition/composition-api.service'
+import type { ActorScope } from '../../core/analytics/organizer-analytics'
 import {
   AvailabilityApiService,
   type EventAvailabilitySummary,
@@ -92,6 +93,7 @@ export class AvailabilityPoll {
   readonly explainabilityEnabled = input(false)
   readonly currentUserId = input('')
   readonly availabilityOpenedAt = input<string | null>(null)
+  readonly actorScope = input<ActorScope | undefined>(undefined)
 
   readonly summaryPatch = output<EventAvailabilitySummary>()
   readonly saved = output<AvailabilityPollSavedPayload>()
@@ -484,6 +486,7 @@ export class AvailabilityPoll {
         savedComment: this.savedComment(),
         initialStatus: this.initialStatus(),
         availabilityOpenedAt: this.availabilityOpenedAt(),
+        actorScope: this.actorScope(),
       })
 
     } catch {

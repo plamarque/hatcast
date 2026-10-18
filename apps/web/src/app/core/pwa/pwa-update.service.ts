@@ -4,6 +4,8 @@ import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
 import { filter, take } from 'rxjs';
 
 import { SHOW_CHANGELOG_AFTER_RELOAD_KEY } from '../app/changelog-keys';
+import { ProductAnalyticsService } from '../analytics/product-analytics.service';
+import type { PwaUpdateAvailabilitySource } from '../analytics/fr47-event-names';
 
 type UpdateReadySource = 'VERSION_READY' | 'fallback';
 
@@ -15,6 +17,7 @@ const MANUAL_CHECK_VERSION_READY_MS = 5_000;
 export class PwaUpdateService {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly swUpdate = inject(SwUpdate);
+  private readonly analytics = inject(ProductAnalyticsService);
 
   readonly showBanner = signal(false);
   readonly refreshing = signal(false);
@@ -199,7 +202,12 @@ export class PwaUpdateService {
     }
 
     this.refreshing.set(false);
-    this.showBanner.set(true);
+    if (!this.showBanner()) {
+      this.captureAnalytics(() =>
+        this.analytics.capturePwaUpdateAvailable(updateAvailabilitySource(source)),
+      );
+      this.showBanner.set(true);
+    }
   }
 
   private async fetchNgswTimestamp(): Promise<number | null> {
@@ -233,6 +241,7 @@ export class PwaUpdateService {
       return;
     }
 
+    this.captureAnalytics(() => this.analytics.capturePwaUpdateApplyRequested());
     this.refreshing.set(true);
     try {
       await this.swUpdate.activateUpdate();
@@ -244,7 +253,22 @@ export class PwaUpdateService {
   }
 
   dismissBanner(): void {
+    if (this.showBanner()) {
+      this.captureAnalytics(() => this.analytics.capturePwaUpdateDismissed());
+    }
     this.bannerDismissed = true;
     this.showBanner.set(false);
   }
+
+  private captureAnalytics(action: () => void): void {
+    try {
+      action();
+    } catch {
+      // Analytics must not affect update availability, dismissal, or activation.
+    }
+  }
+}
+
+function updateAvailabilitySource(source: UpdateReadySource): PwaUpdateAvailabilitySource {
+  return source === 'VERSION_READY' ? 'version_ready' : 'fallback';
 }

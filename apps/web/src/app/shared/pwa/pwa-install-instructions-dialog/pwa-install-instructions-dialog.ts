@@ -36,7 +36,7 @@ export class PwaInstallInstructionsDialog {
   );
 
   protected retryInstall(): void {
-    void this.pwaInstall.promptInstall();
+    void this.pwaInstall.promptInstall('manual_instructions_retry');
     this.dialogRef.close();
   }
 }

@@ -228,6 +228,8 @@ describe('AvailabilityPoll', () => {
 
   it('saves vote immediately when checking a role', async () => {
     const { fixture, setMyAvailability } = await setupPoll()
+    fixture.componentRef.setInput('actorScope', 'event_organizer')
+    fixture.componentRef.setInput('availabilityOpenedAt', '2026-01-01T00:00:00.000Z')
     const comp = fixture.componentInstance as unknown as {
       onRoleToggle: (roleKey: string, checked: boolean) => Promise<void>
     }
@@ -238,6 +240,10 @@ describe('AvailabilityPoll', () => {
       'season-1',
       'event-1',
       expect.objectContaining({ status: 'available', roleKeys: ['player'] }),
+    )
+    expect(TestBed.inject(ProductAnalyticsService).captureAvailabilityFirstSubmission).toHaveBeenCalledWith(
+      expect.objectContaining({ actor_scope: 'event_organizer' }),
+      expect.objectContaining({ is_proxy: false }),
     )
   })
 
