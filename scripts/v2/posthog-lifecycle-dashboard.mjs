@@ -66,7 +66,7 @@ export async function provision({ projectId, key, request = fetch, validate = fa
   const dashboards = (await list('dashboards/?limit=100')).filter(d => d.description === marker && !d.deleted)
   if (dashboards.length > 1) throw new Error('Multiple CI-owned dashboards: reconcile before writing')
   const dashboard = dashboards[0] ?? await api('dashboards/', 'POST', { name: dashboardName, description: marker, filters: { date_from: '-30d' } })
-  const existing = await list(`insights/?dashboards=${dashboard.id}&limit=100`)
+  const existing = await list(`insights/?dashboards=${encodeURIComponent(JSON.stringify([dashboard.id]))}&limit=100`)
   for (const insight of insights) {
     const description = `${marker}:${insight.key}`
     const matches = existing.filter(i => i.description === description && !i.deleted)

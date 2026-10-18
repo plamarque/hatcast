@@ -19,6 +19,9 @@ test('provisioning creates once, then patches only its own insights', async () =
     assert.equal(url.origin, 'https://eu.posthog.com')
     const body = options.body ? JSON.parse(options.body) : null
     const path = url.pathname
+    if (options.method === 'GET' && path.endsWith('insights/')) {
+      assert.deepEqual(JSON.parse(url.searchParams.get('dashboards')), [42])
+    }
     let result
     if (options.method === 'GET') result = { results: path.endsWith('dashboards/') ? dashboards : savedInsights, next: null }
     else {
