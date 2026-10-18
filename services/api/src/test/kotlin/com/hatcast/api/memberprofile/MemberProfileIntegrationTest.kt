@@ -4,6 +4,9 @@ import com.hatcast.api.auth.GoogleIdTokenService
 import com.hatcast.api.auth.IdpIdTokenVerifier
 import com.hatcast.api.event.RoleKeys
 import com.hatcast.api.support.TestAuthSupport
+import com.hatcast.api.season.SeasonEntity
+import com.hatcast.api.season.SeasonRepository
+import com.hatcast.api.troupe.TroupeRepository
 import com.hatcast.api.user.UserRepository
 import org.junit.jupiter.api.Assertions.assertTrue
 import java.time.Instant
@@ -40,15 +43,28 @@ class MemberProfileIntegrationTest {
     @MockBean
     private lateinit var idpIdTokenVerifier: IdpIdTokenVerifier
 
-    private val seedTroupeId: UUID = UUID.fromString("a0000001-0000-4000-8000-000000000001")
-    private val seedSeasonId: UUID = UUID.fromString("b0000001-0000-4000-8000-000000000001")
+    @Autowired
+    private lateinit var troupeRepository: TroupeRepository
+
+    @Autowired
+    private lateinit var seasonRepository: SeasonRepository
+
+    private lateinit var fixtureSeason: SeasonEntity
+    private val fixtureTroupeId: UUID get() = fixtureSeason.troupe.id
+    private val fixtureSeasonId: UUID get() = fixtureSeason.id
+
+    @org.junit.jupiter.api.BeforeEach
+    fun isolateSeason() {
+        val troupe = TestAuthSupport.isolatedTroupe(troupeRepository)
+        fixtureSeason = seasonRepository.save(SeasonEntity(troupe = troupe, slug = "fixture-season", title = "Fixture season"))
+    }
 
     @Test
     fun `preferred roles default returns all role keys when never saved`() {
         val cookie = signInAndJoin("sub-profile-pref-default", "profile-pref-default@example.com", "Pref Default")
 
         mockMvc
-            .perform(get("/v1/troupes/$seedTroupeId/memberships/me/preferred-roles").cookie(cookie))
+            .perform(get("/v1/troupes/$fixtureTroupeId/memberships/me/preferred-roles").cookie(cookie))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.preferredRoleKeys.length()").value(RoleKeys.ALL.size))
             .andExpect(jsonPath("$.preferredRoleKeys[?(@ == 'volunteer')]").exists())
@@ -60,7 +76,7 @@ class MemberProfileIntegrationTest {
 
         mockMvc
             .perform(
-                put("/v1/troupes/$seedTroupeId/memberships/me/preferred-roles")
+                put("/v1/troupes/$fixtureTroupeId/memberships/me/preferred-roles")
                     .cookie(cookie)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"preferredRoleKeys":["player","mc"]}""")
@@ -71,7 +87,7 @@ class MemberProfileIntegrationTest {
             .andExpect(jsonPath("$.preferredRoleKeys[?(@ == 'volunteer')]").exists())
 
         mockMvc
-            .perform(get("/v1/troupes/$seedTroupeId/memberships/me/preferred-roles").cookie(cookie))
+            .perform(get("/v1/troupes/$fixtureTroupeId/memberships/me/preferred-roles").cookie(cookie))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.preferredRoleKeys[?(@ == 'volunteer')]").exists())
     }
@@ -82,7 +98,7 @@ class MemberProfileIntegrationTest {
 
         mockMvc
             .perform(
-                put("/v1/troupes/$seedTroupeId/memberships/me/preferred-roles")
+                put("/v1/troupes/$fixtureTroupeId/memberships/me/preferred-roles")
                     .cookie(cookie)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"preferredRoleKeys":["player","not_a_role","volunteer"]}""")
@@ -95,12 +111,12 @@ class MemberProfileIntegrationTest {
         val cookie = signIn("sub-profile-pref-forbidden", "profile-pref-forbidden@example.com", "Pref Forbidden")
 
         mockMvc
-            .perform(get("/v1/troupes/$seedTroupeId/memberships/me/preferred-roles").cookie(cookie))
+            .perform(get("/v1/troupes/$fixtureTroupeId/memberships/me/preferred-roles").cookie(cookie))
             .andExpect(status().isForbidden)
 
         mockMvc
             .perform(
-                put("/v1/troupes/$seedTroupeId/memberships/me/preferred-roles")
+                put("/v1/troupes/$fixtureTroupeId/memberships/me/preferred-roles")
                     .cookie(cookie)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"preferredRoleKeys":["player","volunteer"]}""")
@@ -114,7 +130,7 @@ class MemberProfileIntegrationTest {
 
         mockMvc
             .perform(
-                put("/v1/troupes/$seedTroupeId/memberships/me/preferred-roles")
+                put("/v1/troupes/$fixtureTroupeId/memberships/me/preferred-roles")
                     .cookie(cookie)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"preferredRoleKeys":["player","volunteer"]}"""),
@@ -127,7 +143,7 @@ class MemberProfileIntegrationTest {
         val userId = userRepository.findByGoogleSub("sub-profile-summary-self")!!.id
 
         mockMvc
-            .perform(get("/v1/seasons/$seedSeasonId/member-profile/$userId").cookie(cookie))
+            .perform(get("/v1/seasons/$fixtureSeasonId/member-profile/$userId").cookie(cookie))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.userId").value(userId.toString()))
             .andExpect(jsonPath("$.displayName").exists())
@@ -146,7 +162,7 @@ class MemberProfileIntegrationTest {
         val targetUserId = userRepository.findByGoogleSub("sub-profile-target")!!.id
 
         mockMvc
-            .perform(get("/v1/seasons/$seedSeasonId/member-profile/$targetUserId").cookie(viewerCookie))
+            .perform(get("/v1/seasons/$fixtureSeasonId/member-profile/$targetUserId").cookie(viewerCookie))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.userId").value(targetUserId.toString()))
             .andExpect(jsonPath("$.isSelf").value(false))
@@ -163,7 +179,7 @@ class MemberProfileIntegrationTest {
         userRepository.save(user)
 
          mockMvc
-            .perform(get("/v1/seasons/$seedSeasonId/member-profile/${user.id}").cookie(cookie))
+            .perform(get("/v1/seasons/$fixtureSeasonId/member-profile/${user.id}").cookie(cookie))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.avatarUrl").isEmpty)
     }
@@ -174,7 +190,7 @@ class MemberProfileIntegrationTest {
         val randomUserId = UUID.randomUUID()
 
         mockMvc
-            .perform(get("/v1/seasons/$seedSeasonId/member-profile/$randomUserId").cookie(cookie))
+            .perform(get("/v1/seasons/$fixtureSeasonId/member-profile/$randomUserId").cookie(cookie))
             .andExpect(status().isForbidden)
     }
 
@@ -183,7 +199,7 @@ class MemberProfileIntegrationTest {
         email: String,
         name: String,
     ) = signIn(googleSub, email, name).also { cookie ->
-        TestAuthSupport.joinSeedTroupe(mockMvc, cookie, seedTroupeId)
+        TestAuthSupport.joinSeedTroupe(mockMvc, cookie, fixtureTroupeId)
     }
 
     private fun signIn(

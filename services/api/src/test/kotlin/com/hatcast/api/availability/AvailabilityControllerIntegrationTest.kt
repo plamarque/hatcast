@@ -730,6 +730,13 @@ class AvailabilityControllerIntegrationTest {
             membershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, newcomerUser.id)
                 ?: error("Missing membership for newcomer")
 
+        // Deliberately simulate a legacy unsynchronized roster after the normal join sync.
+        val synchronizedParticipant = seasonParticipantRepository.findBySeason_IdAndTroupeMembership_Id(
+            seasonId, newcomerMembership.id,
+        ) ?: error("Joining must synchronize the newcomer before establishing the legacy fixture")
+        seasonParticipantRepository.delete(synchronizedParticipant)
+        seasonParticipantRepository.flush()
+
         val unsyncedParticipant =
             seasonParticipantRepository.findBySeason_IdAndTroupeMembership_Id(
                 seasonId,

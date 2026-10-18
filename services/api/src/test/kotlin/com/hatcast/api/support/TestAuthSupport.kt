@@ -2,6 +2,8 @@ package com.hatcast.api.support
 
 import com.hatcast.api.auth.GoogleIdTokenService
 import com.hatcast.api.auth.SessionUserPrincipal
+import com.hatcast.api.troupe.TroupeEntity
+import com.hatcast.api.troupe.TroupeRepository
 import jakarta.servlet.http.Cookie
 import org.mockito.kotlin.any
 import org.mockito.kotlin.whenever
@@ -15,6 +17,14 @@ import java.time.Instant
 import java.util.UUID
 
 object TestAuthSupport {
+    /** A new scope per test; callers still exercise the real membership sync path. */
+    fun isolatedTroupe(repository: TroupeRepository): TroupeEntity {
+        val id = UUID.randomUUID()
+        return repository.save(
+            TroupeEntity(id = id, name = "Fixture troupe", slug = "fixture-$id"),
+        )
+    }
+
     fun testPrincipal(userId: UUID = UUID.randomUUID()): SessionUserPrincipal =
         SessionUserPrincipal(
             userId = userId,
