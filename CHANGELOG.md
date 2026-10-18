@@ -1,5 +1,37 @@
 # Changelog
 
+## [2.6.3] - 2026-10-18
+
+### ✨ New Features
+- feat(story): Close PWA lifecycle observability
+- feat(pwa): Observe installation and updates
+- feat(story): Close organizer observability
+- feat(analytics): Track organizer journeys
+- feat(story): merge 11-6-adoption-pwa-posthog
+- feat(analytics): Track PWA access mode
+
+### 🐛 Bug Fixes
+- fix(posthog): Encode dashboard filter as array
+- fix(availability): Show organiser comments
+
+### 📝 Other Changes
+- chore(v2): promote v2 to staging-v2
+- chore(release): Prepare v2.6.3 notes
+- chore(pwa): Reconcile analytics and close story
+- docs(posthog): Record dashboard validation
+- ci(posthog): Add dashboard validation
+- merge: Close BUG-034 organizer comments
+- chore(bmad): Sync sprint status for 11-5-observabilite-installation-pwa-posthog
+- docs(analytics): Plan PWA install observability
+- docs(pwa): Add adoption measurement spec
+- test(dispos): Cover organizer role restoration
+- chore(analytics): Update PostHog SDK
+- chore(bmad): Sync sprint status for 11-4-observabilite-parcours-organisateur-posthog
+- docs(posthog): Define smoke contract
+- chore(v2): sync release v2.6.2-rc.1 artifacts to v2
+
+---
+
 ## [2.6.2] - 2026-10-16
 
 ### ✨ New Features
