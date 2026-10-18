@@ -15,6 +15,8 @@ historical registry below.
 
 ### Open defects and limitations
 
+BUG-POSTHOG-002 (production promotion observability rejected by capture acceptance guard).
+
 BUG-038 (intermittent composition smoke assertions observed on v2.6.3-rc.2).
 
 BUG-BMAD-001 (accented versus ASCII story keys in sprint controller).
@@ -35,6 +37,15 @@ human-smoke, integration, or validation gate.
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
 
 ### Historical registry
+
+### BUG-POSTHOG-002 — Production promotion capture fails its acceptance guard
+- **ID**: BUG-POSTHOG-002
+- **Status**: Open — observed after successful v2.6.3 production deployment on 2026-10-18
+- **Severity**: Medium (release observability incomplete; deployment remains successful)
+- **Affected area**: `scripts/v2/posthog-lifecycle-dashboard.mjs`, production workflow `posthog-lifecycle` job.
+- **Observed behavior**: [Workflow 39130429450](https://github.com/plamarque/hatcast/actions/runs/39130429450), commit `a5fb7f487d73672a3388e4b32ef200c4f314d1aa`: deployment succeeded, revision `hatcast-v2-00024-5n9` serves 100% of traffic, but lifecycle synchronization failed with `PostHog promotion capture was not accepted without quota limits`. Overall workflow is red despite its successful deployment job. Read-only checks returned version 2.6.3, production channel, and health UP.
+- **Expected behavior**: Promotion capture is accepted without quota limitation and lifecycle dashboard synchronization completes.
+- **Notes/context**: The guard raises for either `status !== 1` or a nonempty `quota_limited` list; the redacted log does not distinguish those cases, so a quota exhaustion diagnosis is not established. Dashboard provisioning is not reached after this error. No retry, quota/billing change, credential change, or production rollback was performed. The prior staging E1 gate was green; user approved production using the existing human recipe and requested no repeat tests.
 
 ### BUG-038 — Composition smoke tests intermittently require retry
 - **ID**: BUG-038
