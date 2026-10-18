@@ -17,6 +17,7 @@ import { ConfirmDialog } from '../seasons-list/confirm-dialog'
 import { EventTypeRolesDialog } from './event-type-roles-dialog'
 import { EventEquipeTab } from './event-equipe-tab'
 import { ProductAnalyticsService } from '../../core/analytics/product-analytics.service'
+import { ChanceBreakdownService } from '../../shared/composition/chance-breakdown.service'
 
 function ev(overrides: Partial<EventResponse> = {}): EventResponse {
   return {
@@ -3334,6 +3335,49 @@ describe('EventEquipeTab', () => {
     await vi.waitFor(() => {
       expect(dialogOpen).toHaveBeenCalled()
     })
+  })
+
+  it('maps every Équipe chance trigger to its literal bounded entry point', async () => {
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.componentRef.setInput('actorScope', 'event_organizer')
+    const open = vi.spyOn(TestBed.inject(ChanceBreakdownService), 'open').mockResolvedValue()
+    const component = fixture.componentInstance as any
+    component.composition.set({
+      publishedAt: null,
+      validatedAt: null,
+      visibility: 'organizerDraft',
+      slots: [{ roleKey: 'player', slotIndex: 0, participantId: 'p-existing' }],
+      viewerParticipantIds: [],
+    })
+    component.poolPreviewRoleKey.set('player')
+    component.drawSteps.set([{
+      roleKey: 'player', slotIndex: 0, candidates: [], selectedParticipantId: null,
+      randomValue: null, totalWeight: 0,
+    }])
+
+    await component.onPoolPreviewSegmentTap({ participantId: 'p-preview', chancePercent: 50 })
+    await component.onDrawSegmentTap({ participantId: 'p-draw', chancePercent: 50 })
+    await component.openSlotChanceBreakdown(new Event('click'), {
+      roleKey: 'player', slotIndex: 0,
+      slot: { participantId: 'p-slot', chancePercent: 50 },
+    })
+
+    expect(open).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      entryPoint: 'equipe_pool_preview',
+      analyticsContext: expect.objectContaining({ actor_scope: 'event_organizer' }),
+    }))
+    expect(open).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      entryPoint: 'equipe_draw_step',
+      analyticsContext: expect.objectContaining({ actor_scope: 'event_organizer' }),
+    }))
+    expect(open).toHaveBeenNthCalledWith(3, expect.objectContaining({
+      entryPoint: 'equipe_slot_chance',
+      analyticsContext: expect.objectContaining({ actor_scope: 'event_organizer' }),
+    }))
+    for (const [request] of open.mock.calls) {
+      expect(request.analyticsContext).not.toHaveProperty('participantId')
+      expect(request.analyticsContext).not.toHaveProperty('formulaId')
+    }
   })
 
   it('hides Compléter and gap slot picker for member without canManageComposition', async () => {
