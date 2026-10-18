@@ -9,6 +9,11 @@ import {
   type ChanceAdjustment,
   type ChanceBreakdown,
 } from '../../../core/composition/composition-api.service'
+import type {
+  ChanceBreakdownEntryPoint,
+  Fr47EventContext,
+} from '../../../core/analytics/fr47-event-names'
+import { ProductAnalyticsService } from '../../../core/analytics/product-analytics.service'
 import { multiPlaceChanceTooltipCopy } from '../../../core/account/member-gender'
 import { chanceColorClass } from '../../../core/availability/availability-chances'
 import { UserAvatarComponent } from '../../user-avatar/user-avatar'
@@ -26,6 +31,8 @@ export interface ChanceBreakdownSheetData {
   breakdown: ChanceBreakdown
   isDesktop: boolean
   viewerParticipantIds: string[]
+  analyticsContext?: Fr47EventContext
+  entryPoint?: ChanceBreakdownEntryPoint
 }
 
 @Component({
@@ -49,11 +56,21 @@ export class ChanceBreakdownSheet {
     optional: true,
   })
   private readonly drawChancesHelp = inject(DrawChancesHelpService)
+  private readonly analytics = inject(ProductAnalyticsService)
 
   protected readonly data = this.sheetData ?? this.dialogData!
   protected readonly breakdown = signal<ChanceBreakdown>(this.data.breakdown)
 
   protected openDrawChancesHelp(): void {
+    if (this.data.analyticsContext && this.data.entryPoint) {
+      try {
+        this.analytics.captureChanceBreakdownHelpOpened(this.data.analyticsContext, {
+          entry_point: this.data.entryPoint,
+        })
+      } catch {
+        /* Observability must not block the existing help action. */
+      }
+    }
     void this.drawChancesHelp.open()
   }
 

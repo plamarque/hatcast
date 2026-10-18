@@ -1394,6 +1394,8 @@ export class EventEquipeTab {
       participantId: event.participantId,
       formulaId: this.activeDrawFormulaId(),
       viewerParticipantIds: [...this.viewerParticipantIds()],
+      analyticsContext: this.analyticsContext(),
+      entryPoint: 'equipe_pool_preview',
     })
   }
 
@@ -1413,6 +1415,8 @@ export class EventEquipeTab {
       formulaId: this.activeDrawFormulaId(),
       viewerParticipantIds: [...this.viewerParticipantIds()],
       stepBanner: `Étape ${this.drawStepIndex() + 1}/${this.drawSteps().length} — ${getRoleLabel(step.roleKey as RoleKey)}`,
+      analyticsContext: this.analyticsContext(),
+      entryPoint: 'equipe_draw_step',
     })
   }
 
@@ -1429,6 +1433,8 @@ export class EventEquipeTab {
       participantId: slot.participantId,
       formulaId: this.activeDrawFormulaId(),
       viewerParticipantIds: [...this.viewerParticipantIds()],
+      analyticsContext: this.analyticsContext(),
+      entryPoint: 'equipe_slot_chance',
     })
   }
 
@@ -1469,6 +1475,7 @@ export class EventEquipeTab {
         eventId,
         explainabilityEnabled: this.canShowChanceBreakdown(),
         viewerParticipantIds: [...this.viewerParticipantIds()],
+        analyticsContext: this.analyticsContext(),
         candidates: [],
         loading: true,
         error: null,

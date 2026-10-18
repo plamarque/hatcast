@@ -15,6 +15,7 @@ import { MatSnackBar } from '@angular/material/snack-bar'
 
 import type { CompositionPoolPreviewSegment } from '../../core/composition/composition-api.service'
 import type { ActorScope } from '../../core/analytics/organizer-analytics'
+import { ProductAnalyticsService } from '../../core/analytics/product-analytics.service'
 import {
   AvailabilityApiService,
   type EventAvailabilitySummary,
@@ -79,6 +80,7 @@ export class AvailabilityPoll {
   private readonly api = inject(AvailabilityApiService)
   private readonly persist = inject(AvailabilityPersistService)
   private readonly chanceBreakdown = inject(ChanceBreakdownService)
+  private readonly analytics = inject(ProductAnalyticsService)
   private readonly snack = inject(MatSnackBar)
 
   readonly seasonId = input.required<string>()
@@ -387,6 +389,11 @@ export class AvailabilityPoll {
       roleKey,
       participantId: event.participantId,
       viewerParticipantIds: this.viewerParticipantIds(),
+      analyticsContext: {
+        ...this.analytics.eventContext(this.eventId(), this.seasonId(), this.troupeId()),
+        ...(this.actorScope() ? { actor_scope: this.actorScope() } : {}),
+      },
+      entryPoint: 'dispos_poll',
     })
   }
 

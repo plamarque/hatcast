@@ -16,6 +16,8 @@ export const PWA_UPDATE_AVAILABLE = 'pwa_update_available' as const
 export const PWA_UPDATE_DISMISSED = 'pwa_update_dismissed' as const
 export const PWA_UPDATE_APPLY_REQUESTED = 'pwa_update_apply_requested' as const
 export const PWA_ACCESS_MODE_OBSERVED = 'pwa_access_mode_observed' as const
+export const CHANCE_BREAKDOWN_OPENED = 'chance_breakdown_opened' as const
+export const CHANCE_BREAKDOWN_HELP_OPENED = 'chance_breakdown_help_opened' as const
 
 /** Query param value for V1→V2 cutover funnel (story 11.3). */
 export const V1_CUTOVER_SRC = 'v1_cutover' as const
@@ -37,6 +39,15 @@ export type PwaInstallInstructionVariant =
   | 'other'
 export type PwaNativePromptOutcome = 'accepted' | 'dismissed'
 export type PwaUpdateAvailabilitySource = 'version_ready' | 'fallback'
+
+/** Closed surfaces which can successfully open the chance-breakdown overlay. */
+export type ChanceBreakdownEntryPoint =
+  | 'dispos_poll'
+  | 'equipe_slot_picker'
+  | 'equipe_pool_preview'
+  | 'equipe_draw_step'
+  | 'equipe_slot_chance'
+export type ChanceBreakdownPresentation = 'bottom_sheet' | 'dialog'
 
 export type Fr47EventContext = {
   event_id: string

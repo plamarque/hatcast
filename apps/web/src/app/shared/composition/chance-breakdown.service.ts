@@ -6,6 +6,11 @@ import { MatSnackBar } from '@angular/material/snack-bar'
 import { firstValueFrom } from 'rxjs'
 
 import { CompositionApiService } from '../../core/composition/composition-api.service'
+import type {
+  ChanceBreakdownEntryPoint,
+  Fr47EventContext,
+} from '../../core/analytics/fr47-event-names'
+import { ProductAnalyticsService } from '../../core/analytics/product-analytics.service'
 import { ROLE_EMOJIS, ROLE_LABELS, type RoleKey } from '../../core/events/event-types'
 import { CHANCE_BREAKDOWN_DESKTOP_MEDIA_QUERY } from './chance-breakdown.constants'
 import {
@@ -25,6 +30,9 @@ export interface ChanceBreakdownOpenContext {
   viewerParticipantIds?: readonly string[]
   /** Optional banner above waterfall (e.g. draw animation step). */
   stepBanner?: string | null
+  /** Rebuilt by ProductAnalyticsService before capture; never a candidate context. */
+  analyticsContext?: Fr47EventContext
+  entryPoint?: ChanceBreakdownEntryPoint
 }
 
 @Injectable({ providedIn: 'root' })
@@ -35,6 +43,7 @@ export class ChanceBreakdownService {
   private readonly compositionApi = inject(CompositionApiService)
   private readonly snack = inject(MatSnackBar)
   private readonly overlayGate = inject(CompositionOverlayGateService)
+  private readonly analytics = inject(ProductAnalyticsService)
 
   isDesktopViewport(): boolean {
     return this.breakpointObserver.isMatched(CHANCE_BREAKDOWN_DESKTOP_MEDIA_QUERY)
@@ -78,31 +87,46 @@ export class ChanceBreakdownService {
         breakdown: result.data,
         isDesktop,
         viewerParticipantIds: [...(context.viewerParticipantIds ?? [])],
+        analyticsContext: context.analyticsContext,
+        entryPoint: context.entryPoint,
       }
       if (isDesktop) {
-        await firstValueFrom(
-          this.dialog
-            .open(ChanceBreakdownSheet, {
-              data: sheetData,
-              width: 'min(100vw - 2rem, 28rem)',
-              maxHeight: '90vh',
-              panelClass: 'chance-breakdown-dialog',
-              autoFocus: 'first-tabbable',
-            })
-            .afterClosed(),
-        )
+        const dialogRef = this.dialog.open(ChanceBreakdownSheet, {
+          data: sheetData,
+          width: 'min(100vw - 2rem, 28rem)',
+          maxHeight: '90vh',
+          panelClass: 'chance-breakdown-dialog',
+          autoFocus: 'first-tabbable',
+        })
+        this.captureOpened(context, 'dialog')
+        await firstValueFrom(dialogRef.afterClosed())
       } else {
-        await firstValueFrom(
-          this.bottomSheet
-            .open(ChanceBreakdownSheet, {
-              data: sheetData,
-              panelClass: 'chance-breakdown-sheet-panel',
-            })
-            .afterDismissed(),
-        )
+        const sheetRef = this.bottomSheet.open(ChanceBreakdownSheet, {
+          data: sheetData,
+          panelClass: 'chance-breakdown-sheet-panel',
+        })
+        this.captureOpened(context, 'bottom_sheet')
+        await firstValueFrom(sheetRef.afterDismissed())
       }
     } finally {
       this.overlayGate.release()
+    }
+  }
+
+  private captureOpened(
+    context: ChanceBreakdownOpenContext,
+    presentation: 'bottom_sheet' | 'dialog',
+  ): void {
+    if (!context.analyticsContext || !context.entryPoint) {
+      return
+    }
+    try {
+      this.analytics.captureChanceBreakdownOpened(context.analyticsContext, {
+        entry_point: context.entryPoint,
+        presentation,
+      })
+    } catch {
+      /* Observability must never interrupt an already-opened Material overlay. */
     }
   }
 }

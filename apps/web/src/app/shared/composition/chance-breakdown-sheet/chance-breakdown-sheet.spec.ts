@@ -5,6 +5,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { describe, expect, it, vi } from 'vitest'
 
 import { DrawChancesHelpService } from '../draw-chances-help.service'
+import { ProductAnalyticsService } from '../../../core/analytics/product-analytics.service'
 import { ChanceBreakdownSheet, type ChanceBreakdownSheetData } from './chance-breakdown-sheet'
 
 const baseBreakdown = {
@@ -44,6 +45,13 @@ const sheetData: ChanceBreakdownSheetData = {
   breakdown: baseBreakdown,
   isDesktop: false,
   viewerParticipantIds: ['p-alice'],
+  analyticsContext: {
+    event_id: 'event-1',
+    season_id: 'season-1',
+    troupe_id: 'troupe-1',
+    is_demo_troupe: false,
+  },
+  entryPoint: 'equipe_slot_chance',
 }
 
 describe('ChanceBreakdownSheet', () => {
@@ -56,6 +64,7 @@ describe('ChanceBreakdownSheet', () => {
         { provide: MAT_BOTTOM_SHEET_DATA, useValue: sheetData },
         { provide: MatBottomSheetRef, useValue: { dismiss: vi.fn() } },
         { provide: MatDialogRef, useValue: null },
+        { provide: ProductAnalyticsService, useValue: { captureChanceBreakdownHelpOpened: vi.fn() } },
         {
           provide: DrawChancesHelpService,
           useValue: { open: vi.fn() },
@@ -109,6 +118,7 @@ describe('ChanceBreakdownSheet', () => {
           },
           { provide: MatBottomSheetRef, useValue: { dismiss: vi.fn() } },
           { provide: MatDialogRef, useValue: null },
+          { provide: ProductAnalyticsService, useValue: { captureChanceBreakdownHelpOpened: vi.fn() } },
           {
             provide: DrawChancesHelpService,
             useValue: { open: vi.fn() },
@@ -129,11 +139,18 @@ describe('ChanceBreakdownSheet', () => {
 
   it('opens draw chances help from doc link', () => {
     const help = TestBed.inject(DrawChancesHelpService) as unknown as { open: ReturnType<typeof vi.fn> }
+    const analytics = TestBed.inject(ProductAnalyticsService) as unknown as {
+      captureChanceBreakdownHelpOpened: ReturnType<typeof vi.fn>
+    }
     const link = fixture.nativeElement.querySelector(
       '.chance-breakdown-sheet__doc-link',
     ) as HTMLButtonElement
     link.click()
     expect(help.open).toHaveBeenCalled()
+    expect(analytics.captureChanceBreakdownHelpOpened).toHaveBeenCalledWith(
+      sheetData.analyticsContext,
+      { entry_point: 'equipe_slot_chance' },
+    )
   })
 
   it('shows ex aequo summary when top candidates share the same chance', async () => {
@@ -164,6 +181,7 @@ describe('ChanceBreakdownSheet', () => {
           },
           { provide: MatBottomSheetRef, useValue: { dismiss: vi.fn() } },
           { provide: MatDialogRef, useValue: null },
+          { provide: ProductAnalyticsService, useValue: { captureChanceBreakdownHelpOpened: vi.fn() } },
           {
             provide: DrawChancesHelpService,
             useValue: { open: vi.fn() },
@@ -215,6 +233,7 @@ describe('ChanceBreakdownSheet', () => {
           },
           { provide: MatBottomSheetRef, useValue: { dismiss: vi.fn() } },
           { provide: MatDialogRef, useValue: null },
+          { provide: ProductAnalyticsService, useValue: { captureChanceBreakdownHelpOpened: vi.fn() } },
           {
             provide: DrawChancesHelpService,
             useValue: { open: vi.fn() },
@@ -247,6 +266,7 @@ describe('ChanceBreakdownSheet', () => {
           },
           { provide: MatBottomSheetRef, useValue: { dismiss: vi.fn() } },
           { provide: MatDialogRef, useValue: null },
+          { provide: ProductAnalyticsService, useValue: { captureChanceBreakdownHelpOpened: vi.fn() } },
           {
             provide: DrawChancesHelpService,
             useValue: { open: vi.fn() },
