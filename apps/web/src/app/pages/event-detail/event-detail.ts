@@ -14,6 +14,7 @@ import {
   type EventAvailabilitySummary,
 } from '../../core/availability/availability-api.service'
 import { ProductAnalyticsService } from '../../core/analytics/product-analytics.service'
+import { resolveActorScope } from '../../core/analytics/organizer-analytics'
 import { resolveNotificationLinkTab } from '../../core/analytics/notification-link-tab'
 import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
 import { MemberShellBootstrapService } from '../../core/member-shell/member-shell-bootstrap.service'
@@ -251,6 +252,14 @@ export class EventDetail implements OnDestroy, OnInit {
       platformAdmin: this.platformAdmin(),
     })
   })
+  protected readonly actorScope = computed(() => {
+    const ev = this.event()
+    const permissions = this.seasonPermissions()
+    if (!permissions || !ev) return undefined
+    return resolveActorScope(permissions, ev.id, {
+      platformAdmin: this.platformAdmin(),
+    })
+  })
   protected readonly disposExplainabilityEnabled = computed(() => {
     const ev = this.event()
     if (!ev) {
@@ -468,6 +477,8 @@ export class EventDetail implements OnDestroy, OnInit {
       seasonId,
       seasonSlug,
       troupeSlug,
+      troupeId: this.troupeId(),
+      actorScope: this.actorScope(),
       event: ev,
     })
   }
@@ -487,6 +498,8 @@ export class EventDetail implements OnDestroy, OnInit {
       seasonId,
       seasonSlug,
       troupeSlug,
+      troupeId: this.troupeId(),
+      actorScope: this.actorScope(),
       event: ev,
     })
   }
@@ -631,7 +644,7 @@ export class EventDetail implements OnDestroy, OnInit {
     }
     this.lastNotificationLinkCaptureKey = captureKey
     this.analytics.captureNotificationLinkOpened(
-      this.analytics.eventContext(ev.id, seasonId, troupeId),
+      this.analyticsContext(ev.id, seasonId, troupeId),
       { link_tab: linkTab },
     )
   }
@@ -650,7 +663,7 @@ export class EventDetail implements OnDestroy, OnInit {
     const nextLifecycle = computeRawCompositionLifecycle(composition, roleSlots)
     if (nextLifecycle === 'complete' && prevLifecycle !== 'complete') {
       this.analytics.captureCompositionAllConfirmationsReceived(
-        this.analytics.eventContext(ev.id, this.seasonId(), this.troupeId()),
+        this.analyticsContext(ev.id, this.seasonId(), this.troupeId()),
         {
           validated_at: composition.validatedAt ?? null,
           completed_at: new Date().toISOString(),
@@ -821,6 +834,7 @@ export class EventDetail implements OnDestroy, OnInit {
       this.composition.set(page.composition)
       this.compositionLoaded.set(true)
       this.compositionLoadInFlight = false
+      this.captureWorkspaceOpened(found.id, this.seasonId(), page.composition)
     }
 
     const markTab = options.markTabLoaded ?? tab
@@ -935,6 +949,7 @@ export class EventDetail implements OnDestroy, OnInit {
     }
     if (this.compositionLoaded()) {
       if (this.composition() != null) {
+        this.captureWorkspaceOpened(ev.id, seasonId, this.composition()!)
         return
       }
       this.compositionLoaded.set(false)
@@ -971,6 +986,14 @@ export class EventDetail implements OnDestroy, OnInit {
     }
   }
 
+  private captureWorkspaceOpened(eventId: string, seasonId: string, composition: CompositionResponse): void {
+    if (this.activeTab() !== 'equipe' || !this.seasonPermissions() || !this.canManageComposition()) return
+    this.analytics.captureCompositionWorkspaceOpened(
+      this.analyticsContext(eventId, seasonId, this.troupeId()),
+      composition.publishedAt ? 'published' : composition.validatedAt ? 'validated' : 'draft',
+    )
+  }
+
   private async loadComposition(seasonId: string, eventId: string): Promise<void> {
     if (this.compositionLoadInFlight) {
       return
@@ -991,6 +1014,7 @@ export class EventDetail implements OnDestroy, OnInit {
       }
       if (result.ok && result.data) {
         this.composition.set(result.data)
+        this.captureWorkspaceOpened(eventId, seasonId, result.data)
       } else {
         this.composition.set(null)
       }
@@ -1002,6 +1026,14 @@ export class EventDetail implements OnDestroy, OnInit {
       ) {
         this.compositionLoadInFlight = false
       }
+    }
+  }
+
+  private analyticsContext(eventId: string, seasonId: string, troupeId: string) {
+    const actorScope = this.actorScope()
+    return {
+      ...this.analytics.eventContext(eventId, seasonId, troupeId),
+      ...(actorScope ? { actor_scope: actorScope } : {}),
     }
   }
 

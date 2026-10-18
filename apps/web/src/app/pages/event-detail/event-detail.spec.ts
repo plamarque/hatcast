@@ -21,6 +21,8 @@ import { SeasonApiService } from '../../core/seasons/season-api.service'
 import { TroupeApiService } from '../../core/troupes/troupe-api.service'
 import { EventDetail } from './event-detail'
 import { emptyRoleSlots } from '../../core/events/event-types'
+import { ProductAnalyticsService } from '../../core/analytics/product-analytics.service'
+import { EventDisposTab } from '../../shared/availability/event-dispos-tab'
 
 type EventDetailHarness = {
   event: WritableSignal<EventResponse | null>
@@ -305,6 +307,58 @@ describe('EventDetail', () => {
       expect(getEventPage).toHaveBeenCalledWith('season-1', 'event-2', expect.objectContaining({ tab: 'infos', bySlug: true }))
     })
     expect((fixture.componentInstance as unknown as EventDetailHarness).event()?.id).toBe('event-2')
+  })
+
+  it.each(['draft', 'validated', 'published'] as const)('captures the %s workspace lifecycle after an organizer composition loads', async (lifecycle) => {
+    getComposition.mockResolvedValue({ ok: true, data: {
+      slots: [],
+      validatedAt: lifecycle !== 'draft' ? '2026-01-01T00:00:00Z' : null,
+      publishedAt: lifecycle === 'published' ? '2026-01-01T00:00:00Z' : null,
+    } })
+    pagePermissions = { ...defaultSeasonPermissions, eventOrganizerFor: ['event-2'] }
+    fixture.detectChanges()
+    const component = fixture.componentInstance as unknown as EventDetailHarness
+    await vi.waitFor(() => expect(component.event()).not.toBeNull())
+    const captureWorkspace = vi.spyOn(
+      TestBed.inject(ProductAnalyticsService),
+      'captureCompositionWorkspaceOpened',
+    )
+    component.activeTab.set('equipe')
+
+    await component.loadComposition('season-1', 'event-2')
+
+    expect(captureWorkspace).toHaveBeenCalledTimes(1)
+    expect(captureWorkspace).toHaveBeenCalledWith(
+      expect.objectContaining({ event_id: 'event-2', actor_scope: 'event_organizer' }),
+      lifecycle,
+    )
+  })
+
+  it('captures a workspace hydrated directly by the equipe page response', async () => {
+    fixture.detectChanges()
+    await vi.waitFor(() => expect(fixture.componentInstance['event']()).not.toBeNull())
+    const captureWorkspace = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureCompositionWorkspaceOpened')
+    fixture.componentInstance['activeTab'].set('equipe')
+    fixture.componentInstance['applyEventPageResponse']({
+      event: ev('event-2'),
+      participantSelectors: [],
+      permissions: { ...defaultSeasonPermissions, eventOrganizerFor: ['event-2'] },
+      composition: { slots: [], validatedAt: null, publishedAt: null, visibility: 'organizerDraft' },
+    } as EventPageResponse, 'equipe')
+    expect(captureWorkspace).toHaveBeenCalledWith(
+      expect.objectContaining({ event_id: 'event-2', actor_scope: 'event_organizer' }), 'draft',
+    )
+  })
+
+  it('propagates loaded organizer scope through the Dispos template', async () => {
+    pagePermissions = { ...defaultSeasonPermissions, eventOrganizerFor: ['event-2'] }
+    queryParamMap$.next(convertToParamMap({ tab: 'dispos' }))
+    fixture.detectChanges()
+    await vi.waitFor(() => {
+      fixture.detectChanges()
+      const dispos = fixture.debugElement.query(node => node.componentInstance instanceof EventDisposTab)?.componentInstance as EventDisposTab | undefined
+      expect(dispos?.actorScope()).toBe('event_organizer')
+    })
   })
 
   it('keeps the post-format composition when an earlier load resolves late', async () => {
@@ -812,7 +866,11 @@ describe('EventDetail', () => {
     expect(dialogOpen).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        data: expect.objectContaining({ intent: 'availability_nudge' }),
+        data: expect.objectContaining({
+          intent: 'availability_nudge',
+          troupeId: expect.any(String),
+          actorScope: 'event_organizer',
+        }),
       }),
     )
   })

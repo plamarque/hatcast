@@ -29,6 +29,8 @@ Le client V1 sous [`legacy/`](legacy/) reste la référence runtime actuelle pou
 
 ## High-level component map
 
+V2 organizer analytics (Story 11.4) is centralized in `ProductAnalyticsService`, backed by the browser PostHog facade. Event-local `actor_scope` is derived from already-loaded permissions; payloads are reconstructed from allow-listed fields. Workspace entries are deduplicated per event/browser session with an in-memory fallback and reset on logout. Composition mutations are captured at confirmed API success; manual announcement captures describe Copy/WhatsApp choices or dismissal without a choice, separately from automatic notifications. The only additional People trait is `has_ever_organized: true`. Event vocabulary, property bounds and operator funnels are documented in [the PostHog runbook](docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md#parcours-organisateur-story-114).
+
 | Component | Responsibility | Location / entry |
 |-----------|----------------|------------------|
 | **Frontend SPA** | UI, routing, auth state, calls to Firestore and callable functions | [legacy/index.html](legacy/index.html), [legacy/src/main.js](legacy/src/main.js), [legacy/src/App.vue](legacy/src/App.vue), [legacy/src/views/](legacy/src/views/), [legacy/src/components/](legacy/src/components/) |

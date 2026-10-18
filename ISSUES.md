@@ -30,6 +30,15 @@ human-smoke, integration, or validation gate.
 
 ### Historical registry
 
+### BUG-036 — Incomplete organizer analytics at composition boundaries
+
+- **Status:** Fixed in Story 11.4; automated verification and human local smoke passed. Live PostHog delivery remains a post-deployment check.
+- **Severity:** Medium (product observability).
+- **Affected area:** V2 organizer composition and announcement analytics.
+- **Observed behavior:** Direct Équipe bootstrap could omit workspace entry; animated draws could omit a persisted success; closing an announcement after choosing a channel could record an abandonment. Storage denial and cross-account dedupe could also lose or duplicate entries.
+- **Expected behavior:** Count actual workspace entries once per event/session, confirmed mutations independently of animation, and dismissal only without a channel choice.
+- **Fix:** Shared workspace capture boundary, API-success draw capture, explicit bounded announcement choices, storage fallback/session reset, allow-listed payload projection and caller regression tests. Operator funnels exclude refused outcomes and hold event context constant.
+
 Entries below preserve the original evidence. A `Fixed` status means history,
 not active work; items listed in the two sections above remain actionable.
 

@@ -16,6 +16,7 @@ import { EventApiService, type EventResponse } from '../../core/events/event-api
 import { ConfirmDialog } from '../seasons-list/confirm-dialog'
 import { EventTypeRolesDialog } from './event-type-roles-dialog'
 import { EventEquipeTab } from './event-equipe-tab'
+import { ProductAnalyticsService } from '../../core/analytics/product-analytics.service'
 
 function ev(overrides: Partial<EventResponse> = {}): EventResponse {
   return {
@@ -224,6 +225,7 @@ describe('EventEquipeTab', () => {
   })
 
   it('lets an organizer change the format from Équipe and persists the template needs', async () => {
+    const captureMutation = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureCompositionMutation')
     const updatedEvent = ev({
       templateType: 'match',
       roleSlots: applyTemplate('match'),
@@ -265,6 +267,7 @@ describe('EventEquipeTab', () => {
         roleSlots: applyTemplate('match'),
       })
       expect(updated).toHaveBeenCalledWith(updatedEvent)
+      expect(captureMutation).toHaveBeenCalledWith(expect.anything(), { action: 'slot', outcome: 'succeeded' })
     })
   })
 
@@ -277,6 +280,7 @@ describe('EventEquipeTab', () => {
   })
 
   it('lets an organizer add one role through the provisional slot control', async () => {
+    const captureMutation = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureCompositionMutation')
     const updatedEvent = ev({ roleSlots: { ...emptyRoleSlots(), player: 3 } })
     updateEvent.mockResolvedValue({ ok: true, data: updatedEvent })
     fixture.componentRef.setInput('canManageComposition', true)
@@ -308,6 +312,7 @@ describe('EventEquipeTab', () => {
         chooseProvisionalRole: (roleKey: 'player') => Promise<void>
       }
     ).chooseProvisionalRole('player')
+    expect(captureMutation).toHaveBeenCalledWith(expect.anything(), { action: 'slot', outcome: 'succeeded' })
 
     expect(updateEvent).toHaveBeenCalledWith(
       'season-1',
@@ -381,6 +386,7 @@ describe('EventEquipeTab', () => {
   })
 
   it('confirms every structural deletion and explains the reduced need', async () => {
+    const captureMutation = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureCompositionMutation')
     fixture.componentRef.setInput('canManageComposition', true)
     fixture.detectChanges()
     const event = new Event('click')
@@ -421,8 +427,29 @@ describe('EventEquipeTab', () => {
 
     dialogAfterClosed.next(true)
     await deletion
+    expect(captureMutation).toHaveBeenCalledWith(expect.anything(), { action: 'slot', outcome: 'succeeded', operation: 'remove_slot' })
 
     expect(deleteCompositionSlot).toHaveBeenCalledWith('season-1', 'event-1', 'player', 1)
+  })
+
+  it.each(['clear', 'delete'] as const)('captures removal of an out-of-model slot via %s', async (operation) => {
+    const captureMutation = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureCompositionMutation')
+    const api = TestBed.inject(CompositionApiService)
+    const response = { ok: true, data: { publishedAt: null, validatedAt: null, visibility: 'organizerDraft', slots: [] } }
+    api.clearOutOfModelSlot = vi.fn().mockResolvedValue(response)
+    api.deleteOutOfModelSlot = vi.fn().mockResolvedValue(response)
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+    await vi.waitFor(() => expect(getComposition).toHaveBeenCalled())
+    const row = { roleKey: 'player', slotIndex: 2, roleLabel: 'Player', roleEmoji: '', slot: null, outsideModel: true }
+    if (operation === 'clear') {
+      await fixture.componentInstance['assignSlot'](row, null)
+    } else {
+      const deletion = fixture.componentInstance['deleteSlot'](row, new Event('click'))
+      dialogAfterClosed.next(true)
+      await deletion
+    }
+    expect(captureMutation).toHaveBeenCalledWith(expect.anything(), { action: 'slot', outcome: 'succeeded', operation: 'remove_slot' })
   })
 
   it('genres role pill from assignee gender on filled slots', async () => {
@@ -605,7 +632,9 @@ describe('EventEquipeTab', () => {
       },
     })
     fixture.componentRef.setInput('canManageComposition', true)
+    fixture.componentRef.setInput('actorScope', 'event_organizer')
     fixture.detectChanges()
+    const captureMutation = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureCompositionMutation')
 
     await vi.waitFor(() => {
       expect(fixture.nativeElement.textContent).toContain('Tirer au sort')
@@ -618,11 +647,16 @@ describe('EventEquipeTab', () => {
     await vi.waitFor(() => {
       expect(drawComposition).toHaveBeenCalledWith('season-1', 'event-1', 'full', null)
       expect(fixture.nativeElement.textContent).toContain('Alice')
+      expect(captureMutation).toHaveBeenCalledWith(
+        expect.objectContaining({ actor_scope: 'event_organizer' }),
+        { action: 'draw_execute', outcome: 'succeeded' },
+      )
     })
     vi.unstubAllGlobals()
   })
 
   it('opens picker and assigns on organizer slot click', async () => {
+    const captureMutation = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureCompositionMutation')
     fixture.componentRef.setInput('canManageComposition', true)
     fixture.detectChanges()
 
@@ -658,10 +692,14 @@ describe('EventEquipeTab', () => {
         'p-2',
       )
       expect(fixture.nativeElement.textContent).toContain('Bob')
+      expect(captureMutation).toHaveBeenCalledWith(expect.anything(), {
+        action: 'slot', outcome: 'succeeded', operation: 'assign',
+      })
     })
   })
 
   it('clears slot when organizer clicks clear button', async () => {
+    const captureMutation = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureCompositionMutation')
     getComposition.mockResolvedValue({
       ok: true,
       data: {
@@ -725,6 +763,10 @@ describe('EventEquipeTab', () => {
 
     const clearBtn = rowsBefore[0].querySelector('.event-equipe-tab__clear') as HTMLButtonElement
     clearBtn.click()
+
+    await vi.waitFor(() => expect(captureMutation).toHaveBeenCalledWith(expect.anything(), {
+      action: 'slot', outcome: 'succeeded', operation: 'unassign',
+    }))
 
     await vi.waitFor(() => {
       expect(assignCompositionSlot).toHaveBeenCalledWith(
@@ -1090,6 +1132,7 @@ describe('EventEquipeTab', () => {
   })
 
   it('publishes then opens the announcement dialog after successful validation', async () => {
+    const captureMutation = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureCompositionMutation')
     getComposition.mockResolvedValue({
       ok: true,
       data: {
@@ -1140,6 +1183,7 @@ describe('EventEquipeTab', () => {
 
     await vi.waitFor(() => {
       expect(validateComposition).toHaveBeenCalledWith('season-1', 'event-1')
+      expect(captureMutation).toHaveBeenCalledWith(expect.anything(), { action: 'publish', outcome: 'succeeded' })
       expect(emitted).toHaveBeenCalled()
       expect(dialogOpen).toHaveBeenCalledWith(
         expect.anything(),
@@ -1165,6 +1209,7 @@ describe('EventEquipeTab', () => {
   })
 
   it('keeps the draft and does not open the announcement dialog when publish fails', async () => {
+    const captureMutation = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureCompositionMutation')
     getComposition.mockResolvedValue({
       ok: true,
       data: {
@@ -1202,6 +1247,7 @@ describe('EventEquipeTab', () => {
     await vi.waitFor(() => {
       expect(validateComposition).toHaveBeenCalledWith('season-1', 'event-1')
       expect(dialogOpen).not.toHaveBeenCalled()
+      expect(captureMutation).not.toHaveBeenCalled()
       expect(snackOpen).toHaveBeenCalledWith(
         'Composition déjà verrouillée.',
         'OK',
@@ -2163,6 +2209,7 @@ describe('EventEquipeTab', () => {
   })
 
   it('shows restore control only for organizer when empty role slot exists', async () => {
+    const captureMutation = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureCompositionMutation')
     getComposition.mockResolvedValue({
       ok: true,
       data: {
@@ -2207,6 +2254,14 @@ describe('EventEquipeTab', () => {
       fixture.nativeElement.querySelector('.event-equipe-tab__declines-restore'),
     ).not.toBeNull()
     expect(fixture.nativeElement.textContent).toContain('(ne comptent pas dans la composition)')
+
+    restoreDeclinedParticipant.mockResolvedValue({ ok: true, data: {
+      publishedAt: null, validatedAt: '2026-01-01T00:00:00Z', visibility: 'validated', slots: [],
+    } })
+    await fixture.componentInstance['restoreDecline']('decline-restore')
+    expect(captureMutation).toHaveBeenCalledWith(expect.anything(), {
+      action: 'slot', outcome: 'succeeded', operation: 'restore_slot',
+    })
 
     fixture.componentRef.setInput('canManageComposition', false)
     fixture.detectChanges()
@@ -2567,6 +2622,7 @@ describe('EventEquipeTab', () => {
   })
 
   it('does not refetch composition after draw animation completes', async () => {
+    const captureMutation = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureCompositionMutation')
     drawComposition.mockResolvedValue({
       ok: true,
       data: {
@@ -2612,6 +2668,8 @@ describe('EventEquipeTab', () => {
     })
 
     expect(getComposition).toHaveBeenCalledTimes(1)
+    expect(captureMutation).toHaveBeenCalledWith(expect.anything(), { action: 'draw_execute', outcome: 'succeeded' })
+    expect(captureMutation).toHaveBeenCalledTimes(1)
     getComposition.mockClear()
 
     ;(fixture.componentInstance as unknown as { onDrawStepFinished(): void }).onDrawStepFinished()
@@ -2620,6 +2678,7 @@ describe('EventEquipeTab', () => {
     await vi.waitFor(() => {
       expect(fixture.nativeElement.textContent).toContain('Drawn')
       expect(getComposition).not.toHaveBeenCalled()
+      expect(captureMutation).toHaveBeenCalledTimes(1)
     })
   })
 
@@ -3226,6 +3285,7 @@ describe('EventEquipeTab', () => {
   })
 
   it('opens pool preview on role pill click without opening slot picker', async () => {
+    const captureMutation = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureCompositionMutation')
     getPoolPreview.mockResolvedValue({
       ok: true,
       data: {
@@ -3258,6 +3318,7 @@ describe('EventEquipeTab', () => {
 
     await vi.waitFor(() => {
       expect(getPoolPreview).toHaveBeenCalledWith('season-1', 'event-1', 'player', null)
+      expect(captureMutation).toHaveBeenCalledWith(expect.anything(), { action: 'draw_preview', outcome: 'succeeded' })
       expect(
         fixture.nativeElement.querySelector('[data-testid="composition-pool-preview"]'),
       ).toBeTruthy()

@@ -293,6 +293,10 @@ describe('EventDisposTab', () => {
 
   it('calls proxy API when organizer votes for another subject', async () => {
     const { fixture, setParticipantAvailability, setMyAvailability } = await setup(true)
+    fixture.componentRef.setInput('actorScope', 'event_organizer')
+    fixture.componentRef.setInput('event', {
+      ...fixture.componentInstance.event(), availabilityOpenedAt: '2026-01-01T00:00:00Z',
+    })
     const comp = fixture.componentInstance as unknown as {
       onSubjectChange: (id: string) => void
     }
@@ -316,6 +320,9 @@ describe('EventDisposTab', () => {
       expect.objectContaining({ status: 'available', comment: null }),
     )
     expect(setMyAvailability).not.toHaveBeenCalled()
+    expect(TestBed.inject(ProductAnalyticsService).captureAvailabilityFirstSubmission).toHaveBeenCalledWith(
+      expect.objectContaining({ actor_scope: 'event_organizer' }), expect.objectContaining({ is_proxy: true }),
+    )
   })
 
   it('does not eager-load chances on initial summary fetch', async () => {
