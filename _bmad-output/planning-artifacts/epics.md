@@ -1586,6 +1586,46 @@ afin de suivre l’adoption PWA et les compatibilités sans enrichir les profils
 
 ---
 
+#### Story 11.7 : Observabilité des panneaux de chances PostHog
+
+En tant qu’**opérateur produit**,
+je veux mesurer l’ouverture effective des explications de chances de tirage
+depuis Dispos et Équipe,
+afin de retrouver dans PostHog les replays réellement concernés sans
+enregistrer la personne consultée ni des données métier inutiles.
+
+**Acceptance Criteria**
+
+- **Given** un point d’entrée approuvé ouvre effectivement une explication de
+  chance après une réponse API valide, **when** la feuille mobile ou le dialogue
+  desktop est affiché, **then** un unique événement
+  `chance_breakdown_opened` est émis avec son point d’entrée fermé et sa
+  présentation.
+- **Given** une requête échoue, qu’aucune chance n’est disponible ou que
+  l’ouverture est refusée par le garde-fou d’overlay, **when** l’utilisateur
+  tente d’ouvrir l’explication, **then** aucun événement n’est émis.
+- **Given** l’utilisateur active explicitement « Comprendre le tirage en
+  général » depuis une explication tracée, **when** l’aide s’ouvre, **then**
+  `chance_breakdown_help_opened` conserve uniquement le point d’entrée borné ;
+  son rendu initial ne produit aucun événement.
+- **Given** les événements sont capturés, **when** un opérateur les inspecte
+  dans PostHog, **then** leurs propriétés restent limitées au contexte sûr
+  existant, à `entry_point` et à `presentation` lorsque pertinent ; aucun nom,
+  email, identifiant de participant, rôle, chance, facteur, URL brute, texte
+  libre ou propriété People supplémentaire n’est ajouté.
+- **Given** un appelant non répertorié utilise le service partagé, **when** il
+  ouvre une explication, **then** il ne reçoit aucune télémétrie implicite.
+- **Given** la story n’ajoute aucune nouvelle surface visuelle, **when** elle
+  réutilise les overlays existants, **then** `MatBottomSheet` et `MatDialog`
+  restent les composants Material employés, sans style ni contrôle custom
+  supplémentaire ; la checklist M3 confirme l’absence de régression visuelle
+  ou tactile.
+
+**Couverture :** SPEC-dispos-chance-breakdown-posthog CAP-1 à CAP-4 ; Epic 11 /
+FR47 ; NFR-S2 ; UX-DR11.
+
+---
+
 ### Epic 12 — Parcours membre & agenda utilisateur
 
 Les membres ont un **agenda personnel** multi-ligues et multi-troupes, un **routage post-connexion** sans écran intermédiaire, et une **navigation claire** depuis le détail événement vers la ligue et la troupe.
