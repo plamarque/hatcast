@@ -4,6 +4,8 @@
 
 Describes the system architecture **as-is** and principles for evolving safely. For "why" decisions, see `docs/adr/`.
 
+**V2 PWA lifecycle analytics (Story 11.5):** bounded installation/update and release-note events use `ProductAnalyticsService`, with immutable release identity embedded in the Angular bundle. The independent production CI observability job captures the release reference and provisions its own PostHog dashboard; named follow-up reads existing People properties. Contract, credential names, state/measurement limits and verification: [PWA_LIFECYCLE_POSTHOG.md](docs/v2/technical/PWA_LIFECYCLE_POSTHOG.md). Adoption remains the separate Story 11.6 contract.
+
 ### Évolution V2 (contrats — prod utilisateur V1 inchangée)
 
 La cible documentée (Angular SPA sous [`apps/web/`](apps/web/), API Kotlin/Spring sous [`services/api/`](services/api/), PostgreSQL sur **Neon**, Cloud Run) est décrite dans [`docs/shared/technical/MONOREPO.md`](docs/shared/technical/MONOREPO.md) et les artefacts `_bmad-output/planning-artifacts/`. **Déploiement V2 validé** sur l’environnement **development** (branche `v2`) ; staging/production Cloud Run sont **reportés** (voir [`docs/shared/technical/BRANCH_ENVIRONMENTS.md`](docs/shared/technical/BRANCH_ENVIRONMENTS.md)). Persistance V2 : **ADR-0009** ([docs/adr/0009-neon-postgres-environments.md](docs/adr/0009-neon-postgres-environments.md)). Authentification V2 :

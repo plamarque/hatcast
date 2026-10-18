@@ -1,7 +1,16 @@
-import { Injectable } from '@angular/core'
+import { inject, Injectable } from '@angular/core'
+import { RELEASE_CONTEXT, type NotesSource, type NotesDwell, type NotesScroll } from './release-context'
 
 import { environment } from '../../../environments/environment'
-import type { Fr47EventContext, Fr47NotificationLinkTab } from './fr47-event-names'
+import type {
+  Fr47EventContext,
+  Fr47NotificationLinkTab,
+  PwaInstallEntryPoint,
+  PwaInstallFallbackReason,
+  PwaInstallInstructionVariant,
+  PwaNativePromptOutcome,
+  PwaUpdateAvailabilitySource,
+} from './fr47-event-names'
 import {
   AVAILABILITY_REMINDER_SENT,
   COMPOSITION_MUTATION_COMPLETED,
@@ -10,6 +19,12 @@ import {
   FR47_COMPOSITION_ALL_CONFIRMATIONS_RECEIVED,
   FR47_COMPOSITION_VALIDATED,
   FR47_NOTIFICATION_LINK_OPENED,
+  PWA_INSTALL_COMPLETED,
+  PWA_INSTALL_INSTRUCTIONS_VIEWED,
+  PWA_INSTALL_NATIVE_PROMPT_RESOLVED,
+  PWA_UPDATE_APPLY_REQUESTED,
+  PWA_UPDATE_AVAILABLE,
+  PWA_UPDATE_DISMISSED,
   V1_CUTOVER_SRC,
   V2_CUTOVER_REFERRAL_LANDING,
   V2_MIGRATION_FIRST_SESSION,
@@ -40,8 +55,10 @@ export type IdentifyUserInput = {
 
 @Injectable({ providedIn: 'root' })
 export class ProductAnalyticsService {
+  private readonly release = inject(RELEASE_CONTEXT)
   private initPromise: Promise<boolean> | null = null
   private enabled = false
+  private observedReleaseUsers = new Set<string>()
   private identifiedUserId: string | null = null
   private readonly workspaceOpenedEvents = new Set<string>()
 
@@ -67,6 +84,7 @@ export class ProductAnalyticsService {
     this.identifiedUserId = id
     this.applyV1CutoverAlias(id)
     this.captureV2MigrationFirstSession(id)
+    this.observeRelease(id)
     this.capturePwaAccessModeObserved(id)
   }
 
@@ -237,6 +255,91 @@ export class ProductAnalyticsService {
     })
   }
 
+  /** Records an actual manual-install dialog opening with only bounded support dimensions. */
+  capturePwaInstallInstructionsViewed(props: {
+    entry_point: PwaInstallEntryPoint
+    fallback_reason: PwaInstallFallbackReason
+    instruction_variant: PwaInstallInstructionVariant
+  }): void {
+    this.captureForIdentifiedUser(PWA_INSTALL_INSTRUCTIONS_VIEWED, {
+      entry_point: props.entry_point,
+      fallback_reason: props.fallback_reason,
+      instruction_variant: props.instruction_variant,
+    })
+  }
+
+  /** Native prompt resolution is distinct from the browser's later appinstalled callback. */
+  capturePwaNativePromptResolved(outcome: PwaNativePromptOutcome): void {
+    this.captureForIdentifiedUser(PWA_INSTALL_NATIVE_PROMPT_RESOLVED, { outcome })
+  }
+
+  /** appinstalled is a partial platform signal, not proof of every manual installation. */
+  capturePwaInstallCompleted(): void {
+    this.captureForIdentifiedUser(PWA_INSTALL_COMPLETED, {})
+  }
+
+  /** A visible update prompt is distinct from the user's later choice to apply it. */
+  capturePwaUpdateAvailable(source: PwaUpdateAvailabilitySource): void {
+    this.captureForIdentifiedUser(PWA_UPDATE_AVAILABLE, { source })
+  }
+
+  capturePwaUpdateDismissed(): void {
+    this.captureForIdentifiedUser(PWA_UPDATE_DISMISSED, {})
+  }
+
+  /** A click asks the service worker to activate; it is not post-reload confirmation. */
+  capturePwaUpdateApplyRequested(): void {
+    this.captureForIdentifiedUser(PWA_UPDATE_APPLY_REQUESTED, {})
+    if (this.release && this.enabled && this.identifiedUserId) {
+      try {
+        sessionStorage.setItem(`hatcast:update-request:${this.identifiedUserId}`, JSON.stringify({
+          release_id: this.release.release_id, requested_at: Date.now(),
+        }))
+      } catch { /* blocked storage: no confirmation after reload */ }
+    }
+  }
+
+  captureReleaseNotesOpened(source: NotesSource): string | null {
+    this.captureForIdentifiedUser('release_notes_opened', {
+      source,
+      viewport_width: viewportDimension(typeof window === 'undefined' ? 0 : window.innerWidth),
+      viewport_height: viewportDimension(typeof window === 'undefined' ? 0 : window.innerHeight),
+    })
+    return this.identifiedUserId
+  }
+
+  captureReleaseNotesClosed(source: NotesSource, dwell: NotesDwell, scroll: NotesScroll, ownerId?: string | null): void {
+    if (ownerId !== undefined && ownerId !== this.identifiedUserId) return
+    this.captureForIdentifiedUser('release_notes_closed', { source, visible_time_bucket: dwell, scroll_bucket: scroll })
+  }
+
+  private observeRelease(id: string): void {
+    if (!this.release) return
+    try {
+      const key = `hatcast:update-request:${id}`
+      const raw = sessionStorage.getItem(key)
+      if (raw) {
+        const pending = JSON.parse(raw)
+        const age = Date.now() - pending.requested_at
+        if (typeof pending.release_id !== 'string' || !/^\d+\.\d+\.\d+(?:-rc\.\d+)?:[a-f0-9]{7,40}$/.test(pending.release_id)
+          || !Number.isFinite(age) || age < 0 || age > 7 * 86_400_000) {
+          sessionStorage.removeItem(key)
+        } else if (pending.release_id !== this.release.release_id) {
+          this.captureForIdentifiedUser('pwa_update_applied', {
+            previous_release_id: pending.release_id,
+            delay_bucket: age < 60_000 ? 'under_1m' : age < 3_600_000 ? 'under_1h' : age < 86_400_000 ? 'under_1d' : 'over_1d',
+          })
+          sessionStorage.removeItem(key)
+        }
+      }
+    } catch { /* invalid/blocked session state cannot prove an update */ }
+    const key = `${id}:${this.release.release_id}`
+    if (!this.observedReleaseUsers.has(key)) {
+      this.observedReleaseUsers.add(key)
+      this.captureForIdentifiedUser('app_release_observed', {})
+    }
+  }
+
   captureCompositionWorkspaceOpened(
     ctx: Fr47EventContext,
     lifecycle: 'draft' | 'validated' | 'published',
@@ -366,6 +469,13 @@ export class ProductAnalyticsService {
     this.facade()?.capture(event, properties)
   }
 
+  private captureForIdentifiedUser(event: string, properties: Record<string, unknown>): void {
+    if (!this.identifiedUserId) {
+      return
+    }
+    this.capture(event, { ...properties, ...(this.release ?? {}) })
+  }
+
   private captureOrganizerEvent(
     event: string,
     ctx: Fr47EventContext,
@@ -378,6 +488,10 @@ export class ProductAnalyticsService {
   private facade() {
     return getPostHogBrowserFacade()
   }
+}
+
+function viewportDimension(value: number): number | null {
+  return Number.isFinite(value) && value > 0 ? Math.min(32_768, Math.round(value)) : null
 }
 
 /**

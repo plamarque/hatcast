@@ -15,6 +15,8 @@ historical registry below.
 
 ### Open defects and limitations
 
+BUG-BMAD-001 (accented versus ASCII story keys in sprint controller).
+
 BUG-031 (format cancellation), BUG-029 (date-sensitive agenda fixture),
 BUG-028 (mobile season chart), BUG-023 (stale Home badge), LIMIT-009 (Dispos
 view), BUG-018 (staging traffic), LIMIT-008 (Loop policy), LIMIT-007 (web unit
@@ -30,6 +32,15 @@ human-smoke, integration, or validation gate.
 
 ### Historical registry
 
+### BUG-BMAD-001 — Sprint controller disagrees with registered ASCII story keys
+
+- **Status:** Open; explicit PO exception for the targeted 11.5 closure only (2026-10-18).
+- **Severity:** Low (local tracking tooling).
+- **Affected area:** BMad `sprint_plan.py generate --set` and `story-status-sync.py` key compatibility.
+- **Observed behavior:** The registered `11-5-observabilite-installation-pwa-posthog` key is rejected by the sprint generator, which derives `11-5-observabilité-installation-pwa-posthog` from the canonical heading. The additive registration controller cannot change statuses.
+- **Expected behavior:** Registered story keys can be updated without replacing historical entries or regenerating unrelated tracking state.
+- **Notes/context:** The PO explicitly authorized correcting only the existing ASCII 11.5 entry to `done`. The controller itself is unchanged; the exception does not authorize future manual tracker changes.
+
 ### BUG-036 — Incomplete organizer analytics at composition boundaries
 
 - **Status:** Fixed in Story 11.4; automated verification and human local smoke passed. Live PostHog delivery remains a post-deployment check.
@@ -41,6 +52,19 @@ human-smoke, integration, or validation gate.
 
 Entries below preserve the original evidence. A `Fixed` status means history,
 not active work; items listed in the two sections above remain actionable.
+
+### BUG-POSTHOG-001 — Lifecycle provisioning sends a scalar dashboard filter
+
+- **ID**: BUG-POSTHOG-001
+- **Status**: Fixed — regression passed and real CI validation succeeded on 2026-10-18
+- **Severity**: Medium (lifecycle dashboard provisioning stops before insights are created)
+- **Affected area**: `scripts/v2/posthog-lifecycle-dashboard.mjs`, manual PostHog CI validation.
+- **Observed behavior**: CI run `39099092816`, attempt 2, reached PostHog but `GET /insights/?dashboards=<id>` returned HTTP 500.
+- **Expected behavior**: List the owned dashboard's insights using the API's JSON-encoded array parameter.
+- **Cause**: Official PostHog Insights code JSON-decodes `dashboards` and iterates dashboard IDs; a scalar number is not iterable.
+- **Fix**: Send URL-encoded `[dashboard_id]` and assert that exact decoded array in the provisioning regression.
+- **Notes/context**: No deployment or release-promotion event was sent. The temporary GitHub production branch exception was removed after the failed run. The dashboard itself may have been created before the list failure; the next attempt finds it by its ownership marker.
+- **Verification**: Corrected commit `83bf536b`, CI run `39099343937`: all six owned insights computed successfully; lifecycle dashboard `1032942`. The temporary branch exception was removed after success and the original `v*` tag-only environment policy was verified restored.
 
 ### BUG-035 — Organiser view does not restore the selected participant's availability checks
 - **ID**: BUG-035
