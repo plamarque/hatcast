@@ -47,8 +47,15 @@ class MemberSeasonGlanceIntegrationTest {
     @MockBean
     private lateinit var idpIdTokenVerifier: IdpIdTokenVerifier
 
-    private val seedTroupeId: UUID = UUID.fromString("a0000001-0000-4000-8000-000000000001")
-    private val seedSeasonId: UUID = UUID.fromString("b0000001-0000-4000-8000-000000000001")
+    private lateinit var fixtureSeason: SeasonEntity
+    private val fixtureTroupeId: UUID get() = fixtureSeason.troupe.id
+    private val fixtureSeasonId: UUID get() = fixtureSeason.id
+
+    @org.junit.jupiter.api.BeforeEach
+    fun isolateSeason() {
+        val troupe = TestAuthSupport.isolatedTroupe(troupeRepository)
+        fixtureSeason = seasonRepository.save(SeasonEntity(troupe = troupe, slug = "fixture-season", title = "Fixture season"))
+    }
 
     @Test
     fun `GET season-glance returns 404 for unknown slug`() {
@@ -58,7 +65,7 @@ class MemberSeasonGlanceIntegrationTest {
             .perform(
                 get("/v1/members/unknown-slug-xyz/season-glance")
                     .cookie(cookie)
-                    .param("seasonId", seedSeasonId.toString()),
+                    .param("seasonId", fixtureSeasonId.toString()),
             ).andExpect(status().isNotFound)
     }
 
@@ -72,11 +79,11 @@ class MemberSeasonGlanceIntegrationTest {
             .perform(
                 get("/v1/members/${user.slug}/season-glance")
                     .cookie(cookie)
-                    .param("seasonId", seedSeasonId.toString()),
+                    .param("seasonId", fixtureSeasonId.toString()),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.userSlug").value(user.slug))
             .andExpect(jsonPath("$.isSelf").value(true))
-            .andExpect(jsonPath("$.resolvedSeasonId").value(seedSeasonId.toString()))
+            .andExpect(jsonPath("$.resolvedSeasonId").value(fixtureSeasonId.toString()))
             .andExpect(jsonPath("$.filterBarVisible").isBoolean)
             .andExpect(jsonPath("$.gender").value("non_specified"))
     }
@@ -92,7 +99,7 @@ class MemberSeasonGlanceIntegrationTest {
             .perform(
                 get("/v1/members/${user.slug}/season-glance")
                     .cookie(cookie)
-                    .param("seasonId", seedSeasonId.toString()),
+                    .param("seasonId", fixtureSeasonId.toString()),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.avatarUrl").isEmpty)
     }
@@ -107,7 +114,7 @@ class MemberSeasonGlanceIntegrationTest {
             .perform(
                 get("/v1/members/${target.slug}/season-glance")
                     .cookie(cookie)
-                    .param("seasonId", seedSeasonId.toString()),
+                    .param("seasonId", fixtureSeasonId.toString()),
             ).andExpect(status().isForbidden)
     }
 
@@ -121,7 +128,7 @@ class MemberSeasonGlanceIntegrationTest {
             .perform(
                 get("/v1/members/${target.slug}/season-glance")
                     .cookie(viewerCookie)
-                    .param("seasonId", seedSeasonId.toString()),
+                    .param("seasonId", fixtureSeasonId.toString()),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.isSelf").value(false))
             .andExpect(jsonPath("$.preferredRoleKeys").doesNotExist())
@@ -138,12 +145,12 @@ class MemberSeasonGlanceIntegrationTest {
             .perform(
                 get("/v1/members/${user.slug}/season-glance")
                     .cookie(cookie)
-                    .param("seasonId", seedSeasonId.toString()),
+                    .param("seasonId", fixtureSeasonId.toString()),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.filterBarVisible").value(false))
             .andExpect(jsonPath("$.participationFilters").doesNotExist())
-            .andExpect(jsonPath("$.resolvedSeasonId").value(seedSeasonId.toString()))
-            .andExpect(jsonPath("$.troupeId").value(seedTroupeId.toString()))
+            .andExpect(jsonPath("$.resolvedSeasonId").value(fixtureSeasonId.toString()))
+            .andExpect(jsonPath("$.troupeId").value(fixtureTroupeId.toString()))
     }
 
     @Test
@@ -155,10 +162,10 @@ class MemberSeasonGlanceIntegrationTest {
             .perform(
                 get("/v1/members/${user.slug}/season-glance")
                     .cookie(cookie)
-                    .param("troupeId", seedTroupeId.toString())
-                    .param("seasonId", seedSeasonId.toString()),
+                    .param("troupeId", fixtureTroupeId.toString())
+                    .param("seasonId", fixtureSeasonId.toString()),
             )            .andExpect(status().isOk)
-            .andExpect(jsonPath("$.resolvedSeasonId").value(seedSeasonId.toString()))
+            .andExpect(jsonPath("$.resolvedSeasonId").value(fixtureSeasonId.toString()))
     }
 
     @Test
@@ -168,7 +175,7 @@ class MemberSeasonGlanceIntegrationTest {
         val emptySeason =
             seasonRepository.save(
                 SeasonEntity(
-                    troupe = troupeRepository.findById(seedTroupeId).orElseThrow(),
+                    troupe = troupeRepository.findById(fixtureTroupeId).orElseThrow(),
                     slug = "glance-empty-${java.util.UUID.randomUUID()}",
                     title = "Empty glance season",
                 ),
@@ -198,16 +205,16 @@ class MemberSeasonGlanceIntegrationTest {
         email: String,
         name: String,
     ) = signIn(googleSub, email, name).also { cookie ->
-        TestAuthSupport.joinSeedTroupe(mockMvc, cookie, seedTroupeId)
+        TestAuthSupport.joinSeedTroupe(mockMvc, cookie, fixtureTroupeId)
         syncSeedSeasonParticipation(cookie)
     }
 
     private fun syncSeedSeasonParticipation(cookie: jakarta.servlet.http.Cookie) {
         MembershipSyncScope.clear()
-        MembershipParticipantSyncCache.invalidate(seedSeasonId)
+        MembershipParticipantSyncCache.invalidate(fixtureSeasonId)
         mockMvc
             .perform(
-                get("/v1/seasons/$seedSeasonId/participants/selectors")
+                get("/v1/seasons/$fixtureSeasonId/participants/selectors")
                     .cookie(cookie),
             ).andExpect(status().isOk)
     }

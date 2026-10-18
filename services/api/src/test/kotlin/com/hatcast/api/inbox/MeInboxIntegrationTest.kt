@@ -18,6 +18,7 @@ import com.hatcast.api.participant.SeasonParticipantService
 import com.hatcast.api.season.SeasonEntity
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.support.TestAuthSupport
+import com.hatcast.api.troupe.TroupeEntity
 import com.hatcast.api.troupe.TroupeBaselineRole
 import com.hatcast.api.troupe.TroupeMembershipRepository
 import com.hatcast.api.troupe.TroupeRepository
@@ -83,7 +84,13 @@ class MeInboxIntegrationTest {
   @Autowired
   private lateinit var slotRepository: EventCompositionSlotRepository
 
-  private val seedTroupeId: UUID = UUID.fromString("a0000001-0000-4000-8000-000000000001")
+  private lateinit var fixtureTroupe: TroupeEntity
+  private val fixtureTroupeId: UUID get() = fixtureTroupe.id
+
+  @org.junit.jupiter.api.BeforeEach
+  fun isolateTroupe() {
+    fixtureTroupe = TestAuthSupport.isolatedTroupe(troupeRepository)
+  }
   private val mapper = ObjectMapper()
 
   private data class SessionFixture(
@@ -98,8 +105,8 @@ class MeInboxIntegrationTest {
   ): SessionFixture {
     val fixture = signIn(googleSub, email, displayName)
     val membership =
-      troupeMembershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, UUID.fromString(fixture.userId))
-        ?: error("Missing seed membership")
+      troupeMembershipRepository.findByTroupe_IdAndUser_Id(fixtureTroupeId, UUID.fromString(fixture.userId))
+        ?: error("Missing fixture membership")
     membership.baselineRole = TroupeBaselineRole.TROUPE_ADMIN
     troupeMembershipRepository.save(membership)
     return fixture
@@ -134,7 +141,7 @@ class MeInboxIntegrationTest {
     return SessionFixture(
       cookie =
         result.response.getCookie("HATCAST_SESSION")!!.also { cookie ->
-          TestAuthSupport.joinSeedTroupe(mockMvc, cookie, seedTroupeId)
+          TestAuthSupport.joinSeedTroupe(mockMvc, cookie, fixtureTroupeId)
         },
       userId = root.path("user").path("id").asText(),
     )
@@ -147,7 +154,7 @@ class MeInboxIntegrationTest {
     val result =
       mockMvc
         .perform(
-          post("/v1/troupes/$seedTroupeId/seasons")
+          post("/v1/troupes/$fixtureTroupeId/seasons")
             .cookie(cookie)
             .contentType(MediaType.APPLICATION_JSON)
             .content("""{"title":"$title"}""")
@@ -210,7 +217,7 @@ class MeInboxIntegrationTest {
     seasonParticipantService.ensureMembershipParticipants(season)
     val user = userRepository.findByGoogleSub(googleSub) ?: error("Missing user")
     val membership =
-      troupeMembershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, user.id)
+      troupeMembershipRepository.findByTroupe_IdAndUser_Id(fixtureTroupeId, user.id)
         ?: error("Missing membership")
     return seasonParticipantRepository
       .findBySeason_IdAndTroupeMembership_Id(seasonId, membership.id)
@@ -314,7 +321,7 @@ class MeInboxIntegrationTest {
   ): UUID {
     val user = userRepository.findById(UUID.fromString(fixture.userId)).orElseThrow()
     val membership =
-      troupeMembershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, user.id)
+      troupeMembershipRepository.findByTroupe_IdAndUser_Id(fixtureTroupeId, user.id)
         ?: error("Missing membership")
     return seasonParticipantRepository
       .save(
@@ -332,7 +339,7 @@ class MeInboxIntegrationTest {
   private fun createDirectSeason(title: String): SeasonEntity =
     seasonRepository.save(
       SeasonEntity(
-        troupe = troupeRepository.findById(seedTroupeId).orElseThrow(),
+        troupe = troupeRepository.findById(fixtureTroupeId).orElseThrow(),
         slug = "inbox-${UUID.randomUUID().toString().take(8)}",
         title = title,
       ),

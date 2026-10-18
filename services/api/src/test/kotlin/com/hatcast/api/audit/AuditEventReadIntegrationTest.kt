@@ -4,6 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.hatcast.api.auth.GoogleIdTokenService
 import com.hatcast.api.auth.IdpIdTokenVerifier
 import com.hatcast.api.support.TestAuthSupport
+import com.hatcast.api.participant.SeasonParticipantRepository
+import com.hatcast.api.troupe.TroupeEntity
+import com.hatcast.api.troupe.TroupeRepository
 import com.hatcast.api.troupe.TroupeBaselineRole
 import com.hatcast.api.troupe.TroupeMembershipRepository
 import com.hatcast.api.user.UserRepository
@@ -51,31 +54,39 @@ class AuditEventReadIntegrationTest {
     @Autowired
     private lateinit var userRepository: UserRepository
 
-    private val seedTroupeId: UUID = UUID.fromString("a0000001-0000-4000-8000-000000000001")
+    @Autowired
+    private lateinit var seasonParticipantRepository: SeasonParticipantRepository
+
+    @Autowired
+    private lateinit var troupeRepository: TroupeRepository
+
+    private lateinit var fixtureTroupe: TroupeEntity
+    private val fixtureTroupeId: UUID get() = fixtureTroupe.id
     private val mapper = ObjectMapper()
 
     @BeforeEach
     fun cleanAudit() {
         auditEventRepository.deleteAll()
+        fixtureTroupe = TestAuthSupport.isolatedTroupe(troupeRepository)
     }
 
     private fun sessionCookie(googleSub: String): Cookie {
         val cookie =
-            TestAuthSupport.memberSessionCookieFromGoogleSignIn(
+            TestAuthSupport.sessionCookieFromGoogleSignIn(
                 mockMvc,
                 googleIdTokenService,
                 googleSub,
                 email = "$googleSub@example.com",
                 name = "Audit Reader",
             )
-        TestAuthSupport.joinSeedTroupe(mockMvc, cookie, seedTroupeId)
+        TestAuthSupport.joinSeedTroupe(mockMvc, cookie, fixtureTroupeId)
         return cookie
     }
 
     private fun promoteToAdmin(googleSub: String) {
         val user = userRepository.findByGoogleSub(googleSub) ?: error("Missing user")
         val membership =
-            membershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, user.id)
+            membershipRepository.findByTroupe_IdAndUser_Id(fixtureTroupeId, user.id)
                 ?: error("Missing membership")
         membership.baselineRole = TroupeBaselineRole.TROUPE_ADMIN
         membershipRepository.save(membership)
@@ -85,7 +96,7 @@ class AuditEventReadIntegrationTest {
         val res =
             mockMvc
                 .perform(
-                    post("/v1/troupes/$seedTroupeId/seasons")
+                    post("/v1/troupes/$fixtureTroupeId/seasons")
                         .cookie(cookie)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""{"title":"Audit read season"}""")
@@ -105,7 +116,7 @@ class AuditEventReadIntegrationTest {
                 occurredAt = Instant.parse("2032-06-01T12:00:00Z"),
                 actorUserId = actorUserId,
                 actionType = actionType,
-                troupeId = seedTroupeId,
+                troupeId = fixtureTroupeId,
                 seasonId = seasonId,
                 eventId = null,
                 beforeJson = mapOf("displayName" to "A"),
@@ -126,7 +137,7 @@ class AuditEventReadIntegrationTest {
             mockMvc
                 .perform(
                     get("/v1/audit/events")
-                        .param("troupeId", seedTroupeId.toString())
+                        .param("troupeId", fixtureTroupeId.toString())
                         .param("page", "0")
                         .param("size", "10")
                         .cookie(cookie),
@@ -152,7 +163,7 @@ class AuditEventReadIntegrationTest {
         mockMvc
             .perform(
                 get("/v1/audit/events")
-                    .param("troupeId", seedTroupeId.toString())
+                    .param("troupeId", fixtureTroupeId.toString())
                     .cookie(memberCookie),
             ).andExpect(status().isForbidden)
     }
@@ -183,7 +194,7 @@ class AuditEventReadIntegrationTest {
         mockMvc
             .perform(
                 get("/v1/audit/events")
-                    .param("troupeId", seedTroupeId.toString())
+                    .param("troupeId", fixtureTroupeId.toString())
                     .param("seasonId", seasonId.toString())
                     .cookie(organizerCookie),
             ).andExpect(status().isOk)
@@ -250,7 +261,7 @@ class AuditEventReadIntegrationTest {
                 actorUserId = userA,
                 subjectSeasonParticipantId = participantA,
                 actionType = AuditActionType.AVAILABILITY_UPDATED,
-                troupeId = seedTroupeId,
+                troupeId = fixtureTroupeId,
                 seasonId = seasonId,
                 eventId = eventId,
             ),
@@ -261,7 +272,7 @@ class AuditEventReadIntegrationTest {
                 actorUserId = userA,
                 subjectSeasonParticipantId = participantB,
                 actionType = AuditActionType.AVAILABILITY_UPDATED,
-                troupeId = seedTroupeId,
+                troupeId = fixtureTroupeId,
                 seasonId = seasonId,
                 eventId = eventId,
             ),
@@ -271,7 +282,7 @@ class AuditEventReadIntegrationTest {
             mockMvc
                 .perform(
                     get("/v1/audit/events")
-                        .param("troupeId", seedTroupeId.toString())
+                        .param("troupeId", fixtureTroupeId.toString())
                         .param("seasonId", seasonId.toString())
                         .param("eventId", eventId.toString())
                         .param("participantSeasonParticipantId", participantA.toString())
@@ -305,7 +316,7 @@ class AuditEventReadIntegrationTest {
             mockMvc
                 .perform(
                     get("/v1/audit/events")
-                        .param("troupeId", seedTroupeId.toString())
+                        .param("troupeId", fixtureTroupeId.toString())
                         .param("page", "0")
                         .param("size", "10")
                         .cookie(platformCookie),
@@ -360,7 +371,7 @@ class AuditEventReadIntegrationTest {
             AuditEventEntity(
                 occurredAt = Instant.parse("2032-06-01T10:00:00Z"),
                 actionType = AuditActionType.EVENT_UPDATED,
-                troupeId = seedTroupeId,
+                troupeId = fixtureTroupeId,
                 seasonId = seasonId,
                 eventId = organizedEventId,
             ),
@@ -369,7 +380,7 @@ class AuditEventReadIntegrationTest {
             AuditEventEntity(
                 occurredAt = Instant.parse("2032-06-01T11:00:00Z"),
                 actionType = AuditActionType.EVENT_UPDATED,
-                troupeId = seedTroupeId,
+                troupeId = fixtureTroupeId,
                 seasonId = seasonId,
                 eventId = otherEventId,
             ),
@@ -379,7 +390,7 @@ class AuditEventReadIntegrationTest {
             mockMvc
                 .perform(
                     get("/v1/audit/events")
-                        .param("troupeId", seedTroupeId.toString())
+                        .param("troupeId", fixtureTroupeId.toString())
                         .param("seasonId", seasonId.toString())
                         .param("eventId", organizedEventId.toString())
                         .cookie(organizerCookie),
@@ -395,7 +406,7 @@ class AuditEventReadIntegrationTest {
         mockMvc
             .perform(
                 get("/v1/audit/events")
-                    .param("troupeId", seedTroupeId.toString())
+                    .param("troupeId", fixtureTroupeId.toString())
                     .param("seasonId", seasonId.toString())
                     .param("eventId", otherEventId.toString())
                     .cookie(organizerCookie),
@@ -410,22 +421,13 @@ class AuditEventReadIntegrationTest {
         val seasonId = createSeason(adminCookie)
 
         val memberSub = "audit-read-lifecycle-member-${UUID.randomUUID()}"
-        val memberEmail = "$memberSub@example.com"
         sessionCookie(memberSub)
         val memberUserId = userRepository.findByGoogleSub(memberSub)!!.id
 
-        val participantRes =
-            mockMvc
-                .perform(
-                    post("/v1/seasons/$seasonId/participants")
-                        .cookie(adminCookie)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""{"displayName":"Lifecycle Member","email":"$memberEmail"}""")
-                        .with(csrf()),
-                ).andExpect(status().isOk)
-                .andReturn()
-        val participantId =
-            UUID.fromString(mapper.readTree(participantRes.response.contentAsString).get("id").asText())
+        // Joining the troupe synchronizes this member into existing seasons.
+        val membership = membershipRepository.findByTroupe_IdAndUser_Id(fixtureTroupeId, memberUserId)!!
+        val participantId = seasonParticipantRepository
+            .findBySeason_IdAndTroupeMembership_Id(seasonId, membership.id)!!.id
 
         val eventRes =
             mockMvc
@@ -444,7 +446,7 @@ class AuditEventReadIntegrationTest {
                 occurredAt = Instant.parse("2032-06-01T12:00:00Z"),
                 actorUserId = null,
                 actionType = AuditActionType.COMPOSITION_LIFECYCLE_CHANGED,
-                troupeId = seedTroupeId,
+                troupeId = fixtureTroupeId,
                 seasonId = seasonId,
                 eventId = eventId,
                 beforeJson = mapOf("compositionLifecycle" to "awaitingConfirmations"),
@@ -457,7 +459,7 @@ class AuditEventReadIntegrationTest {
                 actorUserId = memberUserId,
                 subjectSeasonParticipantId = participantId,
                 actionType = AuditActionType.AVAILABILITY_UPDATED,
-                troupeId = seedTroupeId,
+                troupeId = fixtureTroupeId,
                 seasonId = seasonId,
                 eventId = eventId,
             ),
@@ -469,7 +471,7 @@ class AuditEventReadIntegrationTest {
             mockMvc
                 .perform(
                     get("/v1/audit/events")
-                        .param("troupeId", seedTroupeId.toString())
+                        .param("troupeId", fixtureTroupeId.toString())
                         .param("seasonId", seasonId.toString())
                         .param("eventId", eventId.toString())
                         .param("participantSeasonParticipantId", participantId.toString())
@@ -497,7 +499,7 @@ class AuditEventReadIntegrationTest {
                 occurredAt = Instant.parse("2032-06-01T12:00:00Z"),
                 actorUserId = user.id,
                 actionType = AuditActionType.SEASON_PARTICIPANT_ADDED,
-                troupeId = seedTroupeId,
+                troupeId = fixtureTroupeId,
                 seasonId = seasonId,
             ),
         )
@@ -506,7 +508,7 @@ class AuditEventReadIntegrationTest {
             mockMvc
                 .perform(
                     get("/v1/audit/events")
-                        .param("troupeId", seedTroupeId.toString())
+                        .param("troupeId", fixtureTroupeId.toString())
                         .cookie(cookie),
                 ).andExpect(status().isOk)
                 .andReturn()

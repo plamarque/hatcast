@@ -122,6 +122,7 @@ class SeasonGlanceStatsProviderTest {
                 title = "Match Cambo",
                 slug = "match-cambo",
                 startsAt = now,
+                roleSlots = mapOf("assistant_referee" to 2),
             )
 
         stubScope(
@@ -174,6 +175,7 @@ class SeasonGlanceStatsProviderTest {
                 title = "Match Cambo",
                 slug = "match-cambo",
                 startsAt = now,
+                roleSlots = mapOf("assistant_referee" to 2),
             )
 
         stubScope(
@@ -226,6 +228,7 @@ class SeasonGlanceStatsProviderTest {
                 title = "Match Pau",
                 slug = "match-pau",
                 startsAt = now,
+                roleSlots = mapOf("player" to 1),
             )
 
         stubScope(

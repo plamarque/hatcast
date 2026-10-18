@@ -17,7 +17,7 @@ historical registry below.
 
 BUG-BMAD-001 (accented versus ASCII story keys in sprint controller).
 
-BUG-031 (format cancellation), BUG-029 (date-sensitive agenda fixture),
+BUG-031 (format cancellation),
 BUG-028 (mobile season chart), BUG-023 (stale Home badge), LIMIT-009 (Dispos
 view), BUG-018 (staging traffic), LIMIT-008 (Loop policy), LIMIT-007 (web unit
 stability), LIMIT-004 (seed roster), BUG-008 (push preferences), LIMIT-001
@@ -30,7 +30,38 @@ BUG-033 needs an authorised production data repair. BUG-027, BUG-026, BUG-025,
 BUG-024, and BUG-021 have local fixes but still require their stated review,
 human-smoke, integration, or validation gate.
 
+BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
+
 ### Historical registry
+
+### BUG-037 — API regression fixtures assume unsynchronized shared memberships
+- **ID**: BUG-037
+- **Status**: Fixed locally — complete regression and independent review verified; integration pending
+- **Severity**: Medium (API regression suite fails; no production behavior change)
+- **Affected area**: Agenda, inbox, member glance/profile, audit, availability, lifecycle integration tests and member statistics unit fixtures.
+- **Observed behavior**: The v2.6.3 lineage full API run reports 1189 tests, 37 failures and five environment-specific skips (GitHub runs 39100395161 and 38815714661; reproduced locally). Nine affected classes report 102 tests and 32 failures when run together; lifecycle passes 7/7 in isolation.
+- **Cause**: Shared seed memberships now synchronize participants after BUG-033, adding projection scopes and duplicate participant setup. Lifecycle conversion payloads omit active seasons created by other classes sharing H2. Three statistics fixtures omit required role counts, so CN-1 correctly excludes their assignments. The remaining performance failure is tracked as BUG-029.
+- **Expected behavior**: Explicit isolated troupe/season fixtures preserve automatic synchronization, exact business assertions, and valid required-slot indices; all enabled tests pass in both targeted and complete runs.
+- **Fix**: Test-owned troupe/season scopes, reuse of synchronized audit participants, explicit legacy unsynchronized summary precondition, and required role-slot needs. Production code, seeds, migrations and CI gates are unchanged; business expectations are preserved and selected response assertions strengthened.
+- **Verification (2026-10-18)**: JDK 21, nine affected classes: 102 tests, zero failures/errors/skips. Each of the nine classes also passed in its own Gradle invocation after review patches. Final complete `./gradlew test --no-daemon`: 1189 tests across 170 classes, zero failures/errors, five unchanged environment-specific skips (two Neon agenda and three Neon composition performance tests), BUILD SUCCESSFUL in 5m 27s. `git diff --check` passes. Three independent review lenses completed; all retained findings resolved, nothing deferred. Integration remains pending.
+
+#### Initial release investigation (before the fixture correction)
+
+- **Status:** Open — qualified during the v2.6.3 staging release on 2026-10-18; release validation blocked pending test remediation or explicit disposition.
+- **Severity:** High for release validation; production impact not established.
+- **Affected area:** `services/api` full Gradle test suite on GitHub Actions.
+- **Observed behavior:** [Run 39100395161](https://github.com/plamarque/hatcast/actions/runs/39100395161), commit `d7dc3c15`, reports 1189 tests completed, 37 failed, 5 skipped. Failures span agenda (including performance), audit, availability summary, inbox, member profile/season glance, composition statistics and membership lifecycle tests. Local Playwright T1 passed separately (94 passed, 4 skipped), as did the staging workflow's E2E step.
+- **Expected behavior:** The API regression suite passes or each failing case has an explicitly qualified disposition before production promotion.
+- **Investigation (2026-10-18):** The same 37 named failures already occur in [run 38815714661](https://github.com/plamarque/hatcast/actions/runs/38815714661), commit `b39ccfc5`, which is an ancestor of `v2.6.2-rc.1`. [Run 38422699386](https://github.com/plamarque/hatcast/actions/runs/38422699386) on 2026-10-13 already reports the three statistics failures plus the agenda performance fixture failure. These are not newly introduced by the v2.6.3 delta.
+- **Reproduction:** Current `v2` full `./gradlew test --no-daemon`: 1189 tests, 37 failures, 5 skipped (5m02s). Running only the nine affected classes: 102 tests, 32 failures; all seven membership lifecycle tests pass in that targeted run. Full-run report: `services/api/build/reports/tests/test/index.html`.
+- **Qualified causes:**
+  - **28 failures — membership fixture assumptions:** `0eaa9238` (BUG-033) synchronizes self-joined/added members across the troupe's seasons. Helpers join the shared seed troupe but expect an empty or narrowly scoped agenda/inbox/profile. The actual responses contain seed and other test seasons. Audit setup attempts to add an already-synchronized participant (409, "Un participant avec ce nom existe déjà dans la saison."). Availability's read-only test fails its setup precondition before the GET because joining has already created the participant. Breakdown: agenda 15, inbox 9, audit 1, availability 1, season glance 1, member profile 1.
+  - **3 failures — statistics fixtures omit required slots:** `b9b0b17c` filters slots with `isRequiredBy(event.roleSlots)` as required by CN-1. The failing unit fixtures construct events with default empty `roleSlots`, then assign slots (index 1) and expect them to count. The resulting null/neutral output follows the required-position rule; the fixtures need explicit matching needs and valid indices.
+  - **1 failure — date-dependent performance fixture:** BUG-029 reproduced: the seed now contains 18 upcoming events while the test requires at least 20. It fails before the latency assertion; no performance regression is established.
+  - **5 failures — shared database / execution-order dependency:** Membership lifecycle tests pass in the targeted run but fail in the full suite with HTTP 400, "Choisissez pour chaque saison active : externe saison ou retrait du roster." Their conversion payload accounts only for the locally created seasons, while synchronized memberships include additional active seasons in the shared `jdbc:h2:mem:hatcast_test` database. This is related to the isolation concern in LIMIT-002, with a distinct observed symptom.
+- **Proposed remediation:** Isolate fixture troupes/seasons and database state, update setup to explicitly create the intended membership/roster scope, provide required-slot needs in the statistics fixtures, and generate a date-independent future-event set for the performance test. Preserve the business rules and assertions; do not waive or disable tests. No test or production implementation changed during this investigation.
+- **Notes/context:** The CI result arrived after `v2.6.3-rc.1` was pushed (`c2a6a4c2`) and its artifacts synchronized to `v2` (`fa1a27b2`). No production promotion was performed. Do not infer runtime regression or waive the failures from green E2E alone.
+- **RC operational evidence:** [Run 39100935125](https://github.com/plamarque/hatcast/actions/runs/39100935125) completed successfully: staging E2E 93 passed / 4 skipped, Cloud Run revision `hatcast-v2-staging-00123-nz4` serving 100% traffic, E1 preprod 33 passed / 2 skipped. The staging `version.txt` reports `2.6.3`. Automated gates do not replace human staging smoke or disposition of the API failures.
 
 ### BUG-BMAD-001 — Sprint controller disagrees with registered ASCII story keys
 
@@ -133,13 +164,15 @@ not active work; items listed in the two sections above remain actionable.
 
 ### BUG-029 — Agenda performance fixture has too few future events
 - **ID**: BUG-029
-- **Status**: Open
+- **Status**: Fixed locally — complete regression and independent review verified; integration pending
 - **Severity**: Low (blocks a complete local API regression run, not runtime behavior)
 - **Affected area**: `UserAgendaPerformanceIntegrationTest` seeded agenda fixture.
 - **Observed behavior**: On 2026-10-12, `./gradlew test` fails before the performance assertion because the fixture exposes 19 upcoming events while the test requires at least 20.
 - **Expected behavior**: The test fixture remains date-independent and supplies the documented minimum of 20 future events.
 - **Repro**: Run `./gradlew test` in `services/api`; `UserAgendaPerformanceIntegrationTest` fails with `content.length=19`.
 - **Notes/context**: Found while verifying CN-1. CN-1 targeted API/domain tests pass; this failure is unrelated to the reconciliation contract.
+- **Follow-up evidence (2026-10-18)**: The fixed calendar exposes only 18 upcoming events. Replaced the shared seed dependency with a dedicated troupe, season, 24 published shows relative to execution time, 24 roster participants, 576 availability rows and 72 required composition slots. The existing >=20 result assertion and p95 <=500 ms threshold remain unchanged and pass in the targeted run and complete 1189-test regression (zero failures, five unchanged skips).
+- **Review follow-up**: Warmup now checks returned fixture IDs, actual available status, composed/pending versus collecting projections. This exposed and corrected the linked member's fixture availability subject (`user_id`, not `season_participant_id`), while guest responses retain participant subjects. Final standalone performance test and complete regression pass with these assertions.
 
 ### BUG-028 — Mobile troupe hub season chart stacks month columns vertically
 - **ID**: BUG-028
