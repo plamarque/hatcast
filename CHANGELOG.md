@@ -2,6 +2,15 @@
 
 ## [2.6.3] - 2026-10-18
 
+### 📝 Other Changes
+- chore(v2): promote v2 to staging-v2
+- test(api): Isolate regression fixtures
+- chore(v2): sync release v2.6.3-rc.1 artifacts to v2
+
+---
+
+## [2.6.3] - 2026-10-18
+
 ### ✨ New Features
 - feat(story): Close PWA lifecycle observability
 - feat(pwa): Observe installation and updates
