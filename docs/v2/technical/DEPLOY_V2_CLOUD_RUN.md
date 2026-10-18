@@ -426,6 +426,8 @@ Détail dashboard (phases A–B) : [_bmad-output/implementation-artifacts/ops-10
 
 ### 7.5 PostHog EU + proxy `e.hatcast.app` (OPS-9 / FR47)
 
+**Installation, mises à jour et nouveautés (11.5)** : [contrat lifecycle et provisionnement CI](PWA_LIFECYCLE_POSTHOG.md), avec référence de release automatique, suivi nominatif autorisé et snapshot technique à l’ouverture des notes. L’adoption PWA/Web reste le sujet séparé 11.6.
+
 Analytics produit **MVP** : opérateurs via le projet PostHog uniquement (pas d’UI dans l’app). Événements workflow anonymisés côté `apps/web` (`posthog-js`).
 
 #### Configuration SDK (SPA Angular)

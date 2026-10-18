@@ -78,6 +78,7 @@ export class ChangelogDialogService {
     }
 
     const ref = this.dialog.open(ChangelogDialog, {
+      data: { source: options?.markSeenOnCloseForVersion ? 'after_update' : 'account' },
       width: '95vw',
       maxWidth: '42rem',
       maxHeight: '85vh',

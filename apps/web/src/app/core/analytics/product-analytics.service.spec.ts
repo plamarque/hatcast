@@ -2,10 +2,23 @@ import { TestBed } from '@angular/core/testing'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { environment } from '../../../environments/environment'
-import { FR47_AVAILABILITY_FIRST_SUBMISSION, FR47_NOTIFICATION_LINK_OPENED, V1_CUTOVER_SRC, V2_CUTOVER_REFERRAL_LANDING, V2_MIGRATION_FIRST_SESSION } from './fr47-event-names'
+import {
+  FR47_AVAILABILITY_FIRST_SUBMISSION,
+  FR47_NOTIFICATION_LINK_OPENED,
+  PWA_INSTALL_COMPLETED,
+  PWA_INSTALL_INSTRUCTIONS_VIEWED,
+  PWA_INSTALL_NATIVE_PROMPT_RESOLVED,
+  PWA_UPDATE_APPLY_REQUESTED,
+  PWA_UPDATE_AVAILABLE,
+  PWA_UPDATE_DISMISSED,
+  V1_CUTOVER_SRC,
+  V2_CUTOVER_REFERRAL_LANDING,
+  V2_MIGRATION_FIRST_SESSION,
+} from './fr47-event-names'
 import { resolveNotificationLinkTab } from './notification-link-tab'
 import { setPostHogBrowserFacadeForTests } from './posthog-browser.client'
 import { ProductAnalyticsService } from './product-analytics.service'
+import { RELEASE_CONTEXT } from './release-context'
 
 describe('ProductAnalyticsService', () => {
   let capture: ReturnType<
@@ -69,6 +82,70 @@ describe('ProductAnalyticsService', () => {
     return TestBed.inject(ProductAnalyticsService)
   }
 
+  async function enableReleaseAnalytics() {
+    TestBed.overrideProvider(RELEASE_CONTEXT, { useValue: { release_id: '2.6.3:abcdef12', app_version: '2.6.3' } })
+    environment.posthogApiKey = 'phc_test'
+    environment.posthogApiHost = 'https://e.hatcast.app'
+    vi.spyOn(await import('./posthog-browser.client'), 'initPostHogBrowser').mockResolvedValue(true)
+    await service().bootstrap()
+  }
+
+  it('confirms a changed bundled release only for the requesting identified user', async () => {
+    const id = '00000000-0000-4000-8000-000000000001'
+    await enableReleaseAnalytics()
+    const key = `hatcast:update-request:${id}`
+    sessionStorage.setItem(key, JSON.stringify({ release_id: '2.6.2:1234abcd', requested_at: Date.now() - 5_000 }))
+    service().identifyUser(id)
+    service().identifyUser(id)
+    expect(capture.mock.calls.filter(([event]) => event === 'pwa_update_applied')).toEqual([
+      ['pwa_update_applied', { previous_release_id: '2.6.2:1234abcd', delay_bucket: 'under_1m', release_id: '2.6.3:abcdef12', app_version: '2.6.3' }],
+    ])
+    expect(sessionStorage.getItem(key)).toBeNull()
+    expect(capture.mock.calls.filter(([event]) => event === 'app_release_observed')).toHaveLength(1)
+  })
+
+  it('does not claim applied update for unchanged, stale, or another user state', async () => {
+    await enableReleaseAnalytics()
+    sessionStorage.setItem('hatcast:update-request:other', JSON.stringify({ release_id: '2.6.2:1234abcd', requested_at: Date.now() }))
+    const id = '00000000-0000-4000-8000-000000000001'
+    const key = `hatcast:update-request:${id}`
+    sessionStorage.setItem(key, JSON.stringify({ release_id: '2.6.3:abcdef12', requested_at: Date.now() }))
+    service().identifyUser(id)
+    sessionStorage.setItem(key, JSON.stringify({ release_id: '2.6.2:1234abcd', requested_at: Date.now() - 8 * 86_400_000 }))
+    service().identifyUser(id)
+    expect(capture.mock.calls.some(([event]) => event === 'pwa_update_applied')).toBe(false)
+  })
+
+  it('snapshots viewport at opening and stops lifecycle captures after logout', async () => {
+    await enableReleaseAnalytics()
+    service().identifyUser('00000000-0000-4000-8000-000000000001')
+    capture.mockClear()
+    service().captureReleaseNotesOpened('after_update')
+    expect(capture).toHaveBeenCalledWith('release_notes_opened', {
+      source: 'after_update', viewport_width: window.innerWidth, viewport_height: window.innerHeight,
+      release_id: '2.6.3:abcdef12', app_version: '2.6.3',
+    })
+    service().resetSession()
+    capture.mockClear()
+    service().captureReleaseNotesClosed('after_update', 'under_5s', 'not_scrollable')
+    expect(capture).not.toHaveBeenCalled()
+  })
+
+  it('persists an owned apply request and does not attribute a notes close to a later login', async () => {
+    const id = '00000000-0000-4000-8000-000000000001'
+    await enableReleaseAnalytics()
+    service().identifyUser(id)
+    const ownerId = service().captureReleaseNotesOpened('account')
+    service().capturePwaUpdateApplyRequested()
+    expect(JSON.parse(sessionStorage.getItem(`hatcast:update-request:${id}`)!)).toEqual({
+      release_id: '2.6.3:abcdef12', requested_at: expect.any(Number),
+    })
+    service().resetSession()
+    capture.mockClear()
+    service().captureReleaseNotesClosed('account', 'under_5s', 'not_scrollable', ownerId)
+    expect(capture).not.toHaveBeenCalled()
+  })
+
   it('does not capture when posthogApiKey is empty', async () => {
     environment.posthogApiKey = ''
     await service().bootstrap()
@@ -82,6 +159,78 @@ describe('ProductAnalyticsService', () => {
     )
     expect(capture).not.toHaveBeenCalled()
     expect(service().isEnabled).toBe(false)
+  })
+
+  it('keeps PWA lifecycle-support captures as no-ops when disabled', async () => {
+    await service().bootstrap()
+    service().capturePwaInstallInstructionsViewed({
+      entry_point: 'banner',
+      fallback_reason: 'native_prompt_unavailable',
+      instruction_variant: 'ios',
+    })
+    service().capturePwaNativePromptResolved('dismissed')
+    service().capturePwaInstallCompleted()
+    service().capturePwaUpdateAvailable('version_ready')
+    service().capturePwaUpdateDismissed()
+    service().capturePwaUpdateApplyRequested()
+    expect(capture).not.toHaveBeenCalled()
+  })
+
+  it('does not capture PWA lifecycle support before the existing UUID identity lifecycle', async () => {
+    environment.posthogApiKey = 'phc_test'
+    environment.posthogApiHost = 'https://e.hatcast.app'
+    vi.spyOn(await import('./posthog-browser.client'), 'initPostHogBrowser').mockResolvedValue(
+      true,
+    )
+    await service().bootstrap()
+    service().capturePwaInstallCompleted()
+    service().capturePwaUpdateAvailable('fallback')
+    expect(capture).not.toHaveBeenCalled()
+  })
+
+  it('captures only the bounded PWA installation and update contract', async () => {
+    environment.posthogApiKey = 'phc_test'
+    environment.posthogApiHost = 'https://e.hatcast.app'
+    vi.spyOn(await import('./posthog-browser.client'), 'initPostHogBrowser').mockResolvedValue(
+      true,
+    )
+    await service().bootstrap()
+    service().identifyUser('00000000-0000-4000-8000-000000000001')
+    capture.mockClear()
+
+    service().capturePwaInstallInstructionsViewed({
+      entry_point: 'account_menu',
+      fallback_reason: 'native_prompt_failure',
+      instruction_variant: 'android',
+    })
+    service().capturePwaNativePromptResolved('accepted')
+    service().capturePwaInstallCompleted()
+    service().capturePwaUpdateAvailable('version_ready')
+    service().capturePwaUpdateDismissed()
+    service().capturePwaUpdateApplyRequested()
+
+    expect(capture).toHaveBeenNthCalledWith(1, PWA_INSTALL_INSTRUCTIONS_VIEWED, {
+      entry_point: 'account_menu',
+      fallback_reason: 'native_prompt_failure',
+      instruction_variant: 'android',
+    })
+    expect(capture).toHaveBeenNthCalledWith(2, PWA_INSTALL_NATIVE_PROMPT_RESOLVED, {
+      outcome: 'accepted',
+    })
+    expect(capture).toHaveBeenNthCalledWith(3, PWA_INSTALL_COMPLETED, {})
+    expect(capture).toHaveBeenNthCalledWith(4, PWA_UPDATE_AVAILABLE, {
+      source: 'version_ready',
+    })
+    expect(capture).toHaveBeenNthCalledWith(5, PWA_UPDATE_DISMISSED, {})
+    expect(capture).toHaveBeenNthCalledWith(6, PWA_UPDATE_APPLY_REQUESTED, {})
+    for (const [, properties] of capture.mock.calls) {
+      expect(properties).not.toHaveProperty('user_agent')
+      expect(properties).not.toHaveProperty('url')
+      expect(properties).not.toHaveProperty('email')
+      expect(properties).not.toHaveProperty('name')
+      expect(properties).not.toHaveProperty('device_id')
+      expect(properties).not.toHaveProperty('error')
+    }
   })
 
   it('captures FR47 events when key is set and client is initialized', async () => {

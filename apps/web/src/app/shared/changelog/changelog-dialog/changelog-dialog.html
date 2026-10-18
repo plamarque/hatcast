@@ -10,7 +10,7 @@
   />
 </h2>
 
-<mat-dialog-content class="changelog-dialog__content">
+<mat-dialog-content #content class="changelog-dialog__content" (scroll)="observeScroll()">
   @if (loading()) {
     <div class="changelog-dialog__state" role="status">
       <mat-spinner diameter="32" aria-hidden="true" />

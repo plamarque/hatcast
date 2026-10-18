@@ -44,6 +44,7 @@ Each ADR documents a significant technical decision: context, decision, conseque
 | [0020](0020-participant-gender-organizer-operational.md) | Participant-level gender: organizer operational layer, effective precedence, cascade on Mon compte PATCH | Accepted |
 | [0021](0021-troupe-externes-carnet-invitations.md) | Troupe externes (carnet), invitation scope (season vs event), upward inclusion on add | Accepted |
 | [0022](0022-season-participation-mode-role-lifecycle.md) | Season participation mode; bidirectional MEMBER ↔ EXTERNE lifecycle; per-season access | Accepted |
+| [0023](0023-pwa-release-observability.md) | Bundled client release and CI-owned PostHog lifecycle reference | Accepted |
 
 ---
 
