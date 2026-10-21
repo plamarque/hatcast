@@ -30,9 +30,21 @@ BUG-033 needs an authorised production data repair. BUG-027, BUG-026, BUG-025,
 BUG-024, and BUG-021 have local fixes but still require their stated review,
 human-smoke, integration, or validation gate.
 
+BUG-038 has a local fix (nginx and router) that needs a V2 deploy with an open stale tab to verify.
+
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
 
 ### Historical registry
+
+### BUG-038 — A tab open across a V2 deploy cannot load lazy routes
+- **ID**: BUG-038
+- **Status**: Fixed locally — unit tests and a local browser reproduction pass; deploy verification pending
+- **Severity**: Low (one occurrence in 30 days, but it can come back after each V2 deploy)
+- **Affected area**: `deploy/v2/nginx.conf.template`, `apps/web` router (all lazy routes, for example after login on `/connexion`).
+- **Observed behavior**: After a deploy, the old hashed chunks are gone. A tab that still runs the old bundle requests an old chunk. nginx `try_files` answers with `index.html` as `text/html`, and the browser refuses it as a module script. The navigation fails, and the user must reload by hand.
+- **Expected behavior**: A missing chunk fails as 404, and the app does one full load of the target URL to get the new bundle.
+- **Fix**: nginx returns 404 for missing root-level `*.js`, `*.mjs` and `*.css` files, and sends `Cache-Control: no-cache` for `index.html` and `ngsw.json`. The SPA fallback stays for navigation URLs. A router navigation error handler (`core/app/chunk-load-recovery.ts`) loads the target URL once on a chunk-load error. A 30-second `sessionStorage` guard prevents a reload loop.
+- **Verification (2026-10-21)**: `nginx -t` passes. A local nginx returns 404 for a missing chunk and `index.html` with `no-cache` for navigation URLs. Chromium with an old build, a new build swapped in under the tab and the route guard bypassed: before the fix, the `text/html` MIME error occurs and the route stays broken; after the fix, the old chunk returns 404, the page does one full load of `/agenda`, and the new chunk loads with 200.
 
 ### BUG-037 — API regression fixtures assume unsynchronized shared memberships
 - **ID**: BUG-037
