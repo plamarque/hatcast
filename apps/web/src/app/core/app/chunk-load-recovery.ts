@@ -7,15 +7,10 @@ export const CHUNK_RELOAD_AT_KEY = 'hatcast.chunkReloadAt';
 export const CHUNK_RELOAD_GUARD_MS = 30_000;
 
 const CHUNK_LOAD_ERROR_PATTERN =
-  /Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed|is not a valid JavaScript MIME type|ChunkLoadError|Loading chunk [\w-]+ failed/i;
+  /Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed|is not a valid JavaScript MIME type/i;
 
 export function isChunkLoadError(error: unknown): boolean {
-  if (!error) {
-    return false;
-  }
-  const text =
-    error instanceof Error ? `${error.name}: ${error.message}` : typeof error === 'string' ? error : '';
-  return CHUNK_LOAD_ERROR_PATTERN.test(text);
+  return error instanceof Error && CHUNK_LOAD_ERROR_PATTERN.test(error.message);
 }
 
 /**
