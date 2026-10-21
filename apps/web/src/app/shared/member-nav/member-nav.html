@@ -56,10 +56,13 @@
         <span class="member-nav__rail-label">Mes stats</span>
       </span>
     </a>
-    <a
+    <button type="button"
       mat-list-item
       class="member-nav__rail-link"
-      [routerLink]="troupeShortcut.link()"
+      [matMenuTriggerFor]="troupeNavigation"
+      (menuOpened)="openTroupeMenu()"
+      role="button"
+      tabindex="0"
       [class.member-nav__link--active]="isTroupeTabActive()"
       aria-label="Ma troupe"
       [attr.aria-current]="isTroupeTabActive() ? 'page' : null"
@@ -70,7 +73,7 @@
         </span>
         <span class="member-nav__rail-label">Ma troupe</span>
       </span>
-    </a>
+    </button>
     </mat-nav-list>
 
     <footer class="member-nav__account-footer">
@@ -134,9 +137,12 @@
         <span class="member-nav__bottom-label member-nav__bottom-label--truncate">Mes stats</span>
       </span>
     </a>
-    <a
+    <button type="button"
       mat-tab-link
-      [routerLink]="troupeShortcut.link()"
+      [matMenuTriggerFor]="troupeNavigation"
+      (menuOpened)="openTroupeMenu()"
+      role="button"
+      tabindex="0"
       [active]="isTroupeTabActive()"
       aria-label="Ma troupe"
       [attr.aria-current]="isTroupeTabActive() ? 'page' : null"
@@ -145,7 +151,29 @@
         <mat-icon aria-hidden="true">groups</mat-icon>
         <span class="member-nav__bottom-label">Ma troupe</span>
       </span>
-    </a>
+    </button>
   </nav>
   <mat-tab-nav-panel #bottomPanel class="member-nav__bottom-panel" />
 </div>
+
+<mat-menu #troupeNavigation="matMenu">
+  <a mat-menu-item [routerLink]="troupeMenu.troupeReady() ? troupeMenu.troupeLink() : null"
+    routerLinkActive="member-nav__menu-item--active" [routerLinkActiveOptions]="{ exact: true }"
+    ariaCurrentWhenActive="page"
+    [disabled]="!troupeMenu.troupeReady()" [attr.aria-label]="troupeMenu.troupeLabel()">
+    {{ troupeMenu.troupeLabel() }}
+  </a>
+  <a mat-menu-item [routerLink]="troupeMenu.seasonReady() ? troupeMenu.seasonLink() : null"
+    [queryParams]="{ view: 'agenda' }" [disabled]="!troupeMenu.seasonReady()"
+    routerLinkActive="member-nav__menu-item--active" [routerLinkActiveOptions]="{ exact: true }"
+    ariaCurrentWhenActive="page"
+    [attr.aria-label]="troupeMenu.seasonLabel()">
+    {{ troupeMenu.seasonLabel() }}
+  </a>
+  <a mat-menu-item [routerLink]="troupeMenu.statisticsReady() ? troupeMenu.seasonLink() : null"
+    [queryParams]="{ view: 'stats' }" [disabled]="!troupeMenu.statisticsReady()"
+    routerLinkActive="member-nav__menu-item--active" [routerLinkActiveOptions]="{ exact: true }"
+    ariaCurrentWhenActive="page">
+    Statistiques
+  </a>
+</mat-menu>

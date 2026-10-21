@@ -1,75 +1,60 @@
 import { expect, test } from '@playwright/test'
-
 import { assertMobileViewport, assertNoHorizontalOverflow } from '../helpers/e1-layout'
 import { saisonWorkspacePath, troupeHubPath } from '../helpers/e1-routes'
 import { prepareE1Run, resolveE1Context } from '../helpers/e1-staging'
-import {
-  clearLastVisitedTroupeSlug,
-  clickMemberBottomShellTab,
-  expectMemberBottomShellTabSelected,
-  expectMemberShellTabsVisible,
-  memberShellTab,
-  MEMBER_SHELL_TAB,
-  seedLastVisitedTroupeSlug,
-} from '../helpers/member-nav.ui'
+import { memberBottomShellTab, MEMBER_SHELL_TAB } from '../helpers/member-nav.ui'
 
-/** Story 17.41 — E1-MEM-040 is P0 blocking on gate T2 (`e1-mobile-member`). */
-test.describe('E1 — membre nav Ma troupe (mobile)', () => {
-  test.beforeEach(async ({ page, request }) => {
-    await prepareE1Run(page, request)
-  })
+/** Uses the isolated E1 fixture; menu clicks must navigate without page.goto fallbacks. */
+test.describe('E1 — compact troupe navigation (mobile)', () => {
+  test.beforeEach(async ({ page, request }) => { await prepareE1Run(page, request) })
 
-  test('E1-MEM-040 — bottom nav Ma troupe opens last visited hub', async ({ page, request }) => {
+  test('E1-MEM-040 — three matching destinations and troupe navigation', async ({ page, request }) => {
     const fx = await resolveE1Context(request)
     await assertMobileViewport(page)
-
     await page.goto(saisonWorkspacePath(fx.troupeSlug, fx.seasonSlug))
     await expect(page.locator('app-season-header')).toBeVisible({ timeout: 45_000 })
-
     await page.goto('/agenda')
-    await expectMemberShellTabsVisible(page)
+    const trigger = memberBottomShellTab(page, MEMBER_SHELL_TAB.troupe)
+    await trigger.click()
+    const entries = page.getByRole('menu').getByRole('menuitem')
+    await expect(entries).toHaveCount(3)
+    await expect(entries.nth(0)).toHaveAttribute('href', troupeHubPath(fx.troupeSlug))
+    await expect(entries.nth(1)).toHaveAttribute('href', `${saisonWorkspacePath(fx.troupeSlug, fx.seasonSlug)}?view=agenda`)
+    await expect(entries.nth(2)).toHaveText('Statistiques')
+    await expect(entries.nth(2)).toHaveAttribute('href', `${saisonWorkspacePath(fx.troupeSlug, fx.seasonSlug)}?view=stats`)
     await assertNoHorizontalOverflow(page)
-
-    await clickMemberBottomShellTab(
-      page,
-      MEMBER_SHELL_TAB.troupe,
-      new RegExp(`${troupeHubPath(fx.troupeSlug)}$`),
-    )
-    await expect(page.locator('app-troupe-hub')).toBeVisible({ timeout: 30_000 })
-    await expectMemberBottomShellTabSelected(page, MEMBER_SHELL_TAB.troupe)
+    await entries.nth(0).click()
+    await expect(page).toHaveURL(troupeHubPath(fx.troupeSlug))
+    await expect(page.getByRole('menu')).toHaveCount(0)
   })
 
-  test('E1-MEM-041 — Ma troupe falls back to troupes list when no slug stored', async ({
-    page,
-    request,
-  }) => {
+  test('E1-MEM-041 — missing memory uses a membership and offers three entries', async ({ page, request }) => {
     await resolveE1Context(request)
-    await assertMobileViewport(page)
-
     await page.goto('/agenda')
-    await clearLastVisitedTroupeSlug(page)
-    await page.reload()
-
-    await clickMemberBottomShellTab(page, MEMBER_SHELL_TAB.troupe, /\/troupes$/)
-    await expect(page.locator('app-troupes-list')).toBeVisible({ timeout: 30_000 })
-    await expectMemberBottomShellTabSelected(page, MEMBER_SHELL_TAB.troupe, false)
+    await page.evaluate(() => {
+      localStorage.removeItem('lastVisitedTroupeSlug')
+      localStorage.removeItem('lastVisitedSeason')
+      localStorage.removeItem('lastVisitedSeasonByTroupe')
+    })
+    await memberBottomShellTab(page, MEMBER_SHELL_TAB.troupe).click()
+    const entries = page.getByRole('menu').getByRole('menuitem')
+    await expect(entries).toHaveCount(3)
+    await expect(entries.nth(0)).toHaveAttribute('href', /^\/troupes\/[^/]+$/)
+    expect(await page.evaluate(() => localStorage.getItem('lastVisitedTroupeSlug'))).toBeNull()
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('menu')).toHaveCount(0)
+    await expect(memberBottomShellTab(page, MEMBER_SHELL_TAB.troupe)).toBeFocused()
   })
 
-  test('E1-MEM-042 — season visit seeds Ma troupe shortcut from storage', async ({
-    page,
-    request,
-  }) => {
+  test('E1-MEM-042 — agenda and statistics navigate to explicit season views', async ({ page, request }) => {
     const fx = await resolveE1Context(request)
-    await assertMobileViewport(page)
-
-    await page.goto('/agenda')
-    await clearLastVisitedTroupeSlug(page)
-    await seedLastVisitedTroupeSlug(page, fx.troupeSlug)
-    await page.reload()
-
-    const troupeTab = memberShellTab(page, MEMBER_SHELL_TAB.troupe)
-    await expect(troupeTab).toHaveAttribute('href', troupeHubPath(fx.troupeSlug), {
-      timeout: 15_000,
-    })
+    await page.goto(saisonWorkspacePath(fx.troupeSlug, fx.seasonSlug))
+    await expect(page.locator('app-season-header')).toBeVisible({ timeout: 45_000 })
+    await memberBottomShellTab(page, MEMBER_SHELL_TAB.troupe).click()
+    await page.getByRole('menu').getByRole('menuitem').nth(2).click()
+    await expect(page).toHaveURL(`${saisonWorkspacePath(fx.troupeSlug, fx.seasonSlug)}?view=stats`)
+    await memberBottomShellTab(page, MEMBER_SHELL_TAB.troupe).click()
+    await page.getByRole('menu').getByRole('menuitem').nth(1).click()
+    await expect(page).toHaveURL(`${saisonWorkspacePath(fx.troupeSlug, fx.seasonSlug)}?view=agenda`)
   })
 })

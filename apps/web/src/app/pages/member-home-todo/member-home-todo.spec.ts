@@ -132,7 +132,7 @@ describe('MemberHomeTodo', () => {
     expect(inboxApi.getInbox).toHaveBeenCalledWith({ force: false })
   })
 
-  it('affiche le titre et les accès rapides avant la fin du chargement inbox', async () => {
+  it('affiche le titre sans accès rapides pendant le chargement inbox', async () => {
     let resolveInbox!: (value: unknown) => void
     const inboxDeferred = new Promise((resolve) => {
       resolveInbox = resolve
@@ -152,7 +152,7 @@ describe('MemberHomeTodo', () => {
     expect(fixture.nativeElement.textContent).toContain('Accueil')
     expect(fixture.componentInstance['loadingInbox']()).toBe(true)
     expect(fixture.nativeElement.querySelector('[data-testid="todo-actions-skeleton"]')).toBeTruthy()
-    expect(fixture.nativeElement.querySelector('[data-testid="todo-shortcut-troupes-list"]')).toBeTruthy()
+    expect(fixture.nativeElement.querySelector('[data-testid="todo-shortcut-troupes-list"]')).toBeNull()
 
     resolveInbox({ ok: true, status: 200, data: inboxResponse([]) })
     await settle(fixture)
@@ -439,13 +439,13 @@ describe('MemberHomeTodo', () => {
     })
   })
 
-  it('affiche les accès rapides même en erreur de chargement inbox', async () => {
+  it('préserve l’erreur inbox sans accès rapides', async () => {
     inboxApi.getInbox.mockResolvedValue({ ok: false, status: 500 })
 
     await settle(fixture)
 
     expect(fixture.nativeElement.textContent).toContain('Impossible de charger')
-    expect(fixture.nativeElement.querySelector('[data-testid="todo-shortcut-troupes-list"]')).toBeTruthy()
+    expect(fixture.nativeElement.querySelector('[data-testid="todo-shortcut-troupes-list"]')).toBeNull()
   })
 
   it('affiche deux lignes d’action pour deux dispos unknown', async () => {
@@ -630,7 +630,7 @@ describe('MemberHomeTodo', () => {
     fixture.destroy()
   })
 
-  it('affiche le CTA Mes troupes sans Mon agenda quand tout est à jour sans événement', async () => {
+  it('affiche Tout est à jour sans accès rapides quand aucun événement', async () => {
     inboxApi.getInbox.mockResolvedValue({
       ok: true,
       status: 200,
@@ -641,49 +641,18 @@ describe('MemberHomeTodo', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Tout est à jour')
     expect(fixture.nativeElement.textContent).toContain('Rien ne te retient')
-    expect(fixture.nativeElement.textContent).toContain('Toutes mes troupes')
+    expect(fixture.nativeElement.textContent).not.toContain('Accès rapides')
     expect(fixture.nativeElement.querySelector('.member-home-todo__celebration-icon')).toBeTruthy()
     expect(fixture.nativeElement.querySelector('[data-testid="todo-shortcut-season-stats"]')).toBeFalsy()
   })
 
-  it('met en avant Ma saison et les raccourcis contextuels quand une saison est mémorisée', async () => {
+  it('n’affiche aucun accès rapide même avec une saison mémorisée', async () => {
     rememberLastVisitedSeasonSlug('ligue-2026', 'troupe-1')
-    seasonResolver.resolveSeasonSlug.mockResolvedValue({
-      kind: 'resolved',
-      troupe: { id: 'troupe-1', name: 'La Malice', slug: 'la-malice' },
-      season: {
-        id: 'league-1',
-        slug: 'ligue-2026',
-        title: 'Malice 2025-2026',
-      } as SeasonResponse,
-    })
-    inboxApi.getInbox.mockResolvedValue({
-      ok: true,
-      status: 200,
-      data: inboxResponse([]),
-    })
-
     await settle(fixture)
-
-    const seasonLink = fixture.nativeElement.querySelector(
-      '[data-testid="todo-shortcut-season"]',
-    ) as HTMLAnchorElement
-    expect(seasonLink.textContent).toContain('Ma saison')
-    expect(seasonLink.textContent).toContain('Malice 2025-2026')
-    expect(seasonLink.getAttribute('href')).toContain('/saison/la-malice/ligue-2026')
-
-    const statsLink = fixture.nativeElement.querySelector(
-      '[data-testid="todo-shortcut-season-stats"]',
-    ) as HTMLAnchorElement
-    expect(statsLink.textContent).toContain('Stats · Malice 2025-2026')
-    expect(statsLink.getAttribute('href')).toContain('/saison/la-malice/ligue-2026')
-    expect(statsLink.getAttribute('href')).toContain('view=stats')
-
-    const troupeLink = fixture.nativeElement.querySelector(
-      '[data-testid="todo-shortcut-troupe"]',
-    ) as HTMLAnchorElement
-    expect(troupeLink.textContent).toContain('La Malice')
-    expect(troupeLink.getAttribute('href')).toContain('/troupes/la-malice')
+    expect(fixture.nativeElement.textContent).not.toContain('Accès rapides')
+    expect(fixture.nativeElement.querySelector('[data-testid^="todo-shortcut-"]')).toBeNull()
+    expect(seasonResolver.resolveSeasonSlug).not.toHaveBeenCalled()
+    expect(localStorage.getItem('lastVisitedSeason')).toBe('ligue-2026')
   })
 
   it('redirige vers connexion quand la session est absente', async () => {

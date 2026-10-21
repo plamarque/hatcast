@@ -178,7 +178,7 @@ export async function clickSeasonCard(
   })
   await expect(page.locator('.troupe-hub__metrics mat-spinner')).toHaveCount(0, { timeout: 45_000 })
 
-  const cta = page.getByRole('link', { name: 'Voir tous les spectacles', exact: true })
+  const cta = page.getByRole('link', { name: 'Voir la saison', exact: true })
   const overflow = page.locator('.troupe-hub__avatar-overflow').first()
 
   if (await cta.isVisible().catch(() => false)) {

@@ -57,3 +57,10 @@ context: []
 ## Local closure preparation — 2026-10-22
 
 Patrice explicitly authorized the feature commit, local integration into v2 and cleanup of this dedicated worktree/branch, excluding push and deployment. This is a freeform one-shot evolution: its spec status is already done and it has no canonical epic/story sprint key, so no sprint-status entry is created or manually changed. The final feature checkout rerun passed all 62 Accueil/inbox tests. Prior human acceptance, real local-stack embedded-browser verification and production-build evidence remain applicable. The navigation evolution now present on v2 must be preserved during integration.
+
+## Authorized local integration reconciliation — 2026-10-22
+
+- Feature commit: `500e60c03a62e70f9657e14bfe1a049fc0c3c71a`. Integration baseline: `1e430abc920ae64872399af0beeabce93cdd4d57`.
+- Patrice explicitly authorized resolving the two Accueil TypeScript/test conflicts while preserving the newly integrated compact troupe navigation and removal of home quick links. The resolution retains InboxFeedbackService, all confirmation lifecycle tests, and the navigation evolution's absence-of-shortcuts assertions; it does not restore LastVisitedSeasonShortcutService to Accueil.
+- The combined checkout passed 115 targeted unit tests covering Accueil, inbox and troupe/member navigation, the production build, 12 Chromium/WebKit browser checks at mobile and desktop widths, and diff whitespace checks. Existing human acceptance remains applicable; only integration reconciliation occurred. Firefox/real-device and production CLS limits remain as recorded above.
+- No sprint-status mutation applies to this freeform one-shot spec. Push and deployment remain explicitly forbidden by this closure request.

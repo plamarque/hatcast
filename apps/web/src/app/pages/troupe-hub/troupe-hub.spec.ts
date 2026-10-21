@@ -376,6 +376,7 @@ describe('TroupeHub', () => {
     platformAdmin = false,
     options: {
       seasons?: SeasonResponse[]
+      listSeasons?: ReturnType<typeof vi.fn>
       activeTroupes?: ReturnType<typeof defaultTroupes>
       patchTroupeProfile?: ReturnType<typeof vi.fn>
       getSeasonWorkspace?: ReturnType<typeof vi.fn>
@@ -438,7 +439,7 @@ describe('TroupeHub', () => {
         {
           provide: SeasonApiService,
           useValue: {
-            listSeasons: vi.fn().mockResolvedValue({
+            listSeasons: options.listSeasons ?? vi.fn().mockResolvedValue({
               ok: true,
               status: 200,
               data: {
@@ -500,7 +501,8 @@ describe('TroupeHub', () => {
 
   it('remembers last visited troupe slug after hub loads', async () => {
     await setup()
-    expect(getLastVisitedTroupeSlug()).toBe('les-improbots')
+    await vi.waitFor(() => expect(getLastVisitedTroupeSlug()).toBe('les-improbots'))
+    expect(localStorage.getItem('lastVisitedSeason')).toBe('2025-26')
   })
 
   it('does not render breadcrumb', async () => {
@@ -606,8 +608,8 @@ describe('TroupeHub', () => {
     expect(fixture.nativeElement.textContent).toContain('Gala d’ouverture')
     const agendaLink = Array.from(
       fixture.nativeElement.querySelectorAll('a') as NodeListOf<HTMLAnchorElement>,
-    ).find((link) => link.textContent?.includes('Voir tous les spectacles'))
-    expect(agendaLink?.getAttribute('href')).toBe('/saison/les-improbots/2025-26')
+    ).find((link) => link.textContent?.includes('Voir la saison'))
+    expect(agendaLink?.getAttribute('href')).toBe('/saison/les-improbots/2025-26?view=agenda')
   })
 
   it('shows teaser empty copy when workspace has no upcoming events', async () => {
@@ -650,7 +652,7 @@ describe('TroupeHub', () => {
     ).not.toBeNull()
   })
 
-  it('links to season history stats from mini-chart CTA', async () => {
+  it('links directly to season statistics next to the selector', async () => {
     const { fixture } = await setup('MEMBER', false, {
       loadStatistics: vi.fn().mockResolvedValue({
         ok: true,
@@ -659,12 +661,12 @@ describe('TroupeHub', () => {
       }),
     })
     await vi.waitFor(() => {
-      expect(fixture.nativeElement.querySelector('.troupe-hub__season-stats-cta')).not.toBeNull()
+      expect(fixture.nativeElement.querySelector('.troupe-hub__season-navigation a:last-child')).not.toBeNull()
     })
     const cta = fixture.nativeElement.querySelector(
-      '.troupe-hub__season-stats-cta',
+      '.troupe-hub__season-navigation a:last-child',
     ) as HTMLAnchorElement
-    expect(cta.textContent).toContain('Voir toutes les stats')
+    expect(cta.textContent).toContain('Statistiques')
     expect(cta.getAttribute('href')).toBe('/saison/les-improbots/2025-26?view=stats')
   })
 
@@ -680,6 +682,31 @@ describe('TroupeHub', () => {
       expect(fixture.nativeElement.querySelector('.troupe-hub__metrics')).not.toBeNull()
     })
     expect(fixture.nativeElement.querySelector('.troupe-hub__season-chart')).toBeNull()
+    expect(fixture.nativeElement.querySelectorAll('.troupe-hub__season-navigation a')).toHaveLength(2)
+  })
+
+  it.each(['EVENTS_ONLY', 'AGENDA_ONLY'] as const)('keeps restricted guest agenda navigation without statistics for %s', async (mode) => {
+    const { fixture } = await setup('EXTERNE', false, {
+      seasons: [{ ...activeSeason, guestSeasonWorkspaceMode: mode }],
+    })
+    const links = Array.from(fixture.nativeElement.querySelectorAll('.troupe-hub__season-navigation a') as NodeListOf<HTMLAnchorElement>)
+    expect(links.map((link) => link.textContent?.trim())).toEqual(['Voir la saison'])
+    expect(links[0].getAttribute('href')).toBe('/saison/les-improbots/2025-26?view=agenda')
+  })
+
+  it('retains both navigation links when dashboard requests fail', async () => {
+    const { fixture } = await setup('MEMBER', false, {
+      loadStatistics: vi.fn().mockResolvedValue({ ok: false, status: 500 }),
+      getSeasonWorkspace: vi.fn().mockResolvedValue({ ok: false, status: 500 }),
+    })
+    await vi.waitFor(() => {
+      fixture.detectChanges()
+      expect(fixture.nativeElement.textContent).toContain('Impossible de charger les personnes.')
+    })
+    const links = Array.from(fixture.nativeElement.querySelectorAll('.troupe-hub__season-navigation a') as NodeListOf<HTMLAnchorElement>)
+    expect(links.map((link) => link.getAttribute('href'))).toEqual([
+      '/saison/les-improbots/2025-26?view=agenda', '/saison/les-improbots/2025-26?view=stats',
+    ])
   })
 
   it('hides season mini-chart when stats load fails', async () => {
@@ -773,7 +800,7 @@ describe('TroupeHub', () => {
     })
   })
 
-  it('shows multi-troupe footer link when user has at least two troupes', async () => {
+  it('shows other-troupes link near the troupe title when user has at least two troupes', async () => {
     const { fixture } = await setup('MEMBER', false, {
       activeTroupes: [
         ...defaultTroupes('MEMBER'),
@@ -794,14 +821,33 @@ describe('TroupeHub', () => {
         },
       ],
     })
-    const footerLink = fixture.nativeElement.querySelector('.troupe-hub__footer a') as HTMLAnchorElement
+    const footerLink = fixture.nativeElement.querySelector('.troupe-hub__hero-main a') as HTMLAnchorElement
     expect(footerLink?.textContent).toContain('Voir les autres troupes')
     expect(footerLink.getAttribute('href')).toBe('/troupes')
   })
 
-  it('hides multi-troupe footer for mono-troupe member', async () => {
+  it('hides relocated other-troupes link for mono-troupe member', async () => {
     const { fixture } = await setup('MEMBER')
-    expect(fixture.nativeElement.querySelector('.troupe-hub__footer')).toBeNull()
+    expect(fixture.nativeElement.querySelector('.troupe-hub__hero-main a[href="/troupes"]')).toBeNull()
+  })
+
+  it('chooses a later-page season and remembers the same pair as its navigation links', async () => {
+    const latest = { ...activeSeason, id: 'latest', slug: 'latest', title: 'Latest season', startDate: '2030-01-01' }
+    const listSeasons = vi.fn().mockImplementation(async (_troupeId: string, page: number) => ({
+      ok: true, status: 200,
+      data: { content: page === 0 ? [activeSeason] : [latest], page, size: 50, totalElements: 2, totalPages: 2 },
+    }))
+    const { fixture } = await setup('MEMBER', false, { listSeasons })
+    await vi.waitFor(() => {
+      fixture.detectChanges()
+      expect(fixture.nativeElement.querySelector('#troupe-season-dashboard-heading')?.textContent).toContain('Latest season')
+    })
+    expect(listSeasons).toHaveBeenCalledWith('t1', 1, 50)
+    const links = Array.from(fixture.nativeElement.querySelectorAll('.troupe-hub__season-navigation a') as NodeListOf<HTMLAnchorElement>)
+    expect(links.map((link) => link.getAttribute('href'))).toEqual([
+      '/saison/les-improbots/latest?view=agenda', '/saison/les-improbots/latest?view=stats',
+    ])
+    expect(getLastVisitedSeasonSlugForTroupe('t1')).toBe('latest')
   })
 
   it('resolves default season from last visited slug for troupe', async () => {

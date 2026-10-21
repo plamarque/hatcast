@@ -245,7 +245,11 @@ export class PwaUpdateService {
     this.refreshing.set(true);
     try {
       await this.swUpdate.activateUpdate();
-      sessionStorage.setItem(SHOW_CHANGELOG_AFTER_RELOAD_KEY, '1');
+      try {
+        sessionStorage.setItem(SHOW_CHANGELOG_AFTER_RELOAD_KEY, '1');
+      } catch {
+        // The optional changelog must never prevent the confirmed update reload.
+      }
       document.location.reload();
     } catch {
       this.refreshing.set(false);
