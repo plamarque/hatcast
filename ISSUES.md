@@ -15,6 +15,10 @@ historical registry below.
 
 ### Open defects and limitations
 
+BUG-041 (manual PWA application-version check), and BUG-042 (analytics bootstrap import failure).
+
+BUG-039 (PR #15: denied sessionStorage access escapes chunk recovery handler).
+
 BUG-POSTHOG-002 (production promotion observability rejected by capture acceptance guard).
 
 BUG-038 (intermittent composition smoke assertions observed on v2.6.3-rc.2).
@@ -37,6 +41,63 @@ human-smoke, integration, or validation gate.
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
 
 ### Historical registry
+
+### BUG-044 — Phone recovery fixture cannot always be restarted with another client open
+- **ID**: BUG-044
+- **Status**: Closed — repeated two-client checks pass; Patrice confirmed phone repeatability 2026-10-21; temporary fixture removed at closure
+- **Severity**: Medium (blocks repeated human verification)
+- **Affected area**: Temporary phone fixture reset dashboard at Tailscale :8443, service-worker cache reset.
+- **Observed behavior**: Patrice reports that the scenario works only once. Three consecutive single-client cycles pass; keeping a second client open on B reproduces a timeout loading the reset A home. The old worker can remain associated with a live client while its caches are cleared.
+- **Expected behavior**: Reset always starts a fresh A screen and permits another complete recovery, including when Chrome and the installed PWA remain open.
+- **Notes/context**: Fix: test reset preserves worker registrations and caches needed by other live clients, restores server A, and bypasses worker navigation only for its initial test Home document. Three consecutive complete cycles pass with another B client left open. Keep this separate from production ChunkRecoveryService. Phone screenshot also requests primary-left / dismiss-right actions in one row; scoped dialog CSS and DOM order corrected. Actual dark-theme Chromium at 320px: primary width151px/height56px, dismiss width81px/height48px, same row, no overflow. Patrice confirmed repeatability on Android. Temporary fixture and phone access removed at closure.
+
+
+### BUG-043 — Optional storage failure can prevent reload after PWA activation
+- **ID**: BUG-043
+- **Status**: Fixed locally — optional changelog storage isolated; post-activation reload regression passes; not deployed
+- **Severity**: Medium (conditional mixed-version runtime after user-confirmed update)
+- **Affected area**: `apps/web/src/app/core/pwa/pwa-update.service.ts`, `applyUpdate()`.
+- **Observed behavior**: The method activates the worker version, writes the optional changelog flag to sessionStorage, then reloads. If the storage getter/setItem throws after successful activation, the catch clears refreshing without reloading, leaving old JavaScript running after the client-version switch.
+- **Expected behavior**: Optional storage bookkeeping must not prevent full navigation after a successful activation; it should be isolated as best effort.
+- **Verification (2026-10-21)**: Executed the exact existing applyUpdate method with activateUpdate resolving true and setItem throwing: activation happened, reload did not, refreshing became false. This is a deterministic method-level test, not a production frequency or browser reproduction.
+- **Context**: See `pr-15-recovery-party-review.md`, R7. The ordinary update path keeps its existing activation policy with only the optional storage flag guarded; recovery uses a separate readiness-check/full-navigation path.
+
+### BUG-040 — Stale client cannot load removed lazy chunks after deployment
+- **ID**: BUG-040
+- **Status**: Fixed locally — recovery verified; phone smoke accepted 2026-10-21; not deployed
+- **Severity**: Medium (navigation can remain blocked until update/reload)
+- **Affected area**: V2 static asset serving, router lazy imports and PWA client lifecycle.
+- **Observed behavior**: [PR #15](https://github.com/plamarque/hatcast/pull/15), reviewed at `8740a147c63397623b5cc7bd3e2cadc1197491cb`, describes an old open client requesting removed hashed chunks and receiving HTML instead. Its one occurrence in 30 days is author-reported, not a fresh analytics measurement. Its blind reload did not establish coherent active-SW recovery. The replacement uses consent-only readiness checks and full navigation; six real-browser fixture cases, including a real active worker, pass locally.
+- **Expected behavior**: Global generic update dialog after detected failure, explicit consent, ready-version check followed by full navigation when controlled, and exact destination restoration in web and installed PWA.
+- **Notes/context**: A healthy SW prefetches old chunks, so controlled-client reproduction must include cache loss. Use this free ID instead of the PR's colliding BUG-038. See `spec-pr-15-stale-client-recovery.md` and supporting investigation/verification artifacts. Bootstrap-before-shell failures are outside modal reach. Accepted rare residual: NO_NEW_VERSION_DETECTED is broadcast to all worker clients; a simultaneous check against a different manifest can make an inconclusive local check appear known. A consented reload may then need another refresh. No cross-tab correlation is added for this low-impact case.
+
+### BUG-041 — Manual PWA check does not request Angular application-version check
+- **ID**: BUG-041
+- **Status**: Open — pre-existing behavior identified during PR #15 investigation; not included as a general manual-check refactor
+- **Severity**: Medium (manual update feedback may miss a deploy with unchanged worker script)
+- **Affected area**: `apps/web/src/app/core/pwa/pwa-update.service.ts`, `checkForUpdatesManually()` and `pollForAppUpdate()`.
+- **Observed behavior**: These methods call registration.update() and await VERSION_READY/waiting worker, but never call SwUpdate.checkForUpdate(). Updating the worker script is distinct from checking the Angular app manifest; deployment may change app chunks without changing the worker script.
+- **Expected behavior**: An explicit application-update check requests Angular's application-version check and distinguishes no update from failure.
+- **Evidence/limits**: Source inspection against baseline `3a0a08482a4e9d1961f9b2469123ffc874a685c5`, installed Angular 21.2.9 and official SwUpdate documentation. A recovery-specific API is planned; no standalone manual-check browser reproduction or fix is claimed.
+
+### BUG-042 — Failed lazy analytics import can prevent application bootstrap
+- **ID**: BUG-042
+- **Status**: Open — pre-existing source-level finding; outside the post-bootstrap recovery scope
+- **Severity**: Medium (conditional failure before recovery UI exists)
+- **Affected area**: `apps/web/src/app/app.config.ts`, `core/analytics/product-analytics.service.ts` and `posthog-browser.client.ts`.
+- **Observed behavior**: The app initializer awaits ProductAnalyticsService.bootstrap(); ensureInitialized() propagates rejection from the lazy posthog-js import when configured. A failed import can reject bootstrap before App and its recovery dialog exist.
+- **Expected behavior**: A failed optional analytics initialization should not prevent the application shell from starting.
+- **Evidence/limits**: Verified promise chain in the integration baseline; conditional on analytics being configured and the import failing. No production frequency or browser reproduction established. Record separately rather than claiming the recovery modal covers a shell that never starts.
+
+### BUG-039 — PR #15 chunk recovery throws when storage access is denied
+- **ID**: BUG-039
+- **Status**: Open — review finding on PR #15 at `8740a147c63397623b5cc7bd3e2cadc1197491cb`; not a confirmed deployed defect
+- **Severity**: Medium (navigation error handling fails under browser storage restrictions)
+- **Affected area**: `apps/web/src/app/core/app/chunk-load-recovery.ts:22` and its registration in `app.config.ts` in [PR #15](https://github.com/plamarque/hatcast/pull/15).
+- **Observed behavior (2026-10-21)**: The default argument `storage = sessionStorage` reads the browser property before the function body and its `try`. If that getter throws `SecurityError`, the router error handler throws instead of returning `false`, including for unrelated navigation errors. The existing unavailable-storage test only makes `getItem()` throw on an explicitly supplied object.
+- **Expected behavior**: Classify the navigation error first, then resolve default browser storage inside the guarded block; denied storage access returns `false` without replacing the original error.
+- **Verification**: Reproduced against the exact PR helper, transpiled with the installed TypeScript compiler: a throwing global `sessionStorage` getter escapes for both chunk and unrelated errors. Direct checks also verified first recovery, suppression inside the guard window, and handling of an injected `getItem()` failure. This is focused helper evidence, not browser or full-suite verification.
+- **Additional PR review finding**: The PR assigns `BUG-038` to stale chunks, but the integration branch already assigns it to composition smoke retries below (commit `c70139a9`). Use a free identifier for the stale-chunk issue before integration; preserve the existing record.
 
 ### BUG-POSTHOG-002 — Production promotion capture fails its acceptance guard
 - **ID**: BUG-POSTHOG-002

@@ -12,6 +12,14 @@ HatCast is a web application for organising improvisation shows: managing **seas
 
 ---
 
+## Client navigation recovery (V2)
+
+In browser tabs and installed PWAs, a recognized lazy-route module-load failure offers a modal recovery action instead of requiring the user to discover a manual refresh. The message is generic: **« Mets HatCast à jour pour continuer. »** The user is warned that unsaved changes may be lost. The primary update action appears on the left and “Plus tard” on the right in one horizontal row, including on mobile. Nothing reloads without confirmation. **« Plus tard »** keeps an already displayed screen; if no usable route has rendered, only update/retry remains available, without dismissal. The root auth entry is a loading redirect, not a safe home fallback.
+
+After confirmation, a worker-controlled client checks for an available or already-known application version before a full-document navigation; an uncontrolled client refreshes directly. The intended same-origin address, query and fragment are preserved. Offline or unconfirmed update checks show retry feedback. Healthy navigation and ordinary application errors do not open this recovery dialog. The mechanism cannot help a client whose application shell never starts, and does not force updates in other working tabs.
+
+---
+
 ## Administration — required capabilities (V2 target)
 
 Normative intent for **administration** flows: **visual design is not prescribed** (Angular Material–typical or equivalent is acceptable). The product **must** expose the following capabilities to users with the appropriate roles (exact labels and routes in DOMAIN / permissions):

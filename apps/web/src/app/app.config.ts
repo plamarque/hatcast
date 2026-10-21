@@ -7,11 +7,12 @@ import {
   provideBrowserGlobalErrorListeners,
 } from '@angular/core';
 import { provideServiceWorker } from '@angular/service-worker';
-import { provideRouter } from '@angular/router';
+import { provideRouter, withNavigationErrorHandler } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { MAT_DATE_LOCALE, provideNativeDateAdapter } from '@angular/material/core';
 import { NgxMatTimepickerModule } from 'ngx-mat-timepicker';
 
+import { ChunkRecoveryService } from './core/pwa/chunk-recovery.service';
 import { routes } from './app.routes';
 import { ProductAnalyticsService } from './core/analytics/product-analytics.service';
 
@@ -22,7 +23,9 @@ export const appConfig: ApplicationConfig = {
       return analytics.bootstrap();
     }),
     provideBrowserGlobalErrorListeners(),
-    provideRouter(routes),
+    provideRouter(routes, withNavigationErrorHandler((error) => {
+      inject(ChunkRecoveryService).handle(error);
+    })),
     provideAnimationsAsync(),
     provideNativeDateAdapter(),
     { provide: MAT_DATE_LOCALE, useValue: 'fr-FR' },

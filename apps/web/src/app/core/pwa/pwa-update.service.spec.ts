@@ -113,6 +113,17 @@ describe('PwaUpdateService', () => {
     expect(service.refreshing()).toBe(true);
   });
 
+  it('reloads after activation even when optional storage is denied', async () => {
+    const reload = vi.fn();
+    vi.stubGlobal('document', { location: { reload } });
+    const storage = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('denied'); });
+    try {
+      await createService().applyUpdate();
+      expect(activateUpdate).toHaveBeenCalledOnce();
+      expect(reload).toHaveBeenCalledOnce();
+    } finally { storage.mockRestore(); }
+  });
+
   it('dismissBanner hides banner until next VERSION_READY', () => {
     const service = createService();
     versionUpdates.next({

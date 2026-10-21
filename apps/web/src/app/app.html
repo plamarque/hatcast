@@ -1,3 +1,5 @@
-<app-pwa-install-banner />
-<app-pwa-update-banner />
+<div [hidden]="recovery.active()">
+  <app-pwa-install-banner />
+  <app-pwa-update-banner />
+</div>
 <router-outlet />
