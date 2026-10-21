@@ -36,6 +36,15 @@ human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
 
+### PERF-003 — Accueil shifts when an empty-inbox confirmation appears after revalidation
+- **Status**: Fixed locally — human smoke accepted; real-device and production CLS checks pending
+- **Severity**: Medium (visual stability on mobile)
+- **Affected area**: `apps/web` — `/accueil`, `MemberHomeTodo`
+- **Observed behavior**: PR #14 reports repeated production shifts around 0.140 at 375×766 when the “Tout est à jour” banner is inserted above existing cached content.
+- **Expected behavior**: Reserve the eligible confirmation's space with a visible skeleton. Do not replay unchanged empty feedback. Newly received tasks remain visible and cancel dismissal. The approved transient confirmation intentionally collapses after its fade; this movement must be assessed separately from the initial insertion defect.
+- **Verification**: 62 focused unit tests plus 34 auth/shell tests passed in isolated runs; production build passed; 12 controlled-response Chromium/WebKit mobile/desktop checks passed. Independent review findings addressed. Firefox could not launch locally; real devices and production metrics remain unverified.
+- **Evidence**: [PR #14](https://github.com/plamarque/hatcast/pull/14); local source analysis. Production frequency remains unquantified.
+
 ### Historical registry
 
 ### BUG-POSTHOG-002 — Production promotion capture fails its acceptance guard

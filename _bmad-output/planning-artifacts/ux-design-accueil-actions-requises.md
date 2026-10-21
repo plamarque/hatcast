@@ -285,3 +285,7 @@ M3-1…M3-5 still apply; the checkbox + chip are token-styled custom/`mat-chip` 
 | Patrice | 2026-06-02 | Verb-first + rounded checkbox + dated urgency + brand orange ✓ closure (Option A). Mockup approved. |
 
 **Next step:** Implemented directly in `member-home-todo.*` (no separate story file; tracked via this addendum).
+
+## Approved amendment — transient empty-inbox confirmation (2026-10-21)
+
+This amendment supersedes the permanent celebration treatment when an upcoming event exists. Use a visible token-based skeleton in the celebration's natural layout box while revalidating an initially empty cache. After a successful empty response, hold “Tout est à jour” for 3 seconds, fade for 220 ms, then collapse the region over 280 ms. Announce the confirmation politely without moving focus. Reduced motion skips the animated phases. Repeated empty results after presentation do not recreate the banner or its skeleton; keep the next-event content stable. Observing tasks rearms presentation, and tasks always override dismissal. Cache and network errors never establish a new success. Keep the existing useful no-upcoming-event explanation and “Mes troupes” action persistent. The previous ghost-card completion sequence remains before confirmation, but only a confirmed response may resolve a ghost. These rules apply to mobile/desktop browser and installed PWA modes alike.

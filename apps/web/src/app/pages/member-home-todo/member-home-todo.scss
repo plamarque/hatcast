@@ -122,6 +122,35 @@
   }
 }
 
+// Keep the confirmation's measured box until its content has faded away.
+.member-home-todo__feedback {
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition: opacity 220ms ease, grid-template-rows 280ms ease;
+}
+
+.member-home-todo__feedback--fading { opacity: 0; }
+.member-home-todo__feedback--collapsing { grid-template-rows: 0fr; }
+.member-home-todo__feedback-clip { min-height: 0; overflow: hidden; }
+
+.member-home-todo__celebration.member-home-todo__celebration--pending {
+  background: var(--mat-sys-surface-container-low);
+  pointer-events: none;
+
+  .member-home-todo__celebration-icon,
+  .member-home-todo__celebration-title,
+  .member-home-todo__celebration-text,
+  .member-home-todo__celebration-actions {
+    color: transparent;
+    border-radius: 0.25rem;
+    background: color-mix(in srgb, var(--mat-sys-on-surface) 8%, var(--mat-sys-surface-container-high));
+    animation: member-home-todo-skeleton-pulse 1.4s ease-in-out infinite;
+  }
+
+  .member-home-todo__celebration-actions a { visibility: hidden; }
+}
+
 .member-home-todo__celebration {
   display: flex;
   flex-direction: column;
@@ -350,6 +379,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .member-home-todo__feedback { transition: none; }
+  .member-home-todo__celebration--pending > * { animation: none; }
+
   .member-home-todo__action-card {
     transition: none;
   }

@@ -1,4 +1,5 @@
 import { inject, Injectable, signal } from '@angular/core'
+import { InboxFeedbackService } from './inbox-feedback.service'
 
 import {
   MeInboxApiService,
@@ -20,6 +21,7 @@ export function inboxBadgeDisplayLabel(count: number): string {
 @Injectable({ providedIn: 'root' })
 export class MemberInboxBadgeService {
   private readonly inboxApi = inject(MeInboxApiService)
+  private readonly feedback = inject(InboxFeedbackService)
 
   readonly pendingActionCount = signal(0)
 
@@ -31,8 +33,11 @@ export class MemberInboxBadgeService {
     force?: boolean
     preserveBadgeOnError?: boolean
   }): Promise<MeInboxApiResult> {
+    const scope = this.feedback.scopeRevision
     const res = await this.inboxApi.getInbox({ force: options?.force })
+    if (scope !== this.feedback.scopeRevision) return { ok: false, status: 0 }
     if (res.ok && res.data) {
+      this.feedback.observeInbox(res.data)
       this.pendingActionCount.set(res.data.actions.length)
       return res
     }

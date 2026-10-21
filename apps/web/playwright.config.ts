@@ -25,6 +25,11 @@ export default defineConfig({
   },
   projects: [
     {
+      name: 'chromium-accueil-feedback',
+      testMatch: /accueil-feedback\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
       name: 'setup-admin',
       testMatch: /auth\.setup\.ts/,
     },
