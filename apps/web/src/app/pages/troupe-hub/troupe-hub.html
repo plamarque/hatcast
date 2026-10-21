@@ -59,6 +59,9 @@
       </span>
       <div class="troupe-hub__hero-main">
         <h1 class="troupe-hub__title">{{ t.name }}</h1>
+        @if (showMultiTroupeFooter()) {
+          <a mat-button routerLink="/troupes">Voir les autres troupes</a>
+        }
         @if (t.description; as description) {
           <p class="troupe-hub__description">{{ description }}</p>
         }
@@ -157,6 +160,13 @@
           }
         </div>
 
+        <div class="troupe-hub__season-navigation" aria-label="Navigation de la saison">
+          <a mat-stroked-button [routerLink]="seasonWorkspaceLink(season)" [queryParams]="{ view: 'agenda' }">Voir la saison</a>
+          @if (canOpenSeasonStatistics(season)) {
+            <a mat-stroked-button [routerLink]="seasonWorkspaceLink(season)" [queryParams]="{ view: 'stats' }">Statistiques</a>
+          }
+        </div>
+
         <div class="troupe-hub__season-card">
           <div class="troupe-hub__metrics" aria-label="Indicateurs de la saison">
             <div class="troupe-hub__metric">
@@ -216,14 +226,6 @@
                 </div>
               </div>
             </div>
-            <a
-              mat-stroked-button
-              class="troupe-hub__season-stats-cta"
-              [routerLink]="seasonWorkspaceLink(season)"
-              [queryParams]="{ view: 'stats' }"
-            >
-              Voir toutes les stats
-            </a>
           }
         </div>
 
@@ -320,13 +322,6 @@
                 (availabilityClick)="openTeaserAvailability($event)"
                 (participationClick)="openTeaserParticipation($event)"
               />
-              <a
-                mat-stroked-button
-                class="troupe-hub__section-cta"
-                [routerLink]="seasonWorkspaceLink(season)"
-              >
-                Voir tous les spectacles
-              </a>
             }
           </section>
         </div>
@@ -335,10 +330,5 @@
       }
     </section>
 
-    @if (showMultiTroupeFooter()) {
-      <footer class="troupe-hub__footer">
-        <a mat-button routerLink="/troupes">Voir les autres troupes</a>
-      </footer>
-    }
   }
 </div>

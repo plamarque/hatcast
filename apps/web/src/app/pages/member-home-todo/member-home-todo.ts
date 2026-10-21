@@ -18,9 +18,8 @@ import {
   type AgendaCardEnrichedItem,
 } from '../../core/member-home/member-home-todo.utils'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
-import { LastVisitedSeasonShortcutService } from '../../core/navigation/last-visited-season-shortcut.service'
 import { DemoTroupeJoinService } from '../../core/troupes/demo-troupe-join.service'
-import { saisonEventPath, troupeHubPath } from '../../core/navigation/troupe-routes'
+import { saisonEventPath } from '../../core/navigation/troupe-routes'
 import { MePreferencesApiService } from '../../core/account/me-preferences-api.service'
 import type { MemberGender } from '../../core/account/member-gender'
 import { AgendaEventCard } from '../../shared/participation/agenda-event-card'
@@ -46,7 +45,6 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
   private readonly memberBootstrap = inject(MemberShellBootstrapService)
   private readonly mePreferencesApi = inject(MePreferencesApiService)
   private readonly inboxBadge = inject(MemberInboxBadgeService)
-  protected readonly seasonShortcut = inject(LastVisitedSeasonShortcutService)
   private readonly router = inject(Router)
   private readonly snack = inject(MatSnackBar)
   private readonly demoJoin = inject(DemoTroupeJoinService)
@@ -82,25 +80,6 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
       void this.loadViewerGender()
     })
   }
-  protected readonly seasonStatsLink = computed(() => {
-    const slug = this.seasonShortcut.seasonSlug()?.trim()
-    return slug ? this.seasonShortcut.link() : null
-  })
-
-  protected readonly seasonStatsShortcutLabel = computed(() => {
-    const title = this.seasonShortcut.seasonTitle()?.trim()
-    return title ? `Stats · ${title}` : 'Stats saison'
-  })
-
-  protected readonly seasonStatsAriaLabel = computed(() => {
-    const title = this.seasonShortcut.seasonTitle()?.trim()
-    return title ? `Statistiques de la saison ${title}` : 'Statistiques saison'
-  })
-
-  protected readonly troupeHubLink = computed(() => {
-    const slug = this.seasonShortcut.troupeSlug()?.trim()
-    return slug ? troupeHubPath(slug) : null
-  })
   protected readonly visibleActions = computed(() =>
     this.actions().slice(0, MAX_VISIBLE_ACTIONS),
   )
@@ -158,7 +137,6 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
     this.loadingSession.set(false)
     void this.troupeContext.load()
     void this.loadViewerGender()
-    void this.seasonShortcut.refresh()
     void this.bootstrapInbox()
   }
 

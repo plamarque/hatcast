@@ -42,6 +42,14 @@ BUG-037 and BUG-029 have fixture-only corrections verified by the complete API s
 
 ### Historical registry
 
+### LIMIT-010 — Troupe hub navigation links depend on displayed content
+- **Status**: Closed locally on 2026-10-22 under the approved member-troupe-navigation contract; Patrice accepted the mobile recipe. Not deployed.
+- **Severity**: Low (alternative routes exist, but direct page navigation is conditional).
+- **Affected area**: `apps/web/src/app/pages/troupe-hub/troupe-hub.html` and `season-hub-mini-chart.utils.ts`.
+- **Observed behavior**: The selected season's "Voir tous les spectacles" link is rendered only with a nonempty upcoming-event teaser. "Voir toutes les stats" is inside `showSeasonMiniChart()`, whose chart builder returns null with fewer than three past events. Loading/error states can also hide these links. Selecting another season in the hub changes the dashboard rather than opening its workspace.
+- **Implemented behavior**: A compact group directly below the selected season title exposes agenda and permitted statistics links independently of teaser/chart content. Season guest restrictions remain enforced.
+- **Evidence/limits**: Template regression tests cover direct links without the mini-chart or upcoming teaser and during dashboard errors. Patrice confirmed human acceptance on 2026-10-22. Existing seasonal view controls and troupe breadcrumb are preserved.
+
 ### BUG-044 — Phone recovery fixture cannot always be restarted with another client open
 - **ID**: BUG-044
 - **Status**: Closed — repeated two-client checks pass; Patrice confirmed phone repeatability 2026-10-21; temporary fixture removed at closure

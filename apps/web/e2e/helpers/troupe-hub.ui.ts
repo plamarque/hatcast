@@ -113,7 +113,7 @@ export async function expectTroupeHubSeasonChartMobileGeometry(
 ): Promise<void> {
   const chart = page.locator('.troupe-hub__season-chart')
   const months = chart.locator('.member-profile__chart-months')
-  const cta = page.getByRole('link', { name: 'Voir toutes les stats', exact: true })
+  const cta = page.getByRole('link', { name: 'Statistiques', exact: true })
   await expect(months).toBeVisible()
   await expect(cta).toBeVisible()
 
@@ -175,7 +175,7 @@ export async function openTroupeHubSeasonStatsFromChart(
   troupeSlug: string,
   seasonSlug: string,
 ): Promise<void> {
-  const cta = page.getByRole('link', { name: 'Voir toutes les stats', exact: true })
+  const cta = page.getByRole('link', { name: 'Statistiques', exact: true })
   await expect(cta).toBeVisible({ timeout: 30_000 })
   await cta.click()
   const path = saisonWorkspacePath(troupeSlug, seasonSlug).replace(/\//g, '\\/')
@@ -225,7 +225,7 @@ export async function openTroupeHubTeaserWorkspace(
   troupeSlug: string,
   seasonSlug: string,
 ): Promise<void> {
-  const cta = page.getByRole('link', { name: 'Voir tous les spectacles', exact: true })
+  const cta = page.getByRole('link', { name: 'Voir la saison', exact: true })
   await expect(cta).toBeVisible({ timeout: 30_000 })
   await cta.click()
   await expect(page).toHaveURL(seasonWorkspaceUrlPattern(troupeSlug, seasonSlug), {

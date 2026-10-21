@@ -148,7 +148,7 @@ test.describe('Recette 3.25 — guest scoped access (E2E)', () => {
     await expect(page.locator('app-season-header')).toBeVisible()
   })
 
-  test('3.25-E2E-10 — Ruben home shortcut Ma saison opens last visited guest season', async ({
+  test('3.25-E2E-10 — Ruben Ma troupe menu opens the remembered invited season', async ({
     page,
     baseURL,
   }) => {
@@ -156,9 +156,13 @@ test.describe('Recette 3.25 — guest scoped access (E2E)', () => {
     await gotoSeasonWorkspace(page, fx, fx.rubenSeasonSlug)
     await page.goto('/accueil')
     await expect(page.locator('app-member-home-todo')).toBeVisible({ timeout: 30_000 })
-    const seasonShortcut = page.getByRole('link', { name: /Ma saison : Guest 325 Ruben/i })
-    await expect(seasonShortcut).toBeVisible({ timeout: 30_000 })
-    await seasonShortcut.click()
+    await page.locator('.member-nav__bottom button[aria-label="Ma troupe"]:visible, .member-nav__rail button[aria-label="Ma troupe"]:visible').click()
+    const entries = page.getByRole('menu').getByRole('menuitem')
+    await expect(entries).toHaveCount(3)
+    const seasonEntry = entries.nth(1)
+    await expect(seasonEntry).toHaveText('Guest 325 Ruben')
+    await expect(seasonEntry).toHaveAttribute('href', `/saison/${fx.troupeSlug}/${fx.rubenSeasonSlug}?view=agenda`)
+    await seasonEntry.click()
     await expect(page).toHaveURL(
       new RegExp(`/saison/${fx.troupeSlug}/${fx.rubenSeasonSlug}`),
     )
