@@ -3,10 +3,10 @@ import { MatSnackBar } from '@angular/material/snack-bar'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { Subject } from 'rxjs'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi, type Mock } from 'vitest'
 
 import { MePreferencesApiService } from '../../core/account/me-preferences-api.service'
-import { CompositionApiService } from '../../core/composition/composition-api.service'
+import { CompositionApiService, type CompositionResponse } from '../../core/composition/composition-api.service'
 import {
   DrawPolicyApiService,
   type EffectiveDrawPolicy,
@@ -1310,6 +1310,206 @@ describe('EventEquipeTab', () => {
     await vi.waitFor(() => {
       expect(unlockComposition).toHaveBeenCalledWith('season-1', 'event-1')
       expect(emitted).toHaveBeenCalled()
+    })
+  })
+
+  describe('unlock conflict recovery', () => {
+    const apiError = "La composition n'est pas validée"
+    let locked: CompositionResponse
+    let draft: CompositionResponse
+    let emitted: Mock<(composition: CompositionResponse) => void>
+
+    beforeEach(() => {
+      locked = {
+        publishedAt: '2026-01-01T00:00:00.000Z',
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        slots: (['confirmed', 'pending', 'declined'] as const).map((status, index) => ({
+          roleKey: 'player',
+          slotIndex: index,
+          participantId: `p-${index}`,
+          participantDisplayName: `Participant ${index}`,
+          participationStatus: status,
+        })),
+      }
+      draft = { ...locked, validatedAt: null, visibility: 'publishedDraft' }
+      // Real event pages provide composition through the parent, without an initial child GET.
+      fixture.componentRef.setInput('event', ev({ roleSlots: { ...emptyRoleSlots(), player: 3 } }))
+      fixture.componentRef.setInput('canManageComposition', true)
+      fixture.componentRef.setInput('compositionLoadManagedByParent', true)
+      fixture.componentRef.setInput('parentCompositionLoaded', true)
+      fixture.componentRef.setInput('parentComposition', locked)
+      emitted = vi.fn((composition: CompositionResponse) => {
+        fixture.componentRef.setInput('parentComposition', composition)
+      })
+      fixture.componentInstance.compositionPublished.subscribe(emitted)
+      unlockComposition.mockResolvedValue({ ok: false, status: 409, errorMessage: apiError })
+      fixture.detectChanges()
+    })
+
+    function clickUnlock(): void {
+      const button = fixture.nativeElement.querySelector('.event-equipe-tab__unlock') as HTMLButtonElement
+      expect(button).not.toBeNull()
+      button.click()
+    }
+
+    it('reconciles the parent and restores draft actions while preserving assignments and statuses', async () => {
+      getComposition.mockResolvedValue({ ok: true, status: 200, data: draft })
+      clickUnlock()
+
+      await vi.waitFor(() => {
+        expect(getComposition).toHaveBeenCalledWith('season-1', 'event-1')
+        expect(emitted).toHaveBeenCalledExactlyOnceWith(draft)
+        expect(snackOpen).toHaveBeenCalledWith('Composition déjà déverrouillée.', 'OK', { duration: 4000 })
+        fixture.detectChanges()
+        expect(fixture.nativeElement.querySelector('.event-equipe-tab__unlock')).toBeNull()
+        expect(fixture.nativeElement.textContent).toContain('Publier')
+        expect(fixture.nativeElement.textContent).not.toContain('Annoncer la compo')
+      })
+      expect(unlockComposition).toHaveBeenCalledTimes(1)
+      expect(dialogOpen).not.toHaveBeenCalled()
+    })
+
+    it('restores an organizer-only draft without publishing it', async () => {
+      const organizerDraft = { ...draft, publishedAt: null, visibility: 'organizerDraft' }
+      getComposition.mockResolvedValue({ ok: true, status: 200, data: organizerDraft })
+      clickUnlock()
+      await vi.waitFor(() => {
+        expect(emitted).toHaveBeenCalledExactlyOnceWith(organizerDraft)
+        expect(snackOpen).toHaveBeenCalledWith('Composition déjà déverrouillée.', 'OK', { duration: 4000 })
+        fixture.detectChanges()
+        expect(fixture.nativeElement.textContent).toContain('Publier')
+        expect(fixture.nativeElement.textContent).not.toContain('Annoncer la compo')
+      })
+      expect(publishComposition).not.toHaveBeenCalled()
+      expect(validateComposition).not.toHaveBeenCalled()
+    })
+
+    it('synchronizes an absent composition without claiming it was already unlocked', async () => {
+      const absent = { validatedAt: null, visibility: 'none', slots: [] }
+      unlockComposition.mockResolvedValue({ ok: false, status: 409, errorMessage: 'Aucune composition à déverrouiller' })
+      getComposition.mockResolvedValue({ ok: true, status: 200, data: absent })
+      clickUnlock()
+      await vi.waitFor(() => {
+        expect(emitted).toHaveBeenCalledExactlyOnceWith(absent)
+        expect(snackOpen).toHaveBeenCalledWith('Aucune composition à déverrouiller', 'OK', { duration: 6000 })
+        fixture.detectChanges()
+        expect(fixture.nativeElement.querySelector('.event-equipe-tab__unlock')).toBeNull()
+      })
+      expect(snackOpen).toHaveBeenCalledTimes(1)
+    })
+
+    it.each(['unlock', 'refresh'])('ignores the pending %s response after destruction', async (pending) => {
+      let finish!: (value: unknown) => void
+      const response = new Promise((resolve) => { finish = resolve })
+      if (pending === 'unlock') {
+        unlockComposition.mockReturnValue(response)
+      } else {
+        getComposition.mockReturnValue(response)
+      }
+      clickUnlock()
+      if (pending === 'refresh') {
+        await vi.waitFor(() => expect(getComposition).toHaveBeenCalledTimes(1))
+      }
+      fixture.destroy()
+      finish(pending === 'unlock'
+        ? { ok: false, status: 409, errorMessage: apiError }
+        : { ok: true, status: 200, data: draft })
+      await response
+      // Flush the operation continuation before checking there are no late side effects.
+      await Promise.resolve()
+      expect(emitted).not.toHaveBeenCalled()
+      expect(snackOpen).not.toHaveBeenCalled()
+      expect(getComposition).toHaveBeenCalledTimes(pending === 'unlock' ? 0 : 1)
+    })
+
+    it('synchronizes a still-locked response and keeps the original conflict visible', async () => {
+      const latest = { ...locked, validatedAt: '2026-02-01T00:00:00.000Z' }
+      getComposition.mockResolvedValue({ ok: true, status: 200, data: latest })
+      clickUnlock()
+
+      await vi.waitFor(() => {
+        expect(emitted).toHaveBeenCalledExactlyOnceWith(latest)
+        expect(snackOpen).toHaveBeenCalledWith(apiError, 'OK', { duration: 6000 })
+        fixture.detectChanges()
+        expect(fixture.nativeElement.querySelector('.event-equipe-tab__unlock')).not.toBeNull()
+      })
+      expect(snackOpen).toHaveBeenCalledTimes(1)
+    })
+
+    it.each([0, 403, 500])('keeps the conflict and local state when refresh fails with %s', async (status) => {
+      getComposition.mockResolvedValue({ ok: false, status })
+      clickUnlock()
+
+      await vi.waitFor(() => {
+        expect(getComposition).toHaveBeenCalledTimes(1)
+        expect(snackOpen).toHaveBeenCalledWith(apiError, 'OK', { duration: 6000 })
+        fixture.detectChanges()
+        expect((fixture.nativeElement.querySelector('.event-equipe-tab__unlock') as HTMLButtonElement).disabled).toBe(false)
+      })
+      expect(emitted).not.toHaveBeenCalled()
+      expect(snackOpen).toHaveBeenCalledTimes(1)
+    })
+
+    it.each([0, 403, 500])('does not refresh or claim success for an unlock error %s', async (status) => {
+      unlockComposition.mockResolvedValue({ ok: false, status, errorMessage: 'Refus' })
+      clickUnlock()
+
+      await vi.waitFor(() => {
+        expect(snackOpen).toHaveBeenCalledWith('Refus', 'OK', { duration: 6000 })
+      })
+      expect(getComposition).not.toHaveBeenCalled()
+      expect(emitted).not.toHaveBeenCalled()
+    })
+
+    it('keeps interactions blocked until reconciliation finishes', async () => {
+      let finishRefresh!: (value: unknown) => void
+      getComposition.mockReturnValue(new Promise((resolve) => { finishRefresh = resolve }))
+      const button = fixture.nativeElement.querySelector('.event-equipe-tab__unlock') as HTMLButtonElement
+      button.click()
+      // A second click before rendering must also be refused by the handler.
+      button.click()
+      await vi.waitFor(() => expect(getComposition).toHaveBeenCalledTimes(1))
+      fixture.detectChanges()
+      expect(fixture.nativeElement.querySelector('.event-equipe-tab__unlock')).toBeNull()
+      expect(fixture.nativeElement.querySelector('.event-equipe-tab__busy-overlay')).not.toBeNull()
+      expect((fixture.nativeElement.querySelector('.event-equipe-tab__format-edit') as HTMLButtonElement).disabled).toBe(true)
+      expect(unlockComposition).toHaveBeenCalledTimes(1)
+      expect(snackOpen).not.toHaveBeenCalled()
+      finishRefresh({ ok: true, status: 200, data: draft })
+      await vi.waitFor(() => expect(emitted).toHaveBeenCalledWith(draft))
+    })
+
+    it.each(['event', 'season'])('ignores a recovery response after navigating to another %s', async (changed) => {
+      let finishRefresh!: (value: unknown) => void
+      getComposition.mockReturnValue(new Promise((resolve) => { finishRefresh = resolve }))
+      clickUnlock()
+      await vi.waitFor(() => expect(getComposition).toHaveBeenCalledTimes(1))
+      fixture.componentRef.setInput(changed === 'event' ? 'event' : 'seasonId', changed === 'event' ? ev({ id: 'event-2' }) : 'season-2')
+      fixture.detectChanges()
+      finishRefresh({ ok: true, status: 200, data: draft })
+      await vi.waitFor(() => {
+        fixture.detectChanges()
+        expect((fixture.nativeElement.querySelector('.event-equipe-tab__unlock') as HTMLButtonElement).disabled).toBe(false)
+      })
+      expect(emitted).not.toHaveBeenCalled()
+      expect(snackOpen).not.toHaveBeenCalled()
+    })
+
+    it.each(['event', 'season'])('does not start recovery if the %s changes before the unlock response', async (changed) => {
+      let finishUnlock!: (value: unknown) => void
+      unlockComposition.mockReturnValue(new Promise((resolve) => { finishUnlock = resolve }))
+      clickUnlock()
+      fixture.componentRef.setInput(changed === 'event' ? 'event' : 'seasonId', changed === 'event' ? ev({ id: 'event-2' }) : 'season-2')
+      fixture.detectChanges()
+      finishUnlock({ ok: false, status: 409, errorMessage: apiError })
+      await vi.waitFor(() => {
+        fixture.detectChanges()
+        expect((fixture.nativeElement.querySelector('.event-equipe-tab__unlock') as HTMLButtonElement).disabled).toBe(false)
+      })
+      expect(getComposition).not.toHaveBeenCalled()
+      expect(emitted).not.toHaveBeenCalled()
+      expect(snackOpen).not.toHaveBeenCalled()
     })
   })
 

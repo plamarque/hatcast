@@ -51,6 +51,17 @@ BUG-037 and BUG-029 have fixture-only corrections verified by the complete API s
 
 ### Historical registry
 
+### BUG-045 — Unlock rejected while composition appears validated
+- **Status**: Closed locally on 2026-10-22 — Patrice accepted the phone recipe and authorized local closure. Not deployed.
+- **Severity**: Medium (conditional organizer blockage after concurrent unlock).
+- **Affected area**: Event Équipe tab, composition unlock lifecycle.
+- **Observed behavior**: Patrice's CCAS screen retained “Annoncer la compo” and “Déverrouiller” after the API returned “La composition n'est pas validée”. Repeated clicks could not recover.
+- **Confirmed cause**: The activity-journal screenshot supplied by Patrice shows “Composition déverrouillée” at **15:42:35**, attributed to Nicolas (N), after Patrice loaded Équipe at approximately **15:42:09** and before his first rejected unlock around **15:43:37**. Patrice retained a formerly valid screen while Nicolas changed the server state. The journal also shows Nicolas assigning Antoine at 15:43:13, assigning/releasing Viviane at 15:43:22/26, and assigning Aurélien at 15:45:16. This is a confirmed concurrent-edit case; its production frequency has not been measured.
+- **Fix**: On unlock HTTP 409, reload the authoritative composition, propagate it to the parent, and restore draft actions. Acknowledge an already-unlocked draft only after a successful read. Preserve assignments/statuses, retain other errors, ignore responses after navigation/destruction, and keep interactions blocked through recovery. The backend contract is unchanged.
+- **Verification**: 158 tests passed across the Équipe component and event-detail parent, including 18 new recovery cases; production build passed. Independent review findings addressed. Patrice verified the prepared two-tab scenario on his phone and explicitly accepted closure. Existing Material controls and layout are reused, with no checklist waiver.
+- **Replay evidence**: Patrice's [recording](https://eu.posthog.com/project/193437/replay/home?sessionRecordingId=01a163d8-be3e-7feb-bb5b-4b0c4c7ba97d), release `2.6.3:c93d2c81`, shows Équipe GET 200 around 00:18, then three unlock conflicts at 01:46, 01:50 and 02:12 with no subsequent composition refresh. These refused requests did not perform an unlock. Nicolas's [later recording](https://eu.posthog.com/project/193437/replay/home?sessionRecordingId=01a16416-762e-7413-b635-ade2e3c4d720) starts at 16:49:16 Paris on the same event and shows publication of the spectacle, an already editable draft, then composition validation. The journal screenshot places validation at 16:50:03. The later replay does not contain the earlier unlock; the journal resolves that provenance.
+- **Scope/limits**: Recovery is validated for this incident pattern. This does not add live synchronization or prevent concurrent edits. Production records were inspected through the provided replays and screenshots; no production data was modified.
+
 ### LIMIT-010 — Troupe hub navigation links depend on displayed content
 - **Status**: Closed locally on 2026-10-22 under the approved member-troupe-navigation contract; Patrice accepted the mobile recipe. Not deployed.
 - **Severity**: Low (alternative routes exist, but direct page navigation is conditional).
