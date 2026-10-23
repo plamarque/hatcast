@@ -1,0 +1,20 @@
+{
+  "version": "2.7.0",
+  "date": "__BUILD_DATE__",
+  "source": "curated-release",
+  "notes": "Simpler troupe navigation and recovery improvements",
+  "changes": [
+    "✨ Ma troupe — accède directement à ta troupe, à ta saison et à ses statistiques depuis le menu.",
+    "🔧 Accueil — les accès rapides rejoignent « Ma troupe » pour alléger la page.",
+    "🔧 Accueil — « Tout est à jour » s’efface après lecture et ne se répète plus à chaque retour.",
+    "🐛 Navigation — si un écran ne charge plus, une fenêtre te propose de mettre HatCast à jour.",
+    "🐛 Composition — si un autre organisateur déverrouille l’équipe, ton écran retrouve les actions disponibles."
+  ],
+  "changes_en": [
+    "✨ My team — open your team, season and season statistics directly from the navigation menu.",
+    "🔧 Home — quick links move into “My team” to simplify your home page.",
+    "🔧 Home — “You're all caught up” fades after reading and no longer repeats on every visit.",
+    "🐛 Navigation — if a screen fails to load, a window offers to update HatCast.",
+    "🐛 Lineup — if another organizer unlocks the lineup, your screen restores the available actions."
+  ]
+}
