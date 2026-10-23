@@ -3,6 +3,19 @@
 ## [2.7.0] - 2026-10-23
 
 ### ✨ New Features
+- feat(home): Integrate five upcoming spectacles
+- feat(home): Show five upcoming spectacles
+
+### 📝 Other Changes
+- chore(v2): promote v2 to staging-v2
+- chore(release): Add home preview to v2.7.0 notes
+- chore(v2): sync release v2.7.0-rc.1 artifacts to v2
+
+---
+
+## [2.7.0] - 2026-10-23
+
+### ✨ New Features
 - feat(home): Stabilize caught-up feedback
 - feat(nav): Simplify troupe navigation
 - feat(story): merge 11-7-observabilite-des-panneaux-de-chances-posthog

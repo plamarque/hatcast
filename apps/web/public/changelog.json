@@ -4,7 +4,7 @@
     "date": "2026-10-23",
     "changes": [
       "✨ Ma troupe — accède directement à ta troupe, à ta saison et à ses statistiques depuis le menu.",
-      "🔧 Accueil — les accès rapides rejoignent « Ma troupe » pour alléger la page.",
+      "✨ Accueil — retrouve jusqu’à cinq spectacles à venir et ouvre l’agenda avec « Voir plus ».",
       "🔧 Accueil — « Tout est à jour » s’efface après lecture et ne se répète plus à chaque retour.",
       "🐛 Navigation — si un écran ne charge plus, une fenêtre te propose de mettre HatCast à jour.",
       "🐛 Composition — si un autre organisateur déverrouille l’équipe, ton écran retrouve les actions disponibles."
