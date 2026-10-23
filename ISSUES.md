@@ -19,8 +19,6 @@ BUG-041 (manual PWA application-version check), and BUG-042 (analytics bootstrap
 
 BUG-039 (PR #15: denied sessionStorage access escapes chunk recovery handler).
 
-BUG-POSTHOG-002 (production promotion observability rejected by capture acceptance guard).
-
 BUG-038 (intermittent composition smoke assertions observed on v2.6.3-rc.2).
 
 BUG-BMAD-001 (accented versus ASCII story keys in sprint controller).
@@ -33,6 +31,8 @@ stability), LIMIT-004 (seed roster), BUG-008 (push preferences), LIMIT-001
 integration database).
 
 ### Pending verification or operational follow-up
+
+BUG-POSTHOG-002 has a reviewed local capture acceptance fix with passing regression tests; corrected CI execution remains pending.
 
 BUG-033 needs an authorised production data repair. BUG-027, BUG-026, BUG-025,
 BUG-024, and BUG-021 have local fixes but still require their stated review,
@@ -137,12 +137,28 @@ BUG-037 and BUG-029 have fixture-only corrections verified by the complete API s
 
 ### BUG-POSTHOG-002 — Production promotion capture fails its acceptance guard
 - **ID**: BUG-POSTHOG-002
-- **Status**: Open — observed after successful v2.6.3 production deployment on 2026-10-18
+- **Status**: Fixed locally (2026-10-23) — local review found no blocking issue and regression tests pass; corrected CI execution pending. Historical deployment workflows remain unchanged.
+- **Recurrence (2026-10-23)**: Production 2.7.0 [workflow 39910450325](https://github.com/plamarque/hatcast/actions/runs/39910450325), commit `37e1bfd27c9107aaca3d44dd796255de1ed70187`: deploy succeeded; revision `hatcast-v2-00026-wn2` serves 100% of traffic. The PostHog job fails with the same acceptance-guard message. Public version 2.7.0 / production channel, health UP and PWA smoke passed in the historical release evidence. This observability failure did not undo deployment.
 - **Severity**: Medium (release observability incomplete; deployment remains successful)
 - **Affected area**: `scripts/v2/posthog-lifecycle-dashboard.mjs`, production workflow `posthog-lifecycle` job.
 - **Observed behavior**: [Workflow 39130429450](https://github.com/plamarque/hatcast/actions/runs/39130429450), commit `a5fb7f487d73672a3388e4b32ef200c4f314d1aa`: deployment succeeded, revision `hatcast-v2-00024-5n9` serves 100% of traffic, but lifecycle synchronization failed with `PostHog promotion capture was not accepted without quota limits`. Overall workflow is red despite its successful deployment job. Read-only checks returned version 2.6.3, production channel, and health UP.
 - **Expected behavior**: Promotion capture is accepted without quota limitation and lifecycle dashboard synchronization completes.
 - **Notes/context**: The guard raises for either `status !== 1` or a nonempty `quota_limited` list; the redacted log does not distinguish those cases, so a quota exhaustion diagnosis is not established. Dashboard provisioning is not reached after this error. No retry, quota/billing change, credential change, or production rollback was performed. The prior staging E1 gate was green; user approved production using the existing human recipe and requested no repeat tests.
+- **Established defect**: The guard requires numeric `1`, whereas the EU capture success contract returns the string `"Ok"` ([official response contract](https://posthog.com/docs/api#responses)). The [capture implementation](https://github.com/PostHog/posthog/blob/master/rust/capture/src/api.rs) derives Serde serialization for enum `CaptureResponseCode::Ok`: its Rust discriminant `= 1` does not make its JSON serialization numeric. Thus even an accepted, non-limited response is rejected before dashboard provisioning. HTTP success alone remains insufficient because quota-limited captures also return HTTP 200.
+- **Remote evidence (read-only, 2026-10-23)**: In EU project `193437`, the SQL below returned exactly two rows: `2.7.0:20d972b0`, count `1`, first promotion `2026-10-23T06:20:55Z`; `2.6.3:c93d2c81`, count `1`, first promotion `2026-10-18T13:16:04Z`. The 2.7.0 timestamp equals the successful `deploy` job's completion in the saved `ci-final.json`. Both real promotion events were ingested despite failed observability jobs; no new capture was required. The existing lifecycle dashboard `1032942` also reads 2.7.0 as its latest release reference. GitHub production environment metadata confirms the three expected secrets exist (`HATCAST_POSTHOG_PROJECT_API_KEY`, `HATCAST_POSTHOG_PERSONAL_API_KEY`, `HATCAST_POSTHOG_PROJECT_ID`), with no project-ID variable override. Secret values were neither fetched nor logged; existence alone does not attest current private-key permissions.
+- **Production identity cross-check (2026-10-23)**: A fresh read of `https://hatcast.app/version.txt` returns `2.7.0`, `Production build - 2026-10-23`, `Git: 20d972b0`. `parseRelease` therefore derives exactly the ingested reference `2.7.0:20d972b0`, not an RC version. Local tags `v2.7.0` and `v2.7.0-rc.2` both resolve to promotion commit `37e1bfd27c9107aaca3d44dd796255de1ed70187`; the event identity uses the embedded version-file Git field, not the tag commit SHA. Docker patches the channel line for production without changing this identity. No backfill is necessary for this release reference. This does not attest every client event or execution of the corrected synchronization job.
+- **Correction**: Extract capture acceptance into `capturePromotion`; accept exact `"Ok"` and legacy numeric `1`, only with absent or empty-array quota metadata. Nonempty quota arrays, malformed quota metadata, unknown status, HTTP failure, invalid JSON and transport failure remain errors and stop provisioning. Diagnostics contain only HTTP code, a fixed status classification, and quota absence/invalidity/count; no raw body, status value, resource names, token or authentication headers. Payload identity, promotion date, ownership and deployment gates are unchanged.
+- **Verification**: `node --test scripts/v2/posthog-lifecycle-dashboard.test.mjs` passes all 8 tests, including EU/legacy success, quota rejection, malformed replies, HTTP/JSON/transport errors, sensitive diagnostic redaction, and `--apply` ordering (provision after acceptance; no provisioning after rejection). Existing ownership/idempotent-provisioning and no-ingestion validation tests remain green. Manifest preview and `git diff --check` pass.
+- **Limits / delivery**: The historical response bodies and quota fields were not recorded and cannot be reconstructed; do not claim a captured historical `quota_limited=[]` or a full billing audit. The protocol mismatch is established by the official contract/source and the real ingested release references. No isolated `--validate` run was needed: it would mutate managed dashboard objects and would not exercise capture. No remote mutation, event, workflow rerun, release/promotion script, tag, traffic change, credentials/permissions/billing change, push or integration was performed for this fix. Current private API access and end-to-end success of the corrected CI job remain unverified. Historical reports under `/private/tmp/hatcast-2.7.0-prod-proof/` were read only and are not evidence that this correction has shipped.
+
+Read-only diagnostic query (no People fields, distinct IDs or raw properties):
+
+```sql
+SELECT properties.release_id AS release_id, count() AS occurrences,
+       min(timestamp) AS first_promoted_at
+FROM events WHERE event = 'hatcast_release_promoted'
+GROUP BY release_id ORDER BY first_promoted_at DESC LIMIT 10
+```
 
 ### BUG-038 — Composition smoke tests intermittently require retry
 - **ID**: BUG-038
