@@ -30,6 +30,12 @@ The complete intended contract, including short labels, fallback states and acce
 
 ---
 
+## Home upcoming shows (V2)
+
+The member home displays a stable preview of at most five upcoming shows in chronological order across accessible troupes and seasons, followed by a **Voir plus** link to `/agenda`. The page scrolls naturally when the preview exceeds the viewport; there is no nested scrolling region and the link may appear below the fold. Cards retain their existing layout, complete title, participation controls and event navigation. Resizing does not change the preview count. Home requests a batch of ten upcoming shows from the existing agenda API. The inbox first show remains available while the agenda loads or if that additional request fails. A successful empty agenda response restores the no-upcoming state. Existing empty and no-participation states remain unchanged.
+
+---
+
 ## Administration — required capabilities (V2 target)
 
 Normative intent for **administration** flows: **visual design is not prescribed** (Angular Material–typical or equivalent is acceptable). The product **must** expose the following capabilities to users with the appropriate roles (exact labels and routes in DOMAIN / permissions):

@@ -1,7 +1,7 @@
 .member-home-todo {
   max-width: 56rem;
   margin: 0 auto;
-  padding: 1rem 1rem 2rem;
+  padding: 1rem 1rem 0.5rem;
 }
 
 .member-home-todo__header {
@@ -397,4 +397,22 @@
 
 .member-home-todo__see-all {
   margin-top: 0.5rem;
+}
+
+.member-home-todo__upcoming {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.member-home-todo__upcoming-section {
+  margin-bottom: 0;
+}
+
+.member-home-todo__upcoming-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+
+  a { min-height: 3rem; }
 }
