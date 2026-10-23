@@ -51,6 +51,14 @@ BUG-037 and BUG-029 have fixture-only corrections verified by the complete API s
 
 ### Historical registry
 
+### BUG-046 — Guest navigation E2E expects an incomplete fixture title
+- **Status**: Fixed locally — complete E2E suite passed (100 passed, 4 skipped); CI verification pending.
+- **Severity**: Low (release verification blocked; no application defect established).
+- **Affected area**: `apps/web/e2e/recette-3-25.spec.ts`, scenario 3.25-E2E-10.
+- **Observed behavior**: CI run [39851377774](https://github.com/plamarque/hatcast/actions/runs/39851377774) fails because the season menu displays `Guest 325 Ruben EVENT` while the assertion expects `Guest 325 Ruben`.
+- **Expected behavior**: Assert the complete season title created by `E2eStory325FixtureService`, preserving the destination URL and navigation checks.
+- **Cause and correction**: The fixture explicitly creates `Guest 325 Ruben EVENT`; the menu correctly uses the season title. Correct only the exact text expectation; no production behavior or fixture changes.
+
 ### BUG-045 — Unlock rejected while composition appears validated
 - **Status**: Closed locally on 2026-10-22 — Patrice accepted the phone recipe and authorized local closure. Not deployed.
 - **Severity**: Medium (conditional organizer blockage after concurrent unlock).

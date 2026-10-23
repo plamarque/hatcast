@@ -160,7 +160,7 @@ test.describe('Recette 3.25 — guest scoped access (E2E)', () => {
     const entries = page.getByRole('menu').getByRole('menuitem')
     await expect(entries).toHaveCount(3)
     const seasonEntry = entries.nth(1)
-    await expect(seasonEntry).toHaveText('Guest 325 Ruben')
+    await expect(seasonEntry).toHaveText('Guest 325 Ruben EVENT')
     await expect(seasonEntry).toHaveAttribute('href', `/saison/${fx.troupeSlug}/${fx.rubenSeasonSlug}?view=agenda`)
     await seasonEntry.click()
     await expect(page).toHaveURL(
