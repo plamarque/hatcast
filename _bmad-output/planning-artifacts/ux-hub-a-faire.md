@@ -163,23 +163,11 @@ flowchart TB
 
 **Empty (section masquée si 0 item) :** ne pas afficher le bloc « Actions requises » — passer directement à la zone 2.
 
-### Zone 2 — Prochain spectacle (focus)
+### Zone 2 — Upcoming shows (2026-10-22, amended after UX discussion)
 
-Carte **unique** (le plus proche dans le temps, toutes troupes).
+The heading is **Prochains spectacles**. Display up to **five** complete agenda cards in chronological order across accessible troupes and seasons, followed by a **Voir plus** Material link to `/agenda`, including when all available shows are already presented.
 
-```
-┌────────────────────────────────────────────────────────────┐
-│  Prochain spectacle                                        │
-│  ┌──────────────────────────────────────────────────────┐│
-│  │ 30 mai · 20h30                                       ││
-│  │ Match La BIM vs La Malice                            ││
-│  │ La BIM · Saison 2025-26          [Dispo ?] [Ouvrir] ││
-│  └──────────────────────────────────────────────────────┘│
-└────────────────────────────────────────────────────────────┘
-```
-
-- Réutiliser le visuel **agenda-card** existant (cohérence).
-- Si aucun événement à venir : empty dédié (voir ci-dessous).
+The **whole page scrolls naturally** when needed. Do not introduce an internal scrolling area or reduce, truncate or otherwise compact the established cards to fit more shows. A partly visible next card provides a natural scrolling cue. The count stays stable on resize/orientation changes and when required actions or caught-up feedback occupy room. “Voir plus” follows the last card and may be below the fold. Preserve event and participation actions, required-action priority and existing empty states. The request loads ten candidates; render only the first five. Keep the inbox first-card fallback while loading or on request failure; reconcile a successful empty agenda response to the no-upcoming state.
 
 ### Zone 3 — Accès rapides (secondaire)
 
@@ -200,7 +188,7 @@ Rangée de **chips** ou **list items** (pas des onglets de nav).
 |-----|-------|-------|--------------|----------------|
 | Pas de participation | Rien en attente pour l’instant | Tu n’es inscrit·e à aucune ligue. | Découvrir les troupes → `/troupes#decouvrir` | — |
 | Participation mais 0 action et 0 événement | Tout est à jour | **Rien ne te retient pour l'instant.** On te préviendra dès qu'un spectacle arrive. | Mes troupes | Mon agenda (vide) |
-| 0 action, ≥1 événement | Tout est à jour | **Tu es à jour pour tes spectacles.** Le prochain est juste en dessous. | — | Mon agenda complet |
+| 0 action, ≥1 événement | Tout est à jour | **Tu es à jour pour tes spectacles.** Les prochains sont juste en dessous. | — | Mon agenda complet |
 | Erreur chargement | Impossible de charger | Réessayer | — | — |
 
 **Ton :** tutoiement, aligné agenda actuel — règles détaillées (possessifs, titres vs messages) : [ux-voice-and-tone.md](./ux-voice-and-tone.md).

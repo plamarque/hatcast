@@ -6,7 +6,7 @@ import { Router, RouterLink } from '@angular/router'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
 import { MemberShellBootstrapService } from '../../core/member-shell/member-shell-bootstrap.service'
-import type { UserAgendaItem } from '../../core/agenda/user-agenda-api.service'
+import { UserAgendaApiService, type UserAgendaItem } from '../../core/agenda/user-agenda-api.service'
 import type { InboxAction, MeInboxResponse } from '../../core/inbox/me-inbox-api.service'
 import { MemberInboxBadgeService } from '../../core/inbox/member-inbox-badge.service'
 import { InboxFeedbackService } from '../../core/inbox/inbox-feedback.service'
@@ -50,6 +50,8 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
   private readonly router = inject(Router)
   private readonly snack = inject(MatSnackBar)
   private readonly demoJoin = inject(DemoTroupeJoinService)
+  private readonly agendaApi = inject(UserAgendaApiService)
+  private agendaGeneration = 0
 
   protected readonly joiningDemo = this.demoJoin.joining
 
@@ -66,6 +68,7 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
   protected readonly actions = signal<InboxAction[]>([])
   protected readonly completedGhosts = signal<CompletedGhost[]>([])
   protected readonly nextEvent = signal<AgendaCardEnrichedItem | null>(null)
+  protected readonly upcomingEvents = signal<AgendaCardEnrichedItem[]>([])
   protected readonly noParticipation = signal(false)
   protected readonly referenceNow = signal(new Date())
   protected readonly viewerGender = signal<MemberGender | undefined>(undefined)
@@ -270,8 +273,27 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
     this.noParticipation.set(data.noParticipation ?? false)
     const next = data.nextEvent
     this.nextEvent.set(next ? enrichAgendaCardFields(next) : null)
+    if (!next || data.noParticipation) this.upcomingEvents.set([])
+    else if (this.upcomingEvents()[0]?.eventId !== next.eventId) {
+      this.upcomingEvents.set([enrichAgendaCardFields(next)])
+    }
+    const generation = ++this.agendaGeneration
+    if (next && !data.noParticipation) void this.loadUpcomingEvents(generation)
     if (confirmed) this.detectCompletedGhosts(data.actions)
     this.inboxLoaded.set(true)
+  }
+
+  private async loadUpcomingEvents(generation: number): Promise<void> {
+    const response = await this.agendaApi.listAgenda({ page: 0, size: 10, scope: 'upcoming' })
+    if (this.destroyed || generation !== this.agendaGeneration) return
+    if (response.status === 401) {
+      await this.redirectToLogin()
+      return
+    }
+    if (!response.ok || !response.data) return
+    const events = response.data.content.slice(0, 5).map(enrichAgendaCardFields)
+    this.upcomingEvents.set(events)
+    this.nextEvent.set(events[0] ?? null)
   }
 
   protected openAction(action: InboxAction): void {
@@ -343,11 +365,25 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
   }
 
   protected async openAvailability(item: UserAgendaItem): Promise<void> {
-    if (await this.eventActions.openAvailability(item)) await this.loadInbox()
+    const result = await this.eventActions.openAvailability(item)
+    if (result) {
+      this.updatePreviewItem(result.item)
+      await this.loadInbox()
+    }
   }
 
   protected async openParticipation(item: UserAgendaItem): Promise<void> {
-    if (await this.eventActions.openParticipation(item, this.viewerGender())) await this.loadInbox()
+    const result = await this.eventActions.openParticipation(item, this.viewerGender())
+    if (result) {
+      this.updatePreviewItem(result.item)
+      await this.loadInbox()
+    }
+  }
+
+  private updatePreviewItem(item: UserAgendaItem): void {
+    const enriched = enrichAgendaCardFields(item)
+    this.upcomingEvents.update(events => events.map(event => event.eventId === item.eventId ? enriched : event))
+    if (this.nextEvent()?.eventId === item.eventId) this.nextEvent.set(enriched)
   }
 
   protected isAvailabilityAction(action: InboxAction): boolean {

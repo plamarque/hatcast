@@ -6,7 +6,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { provideRouter, Router } from '@angular/router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { UserAgendaItem } from '../../core/agenda/user-agenda-api.service'
+import { UserAgendaApiService, type UserAgendaItem } from '../../core/agenda/user-agenda-api.service'
 import { MePreferencesApiService } from '../../core/account/me-preferences-api.service'
 import { AuthApiService } from '../../core/auth/auth-api.service'
 import { MemberShellBootstrapService } from '../../core/member-shell/member-shell-bootstrap.service'
@@ -24,6 +24,7 @@ import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-re
 import { AgendaParticipationStatus } from '../../shared/participation/agenda-participation-status'
 import { MemberHomeTodo } from './member-home-todo'
 import { AgendaEventActionsService } from '../../shared/participation/agenda-event-actions.service'
+import { AgendaEventCard } from '../../shared/participation/agenda-event-card'
 
 async function settle(fixture: ComponentFixture<MemberHomeTodo>): Promise<void> {
   fixture.detectChanges()
@@ -54,9 +55,11 @@ describe('MemberHomeTodo', () => {
   let navigateSpy: ReturnType<typeof vi.fn>
   let snack: { open: ReturnType<typeof vi.fn> }
   let seasonResolver: { resolveSeasonSlug: ReturnType<typeof vi.fn> }
+  let listAgenda: ReturnType<typeof vi.fn>
 
   beforeEach(async () => {
     localStorage.clear()
+    listAgenda = vi.fn().mockResolvedValue({ ok: false, status: 503 })
     seasonResolver = {
       resolveSeasonSlug: vi.fn().mockResolvedValue({ kind: 'not-found' }),
     }
@@ -103,6 +106,7 @@ describe('MemberHomeTodo', () => {
         { provide: AuthApiService, useValue: auth },
         { provide: MemberShellBootstrapService, useValue: memberBootstrap },
         { provide: MeInboxApiService, useValue: inboxApi },
+        { provide: UserAgendaApiService, useValue: { listAgenda } },
         {
           provide: MePreferencesApiService,
           useValue: { getPreferences, cacheRevision: () => 0 },
@@ -724,6 +728,96 @@ describe('MemberHomeTodo', () => {
     expect(card?.querySelector('.agenda-card__badge--meta')).toBeFalsy()
     expect(card?.querySelector('.agenda-card__badge--season')).toBeFalsy()
     expect(card?.querySelector('.agenda-card__meta-loc mat-icon')).toBeTruthy()
+  })
+
+  it('loads upcoming cards without filters and keeps the agenda link', async () => {
+    const first = agendaItem('first', 'Premier spectacle', isoInDays(2), 'available')
+    const second = agendaItem('second', 'Deuxième spectacle', isoInDays(4), 'available')
+    inboxApi.getInbox.mockResolvedValue({ ok: true, status: 200, data: inboxResponse([], first) })
+    listAgenda.mockResolvedValue({ ok: true, status: 200, data: { content: [first, second] } })
+    await settle(fixture)
+    expect(listAgenda).toHaveBeenCalledWith({ page: 0, size: 10, scope: 'upcoming' })
+    const cards = fixture.nativeElement.querySelectorAll('[data-testid="todo-next-event-card"]')
+    expect(cards.length).toBe(2)
+    expect(cards[1].textContent).toContain('Deuxième spectacle')
+    const link = fixture.nativeElement.querySelector('[data-testid="todo-upcoming-see-more"]')
+    expect(link.textContent).toContain('Voir plus')
+    expect(link.getAttribute('href')).toBe('/agenda')
+    cards[1].querySelector('.agenda-card__clickable').click()
+    expect(navigateSpy).toHaveBeenCalledWith(['/saison', second.troupeSlug, second.seasonSlug, 'event', second.eventSlug])
+  })
+
+  it('keeps only the first five chronological shows from the batch of ten', async () => {
+    const content = Array.from({ length: 10 }, (_, index) =>
+      agendaItem(`show-${index}`, `Show ${index}`, isoInDays(index + 1), 'available'))
+    inboxApi.getInbox.mockResolvedValue({ ok: true, status: 200, data: inboxResponse([], content[0]) })
+    listAgenda.mockResolvedValue({ ok: true, status: 200, data: { content } })
+    await settle(fixture)
+    expect(fixture.componentInstance['upcomingEvents']().map(item => item.eventId)).toEqual(content.slice(0, 5).map(item => item.eventId))
+    expect(fixture.nativeElement.querySelectorAll('[data-testid="todo-next-event-card"]').length).toBe(5)
+    expect(fixture.nativeElement.textContent).not.toContain('Show 5')
+    expect(fixture.nativeElement.querySelector('[data-testid="todo-upcoming-see-more"]')).toBeTruthy()
+  })
+
+  it('expands a usable cached inbox even when inbox revalidation fails', async () => {
+    const content = Array.from({ length: 5 }, (_, index) =>
+      agendaItem(`cached-${index}`, `Cached show ${index}`, isoInDays(index + 1), 'available'))
+    inboxApi.peekFreshCache.mockReturnValue(inboxResponse([], content[0]))
+    inboxApi.getInbox.mockResolvedValue({ ok: false, status: 503 })
+    listAgenda.mockResolvedValue({ ok: true, status: 200, data: { content } })
+    await settle(fixture)
+    expect(fixture.componentInstance['upcomingEvents']().length).toBe(5)
+    expect(fixture.nativeElement.querySelectorAll('[data-testid="todo-next-event-card"]').length).toBe(5)
+  })
+
+  it.each(['openAvailability', 'openParticipation'] as const)('preserves the later card while refreshing after %s', async action => {
+    const content = Array.from({ length: 5 }, (_, index) =>
+      agendaItem(`editable-${index}`, `Editable show ${index}`, isoInDays(index + 1), 'available'))
+    inboxApi.getInbox.mockResolvedValue({ ok: true, status: 200, data: inboxResponse([], content[0]) })
+    listAgenda.mockResolvedValue({ ok: true, status: 200, data: { content } })
+    await settle(fixture)
+    let resolveAgenda!: (value: unknown) => void
+    listAgenda.mockReturnValueOnce(new Promise(resolve => { resolveAgenda = resolve }))
+    const updated: UserAgendaItem = action === 'openAvailability'
+      ? { ...content[3], myAvailabilityStatus: 'unavailable' }
+      : { ...content[3], participantFocus: { availabilityStatus: 'available', inTeam: true, compositionRoleKey: 'player', slotParticipationStatus: 'confirmed' } }
+    const open = vi.spyOn(TestBed.inject(AgendaEventActionsService), action).mockResolvedValue({ kind: 'saved', item: updated })
+    const fourth = fixture.debugElement.queryAll(By.directive(AgendaEventCard))[3]
+    if (action === 'openAvailability') fourth.componentInstance.availabilityClick.emit()
+    else fourth.componentInstance.participationClick.emit()
+    await settle(fixture)
+    expect(open.mock.calls[0][0].eventId).toBe(content[3].eventId)
+    expect(fixture.componentInstance['upcomingEvents']().length).toBe(5)
+    expect(fixture.componentInstance['upcomingEvents']()[3]).toMatchObject(updated)
+    expect(fixture.debugElement.queryAll(By.directive(AgendaEventCard))[3].nativeElement).toBe(fourth.nativeElement)
+    resolveAgenda({ ok: true, status: 200, data: { content: content.map(item => item.eventId === updated.eventId ? updated : item) } })
+    await settle(fixture)
+    expect(fixture.componentInstance['upcomingEvents']()[3]).toMatchObject(updated)
+    expect(fixture.debugElement.queryAll(By.directive(AgendaEventCard))[3].nativeElement).toBe(fourth.nativeElement)
+  })
+
+  it('reconciles a successful empty agenda with the existing no-upcoming state', async () => {
+    const first = agendaItem('gone', 'Removed show', isoInDays(2), 'available')
+    inboxApi.getInbox.mockResolvedValue({ ok: true, status: 200, data: inboxResponse([], first) })
+    listAgenda.mockResolvedValue({ ok: true, status: 200, data: { content: [] } })
+    await settle(fixture)
+    expect(fixture.componentInstance['nextEvent']()).toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-testid="todo-next-event-card"]')).toBeNull()
+    expect(fixture.nativeElement.textContent).toContain("Rien ne te retient pour l'instant")
+  })
+
+  it('discards an older agenda response after an inbox refresh', async () => {
+    let resolveOld!: (value: unknown) => void
+    const first = agendaItem('old', 'Old show', isoInDays(2), 'available')
+    const second = agendaItem('fresh', 'Fresh show', isoInDays(3), 'available')
+    listAgenda.mockReturnValueOnce(new Promise(resolve => { resolveOld = resolve }))
+    inboxApi.getInbox.mockResolvedValue({ ok: true, status: 200, data: inboxResponse([], first) })
+    await settle(fixture)
+    inboxApi.getInbox.mockResolvedValue({ ok: true, status: 200, data: inboxResponse([], second) })
+    await fixture.componentInstance['loadInbox']()
+    resolveOld({ ok: true, status: 200, data: { content: [first] } })
+    await settle(fixture)
+    expect(fixture.componentInstance['upcomingEvents']().map(item => item.eventId)).toEqual(['fresh'])
   })
 
   it('affiche la carte prochain spectacle depuis nextEvent inbox', async () => {
