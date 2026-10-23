@@ -158,6 +158,13 @@ test.describe('Recette — agenda participation status cell (APC-E2E)', () => {
         const nextEvent = agenda.content.find((row: any) => row.eventSlug === fx.eventUnknownDispoSlug)
         await route.fulfill({ response, json: { ...body, nextEvent } })
       })
+      // Home now expands the inbox teaser from the agenda; isolate the same real fixture here.
+      await page.route('**/v1/me/agenda**', async route => {
+        const response = await route.fetch({ url: new URL('/v1/me/agenda?scope=upcoming&size=50', route.request().url()).toString() })
+        const body = await response.json()
+        const content = body.content.filter((row: any) => row.eventSlug === fx.eventUnknownDispoSlug)
+        await route.fulfill({ response, json: { ...body, content, totalElements: content.length, totalPages: 1 } })
+      })
       await page.goto('/accueil')
       const homeCard = page.getByTestId('todo-next-event-card')
       await expect(homeCard).toContainText(fx.eventUnknownDispoTitle)

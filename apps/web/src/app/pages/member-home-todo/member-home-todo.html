@@ -139,7 +139,7 @@
                 </div>
               } @else {
                 <p class="member-home-todo__celebration-text">
-                  Tu es à jour pour tes spectacles. Le prochain est juste en dessous.
+                  Tu es à jour pour tes spectacles. Les prochains sont juste en dessous.
                 </p>
               }
             </section>
@@ -209,14 +209,23 @@
         </section>
       }
 
-      @if (nextEvent(); as next) {
-        <section class="member-home-todo__section" aria-labelledby="todo-next-event-heading">
-          <h2 id="todo-next-event-heading" class="member-home-todo__section-title">Prochain spectacle</h2>
-          <app-agenda-event-card data-testid="todo-next-event-card" [item]="next" [featured]="true"
-            [viewerGender]="viewerGender()" [canEditAvailability]="eventActions.canEditAvailability(next)"
-            [canConfirmParticipation]="eventActions.canConfirmParticipation(next)"
-            (openEvent)="openNextEvent(next)" (availabilityClick)="openAvailability(next)"
-            (participationClick)="openParticipation(next)" />
+      @if (upcomingEvents().length) {
+        <section class="member-home-todo__section member-home-todo__upcoming-section" aria-labelledby="todo-next-event-heading">
+          <h2 id="todo-next-event-heading" class="member-home-todo__section-title">Prochains spectacles</h2>
+          <div class="member-home-todo__upcoming">
+            @for (next of upcomingEvents(); track next.eventId) {
+              <div class="member-home-todo__upcoming-card">
+                <app-agenda-event-card data-testid="todo-next-event-card" [item]="next" [featured]="true"
+                  [viewerGender]="viewerGender()" [canEditAvailability]="eventActions.canEditAvailability(next)"
+                  [canConfirmParticipation]="eventActions.canConfirmParticipation(next)"
+                  (openEvent)="openNextEvent(next)" (availabilityClick)="openAvailability(next)"
+                  (participationClick)="openParticipation(next)" />
+              </div>
+            }
+          </div>
+          <div class="member-home-todo__upcoming-footer">
+            <a mat-button routerLink="/agenda" data-testid="todo-upcoming-see-more">Voir plus</a>
+          </div>
         </section>
       }
     }
