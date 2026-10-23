@@ -454,6 +454,8 @@ Chaque événement organisateur porte un `actor_scope` **local à l'événement*
 
 Catalogue borné : `composition_workspace_opened` (une fois par événement/session, `lifecycle` = `draft`/`validated`/`published`), `composition_mutation_completed` (`action` et `outcome` bornés ; `operation` de créneau = `assign`/`unassign`/`remove_slot`/`restore_slot`) et `availability_reminder_sent` (`outcome`, plus une tranche de volume `0`/`1`/`2_5`/`6_20`/`21_plus` seulement en cas de succès). Les événements FR47 du détail conservent leur nom et leurs propriétés, avec `actor_scope` lorsque le contexte chargé le permet.
 
+Le détail de cote ajoute `chance_breakdown_opened` uniquement après le succès API et l'ouverture effective du composant Material, avec `entry_point` parmi `dispos_poll`, `equipe_slot_picker`, `equipe_pool_preview`, `equipe_draw_step`, `equipe_slot_chance` et `presentation=bottom_sheet|dialog`. L'activation explicite de « Comprendre le tirage en général » émet `chance_breakdown_help_opened` avec le même `entry_point`, sans `presentation`. Ces événements réutilisent seulement `event_id`, `season_id`, `troupe_id`, `is_demo_troupe` et l'éventuel `actor_scope`; ils permettent aux opérateurs autorisés de filtrer les replays existants par surface sans modifier la capture Replay ni créer d'objet PostHog.
+
 `action=publish` correspond au succès de « Publier » : la composition devient visible et la fenêtre d'annonce s'ouvre. `action=announce` mesure les choix dans cette fenêtre : `outcome=succeeded` et `announcement_channel=copy|whatsapp` au clic, sans présumer l'envoi ou la réception. Une fermeture sans choix émet `outcome=refused`, sans canal ; fermer après un choix n'émet aucun abandon. Les notifications automatiques déclenchées par la validation restent distinctes. Les modifications de format/besoins et l'ajout d'une place sont des mutations `slot` sans `operation`, celles-ci étant réservées aux quatre opérations détaillées ci-dessus. La déduplication workspace utilise sessionStorage avec repli mémoire ; une réinitialisation de session l'efface.
 
 N'envoyer ni identifiant ou nom de participant, ni rôle libre, slug, contenu de notification, commentaire, avatar, email, payload API ou détail d'erreur. Dans PostHog, appliquer `is_demo_troupe != true`, puis construire les funnels `composition_workspace_opened → composition_mutation_completed(action=draw_execute|slot, outcome=succeeded) → composition_validated` et `composition_validated → composition_mutation_completed(action=publish, outcome=succeeded) → composition_mutation_completed(action=announce, outcome=succeeded)`. Maintenir `event_id` constant entre les étapes (et filtrer `season_id`/`troupe_id`) afin de ne pas mélanger plusieurs compositions. Mesurer les abandons séparément avec `action=announce, outcome=refused`. Filtrer ensuite par `actor_scope` si nécessaire. La création d'insights reste soumise à autorisation explicite.
@@ -465,7 +467,7 @@ N'envoyer ni identifiant ou nom de participant, ni rôle libre, slug, contenu de
 3. Logout → login autre compte → deux personnes distinctes (`posthog.reset()` au logout).
 4. *(Optionnel P1)* **Live events** : `v2_migration_first_session` (une fois par utilisateur, `user_id` UUID seul).
 
-Hors scope : session replay, feature flags, `defaults: '2026-01-30'` (on fixe les options explicitement).
+Hors scope : modification de la capture ou du contenu des session replays, feature flags, `defaults: '2026-01-30'` (on fixe les options explicitement).
 
 #### Projet PostHog Cloud EU
 

@@ -19,11 +19,14 @@ function memberShellTabName(label: MemberShellTabLabel): string | RegExp {
 }
 
 export function memberShellTab(page: Page, label: MemberShellTabLabel): Locator {
-  return page.getByRole('tab', { name: memberShellTabName(label), exact: true })
+  return label === MEMBER_SHELL_TAB.troupe
+    ? page.locator('.member-nav__bottom button[aria-label="Ma troupe"]')
+    : page.getByRole('tab', { name: memberShellTabName(label), exact: true })
 }
 
 /** Mobile bottom bar tab (story 17.41 — prefer over generic tab for clicks). */
 export function memberBottomShellTab(page: Page, label: MemberShellTabLabel): Locator {
+  if (label === MEMBER_SHELL_TAB.troupe) return page.locator('.member-nav__bottom button[aria-label="Ma troupe"]')
   return page
     .locator('.member-nav__bottom')
     .getByRole('tab', { name: memberShellTabName(label), exact: true })
@@ -67,6 +70,11 @@ export async function expectMemberBottomShellTabSelected(
   selected = true,
 ): Promise<void> {
   const tab = memberBottomShellTab(page, label)
+  if (label === MEMBER_SHELL_TAB.troupe) {
+    if (selected) await expect(tab).toHaveAttribute('aria-current', 'page')
+    else await expect(tab).not.toHaveAttribute('aria-current', 'page')
+    return
+  }
   if (selected) {
     await expect(tab).toHaveAttribute('aria-selected', 'true')
   } else {

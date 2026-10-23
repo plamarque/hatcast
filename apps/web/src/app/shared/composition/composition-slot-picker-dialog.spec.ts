@@ -37,6 +37,12 @@ describe('CompositionSlotPickerDialog', () => {
             eventId: 'event-1',
             explainabilityEnabled: true,
             viewerParticipantIds: [],
+            analyticsContext: {
+              event_id: 'event-1',
+              season_id: 'season-1',
+              troupe_id: 'troupe-1',
+              is_demo_troupe: false,
+            },
             candidates: [
               {
                 participantId: 'p-1',
@@ -83,6 +89,13 @@ describe('CompositionSlotPickerDialog', () => {
       roleKey: 'player',
       participantId: 'p-1',
       viewerParticipantIds: [],
+      analyticsContext: {
+        event_id: 'event-1',
+        season_id: 'season-1',
+        troupe_id: 'troupe-1',
+        is_demo_troupe: false,
+      },
+      entryPoint: 'equipe_slot_picker',
     })
     expect(close).not.toHaveBeenCalled()
   })

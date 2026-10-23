@@ -1,4 +1,5 @@
-import { Injectable } from '@angular/core'
+import { inject, Injectable } from '@angular/core'
+import { InboxFeedbackService } from './inbox-feedback.service'
 
 import type { UserAgendaItem } from '../agenda/user-agenda-api.service'
 
@@ -54,6 +55,7 @@ interface InboxCachePayload {
 
 @Injectable({ providedIn: 'root' })
 export class MeInboxApiService {
+  private readonly feedback = inject(InboxFeedbackService)
   private memoryCache: InboxCachePayload | null = null
   private inFlight: Promise<MeInboxApiResult> | null = null
   private boundUserId: string | null = null
@@ -82,6 +84,7 @@ export class MeInboxApiService {
 
   /** Clears session memo — call after logout or user switch. */
   invalidateCache(): void {
+    this.feedback.reset()
     this.memoryCache = null
     this.inFlight = null
     this.boundUserId = null
@@ -165,12 +168,14 @@ export class MeInboxApiService {
   }
 
   private async fetchInbox(): Promise<MeInboxApiResult> {
+    const scope = this.feedback.scopeRevision
     try {
       const res = await fetch('/v1/me/inbox', { credentials: 'include' })
       if (!res.ok) {
         return { ok: false, status: res.status }
       }
       const data = (await res.json()) as MeInboxResponse
+      if (scope !== this.feedback.scopeRevision) return { ok: false, status: 0 }
       const result: MeInboxApiResult = { ok: true, status: res.status, data }
       this.writeCache(data)
       return result

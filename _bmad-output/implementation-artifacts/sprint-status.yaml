@@ -273,3 +273,4 @@ development_status:
   epic-22-retrospective: optional
   11-4-observabilite-parcours-organisateur-posthog: done
   11-5-observabilite-installation-pwa-posthog: done
+  11-7-observabilite-des-panneaux-de-chances-posthog: done  # Manual closure: BUG-BMAD-001 accent mismatch prevents BMad planner transition

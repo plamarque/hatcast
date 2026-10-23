@@ -267,11 +267,6 @@
   }
 }
 
-.troupe-hub__season-stats-cta {
-  align-self: center;
-  min-height: 3rem;
-}
-
 .troupe-hub__archived-toggle {
   margin-bottom: 0.5rem;
   min-height: 3rem;
@@ -392,19 +387,16 @@
   }
 }
 
-.troupe-hub__section-cta {
-  display: inline-flex;
-  width: fit-content;
-  margin: 0.75rem auto 0;
-  min-height: 3rem;
+.troupe-hub__season-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-block: 0.5rem 1rem;
+  a { min-height: 3rem; }
 }
 
-.troupe-hub__footer {
-  margin-top: 1.5rem;
-  padding-top: 0.5rem;
-  border-top: 1px solid color-mix(in srgb, var(--mat-sys-outline-variant) 55%, transparent);
-
-  .mat-mdc-button-base {
-    min-height: 3rem;
-  }
+.troupe-hub__hero-main a.mat-mdc-button-base {
+  min-height: 3rem;
+  max-width: 100%;
+  white-space: normal;
 }

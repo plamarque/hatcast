@@ -70,7 +70,7 @@ test.describe('E1 — membre hub Ma troupe dashboard (mobile)', () => {
     }
   })
 
-  test('E1-MEM-045 — teaser Prochains spectacles → Voir tous les spectacles', async ({
+  test('E1-MEM-045 — navigation saison visible avec ou sans prochains spectacles', async ({
     page,
     request,
   }) => {
@@ -84,17 +84,11 @@ test.describe('E1 — membre hub Ma troupe dashboard (mobile)', () => {
       has: page.getByRole('heading', { name: 'Prochains spectacles', exact: true }),
     })
     const emptyTeaser = teaserSection.getByText('Aucun spectacle à venir cette saison.')
-    if ((await emptyTeaser.count()) > 0) {
-      await expect(
-        teaserSection.getByRole('link', { name: 'Voir tous les spectacles', exact: true }),
-      ).toHaveCount(0)
-      return
+    if ((await emptyTeaser.count()) === 0) {
+      const cardCount = await teaserSection.locator('.agenda-card').count()
+      expect(cardCount).toBeGreaterThan(0)
+      expect(cardCount).toBeLessThanOrEqual(3)
     }
-
-    const agendaCards = teaserSection.locator('.agenda-card')
-    const cardCount = await agendaCards.count()
-    expect(cardCount).toBeGreaterThan(0)
-    expect(cardCount).toBeLessThanOrEqual(3)
 
     await openTroupeHubTeaserWorkspace(page, fx.troupeSlug, fx.seasonSlug)
     await assertNoHorizontalOverflow(page)
@@ -118,18 +112,11 @@ test.describe('E1 — membre hub Ma troupe dashboard (mobile)', () => {
     await assertNoHorizontalOverflow(page)
   })
 
-  test('E1-MEM-047 — CTA Voir toutes les stats → grille stats saison', async ({ page, request }) => {
+  test('E1-MEM-047 — Statistiques → grille stats saison sans condition de mini-chart', async ({ page, request }) => {
     const fx = await resolveE1Context(request)
-    const statsEvents = await fetchSeasonStatisticsEvents(request, fx.seasonId)
-    test.skip(
-      countPastStatisticsEvents(statsEvents) < 3,
-      'Season has fewer than 3 past events — stats CTA not shown',
-    )
-
     await assertMobileViewport(page)
     await gotoTroupeHub(page, fx.troupeSlug)
     await expectTroupeHubDashboardSections(page)
-    await expectTroupeHubSeasonChartVisible(page)
     await openTroupeHubSeasonStatsFromChart(page, fx.troupeSlug, fx.seasonSlug)
   })
 

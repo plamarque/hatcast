@@ -15,6 +15,8 @@ import {
   PWA_UPDATE_AVAILABLE,
   PWA_UPDATE_DISMISSED,
   PWA_ACCESS_MODE_OBSERVED,
+  CHANCE_BREAKDOWN_OPENED,
+  CHANCE_BREAKDOWN_HELP_OPENED,
   V1_CUTOVER_SRC,
   V2_CUTOVER_REFERRAL_LANDING,
   V2_MIGRATION_FIRST_SESSION,
@@ -167,6 +169,14 @@ describe('ProductAnalyticsService', () => {
         submitted_at: '2026-01-02T00:00:00.000Z',
       },
     )
+    service().captureChanceBreakdownOpened(
+      service().eventContext('ev-1', 'season-1', 'troupe-1'),
+      { entry_point: 'dispos_poll', presentation: 'bottom_sheet' },
+    )
+    service().captureChanceBreakdownHelpOpened(
+      service().eventContext('ev-1', 'season-1', 'troupe-1'),
+      { entry_point: 'dispos_poll' },
+    )
     expect(capture).not.toHaveBeenCalled()
     expect(service().isEnabled).toBe(false)
   })
@@ -300,6 +310,49 @@ describe('ProductAnalyticsService', () => {
     })
   })
 
+  it('projects chance-breakdown observability onto its closed allow-list', async () => {
+    environment.posthogApiKey = 'phc_test'
+    vi.spyOn(await import('./posthog-browser.client'), 'initPostHogBrowser').mockResolvedValue(true)
+    await service().bootstrap()
+    const ctx = {
+      ...service().eventContext('chance-event', 's1', 't1'),
+      actor_scope: 'event_organizer' as const,
+      participant_id: 'forbidden',
+      formula_id: 'forbidden',
+      chance_percent: 99,
+    }
+
+    service().captureChanceBreakdownOpened(ctx, {
+      entry_point: 'equipe_draw_step',
+      presentation: 'dialog',
+      candidate_count: 9,
+    } as never)
+    service().captureChanceBreakdownHelpOpened(ctx, {
+      entry_point: 'equipe_draw_step',
+      tooltip: 'forbidden',
+    } as never)
+    service().captureChanceBreakdownOpened(ctx, {
+      entry_point: 'not_allowed',
+      presentation: 'dialog',
+    } as never)
+
+    expect(capture.mock.calls.filter(([event]) => event === CHANCE_BREAKDOWN_OPENED)).toEqual([
+      [CHANCE_BREAKDOWN_OPENED, {
+        ...service().eventContext('chance-event', 's1', 't1'),
+        actor_scope: 'event_organizer',
+        entry_point: 'equipe_draw_step',
+        presentation: 'dialog',
+      }],
+    ])
+    expect(capture.mock.calls.filter(([event]) => event === CHANCE_BREAKDOWN_HELP_OPENED)).toEqual([
+      [CHANCE_BREAKDOWN_HELP_OPENED, {
+        ...service().eventContext('chance-event', 's1', 't1'),
+        actor_scope: 'event_organizer',
+        entry_point: 'equipe_draw_step',
+      }],
+    ])
+  })
+
   it('identify and reset are no-op when disabled', async () => {
     environment.posthogApiKey = ''
     await service().bootstrap()
@@ -387,6 +440,12 @@ describe('ProductAnalyticsService', () => {
   it('captures v2_migration_first_session once per user', async () => {
     environment.posthogApiKey = 'phc_test'
     environment.posthogApiHost = 'https://e.hatcast.app'
+    const stored = new Map<string, string>()
+    vi.stubGlobal('localStorage', {
+      getItem: (key: string) => stored.get(key) ?? null,
+      setItem: (key: string, value: string) => stored.set(key, value),
+      removeItem: (key: string) => stored.delete(key),
+    })
     vi.spyOn(await import('./posthog-browser.client'), 'initPostHogBrowser').mockResolvedValue(
       true,
     )

@@ -15,6 +15,14 @@ historical registry below.
 
 ### Open defects and limitations
 
+BUG-041 (manual PWA application-version check), and BUG-042 (analytics bootstrap import failure).
+
+BUG-039 (PR #15: denied sessionStorage access escapes chunk recovery handler).
+
+BUG-POSTHOG-002 (production promotion observability rejected by capture acceptance guard).
+
+BUG-038 (intermittent composition smoke assertions observed on v2.6.3-rc.2).
+
 BUG-BMAD-001 (accented versus ASCII story keys in sprint controller).
 
 BUG-031 (format cancellation),
@@ -32,7 +40,118 @@ human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
 
+### PERF-003 — Accueil shifts when an empty-inbox confirmation appears after revalidation
+- **Status**: Fixed locally — human smoke accepted; real-device and production CLS checks pending
+- **Severity**: Medium (visual stability on mobile)
+- **Affected area**: `apps/web` — `/accueil`, `MemberHomeTodo`
+- **Observed behavior**: PR #14 reports repeated production shifts around 0.140 at 375×766 when the “Tout est à jour” banner is inserted above existing cached content.
+- **Expected behavior**: Reserve the eligible confirmation's space with a visible skeleton. Do not replay unchanged empty feedback. Newly received tasks remain visible and cancel dismissal. The approved transient confirmation intentionally collapses after its fade; this movement must be assessed separately from the initial insertion defect.
+- **Verification**: 62 focused unit tests plus 34 auth/shell tests passed in isolated runs; production build passed; 12 controlled-response Chromium/WebKit mobile/desktop checks passed. Independent review findings addressed. Firefox could not launch locally; real devices and production metrics remain unverified.
+- **Evidence**: [PR #14](https://github.com/plamarque/hatcast/pull/14); local source analysis. Production frequency remains unquantified.
+
 ### Historical registry
+
+### BUG-046 — Guest navigation E2E expects an incomplete fixture title
+- **Status**: Fixed locally — complete E2E suite passed (100 passed, 4 skipped); CI verification pending.
+- **Severity**: Low (release verification blocked; no application defect established).
+- **Affected area**: `apps/web/e2e/recette-3-25.spec.ts`, scenario 3.25-E2E-10.
+- **Observed behavior**: CI run [39851377774](https://github.com/plamarque/hatcast/actions/runs/39851377774) fails because the season menu displays `Guest 325 Ruben EVENT` while the assertion expects `Guest 325 Ruben`.
+- **Expected behavior**: Assert the complete season title created by `E2eStory325FixtureService`, preserving the destination URL and navigation checks.
+- **Cause and correction**: The fixture explicitly creates `Guest 325 Ruben EVENT`; the menu correctly uses the season title. Correct only the exact text expectation; no production behavior or fixture changes.
+
+### BUG-045 — Unlock rejected while composition appears validated
+- **Status**: Closed locally on 2026-10-22 — Patrice accepted the phone recipe and authorized local closure. Not deployed.
+- **Severity**: Medium (conditional organizer blockage after concurrent unlock).
+- **Affected area**: Event Équipe tab, composition unlock lifecycle.
+- **Observed behavior**: Patrice's CCAS screen retained “Annoncer la compo” and “Déverrouiller” after the API returned “La composition n'est pas validée”. Repeated clicks could not recover.
+- **Confirmed cause**: The activity-journal screenshot supplied by Patrice shows “Composition déverrouillée” at **15:42:35**, attributed to Nicolas (N), after Patrice loaded Équipe at approximately **15:42:09** and before his first rejected unlock around **15:43:37**. Patrice retained a formerly valid screen while Nicolas changed the server state. The journal also shows Nicolas assigning Antoine at 15:43:13, assigning/releasing Viviane at 15:43:22/26, and assigning Aurélien at 15:45:16. This is a confirmed concurrent-edit case; its production frequency has not been measured.
+- **Fix**: On unlock HTTP 409, reload the authoritative composition, propagate it to the parent, and restore draft actions. Acknowledge an already-unlocked draft only after a successful read. Preserve assignments/statuses, retain other errors, ignore responses after navigation/destruction, and keep interactions blocked through recovery. The backend contract is unchanged.
+- **Verification**: 158 tests passed across the Équipe component and event-detail parent, including 18 new recovery cases; production build passed. Independent review findings addressed. Patrice verified the prepared two-tab scenario on his phone and explicitly accepted closure. Existing Material controls and layout are reused, with no checklist waiver.
+- **Replay evidence**: Patrice's [recording](https://eu.posthog.com/project/193437/replay/home?sessionRecordingId=01a163d8-be3e-7feb-bb5b-4b0c4c7ba97d), release `2.6.3:c93d2c81`, shows Équipe GET 200 around 00:18, then three unlock conflicts at 01:46, 01:50 and 02:12 with no subsequent composition refresh. These refused requests did not perform an unlock. Nicolas's [later recording](https://eu.posthog.com/project/193437/replay/home?sessionRecordingId=01a16416-762e-7413-b635-ade2e3c4d720) starts at 16:49:16 Paris on the same event and shows publication of the spectacle, an already editable draft, then composition validation. The journal screenshot places validation at 16:50:03. The later replay does not contain the earlier unlock; the journal resolves that provenance.
+- **Scope/limits**: Recovery is validated for this incident pattern. This does not add live synchronization or prevent concurrent edits. Production records were inspected through the provided replays and screenshots; no production data was modified.
+
+### LIMIT-010 — Troupe hub navigation links depend on displayed content
+- **Status**: Closed locally on 2026-10-22 under the approved member-troupe-navigation contract; Patrice accepted the mobile recipe. Not deployed.
+- **Severity**: Low (alternative routes exist, but direct page navigation is conditional).
+- **Affected area**: `apps/web/src/app/pages/troupe-hub/troupe-hub.html` and `season-hub-mini-chart.utils.ts`.
+- **Observed behavior**: The selected season's "Voir tous les spectacles" link is rendered only with a nonempty upcoming-event teaser. "Voir toutes les stats" is inside `showSeasonMiniChart()`, whose chart builder returns null with fewer than three past events. Loading/error states can also hide these links. Selecting another season in the hub changes the dashboard rather than opening its workspace.
+- **Implemented behavior**: A compact group directly below the selected season title exposes agenda and permitted statistics links independently of teaser/chart content. Season guest restrictions remain enforced.
+- **Evidence/limits**: Template regression tests cover direct links without the mini-chart or upcoming teaser and during dashboard errors. Patrice confirmed human acceptance on 2026-10-22. Existing seasonal view controls and troupe breadcrumb are preserved.
+
+### BUG-044 — Phone recovery fixture cannot always be restarted with another client open
+- **ID**: BUG-044
+- **Status**: Closed — repeated two-client checks pass; Patrice confirmed phone repeatability 2026-10-21; temporary fixture removed at closure
+- **Severity**: Medium (blocks repeated human verification)
+- **Affected area**: Temporary phone fixture reset dashboard at Tailscale :8443, service-worker cache reset.
+- **Observed behavior**: Patrice reports that the scenario works only once. Three consecutive single-client cycles pass; keeping a second client open on B reproduces a timeout loading the reset A home. The old worker can remain associated with a live client while its caches are cleared.
+- **Expected behavior**: Reset always starts a fresh A screen and permits another complete recovery, including when Chrome and the installed PWA remain open.
+- **Notes/context**: Fix: test reset preserves worker registrations and caches needed by other live clients, restores server A, and bypasses worker navigation only for its initial test Home document. Three consecutive complete cycles pass with another B client left open. Keep this separate from production ChunkRecoveryService. Phone screenshot also requests primary-left / dismiss-right actions in one row; scoped dialog CSS and DOM order corrected. Actual dark-theme Chromium at 320px: primary width151px/height56px, dismiss width81px/height48px, same row, no overflow. Patrice confirmed repeatability on Android. Temporary fixture and phone access removed at closure.
+
+
+### BUG-043 — Optional storage failure can prevent reload after PWA activation
+- **ID**: BUG-043
+- **Status**: Fixed locally — optional changelog storage isolated; post-activation reload regression passes; not deployed
+- **Severity**: Medium (conditional mixed-version runtime after user-confirmed update)
+- **Affected area**: `apps/web/src/app/core/pwa/pwa-update.service.ts`, `applyUpdate()`.
+- **Observed behavior**: The method activates the worker version, writes the optional changelog flag to sessionStorage, then reloads. If the storage getter/setItem throws after successful activation, the catch clears refreshing without reloading, leaving old JavaScript running after the client-version switch.
+- **Expected behavior**: Optional storage bookkeeping must not prevent full navigation after a successful activation; it should be isolated as best effort.
+- **Verification (2026-10-21)**: Executed the exact existing applyUpdate method with activateUpdate resolving true and setItem throwing: activation happened, reload did not, refreshing became false. This is a deterministic method-level test, not a production frequency or browser reproduction.
+- **Context**: See `pr-15-recovery-party-review.md`, R7. The ordinary update path keeps its existing activation policy with only the optional storage flag guarded; recovery uses a separate readiness-check/full-navigation path.
+
+### BUG-040 — Stale client cannot load removed lazy chunks after deployment
+- **ID**: BUG-040
+- **Status**: Fixed locally — recovery verified; phone smoke accepted 2026-10-21; not deployed
+- **Severity**: Medium (navigation can remain blocked until update/reload)
+- **Affected area**: V2 static asset serving, router lazy imports and PWA client lifecycle.
+- **Observed behavior**: [PR #15](https://github.com/plamarque/hatcast/pull/15), reviewed at `8740a147c63397623b5cc7bd3e2cadc1197491cb`, describes an old open client requesting removed hashed chunks and receiving HTML instead. Its one occurrence in 30 days is author-reported, not a fresh analytics measurement. Its blind reload did not establish coherent active-SW recovery. The replacement uses consent-only readiness checks and full navigation; six real-browser fixture cases, including a real active worker, pass locally.
+- **Expected behavior**: Global generic update dialog after detected failure, explicit consent, ready-version check followed by full navigation when controlled, and exact destination restoration in web and installed PWA.
+- **Notes/context**: A healthy SW prefetches old chunks, so controlled-client reproduction must include cache loss. Use this free ID instead of the PR's colliding BUG-038. See `spec-pr-15-stale-client-recovery.md` and supporting investigation/verification artifacts. Bootstrap-before-shell failures are outside modal reach. Accepted rare residual: NO_NEW_VERSION_DETECTED is broadcast to all worker clients; a simultaneous check against a different manifest can make an inconclusive local check appear known. A consented reload may then need another refresh. No cross-tab correlation is added for this low-impact case.
+
+### BUG-041 — Manual PWA check does not request Angular application-version check
+- **ID**: BUG-041
+- **Status**: Open — pre-existing behavior identified during PR #15 investigation; not included as a general manual-check refactor
+- **Severity**: Medium (manual update feedback may miss a deploy with unchanged worker script)
+- **Affected area**: `apps/web/src/app/core/pwa/pwa-update.service.ts`, `checkForUpdatesManually()` and `pollForAppUpdate()`.
+- **Observed behavior**: These methods call registration.update() and await VERSION_READY/waiting worker, but never call SwUpdate.checkForUpdate(). Updating the worker script is distinct from checking the Angular app manifest; deployment may change app chunks without changing the worker script.
+- **Expected behavior**: An explicit application-update check requests Angular's application-version check and distinguishes no update from failure.
+- **Evidence/limits**: Source inspection against baseline `3a0a08482a4e9d1961f9b2469123ffc874a685c5`, installed Angular 21.2.9 and official SwUpdate documentation. A recovery-specific API is planned; no standalone manual-check browser reproduction or fix is claimed.
+
+### BUG-042 — Failed lazy analytics import can prevent application bootstrap
+- **ID**: BUG-042
+- **Status**: Open — pre-existing source-level finding; outside the post-bootstrap recovery scope
+- **Severity**: Medium (conditional failure before recovery UI exists)
+- **Affected area**: `apps/web/src/app/app.config.ts`, `core/analytics/product-analytics.service.ts` and `posthog-browser.client.ts`.
+- **Observed behavior**: The app initializer awaits ProductAnalyticsService.bootstrap(); ensureInitialized() propagates rejection from the lazy posthog-js import when configured. A failed import can reject bootstrap before App and its recovery dialog exist.
+- **Expected behavior**: A failed optional analytics initialization should not prevent the application shell from starting.
+- **Evidence/limits**: Verified promise chain in the integration baseline; conditional on analytics being configured and the import failing. No production frequency or browser reproduction established. Record separately rather than claiming the recovery modal covers a shell that never starts.
+
+### BUG-039 — PR #15 chunk recovery throws when storage access is denied
+- **ID**: BUG-039
+- **Status**: Open — review finding on PR #15 at `8740a147c63397623b5cc7bd3e2cadc1197491cb`; not a confirmed deployed defect
+- **Severity**: Medium (navigation error handling fails under browser storage restrictions)
+- **Affected area**: `apps/web/src/app/core/app/chunk-load-recovery.ts:22` and its registration in `app.config.ts` in [PR #15](https://github.com/plamarque/hatcast/pull/15).
+- **Observed behavior (2026-10-21)**: The default argument `storage = sessionStorage` reads the browser property before the function body and its `try`. If that getter throws `SecurityError`, the router error handler throws instead of returning `false`, including for unrelated navigation errors. The existing unavailable-storage test only makes `getItem()` throw on an explicitly supplied object.
+- **Expected behavior**: Classify the navigation error first, then resolve default browser storage inside the guarded block; denied storage access returns `false` without replacing the original error.
+- **Verification**: Reproduced against the exact PR helper, transpiled with the installed TypeScript compiler: a throwing global `sessionStorage` getter escapes for both chunk and unrelated errors. Direct checks also verified first recovery, suppression inside the guard window, and handling of an injected `getItem()` failure. This is focused helper evidence, not browser or full-suite verification.
+- **Additional PR review finding**: The PR assigns `BUG-038` to stale chunks, but the integration branch already assigns it to composition smoke retries below (commit `c70139a9`). Use a free identifier for the stale-chunk issue before integration; preserve the existing record.
+
+### BUG-POSTHOG-002 — Production promotion capture fails its acceptance guard
+- **ID**: BUG-POSTHOG-002
+- **Status**: Open — observed after successful v2.6.3 production deployment on 2026-10-18
+- **Severity**: Medium (release observability incomplete; deployment remains successful)
+- **Affected area**: `scripts/v2/posthog-lifecycle-dashboard.mjs`, production workflow `posthog-lifecycle` job.
+- **Observed behavior**: [Workflow 39130429450](https://github.com/plamarque/hatcast/actions/runs/39130429450), commit `a5fb7f487d73672a3388e4b32ef200c4f314d1aa`: deployment succeeded, revision `hatcast-v2-00024-5n9` serves 100% of traffic, but lifecycle synchronization failed with `PostHog promotion capture was not accepted without quota limits`. Overall workflow is red despite its successful deployment job. Read-only checks returned version 2.6.3, production channel, and health UP.
+- **Expected behavior**: Promotion capture is accepted without quota limitation and lifecycle dashboard synchronization completes.
+- **Notes/context**: The guard raises for either `status !== 1` or a nonempty `quota_limited` list; the redacted log does not distinguish those cases, so a quota exhaustion diagnosis is not established. Dashboard provisioning is not reached after this error. No retry, quota/billing change, credential change, or production rollback was performed. The prior staging E1 gate was green; user approved production using the existing human recipe and requested no repeat tests.
+
+### BUG-038 — Composition smoke tests intermittently require retry
+- **ID**: BUG-038
+- **Status**: Open — observed during v2.6.3-rc.2 validation; cause not established
+- **Severity**: Medium (smoke reliability; no confirmed production defect)
+- **Affected area**: `apps/web/e2e/e1/orga-composition.desktop.spec.ts` and `apps/web/e2e/draw-formula-choice.spec.ts`.
+- **Observed behavior (2026-10-18)**: [RC2 workflow 39105565455](https://github.com/plamarque/hatcast/actions/runs/39105565455), commit `a5fb7f487d73672a3388e4b32ef200c4f314d1aa`: E1-ORG-001–002 first failed waiting for the dialog after publication (15 s); E2E-WD-05 first failed pool preview with HTTP 400 `Rôle inconnu pour cet événement`. Both passed on automatic retry. Final local-profile CI smoke: 92 passed, 2 flaky, 4 skipped; job succeeded. This is not evidence of a clean first-attempt run.
+- **Expected behavior**: Composition smoke journeys pass without retry, with deterministic fixture state and assertions aligned to supported behavior.
+- **Notes/context**: Local preflight passed 94 tests with four skips. The separate deployed-staging E1 gate passed 34 tests with two skips, without reported retries. No tests were disabled or changed for these observations. Investigation and any fix remain separate from the API fixture correction; the production promotion and human staging smoke are not authorized by these green automated jobs.
 
 ### BUG-037 — API regression fixtures assume unsynchronized shared memberships
 - **ID**: BUG-037

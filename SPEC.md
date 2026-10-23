@@ -12,6 +12,24 @@ HatCast is a web application for organising improvisation shows: managing **seas
 
 ---
 
+## Client navigation recovery (V2)
+
+In browser tabs and installed PWAs, a recognized lazy-route module-load failure offers a modal recovery action instead of requiring the user to discover a manual refresh. The message is generic: **« Mets HatCast à jour pour continuer. »** The user is warned that unsaved changes may be lost. The primary update action appears on the left and “Plus tard” on the right in one horizontal row, including on mobile. Nothing reloads without confirmation. **« Plus tard »** keeps an already displayed screen; if no usable route has rendered, only update/retry remains available, without dismissal. The root auth entry is a loading redirect, not a safe home fallback.
+
+After confirmation, a worker-controlled client checks for an available or already-known application version before a full-document navigation; an uncontrolled client refreshes directly. The intended same-origin address, query and fragment are preserved. Offline or unconfirmed update checks show retry feedback. Healthy navigation and ordinary application errors do not open this recovery dialog. The mechanism cannot help a client whose application shell never starts, and does not force updates in other working tabs.
+
+---
+
+## Compact troupe navigation (V2)
+
+The member navigation control **Ma troupe** opens three dynamic entries: the resolved **troupe name**, the resolved **season title**, and **Statistiques**. They open the troupe page, the season agenda and that season's collective statistics. Resolve the last accessible remembered troupe, otherwise the newest active membership; within it, use the remembered active accessible season, otherwise the active accessible season with the latest start date. These choices remain browser-local.
+
+The home **Accès rapides** section is removed. The troupe page provides direct season and statistics navigation independently of teaser/chart content, keeps season switching and archives, and places the other-troupes link near its title when several active troupes exist. Personal **Mes stats**, access rights and the multi-troupe scope of home/agenda remain unchanged.
+
+The complete intended contract, including short labels, fallback states and acceptance scenarios, is [Member troupe navigation](_bmad-output/specs/spec-member-troupe-navigation/SPEC.md).
+
+---
+
 ## Administration — required capabilities (V2 target)
 
 Normative intent for **administration** flows: **visual design is not prescribed** (Angular Material–typical or equivalent is acceptable). The product **must** expose the following capabilities to users with the appropriate roles (exact labels and routes in DOMAIN / permissions):
@@ -434,3 +452,7 @@ Dans le formulaire, statut, rôles et commentaire restent un brouillon jusqu'au 
 
 
 Toute réponse disponible enregistrée pour un événement proposant des places `volunteer` inclut ce rôle obligatoire, même sans rôle optionnel. Le formulaire le coche dès Dispo et empêche son retrait ; une aide adjacente activable au toucher et au clavier explique : « Quand tu es disponible, tu es aussi disponible comme bénévole. » Les autres rôles restent facultatifs. Sans bénévole proposé, aucun bénévole n'est ajouté ; sans rôle proposé, la disponibilité générale reste possible. La règle vaut pour soi et en saisie déléguée, même avec le champ historique `applyVolunteerRule=false`. Les statuts indisponible et non renseigné enregistrent une liste vide. Les anciennes réponses disponibles sans rôle gardent leur candidature à tous les rôles jusqu'à un enregistrement explicite ; ouvrir ou annuler ne modifie aucune donnée.
+
+## V2 — Accueil task confirmation
+
+Accueil verifies the inbox on each entry and always displays newly received tasks. An empty cache or failed request is not a fresh confirmation. A first confirmed empty inbox may show “Tout est à jour”; with an upcoming event, it remains readable briefly, fades, then its space collapses. An unchanged empty state does not replay the confirmation or recreate its placeholder across navigation. Observed tasks rearm the confirmation so resolving them can show it again; newly received tasks take precedence over every dismissal timer. Pending verification uses a skeleton with the eventual banner dimensions when that confirmation is still eligible. Without an upcoming event, the useful empty explanation and “Mes troupes” destination remain visible. Confirmation is announced without moving focus; reduced-motion preferences disable animated dismissal. Presentation memory is scoped to the authenticated user and reset on logout or user switch.

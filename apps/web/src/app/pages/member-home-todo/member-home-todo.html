@@ -3,6 +3,8 @@
     <h1 class="member-home-todo__title">Accueil</h1>
   </header>
 
+  <p class="cdk-visually-hidden" role="status" aria-live="polite" aria-atomic="true">{{ feedbackAnnouncement() }}</p>
+
   @if (loadingSession()) {
     <p class="member-home-todo__status" role="status">Vérification de la session…</p>
   } @else if (showInboxLoadError()) {
@@ -97,23 +99,52 @@
         </section>
       }
 
-      @if (showAllCaughtUpBanner()) {
-        <section class="member-home-todo__celebration" aria-labelledby="todo-caught-up-heading">
-          <mat-icon class="member-home-todo__celebration-icon" aria-hidden="true">check_circle</mat-icon>
-          <h2 id="todo-caught-up-heading" class="member-home-todo__celebration-title">Tout est à jour</h2>
-          @if (showNoUpcomingEventsEmpty()) {
-            <p class="member-home-todo__celebration-text">
-              Rien ne te retient pour l'instant. On te préviendra dès qu'un spectacle arrive.
-            </p>
-            <div class="member-home-todo__celebration-actions">
-              <a mat-stroked-button routerLink="/troupes">Mes troupes</a>
-            </div>
-          } @else {
-            <p class="member-home-todo__celebration-text">
-              Tu es à jour pour tes spectacles. Le prochain est juste en dessous.
-            </p>
-          }
-        </section>
+      @if (showCaughtUpRegion()) {
+        <div
+          class="member-home-todo__feedback"
+          [class.member-home-todo__feedback--fading]="
+            confirmationPhase() === 'fading' || confirmationPhase() === 'collapsing'
+          "
+          [class.member-home-todo__feedback--collapsing]="confirmationPhase() === 'collapsing'"
+          [attr.aria-hidden]="
+            showCaughtUpSkeleton() ||
+            confirmationPhase() === 'fading' ||
+            confirmationPhase() === 'collapsing'
+              ? 'true'
+              : null
+          "
+          [attr.inert]="showCaughtUpSkeleton() ? '' : null"
+          data-testid="todo-caught-up-region"
+        >
+          <div class="member-home-todo__feedback-clip">
+            <section
+              class="member-home-todo__celebration"
+              [class.member-home-todo__celebration--pending]="showCaughtUpSkeleton()"
+              aria-labelledby="todo-caught-up-heading"
+              data-testid="todo-caught-up"
+              [attr.aria-busy]="showCaughtUpSkeleton() ? 'true' : null"
+            >
+              <mat-icon class="member-home-todo__celebration-icon" aria-hidden="true"
+                >check_circle</mat-icon
+              >
+              <h2 id="todo-caught-up-heading" class="member-home-todo__celebration-title">
+                Tout est à jour
+              </h2>
+              @if (showNoUpcomingEventsEmpty()) {
+                <p class="member-home-todo__celebration-text">
+                  Rien ne te retient pour l'instant. On te préviendra dès qu'un spectacle arrive.
+                </p>
+                <div class="member-home-todo__celebration-actions">
+                  <a mat-stroked-button routerLink="/troupes">Mes troupes</a>
+                </div>
+              } @else {
+                <p class="member-home-todo__celebration-text">
+                  Tu es à jour pour tes spectacles. Le prochain est juste en dessous.
+                </p>
+              }
+            </section>
+          </div>
+        </div>
       }
 
       @if (showActionsSection()) {
@@ -191,59 +222,4 @@
     }
   }
 
-  @if (!loadingSession()) {
-    <section class="member-home-todo__section" aria-labelledby="todo-shortcuts-heading">
-      <h2 id="todo-shortcuts-heading" class="member-home-todo__section-title">Accès rapides</h2>
-      <div class="member-home-todo__quick-links">
-        <a
-          mat-flat-button
-          color="primary"
-          [routerLink]="seasonShortcut.link()"
-          class="member-home-todo__quick-link-primary"
-          [class.member-home-todo__quick-link--pending]="seasonShortcut.loading()"
-          [attr.aria-label]="seasonShortcut.ariaLabel()"
-          [attr.aria-busy]="seasonShortcut.loading() ? 'true' : null"
-          data-testid="todo-shortcut-season"
-        >
-          <mat-icon aria-hidden="true">calendar_view_week</mat-icon>
-          <span class="member-home-todo__quick-link-label">{{ seasonShortcut.label() }}</span>
-        </a>
-        @if (seasonStatsLink(); as statsLink) {
-          <a
-            mat-stroked-button
-            [routerLink]="statsLink"
-            [queryParams]="{ view: 'stats' }"
-            class="member-home-todo__quick-link-secondary"
-            [attr.aria-label]="seasonStatsAriaLabel()"
-            data-testid="todo-shortcut-season-stats"
-          >
-            <mat-icon aria-hidden="true">insights</mat-icon>
-            <span class="member-home-todo__quick-link-label">{{ seasonStatsShortcutLabel() }}</span>
-          </a>
-        }
-        @if (troupeHubLink(); as troupeLink) {
-          <a
-            mat-stroked-button
-            [routerLink]="troupeLink"
-            class="member-home-todo__quick-link-secondary"
-            [attr.aria-label]="'Troupe ' + (seasonShortcut.troupeName() ?? '')"
-            data-testid="todo-shortcut-troupe"
-          >
-            <mat-icon aria-hidden="true">groups</mat-icon>
-            <span class="member-home-todo__quick-link-label">{{ seasonShortcut.troupeName() }}</span>
-          </a>
-        }
-        <a
-          mat-stroked-button
-          routerLink="/troupes"
-          class="member-home-todo__quick-link-tertiary"
-          aria-label="Toutes mes troupes"
-          data-testid="todo-shortcut-troupes-list"
-        >
-          <mat-icon aria-hidden="true">apps</mat-icon>
-          <span class="member-home-todo__quick-link-label">Toutes mes troupes</span>
-        </a>
-      </div>
-    </section>
-  }
 </div>

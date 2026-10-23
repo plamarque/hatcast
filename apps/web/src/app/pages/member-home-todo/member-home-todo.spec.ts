@@ -17,6 +17,7 @@ import {
   type MeInboxResponse,
 } from '../../core/inbox/me-inbox-api.service'
 import { MemberInboxBadgeService } from '../../core/inbox/member-inbox-badge.service'
+import { InboxFeedbackService } from '../../core/inbox/inbox-feedback.service'
 import { rememberLastVisitedSeasonSlug } from '../../core/navigation/last-visited-season-storage'
 import type { SeasonResponse } from '../../core/seasons/season-api.service'
 import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
@@ -121,6 +122,7 @@ describe('MemberHomeTodo', () => {
   afterEach(() => {
     localStorage.clear()
     sessionStorage.clear()
+    vi.useRealTimers()
     vi.restoreAllMocks()
   })
 
@@ -130,7 +132,7 @@ describe('MemberHomeTodo', () => {
     expect(inboxApi.getInbox).toHaveBeenCalledWith({ force: false })
   })
 
-  it('affiche le titre et les accès rapides avant la fin du chargement inbox', async () => {
+  it('affiche le titre sans accès rapides pendant le chargement inbox', async () => {
     let resolveInbox!: (value: unknown) => void
     const inboxDeferred = new Promise((resolve) => {
       resolveInbox = resolve
@@ -150,7 +152,7 @@ describe('MemberHomeTodo', () => {
     expect(fixture.nativeElement.textContent).toContain('Accueil')
     expect(fixture.componentInstance['loadingInbox']()).toBe(true)
     expect(fixture.nativeElement.querySelector('[data-testid="todo-actions-skeleton"]')).toBeTruthy()
-    expect(fixture.nativeElement.querySelector('[data-testid="todo-shortcut-troupes-list"]')).toBeTruthy()
+    expect(fixture.nativeElement.querySelector('[data-testid="todo-shortcut-troupes-list"]')).toBeNull()
 
     resolveInbox({ ok: true, status: 200, data: inboxResponse([]) })
     await settle(fixture)
@@ -238,7 +240,9 @@ describe('MemberHomeTodo', () => {
     }
     fixture.detectChanges()
 
-    expect(fixture.nativeElement.textContent).not.toContain('Tout est à jour')
+    const skeleton = fixture.nativeElement.querySelector('[data-testid="todo-caught-up-region"]')
+    expect(skeleton?.getAttribute('aria-hidden')).toBe('true')
+    expect(skeleton?.querySelector('.member-home-todo__celebration--pending')).toBeTruthy()
 
     resolveBackground({
       ok: true,
@@ -249,13 +253,199 @@ describe('MemberHomeTodo', () => {
     expect(fixture.nativeElement.textContent).toContain('Tout est à jour')
   })
 
-  it('affiche les accès rapides même en erreur de chargement inbox', async () => {
+  describe('caught-up confirmation lifecycle', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+      inboxApi.getInbox.mockResolvedValue({ ok: true, status: 200,
+        data: inboxResponse([], agendaItem('next', 'Next show', isoInDays(2), 'available')) })
+    })
+
+    async function flush(): Promise<void> {
+      fixture.detectChanges()
+      await vi.advanceTimersByTimeAsync(0)
+      fixture.detectChanges()
+      await vi.advanceTimersByTimeAsync(0)
+      fixture.detectChanges()
+    }
+
+    const region = () => fixture.nativeElement.querySelector('[data-testid="todo-caught-up-region"]') as HTMLElement | null
+
+    it('holds, fades, collapses, then removes confirmation without replay on return', async () => {
+      await flush()
+      expect(region()).toBeTruthy()
+      expect(fixture.nativeElement.querySelector('[role="status"]').textContent).toBe('Tout est à jour')
+      await vi.advanceTimersByTimeAsync(3000)
+      fixture.detectChanges()
+      expect(region()?.classList).toContain('member-home-todo__feedback--fading')
+      await vi.advanceTimersByTimeAsync(220)
+      fixture.detectChanges()
+      expect(region()?.classList).toContain('member-home-todo__feedback--collapsing')
+      await vi.advanceTimersByTimeAsync(280)
+      fixture.detectChanges()
+      expect(region()).toBeNull()
+      fixture.destroy()
+      inboxApi.peekFreshCache.mockReturnValue(inboxResponse([], agendaItem('next', 'Next show', isoInDays(2))))
+      fixture = TestBed.createComponent(MemberHomeTodo)
+      await flush()
+      expect(region()).toBeNull()
+      expect(inboxApi.getInbox).toHaveBeenLastCalledWith({ force: true })
+    })
+
+    it('does not recreate a skeleton while revalidating unchanged empty data', async () => {
+      await flush()
+      fixture.destroy()
+      inboxApi.peekFreshCache.mockReturnValue(inboxResponse([], agendaItem('next', 'Next show', isoInDays(2))))
+      let resolve!: (value: unknown) => void
+      inboxApi.getInbox.mockReturnValue(new Promise(r => { resolve = r }))
+      fixture = TestBed.createComponent(MemberHomeTodo)
+      await flush()
+      expect(region()).toBeNull()
+      expect(fixture.nativeElement.querySelector('[data-testid="todo-next-event-card"]')).toBeTruthy()
+      resolve({ ok: true, status: 200, data: inboxResponse([], agendaItem('next', 'Next show', isoInDays(2))) })
+      await flush()
+      expect(region()).toBeNull()
+    })
+
+    it.each([0, 3000, 3220])('prioritizes new tasks at dismissal time %i and rearms confirmation', async time => {
+      await flush()
+      await vi.advanceTimersByTimeAsync(time)
+      fixture.detectChanges()
+      inboxApi.getInbox.mockResolvedValue({ ok: true, status: 200,
+        data: inboxResponse([availabilityAction('new', 'New task', isoInDays(2))]) })
+      await fixture.componentInstance['loadInbox']()
+      await flush()
+      expect(region()).toBeNull()
+      await vi.advanceTimersByTimeAsync(1000)
+      fixture.detectChanges()
+      expect(fixture.nativeElement.querySelector('[data-testid="todo-action-dispo"]')).toBeTruthy()
+      inboxApi.getInbox.mockResolvedValue({ ok: true, status: 200,
+        data: inboxResponse([], agendaItem('next', 'Next show', isoInDays(2))) })
+      await fixture.componentInstance['loadInbox']()
+      await flush()
+      expect(region()).toBeTruthy()
+      expect(fixture.componentInstance['confirmationPhase']()).toBe('shown')
+      await vi.advanceTimersByTimeAsync(2999)
+      fixture.detectChanges()
+      expect(fixture.componentInstance['confirmationPhase']()).toBe('shown')
+    })
+
+    it('does not celebrate an empty cache when revalidation fails', async () => {
+      inboxApi.peekFreshCache.mockReturnValue(inboxResponse([], agendaItem('next', 'Next show', isoInDays(2))))
+      inboxApi.getInbox.mockResolvedValue({ ok: false, status: 500 })
+      await flush()
+      expect(region()).toBeNull()
+      expect(fixture.nativeElement.querySelector('[role="status"]').textContent).toBe('')
+      expect(TestBed.inject(InboxFeedbackService).confirmationPending()).toBe(true)
+    })
+
+    it('keeps the no-upcoming-event state and Mes troupes destination', async () => {
+      inboxApi.getInbox.mockResolvedValue({ ok: true, status: 200, data: inboxResponse([]) })
+      await flush()
+      await vi.advanceTimersByTimeAsync(10000)
+      fixture.detectChanges()
+      expect(region()).toBeTruthy()
+      expect(region()?.textContent).toContain('Mes troupes')
+      expect(region()?.classList).not.toContain('member-home-todo__feedback--fading')
+    })
+
+    it('dismisses without animated phases for reduced motion', async () => {
+      vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: true }))
+      await flush()
+      await vi.advanceTimersByTimeAsync(3000)
+      fixture.detectChanges()
+      expect(region()).toBeNull()
+      vi.unstubAllGlobals()
+    })
+
+    it('cleans dismissal timers when leaving the page', async () => {
+      await flush()
+      const instance = fixture.componentInstance
+      fixture.destroy()
+      await vi.advanceTimersByTimeAsync(10000)
+      expect(instance['confirmationPhase']()).toBe('idle')
+    })
+
+    it('does not start inbox loading when destroyed during shell bootstrap', async () => {
+      let resolve!: (value: unknown) => void
+      memberBootstrap.ensureReady.mockReturnValue(new Promise(r => { resolve = r }))
+      await flush()
+      fixture.destroy()
+      resolve({ ok: true })
+      await vi.advanceTimersByTimeAsync(0)
+      expect(inboxApi.getInbox).not.toHaveBeenCalled()
+    })
+
+    it('preserves acted actions through empty-cache revalidation and failure until confirmed', async () => {
+      const key = 'availability_unknown|done|'
+      sessionStorage.setItem('hatcast.todo.acted', JSON.stringify({ [key]: {
+        verb: 'Donne ta dispo', title: 'Action terminée', confirm: false,
+      } }))
+      inboxApi.peekFreshCache.mockReturnValue(inboxResponse([], agendaItem('next', 'Next show', isoInDays(2))))
+      let resolve!: (value: unknown) => void
+      inboxApi.getInbox.mockReturnValue(new Promise(r => { resolve = r }))
+      await flush()
+      expect(sessionStorage.getItem('hatcast.todo.acted')).toContain(key)
+      expect(fixture.nativeElement.querySelector('.member-home-todo__action-card--done')).toBeNull()
+      resolve({ ok: false, status: 500 })
+      await flush()
+      expect(sessionStorage.getItem('hatcast.todo.acted')).toContain(key)
+      inboxApi.getInbox.mockResolvedValue({ ok: true, status: 200,
+        data: inboxResponse([], agendaItem('next', 'Next show', isoInDays(2))) })
+      await fixture.componentInstance['loadInbox']()
+      await flush()
+      expect(fixture.nativeElement.querySelector('.member-home-todo__action-card--done')).toBeTruthy()
+      expect(region()).toBeNull()
+      await vi.advanceTimersByTimeAsync(1400)
+      fixture.detectChanges()
+      await vi.advanceTimersByTimeAsync(0)
+      fixture.detectChanges()
+      expect(fixture.componentInstance['confirmationPhase']()).toBe('shown')
+      await vi.advanceTimersByTimeAsync(2999)
+      fixture.detectChanges()
+      expect(fixture.componentInstance['confirmationPhase']()).toBe('shown')
+    })
+
+    it('keeps the persistent empty-state link available through navigation and refresh failure', async () => {
+      inboxApi.getInbox.mockResolvedValue({ ok: true, status: 200, data: inboxResponse([]) })
+      await flush()
+      fixture.destroy()
+      inboxApi.peekFreshCache.mockReturnValue(inboxResponse([]))
+      let resolve!: (value: unknown) => void
+      inboxApi.getInbox.mockReturnValue(new Promise(r => { resolve = r }))
+      fixture = TestBed.createComponent(MemberHomeTodo)
+      await flush()
+      expect(region()?.hasAttribute('aria-hidden')).toBe(false)
+      expect(region()?.hasAttribute('inert')).toBe(false)
+      const link = region()?.querySelector('a') as HTMLAnchorElement
+      expect(link.getAttribute('href')).toBe('/troupes')
+      link.focus()
+      expect(document.activeElement).toBe(link)
+      resolve({ ok: false, status: 500 })
+      await flush()
+      expect(region()?.textContent).toContain('Mes troupes')
+      expect(region()?.hasAttribute('aria-hidden')).toBe(false)
+    })
+
+    it('ignores late inbox results after the component is destroyed' , async () => {
+      let resolve!: (value: unknown) => void
+      inboxApi.getInbox.mockReturnValue(new Promise(r => { resolve = r }))
+      await flush()
+      const instance = fixture.componentInstance
+      fixture.destroy()
+      resolve({ ok: true, status: 200, data: inboxResponse([], agendaItem('late', 'Late show', isoInDays(2))) })
+      await vi.advanceTimersByTimeAsync(0)
+      expect(instance['nextEvent']()).toBeNull()
+      expect(instance['confirmationPhase']()).toBe('idle')
+    })
+  })
+
+  it('préserve l’erreur inbox sans accès rapides', async () => {
     inboxApi.getInbox.mockResolvedValue({ ok: false, status: 500 })
 
     await settle(fixture)
 
     expect(fixture.nativeElement.textContent).toContain('Impossible de charger')
-    expect(fixture.nativeElement.querySelector('[data-testid="todo-shortcut-troupes-list"]')).toBeTruthy()
+    expect(fixture.nativeElement.querySelector('[data-testid="todo-shortcut-troupes-list"]')).toBeNull()
   })
 
   it('affiche deux lignes d’action pour deux dispos unknown', async () => {
@@ -440,7 +630,7 @@ describe('MemberHomeTodo', () => {
     fixture.destroy()
   })
 
-  it('affiche le CTA Mes troupes sans Mon agenda quand tout est à jour sans événement', async () => {
+  it('affiche Tout est à jour sans accès rapides quand aucun événement', async () => {
     inboxApi.getInbox.mockResolvedValue({
       ok: true,
       status: 200,
@@ -451,49 +641,18 @@ describe('MemberHomeTodo', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Tout est à jour')
     expect(fixture.nativeElement.textContent).toContain('Rien ne te retient')
-    expect(fixture.nativeElement.textContent).toContain('Toutes mes troupes')
+    expect(fixture.nativeElement.textContent).not.toContain('Accès rapides')
     expect(fixture.nativeElement.querySelector('.member-home-todo__celebration-icon')).toBeTruthy()
     expect(fixture.nativeElement.querySelector('[data-testid="todo-shortcut-season-stats"]')).toBeFalsy()
   })
 
-  it('met en avant Ma saison et les raccourcis contextuels quand une saison est mémorisée', async () => {
+  it('n’affiche aucun accès rapide même avec une saison mémorisée', async () => {
     rememberLastVisitedSeasonSlug('ligue-2026', 'troupe-1')
-    seasonResolver.resolveSeasonSlug.mockResolvedValue({
-      kind: 'resolved',
-      troupe: { id: 'troupe-1', name: 'La Malice', slug: 'la-malice' },
-      season: {
-        id: 'league-1',
-        slug: 'ligue-2026',
-        title: 'Malice 2025-2026',
-      } as SeasonResponse,
-    })
-    inboxApi.getInbox.mockResolvedValue({
-      ok: true,
-      status: 200,
-      data: inboxResponse([]),
-    })
-
     await settle(fixture)
-
-    const seasonLink = fixture.nativeElement.querySelector(
-      '[data-testid="todo-shortcut-season"]',
-    ) as HTMLAnchorElement
-    expect(seasonLink.textContent).toContain('Ma saison')
-    expect(seasonLink.textContent).toContain('Malice 2025-2026')
-    expect(seasonLink.getAttribute('href')).toContain('/saison/la-malice/ligue-2026')
-
-    const statsLink = fixture.nativeElement.querySelector(
-      '[data-testid="todo-shortcut-season-stats"]',
-    ) as HTMLAnchorElement
-    expect(statsLink.textContent).toContain('Stats · Malice 2025-2026')
-    expect(statsLink.getAttribute('href')).toContain('/saison/la-malice/ligue-2026')
-    expect(statsLink.getAttribute('href')).toContain('view=stats')
-
-    const troupeLink = fixture.nativeElement.querySelector(
-      '[data-testid="todo-shortcut-troupe"]',
-    ) as HTMLAnchorElement
-    expect(troupeLink.textContent).toContain('La Malice')
-    expect(troupeLink.getAttribute('href')).toContain('/troupes/la-malice')
+    expect(fixture.nativeElement.textContent).not.toContain('Accès rapides')
+    expect(fixture.nativeElement.querySelector('[data-testid^="todo-shortcut-"]')).toBeNull()
+    expect(seasonResolver.resolveSeasonSlug).not.toHaveBeenCalled()
+    expect(localStorage.getItem('lastVisitedSeason')).toBe('ligue-2026')
   })
 
   it('redirige vers connexion quand la session est absente', async () => {

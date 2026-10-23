@@ -8,6 +8,7 @@ import {
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 
 import type { CompositionCandidate } from '../../core/composition/composition-api.service'
+import type { Fr47EventContext } from '../../core/analytics/fr47-event-names'
 import { ChanceBreakdownService } from './chance-breakdown.service'
 import { UserAvatarComponent } from '../user-avatar/user-avatar'
 
@@ -18,6 +19,7 @@ export interface CompositionSlotPickerDialogData {
   eventId: string
   explainabilityEnabled: boolean
   viewerParticipantIds: string[]
+  analyticsContext: Fr47EventContext
   candidates: CompositionCandidate[]
   loading: boolean
   error: string | null
@@ -75,6 +77,8 @@ export class CompositionSlotPickerDialog {
       roleKey: this.data.roleKey,
       participantId: candidate.participantId,
       viewerParticipantIds: this.data.viewerParticipantIds,
+      analyticsContext: this.data.analyticsContext,
+      entryPoint: 'equipe_slot_picker',
     })
   }
 

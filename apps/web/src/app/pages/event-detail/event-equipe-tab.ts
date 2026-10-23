@@ -1,5 +1,5 @@
 import { NgTemplateOutlet } from '@angular/common'
-import { Component, computed, effect, ElementRef, inject, input, output, signal, viewChild, viewChildren } from '@angular/core'
+import { Component, computed, DestroyRef, effect, ElementRef, inject, input, output, signal, viewChild, viewChildren } from '@angular/core'
 import { firstValueFrom } from 'rxjs'
 import { MatButtonModule } from '@angular/material/button'
 import { MatChipsModule } from '@angular/material/chips'
@@ -138,6 +138,7 @@ export class EventEquipeTab {
   protected readonly roleLabels = ROLE_LABELS
   protected readonly roleEmojis = ROLE_EMOJIS
 
+  private readonly destroyRef = inject(DestroyRef)
   private readonly compositionApi = inject(CompositionApiService)
   private readonly eventsApi = inject(EventApiService)
   private readonly drawPolicyApi = inject(DrawPolicyApiService)
@@ -1394,6 +1395,8 @@ export class EventEquipeTab {
       participantId: event.participantId,
       formulaId: this.activeDrawFormulaId(),
       viewerParticipantIds: [...this.viewerParticipantIds()],
+      analyticsContext: this.analyticsContext(),
+      entryPoint: 'equipe_pool_preview',
     })
   }
 
@@ -1413,6 +1416,8 @@ export class EventEquipeTab {
       formulaId: this.activeDrawFormulaId(),
       viewerParticipantIds: [...this.viewerParticipantIds()],
       stepBanner: `Étape ${this.drawStepIndex() + 1}/${this.drawSteps().length} — ${getRoleLabel(step.roleKey as RoleKey)}`,
+      analyticsContext: this.analyticsContext(),
+      entryPoint: 'equipe_draw_step',
     })
   }
 
@@ -1429,6 +1434,8 @@ export class EventEquipeTab {
       participantId: slot.participantId,
       formulaId: this.activeDrawFormulaId(),
       viewerParticipantIds: [...this.viewerParticipantIds()],
+      analyticsContext: this.analyticsContext(),
+      entryPoint: 'equipe_slot_chance',
     })
   }
 
@@ -1469,6 +1476,7 @@ export class EventEquipeTab {
         eventId,
         explainabilityEnabled: this.canShowChanceBreakdown(),
         viewerParticipantIds: [...this.viewerParticipantIds()],
+        analyticsContext: this.analyticsContext(),
         candidates: [],
         loading: true,
         error: null,
@@ -1770,19 +1778,37 @@ export class EventEquipeTab {
     this.unlocking.set(true)
     const seasonId = this.seasonId()
     const eventId = this.event().id
-    const result = await this.compositionApi.unlockComposition(seasonId, eventId)
-    this.unlocking.set(false)
-    if (this.event().id !== eventId) {
-      return
+    try {
+      const result = await this.compositionApi.unlockComposition(seasonId, eventId)
+      if (this.destroyRef.destroyed || this.seasonId() !== seasonId || this.event().id !== eventId) {
+        return
+      }
+      if (!result.ok || !result.data) {
+        if (result.status === 409) {
+          // Another client may already have unlocked it. Reconcile rather than
+          // leaving obsolete locked actions available after every retry.
+          const refreshed = await this.compositionApi.getComposition(seasonId, eventId)
+          if (this.destroyRef.destroyed || this.seasonId() !== seasonId || this.event().id !== eventId) {
+            return
+          }
+          if (refreshed.ok && refreshed.data) {
+            this.applyCompositionUpdate(refreshed.data)
+            if (refreshed.data.validatedAt == null && refreshed.data.visibility !== 'none') {
+              this.snack.open('Composition déjà déverrouillée.', 'OK', { duration: 4000 })
+              return
+            }
+          }
+        }
+        this.snack.open(this.publishUnlockErrorMessage('unlock', result.status, result.errorMessage), 'OK', {
+          duration: 6000,
+        })
+        return
+      }
+      this.applyCompositionUpdate(result.data)
+      this.snack.open('Composition déverrouillée.', 'OK', { duration: 4000 })
+    } finally {
+      this.unlocking.set(false)
     }
-    if (!result.ok || !result.data) {
-      this.snack.open(this.publishUnlockErrorMessage('unlock', result.status, result.errorMessage), 'OK', {
-        duration: 6000,
-      })
-      return
-    }
-    this.applyCompositionUpdate(result.data)
-    this.snack.open('Composition déverrouillée.', 'OK', { duration: 4000 })
   }
 
   private applyCompositionUpdate(next: CompositionResponse): void {

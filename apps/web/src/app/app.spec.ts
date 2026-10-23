@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { describe, expect, it, vi } from 'vitest';
 
+import { ChunkRecoveryService } from './core/pwa/chunk-recovery.service';
 import { App } from './app';
 import { routes } from './app.routes';
 import { PushOptInPromptService } from './core/push/push-opt-in-prompt.service';
@@ -16,6 +17,7 @@ describe('App', () => {
       imports: [App],
       providers: [
         provideRouter(routes),
+        { provide: ChunkRecoveryService, useValue: { active: signal(false) } },
         {
           provide: PwaInstallService,
           useValue: {
@@ -49,6 +51,17 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;
     expect(app).toBeTruthy();
+  });
+
+  it('preserves banner components while hiding them during recovery', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    const wrapper = fixture.nativeElement.querySelector('app-pwa-install-banner').parentElement;
+    expect(wrapper.hidden).toBe(false);
+    TestBed.inject(ChunkRecoveryService).active.set(true);
+    fixture.detectChanges();
+    expect(wrapper.hidden).toBe(true);
+    expect(wrapper.querySelector('app-pwa-update-banner')).toBeTruthy();
   });
 
   it('should render a router outlet', () => {

@@ -1641,6 +1641,51 @@ describe('EventDetail', () => {
     expect(getEventPage).toHaveBeenCalledTimes(1)
   })
 
+  it('synchronizes the real parent lifecycle and badges after a child unlock conflict', async () => {
+    pagePermissions = { ...defaultSeasonPermissions, isSeasonOrganizer: true }
+    queryParamMap$.next(convertToParamMap({ tab: 'equipe' }))
+    const locked: CompositionResponse = {
+      publishedAt: '2026-01-01T00:00:00.000Z',
+      validatedAt: '2026-01-01T00:00:00.000Z',
+      visibility: 'validated',
+      slots: [{
+        roleKey: 'player',
+        slotIndex: 0,
+        participantId: 'p-1',
+        participantDisplayName: 'Alice',
+        participationStatus: 'confirmed',
+      }],
+    }
+    const draft: CompositionResponse = { ...locked, validatedAt: null, visibility: 'organizerDraft' }
+    mockEventPageResponse(ev('event-2', {
+      compositionLifecycle: 'complete',
+      compositionPublishedAt: locked.publishedAt,
+      teamStatusBadge: { key: 'confirmed', label: 'Équipe confirmée', shortLabel: 'Confirmé', tone: 'confirmed' },
+    }), { composition: locked })
+    const unlock = vi.fn().mockResolvedValue({ ok: false, status: 409, errorMessage: "La composition n'est pas validée" })
+    TestBed.inject(CompositionApiService).unlockComposition = unlock
+    getComposition.mockResolvedValue({ ok: true, status: 200, data: draft })
+    fixture.detectChanges()
+    await vi.waitFor(() => {
+      fixture.detectChanges()
+      expect(fixture.nativeElement.querySelector('.event-equipe-tab__unlock')).not.toBeNull()
+    })
+    const unlockButton = fixture.nativeElement.querySelector('.event-equipe-tab__unlock') as HTMLButtonElement
+    unlockButton.click()
+    await vi.waitFor(() => {
+      fixture.detectChanges()
+      const cmp = fixture.componentInstance as unknown as EventDetailHarness
+      expect(unlock).toHaveBeenCalledWith('season-1', 'event-2')
+      expect(cmp.composition()).toEqual(draft)
+      expect(cmp.event()?.compositionLifecycle).toBe('draftComposition')
+      expect(cmp.event()?.teamStatusBadge?.shortLabel).toBe('Préparation')
+      expect(cmp.event()?.compositionPublishedAt).toBe(locked.publishedAt)
+      expect(fixture.nativeElement.querySelector('.event-equipe-tab__unlock')).toBeNull()
+      expect(fixture.nativeElement.textContent).toContain('Publier')
+    })
+    expect(getEventPage).toHaveBeenCalledTimes(1)
+  })
+
   it('does not prefetch composition or dispos summary on Infos tab (PERF-03)', async () => {
     mockEventPageResponse(ev('event-2', {
         availabilityOpenedAt: '2026-01-01T00:00:00.000Z',

@@ -10,6 +10,7 @@ import { MemberStatsShortcutService } from '../../core/navigation/member-stats-s
 import { LastVisitedTroupeShortcutService } from '../../core/navigation/last-visited-troupe-shortcut.service'
 import { PwaInstallService } from '../../core/pwa/pwa-install.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
+import { MemberTroupeMenuService } from '../../core/navigation/member-troupe-menu.service'
 import { MemberNav } from './member-nav'
 
 describe('MemberNav', () => {
@@ -29,9 +30,20 @@ describe('MemberNav', () => {
     refresh: ReturnType<typeof vi.fn>
     isTroupeTabActive: ReturnType<typeof vi.fn>
   }
+  const menu = {
+    troupeReady: signal(true), seasonReady: signal(true), statisticsReady: signal(true),
+    troupeLabel: signal('La Malice'), seasonLabel: signal('2026–2027'),
+    troupeLink: signal(['/troupes', 'malice']), seasonLink: signal(['/saison', 'malice', '2026-27']),
+    error: signal<string | null>(null), refresh: vi.fn().mockResolvedValue(undefined),
+  }
   let router: Router
 
   beforeEach(async () => {
+    menu.troupeLabel.set('La Malice')
+    menu.troupeLink.set(['/troupes', 'malice'])
+    menu.seasonReady.set(true)
+    menu.statisticsReady.set(true)
+    menu.refresh.mockClear()
     pendingCount = signal(0)
     inboxBadge = {
       pendingActionCount: pendingCount,
@@ -60,8 +72,10 @@ describe('MemberNav', () => {
           { path: 'compte', component: MemberNav },
           { path: 'membre/:userSlug', component: MemberNav },
           { path: 'troupes/:slug', component: MemberNav },
+          { path: 'saison/:troupeSlug/:seasonSlug', component: MemberNav },
           { path: 'troupes', component: MemberNav },
         ]),
+        { provide: MemberTroupeMenuService, useValue: menu },
         { provide: MemberInboxBadgeService, useValue: inboxBadge },
         { provide: MemberStatsShortcutService, useValue: statsShortcut },
         { provide: LastVisitedTroupeShortcutService, useValue: troupeShortcut },
@@ -160,7 +174,7 @@ describe('MemberNav', () => {
   it('renders four bottom tabs including Ma troupe', async () => {
     await renderAt('/accueil')
 
-    const bottomTabs = fixture.nativeElement.querySelectorAll('.member-nav__bottom a.mat-mdc-tab-link')
+    const bottomTabs = fixture.nativeElement.querySelectorAll('.member-nav__bottom .mat-mdc-tab-link')
     expect(bottomTabs.length).toBe(4)
     expect(fixture.nativeElement.textContent).toContain('Ma troupe')
     expect(fixture.nativeElement.textContent).toContain('Mon agenda')
@@ -171,7 +185,7 @@ describe('MemberNav', () => {
 
     const labels = Array.from(
       fixture.nativeElement.querySelectorAll(
-        '.member-nav__bottom a.mat-mdc-tab-link',
+        '.member-nav__bottom .mat-mdc-tab-link',
       ) as NodeListOf<HTMLElement>,
     ).map((tab) =>
       tab.querySelector('.member-nav__bottom-label')?.textContent?.trim(),
@@ -194,19 +208,97 @@ describe('MemberNav', () => {
     expect(labels).toEqual(['Accueil', 'Mon agenda', 'Mes stats', 'Ma troupe'])
   })
 
-  it('links Ma troupe tab to stored troupe hub', async () => {
-    await renderAt('/accueil')
+  async function openMenu(selector = '.member-nav__bottom [aria-label="Ma troupe"]'): Promise<HTMLAnchorElement[]> {
+    const trigger = fixture.nativeElement.querySelector(selector) as HTMLElement
+    expect(trigger.getAttribute('href')).toBeNull()
+    trigger.click()
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    return Array.from(document.querySelectorAll('a.mat-mdc-menu-item'))
+  }
 
-    const troupeLinks = fixture.nativeElement.querySelectorAll('a[href="/troupes/malice"]')
-    expect(troupeLinks.length).toBeGreaterThan(0)
+  it.each(['.member-nav__bottom', '.member-nav__rail'])('opens exactly three coherent destinations from %s', async (surface) => {
+    await renderAt('/accueil')
+    expect(menu.refresh).not.toHaveBeenCalled()
+    const links = await openMenu(`${surface} [aria-label="Ma troupe"]`)
+    expect(menu.refresh).toHaveBeenCalledOnce()
+    expect(links.map((link) => link.textContent?.trim())).toEqual(['La Malice', '2026–2027', 'Statistiques'])
+    expect(links.map((link) => link.getAttribute('href'))).toEqual([
+      '/troupes/malice', '/saison/malice/2026-27?view=agenda', '/saison/malice/2026-27?view=stats',
+    ])
+    expect(router.url).toBe('/accueil')
   })
 
-  it('falls back Ma troupe link to troupes list when no slug stored', async () => {
-    troupeShortcut.link = signal('/troupes')
+  it.each(['.member-nav__bottom', '.member-nav__rail'])('restores keyboard focus after asynchronous menu resolution from %s', async (surface) => {
+    let finishResolution!: () => void
+    const resolution = new Promise<void>((resolve) => { finishResolution = resolve })
+    menu.refresh.mockImplementationOnce(async () => {
+      menu.troupeReady.set(false)
+      menu.seasonReady.set(false)
+      menu.statisticsReady.set(false)
+      await resolution
+      menu.troupeReady.set(true)
+      menu.seasonReady.set(true)
+      menu.statisticsReady.set(true)
+    })
     await renderAt('/accueil')
+    const trigger = fixture.nativeElement.querySelector(`${surface} button[aria-label="Ma troupe"]`) as HTMLButtonElement
+    trigger.focus()
+    expect(document.activeElement).toBe(trigger)
+    trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, bubbles: true }))
+    // MatTabLink activates on keydown itself; the rail relies on the browser's native button activation.
+    // jsdom does not synthesize that native click, so supply it only for the rail.
+    if (surface === '.member-nav__rail') trigger.click()
+    fixture.detectChanges()
+    const panel = document.querySelector('.mat-mdc-menu-panel') as HTMLElement
+    expect(panel).not.toBeNull()
+    expect(trigger.getAttribute('aria-expanded')).toBe('true')
+    expect(Array.from(panel.querySelectorAll('[role="menuitem"]')).map((item) => item.getAttribute('aria-disabled'))).toEqual(['true', 'true', 'true'])
 
-    const troupeLinks = fixture.nativeElement.querySelectorAll('a[href="/troupes"]')
-    expect(troupeLinks.length).toBeGreaterThan(0)
+    finishResolution()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    panel.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', keyCode: 40, bubbles: true }))
+    const firstEntry = panel.querySelector('[role="menuitem"]') as HTMLElement
+    expect(document.activeElement).toBe(firstEntry)
+    firstEntry.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', keyCode: 27, bubbles: true }))
+    await fixture.whenStable()
+    fixture.detectChanges()
+    expect(trigger.getAttribute('aria-expanded')).toBe('false')
+    expect(document.querySelector('.mat-mdc-menu-panel')).toBeNull()
+    expect(document.activeElement).toBe(trigger)
+  })
+
+  it.each([
+    ['/troupes/malice', 0],
+    ['/saison/malice/2026-27?view=agenda', 1],
+    ['/saison/malice/2026-27?view=stats', 2],
+    ['/saison/malice/2026-27?view=history', -1],
+    ['/troupes/malice?extra=1', -1],
+  ] as const)('marks only the exact menu destination active at %s', async (url, activeIndex) => {
+    await renderAt(url)
+    const links = await openMenu()
+    expect(links.map((link) => link.classList.contains('member-nav__menu-item--active'))).toEqual(
+      [0, 1, 2].map((index) => index === activeIndex),
+    )
+    expect(links.map((link) => link.getAttribute('aria-current'))).toEqual(
+      [0, 1, 2].map((index) => index === activeIndex ? 'page' : null),
+    )
+    expect(links.map((link) => link.textContent?.trim())).toEqual(['La Malice', '2026–2027', 'Statistiques'])
+  })
+
+  it('keeps the list reachable with exactly three empty-state entries', async () => {
+    menu.troupeLabel.set('Mes troupes')
+    menu.troupeLink.set(['/troupes'])
+    menu.seasonReady.set(false)
+    menu.statisticsReady.set(false)
+    await renderAt('/accueil')
+    const links = await openMenu()
+    expect(links).toHaveLength(3)
+    expect(links[0].getAttribute('href')).toBe('/troupes')
+    expect(links.slice(1).map((link) => link.getAttribute('aria-disabled'))).toEqual(['true', 'true'])
+    expect(links.slice(1).map((link) => link.getAttribute('href'))).toEqual([null, null])
   })
 
   it('does not mark Ma troupe tab active on troupes list', async () => {
@@ -227,7 +319,7 @@ describe('MemberNav', () => {
     await renderAt('/troupes/malice')
 
     const activeRail = fixture.nativeElement.querySelector(
-      '.member-nav__rail a.member-nav__link--active',
+      '.member-nav__rail .member-nav__link--active',
     )
     expect(activeRail?.textContent).toContain('Ma troupe')
 
@@ -265,7 +357,7 @@ describe('MemberNav', () => {
     await renderAt('/membre/patrice')
 
     const activeRail = fixture.nativeElement.querySelector(
-      '.member-nav__rail a.member-nav__link--active',
+      '.member-nav__rail .member-nav__link--active',
     )
     expect(activeRail?.textContent).toContain('Mes stats')
 
@@ -277,7 +369,7 @@ describe('MemberNav', () => {
     pendingCount.set(0)
     await renderAt('/membre/other-member')
 
-    expect(fixture.nativeElement.querySelector('.member-nav__rail a.member-nav__link--active')).toBeNull()
+    expect(fixture.nativeElement.querySelector('.member-nav__rail .member-nav__link--active')).toBeNull()
   })
 
   it('uses 9+ in accueil aria-label when count exceeds 9', async () => {

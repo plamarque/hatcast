@@ -4,6 +4,7 @@ import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 
 import { PushOptInPromptService } from './core/push/push-opt-in-prompt.service';
+import { ChunkRecoveryService } from './core/pwa/chunk-recovery.service';
 import { PwaUpdateService } from './core/pwa/pwa-update.service';
 import { PwaInstallBannerComponent } from './shared/pwa/pwa-install-banner/pwa-install-banner';
 import { PwaUpdateBannerComponent } from './shared/pwa/pwa-update-banner/pwa-update-banner';
@@ -15,6 +16,7 @@ import { PwaUpdateBannerComponent } from './shared/pwa/pwa-update-banner/pwa-upd
   styleUrl: './app.scss',
 })
 export class App implements OnInit {
+  protected readonly recovery = inject(ChunkRecoveryService);
   private readonly router = inject(Router);
   private readonly pwaUpdate = inject(PwaUpdateService);
   private readonly pushOptInPrompt = inject(PushOptInPromptService);

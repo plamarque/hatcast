@@ -10,6 +10,8 @@ import type {
   PwaInstallInstructionVariant,
   PwaNativePromptOutcome,
   PwaUpdateAvailabilitySource,
+  ChanceBreakdownEntryPoint,
+  ChanceBreakdownPresentation,
 } from './fr47-event-names'
 import {
   AVAILABILITY_REMINDER_SENT,
@@ -29,6 +31,8 @@ import {
   V2_CUTOVER_REFERRAL_LANDING,
   V2_MIGRATION_FIRST_SESSION,
   PWA_ACCESS_MODE_OBSERVED,
+  CHANCE_BREAKDOWN_OPENED,
+  CHANCE_BREAKDOWN_HELP_OPENED,
 } from './fr47-event-names'
 import type { AnnouncementChannel, BoundedOutcome, RecipientCountBucket, SlotOperation } from './organizer-analytics'
 import type { ActorScope } from './organizer-analytics'
@@ -252,6 +256,35 @@ export class ProductAnalyticsService {
     this.capture(FR47_NOTIFICATION_LINK_OPENED, {
       ...safeEventContext(ctx),
       link_tab: props.link_tab,
+    })
+  }
+
+  /** Captures only a successful, visible chance-breakdown overlay. */
+  captureChanceBreakdownOpened(
+    ctx: Fr47EventContext,
+    props: { entry_point: ChanceBreakdownEntryPoint; presentation: ChanceBreakdownPresentation },
+  ): void {
+    if (!isChanceBreakdownEntryPoint(props.entry_point) || !isChanceBreakdownPresentation(props.presentation)) {
+      return
+    }
+    this.capture(CHANCE_BREAKDOWN_OPENED, {
+      ...safeEventContext(ctx),
+      entry_point: props.entry_point,
+      presentation: props.presentation,
+    })
+  }
+
+  /** The help event retains only the bounded surface which opened the sheet. */
+  captureChanceBreakdownHelpOpened(
+    ctx: Fr47EventContext,
+    props: { entry_point: ChanceBreakdownEntryPoint },
+  ): void {
+    if (!isChanceBreakdownEntryPoint(props.entry_point)) {
+      return
+    }
+    this.capture(CHANCE_BREAKDOWN_HELP_OPENED, {
+      ...safeEventContext(ctx),
+      entry_point: props.entry_point,
     })
   }
 
@@ -534,6 +567,15 @@ function isOrganizerAction(value: unknown): value is 'slot' | 'draw_preview' | '
 
 function isCompositionLifecycle(value: unknown): value is 'draft' | 'validated' | 'published' {
   return value === 'draft' || value === 'validated' || value === 'published'
+}
+
+function isChanceBreakdownEntryPoint(value: unknown): value is ChanceBreakdownEntryPoint {
+  return value === 'dispos_poll' || value === 'equipe_slot_picker' || value === 'equipe_pool_preview'
+    || value === 'equipe_draw_step' || value === 'equipe_slot_chance'
+}
+
+function isChanceBreakdownPresentation(value: unknown): value is ChanceBreakdownPresentation {
+  return value === 'bottom_sheet' || value === 'dialog'
 }
 
 function isAnnouncementChannel(value: unknown): value is AnnouncementChannel {
