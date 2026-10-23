@@ -1,5 +1,30 @@
 # Changelog
 
+## [2.7.0] - 2026-10-23
+
+### ✨ New Features
+- feat(home): Stabilize caught-up feedback
+- feat(nav): Simplify troupe navigation
+- feat(story): merge 11-7-observabilite-des-panneaux-de-chances-posthog
+- feat(analytics): Observe chance breakdown opens
+
+### 🐛 Bug Fixes
+- fix(web): Recover stale composition unlock state
+- fix(pwa): Recover stale lazy-route failures
+
+### 📝 Other Changes
+- chore(v2): promote v2 to staging-v2
+- test(nav): Match the guest season fixture title
+- chore(release): Prepare v2.7.0 notes
+- chore(home): Reconcile local v2 changes
+- docs(issues): Record PostHog promotion guard
+- chore(bmad): Sync sprint status for 11-7-observabilite-des-panneaux-de-chances-posthog
+- docs(planning): Add chance breakdown story
+- docs(issues): Record composition smoke flake
+- chore(v2): sync release v2.6.3-rc.2 artifacts to v2
+
+---
+
 ## [2.6.3] - 2026-10-18
 
 ### 📝 Other Changes
