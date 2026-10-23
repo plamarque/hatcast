@@ -15,6 +15,9 @@ historical registry below.
 
 ### Open defects and limitations
 
+LIMIT-011 (repeated release validation and deployment cycles), and LIMIT-012
+(release evidence is not fully bound to the promoted candidate).
+
 BUG-041 (manual PWA application-version check), and BUG-042 (analytics bootstrap import failure).
 
 BUG-039 (PR #15: denied sessionStorage access escapes chunk recovery handler).
@@ -50,6 +53,40 @@ BUG-037 and BUG-029 have fixture-only corrections verified by the complete API s
 - **Evidence**: [PR #14](https://github.com/plamarque/hatcast/pull/14); local source analysis. Production frequency remains unquantified.
 
 ### Historical registry
+
+### BUG-048 — Event details fail when a new troupe has unseeded categories
+- **Status**: Open — correction deferred; explicitly accepted as non-blocking for release 2.7.0 by Patrice on 2026-10-23. Reproduced on staging `v2.7.0-rc.2`, revision `hatcast-v2-staging-00129-pr4`. Not fixed.
+- **Severity**: High (opening an event can fail for a newly created troupe).
+- **Affected area**: `EventPageService.loadPageById/loadPageBySlug` → `TroupeCategoryService.ensureDeplacementsSeed`.
+- **Observed behavior**: The isolated E2E troupe `e2e-rc2-accueil-20261023` has six visible agenda events and one active MEMBER_SYNC participant. Clicking event 04 from Accueil navigates to its detail URL then returns to `/agenda`. Authenticated GET of the event itself and `/page?tab=dispos` succeed; `/page?tab=infos` returns HTTP 403. Cloud Run logs show `cannot execute INSERT in a read-only transaction` while inserting into `troupe_categories`, through `ensureDeplacementsSeed` inside the read-only event-page transaction.
+- **Expected behavior**: Opening a visible event in a new troupe loads its information without failing category initialization.
+- **Release disposition (2026-10-23)**: Patrice confirms production currently has a single, already initialized troupe, so the missing-category trigger does not apply to the intended production scope. He explicitly accepts deferring this fix without blocking production validation for 2.7.0. This is a scoped acceptance of the defect, not a passing reproduction or authorization to deploy. Reassess before introducing a new or uninitialized troupe; production initialization was stated by the owner, not independently queried for this disposition.
+- **Evidence and limits**: `/private/tmp/hatcast-2.7.0-rc2-proof/event-detail-error.txt` and RC2 browser report. Five-card display, full-agenda navigation, and persisted availability from card 04 passed. CI/E1 green does not cover this fresh-troupe case. No category seeding workaround, code change, production reproduction or production promotion performed; no regression attribution to the Accueil delta established.
+
+### LIMIT-011 — V2 release repeats full validation and staging deployment
+- **Status**: Open — audited 2026-10-23; no gate changed.
+- **Severity**: Medium (delivery latency and repeated CI work).
+- **Affected area**: V2 staging/release/prod scripts and GitHub Actions.
+- **Observed behavior**: `deploy_staging.sh` runs the full local E2E suite, then pushes staging (full CI E2E, image build/deploy, E1 T2). `release_version.sh` changes release metadata and pushes staging again, triggering another full cycle, then syncs to `v2` and triggers its matching workflows. `deploy_prod.sh` runs the full local E2E suite again. On 23 October, staging runs [39897194431](https://github.com/plamarque/hatcast/actions/runs/39897194431) and [39899222776](https://github.com/plamarque/hatcast/actions/runs/39899222776) took 13:47 and 22:18; their intervening Git diff contains only six version/changelog files. The latter includes 8:01 installing Chromium, not executing tests.
+- **Expected behavior**: Make repeated work and actual coverage explicit; any removal or risk-based selection requires an approved release contract. Existing gates remain applicable.
+- **Evidence**: [Release chain audit](docs/v2/technical/RELEASE_CHAIN_AUDIT_2026-10-23.md). Local and human times were not measured; no one-hour end-to-end timing is claimed from CI alone.
+
+### LIMIT-012 — Release checks do not mechanically attest all candidate evidence
+- **Status**: Open — source audit 2026-10-23; no invalid production promotion established.
+- **Severity**: Medium (confidence and provenance of release validation).
+- **Affected area**: `scripts/v2/promote-tag-to-prod.sh`, `promote-to-staging.sh`, and E1 preprod workflow/specs.
+- **Observed behavior**: Local pre-push E2E runs on the current checkout, without explicitly checking out the promoted RC (prod) or the final merged candidate (staging). The prod script checks tag identity and staging ancestry, but does not itself read CI/T2 results or human smoke disposition; the release skill delegates those checks to the operator. E1 uses a mutable staging URL; its YAML has no explicit expected-SHA assertion. Missing Malice probe results skip Playwright with a warning. E1-MEM-031/032 skip persistence writes on staging, and E1-ORG-001–002 can return after visibility alone when drawing is unavailable.
+- **Expected behavior**: Treat these as distinct, bounded proofs; a green E1 result must not be described as complete persisted C2/C3 validation. Any future fast path must bind required evidence to its exact candidate and record omitted/waived coverage.
+- **Notes/context**: Detailed T2 runs inspected did execute Playwright (34 passed, 2 skipped). The human smoke contract already requires persisted outcomes. External GitHub environment/branch protection was not inspected. No gate bypass, data corruption or deployed regression is inferred from this limitation.
+- **Evidence**: [Release chain audit](docs/v2/technical/RELEASE_CHAIN_AUDIT_2026-10-23.md); [E1 run](https://github.com/plamarque/hatcast/actions/runs/39897194431).
+
+### BUG-047 — Google sign-in reports an unapproved V2 staging origin
+- **Status**: Observed during the 2.7.0-rc.1 browser smoke; Google sign-in itself was not exercised.
+- **Severity**: Low (staging-only console finding; impact on Google sign-in requires verification).
+- **Affected area**: Google Identity Services on `https://hatcast-v2-staging-gz5evlelnq-od.a.run.app/connexion`.
+- **Observed behavior**: The login page emits `[GSI_LOGGER]: The given origin is not allowed for the given client ID.` Browser extensions emit separate unrelated warnings.
+- **Expected behavior**: A supported staging login origin is accepted by the configured Google OAuth web client.
+- **Evidence and limits**: Browser console during the 2026-10-23 RC smoke, revision `hatcast-v2-staging-00127-r66`; email/password login passed for both configured E2E roles. No Google login attempt, client configuration change, or production impact is established.
 
 ### BUG-046 — Guest navigation E2E expects an incomplete fixture title
 - **Status**: Fixed locally — complete E2E suite passed (100 passed, 4 skipped); CI verification pending.
@@ -138,6 +175,7 @@ BUG-037 and BUG-029 have fixture-only corrections verified by the complete API s
 ### BUG-POSTHOG-002 — Production promotion capture fails its acceptance guard
 - **ID**: BUG-POSTHOG-002
 - **Status**: Open — observed after successful v2.6.3 production deployment on 2026-10-18
+- **Recurrence (2026-10-23)**: Production 2.7.0 [workflow 39910450325](https://github.com/plamarque/hatcast/actions/runs/39910450325), commit `37e1bfd27c9107aaca3d44dd796255de1ed70187`: deploy succeeded; revision `hatcast-v2-00026-wn2` serves 100% of traffic. The PostHog job fails with the same acceptance-guard message. Public version 2.7.0 / production channel, health UP and PWA smoke passed. No quota/billing/credential change or retry performed; the message alone does not prove quota exhaustion.
 - **Severity**: Medium (release observability incomplete; deployment remains successful)
 - **Affected area**: `scripts/v2/posthog-lifecycle-dashboard.mjs`, production workflow `posthog-lifecycle` job.
 - **Observed behavior**: [Workflow 39130429450](https://github.com/plamarque/hatcast/actions/runs/39130429450), commit `a5fb7f487d73672a3388e4b32ef200c4f314d1aa`: deployment succeeded, revision `hatcast-v2-00024-5n9` serves 100% of traffic, but lifecycle synchronization failed with `PostHog promotion capture was not accepted without quota limits`. Overall workflow is red despite its successful deployment job. Read-only checks returned version 2.6.3, production channel, and health UP.
@@ -151,6 +189,7 @@ BUG-037 and BUG-029 have fixture-only corrections verified by the complete API s
 - **Affected area**: `apps/web/e2e/e1/orga-composition.desktop.spec.ts` and `apps/web/e2e/draw-formula-choice.spec.ts`.
 - **Observed behavior (2026-10-18)**: [RC2 workflow 39105565455](https://github.com/plamarque/hatcast/actions/runs/39105565455), commit `a5fb7f487d73672a3388e4b32ef200c4f314d1aa`: E1-ORG-001–002 first failed waiting for the dialog after publication (15 s); E2E-WD-05 first failed pool preview with HTTP 400 `Rôle inconnu pour cet événement`. Both passed on automatic retry. Final local-profile CI smoke: 92 passed, 2 flaky, 4 skipped; job succeeded. This is not evidence of a clean first-attempt run.
 - **Expected behavior**: Composition smoke journeys pass without retry, with deterministic fixture state and assertions aligned to supported behavior.
+- **Audit follow-up (2026-10-23)**: [RC workflow 39899222776](https://github.com/plamarque/hatcast/actions/runs/39899222776) again reports E1-ORG-001–002 passing only on retry after a missing publication dialog; final T1 result is 99 passed, 1 flaky, 4 skipped. This recurrence does not establish a production defect or the root cause.
 - **Notes/context**: Local preflight passed 94 tests with four skips. The separate deployed-staging E1 gate passed 34 tests with two skips, without reported retries. No tests were disabled or changed for these observations. Investigation and any fix remain separate from the API fixture correction; the production promotion and human staging smoke are not authorized by these green automated jobs.
 
 ### BUG-037 — API regression fixtures assume unsynchronized shared memberships
