@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 10-14-2026 17:55
-last_updated: 10-18-2026
+last_updated: 10-27-2026 22:57
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -274,3 +274,17 @@ development_status:
   11-4-observabilite-parcours-organisateur-posthog: done
   11-5-observabilite-installation-pwa-posthog: done
   11-7-observabilite-des-panneaux-de-chances-posthog: done  # Manual closure: BUG-BMAD-001 accent mismatch prevents BMad planner transition
+
+  epic-23: backlog
+  23-1-employer-un-vocabulaire-commun-aux-associations: backlog
+  23-2-reconnaître-son-groupe-dans-la-navigation: backlog
+  23-3a-préparer-les-catalogues-de-rôles-par-groupe: backlog
+  23-3-gérer-les-rôles-de-son-groupe: backlog
+  23-4-choisir-ses-rôles-préférés-pour-chaque-groupe: backlog
+  23-5-définir-les-types-d-événements-de-son-groupe: backlog
+  23-6-organiser-une-sélection-sans-tirage-et-régler-la-priorité-de: backlog
+  23-7-rendre-le-bénévolat-facultatif: backlog
+  23-8a-préparer-la-compatibilité-de-l-état-sélectionné: backlog
+  23-8-sélectionner-sans-demander-de-confirmation: backlog
+  23-9-adapter-le-vocabulaire-à-son-groupe: backlog
+  epic-23-retrospective: optional
