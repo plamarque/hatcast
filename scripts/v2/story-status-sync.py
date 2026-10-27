@@ -8,6 +8,7 @@ Planning: it never regenerates, removes, or rewrites existing tracking data.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import os
 import re
 import sys
@@ -20,8 +21,9 @@ LEGAL_STATUSES = {
     "optional", "ready-for-dev", "review",
 }
 KEY_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
-EPIC_RE = re.compile(r"^### Epic ([0-9]+)\s+[—-]\s+.+$", re.MULTILINE)
-STORY_RE = re.compile(r"^#### Story ([0-9]+)\.([0-9]+[a-z]?)\s*:\s*(.+?)\s*$", re.MULTILINE)
+EPIC_RE = re.compile(r"^#{1,3}\s*Epic\s+(\d+)(?=\s|[:—-]|$)\s*(?:[:—-]\s*)?.*$", re.IGNORECASE)
+STORY_RE = re.compile(r"^#{2,4}\s*Story\s+(\d+)\.(\d+[a-z]?)\s*:\s*(.+?)\s*$", re.IGNORECASE)
+FENCE_RE = re.compile(r"^\s{0,3}(`{3,}|~{3,})")
 STATUS_ENTRY_RE = re.compile(r"^  ([^\s:]+): ([a-z-]+)(?:[ \t]+#.*)?\r?$")
 
 
@@ -35,25 +37,44 @@ def slugify(value: str) -> str:
     return re.sub(r"-+", "-", re.sub(r"[^a-z0-9]+", "-", ascii_value)).strip("-")
 
 
-def canonical_tracking_keys(epics: str) -> list[str]:
-    """Return canonical epic and story keys only from valid headings."""
-    epic_matches = list(EPIC_RE.finditer(epics))
-    if not epic_matches:
-        raise SyncError("EPICS_MALFORMED")
-    keys: list[str] = [f"epic-{match.group(1)}" for match in epic_matches]
-    for story in STORY_RE.finditer(epics):
-        enclosing = [match for match in epic_matches if match.start() < story.start()]
-        if not enclosing:
+def planner_slug(value: str) -> str:
+    slug = re.sub(r"[^\w]+", "-", value.lower(), flags=re.UNICODE).strip("-")[:60].strip("-")
+    return slug or hashlib.sha256(value.encode("utf-8")).hexdigest()[:8]
+
+
+def canonical_tracking_keys(documents: list[str]) -> list[str]:
+    """Parse each independent epic document without accepting fenced examples."""
+    keys: list[str] = []
+    for index, document in enumerate(documents):
+        epic = None
+        found_epic = False
+        fence = None
+        for line in document.splitlines():
+            match = FENCE_RE.match(line)
+            if match:
+                marker = match.group(1)
+                if fence is None:
+                    fence = (marker[0], len(marker))
+                elif marker[0] == fence[0] and len(marker) >= fence[1] and not line[match.end():].strip():
+                    fence = None
+                continue
+            if fence is not None:
+                continue
+            match = EPIC_RE.match(line)
+            if match:
+                epic = match.group(1)
+                found_epic = True
+                keys.append(f"epic-{epic}")
+                continue
+            match = STORY_RE.match(line)
+            if match:
+                story_epic, number, title = match.groups()
+                if epic != story_epic:
+                    raise SyncError("EPICS_MALFORMED")
+                slug = slugify(title) if index == 0 else planner_slug(title)
+                keys.append(f"{story_epic}-{number}-{slug}")
+        if not found_epic:
             raise SyncError("EPICS_MALFORMED")
-        epic, number, title = story.groups()
-        if enclosing[-1].group(1) != epic:
-            raise SyncError("EPICS_MALFORMED")
-        key = f"{epic}-{number}-{slugify(title)}"
-        if not KEY_RE.fullmatch(key):
-            raise SyncError("EPICS_MALFORMED")
-        keys.append(key)
-    if not keys:
-        raise SyncError("EPICS_MALFORMED")
     return keys
 
 
@@ -103,9 +124,13 @@ def main() -> int:
             raise SyncError("STORY_KEY_INVALID")
         epics_path = args.project_root / "_bmad-output/planning-artifacts/epics.md"
         tracking_path = args.project_root / "_bmad-output/implementation-artifacts/sprint-status.yaml"
-        epics = epics_path.read_text(encoding="utf-8")
-        canonical_keys = canonical_tracking_keys(epics)
-        requested_count = canonical_keys.count(args.story_key)
+        documents = [epics_path.read_text(encoding="utf-8")]
+        association_path = epics_path.parent / "association-groups" / "epics.md"
+        if association_path.exists():
+            documents.append(association_path.read_text(encoding="utf-8"))
+        canonical_keys = canonical_tracking_keys(documents)
+        matches = [key for key in canonical_keys if slugify(key) == args.story_key]
+        requested_count = len(matches)
         if requested_count == 0:
             raise SyncError("STORY_KEY_UNKNOWN")
         if requested_count > 1:
@@ -115,7 +140,7 @@ def main() -> int:
         lines = text.splitlines(keepends=True)
         start, end = status_mapping_bounds(lines)
         statuses = parse_statuses(lines, start, end)
-        historical_orphans = len(set(statuses) - set(canonical_keys))
+        historical_orphans = len(set(statuses) - {slugify(key) for key in canonical_keys})
         if args.story_key in statuses:
             print("TRACKING=present")
             print(f"HISTORICAL_ORPHANS={historical_orphans}")
@@ -124,7 +149,7 @@ def main() -> int:
         if end > start and not lines[end - 1].endswith(("\n", "\r")):
             lines.insert(end, newline)
             end += 1
-        lines.insert(end, f"  {args.story_key}: backlog{newline}")
+        lines.insert(end, f"  {matches[0]}: backlog{newline}")
         temporary_path = tracking_path.with_name(f".{tracking_path.name}.{os.getpid()}.tmp")
         try:
             temporary_path.write_bytes("".join(lines).encode("utf-8"))

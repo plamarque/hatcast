@@ -97,4 +97,41 @@ malformed_before="$(shasum -a 256 "${malformed_file}" | awk '{print $1}')"
 expect_fail python3 "${controller}" --project-root "${malformed}" --story-key 21-6-github-review-decision-controller
 [[ "${malformed_before}" == "$(shasum -a 256 "${malformed_file}" | awk '{print $1}')" ]] || fail "malformed tracking changed bytes"
 
+association="$(make_project association)"
+mkdir -p "${association}/_bmad-output/planning-artifacts/association-groups"
+association_epics="${association}/_bmad-output/planning-artifacts/association-groups/epics.md"
+association_status="${association}/_bmad-output/implementation-artifacts/sprint-status.yaml"
+cat >"${association_epics}" <<'EOF'
+## Epic 23 : Associations
+### Story 23.3a : Préparer les catalogues de rôles par groupe
+### Story 23.6 : Organiser une sélection sans tirage et régler la priorité des rôles
+```
+### Story 23.9 : Example ignored
+```
+EOF
+output="$(python3 "${controller}" --project-root "${association}" --story-key 23-3a-preparer-les-catalogues-de-roles-par-groupe)"
+[[ "${output}" == *$'TRACKING=added'* ]] || fail "association story not added"
+grep -Fx '  23-3a-préparer-les-catalogues-de-rôles-par-groupe: backlog' "${association_status}" >/dev/null || fail "planner key not preserved"
+python3 "${controller}" --project-root "${association}" --story-key 23-6-organiser-une-selection-sans-tirage-et-regler-la-priorite-de >/dev/null || fail "long planner key not recognized"
+expect_fail python3 "${controller}" --project-root "${association}" --story-key 23-9-example-ignored
+before="$(shasum -a 256 "${association_status}" | awk '{print $1}')"
+printf '%s\n' '### Story 23.3a : Preparer les catalogues de roles par groupe' >>"${association_epics}"
+expect_fail python3 "${controller}" --project-root "${association}" --story-key 23-3a-preparer-les-catalogues-de-roles-par-groupe
+[[ "${before}" == "$(shasum -a 256 "${association_status}" | awk '{print $1}')" ]] || fail "ambiguous association changed tracking"
+
+legacy_long="$(make_project legacy-long)"
+printf '%s\n' '#### Story 21.8 : A deliberately very long historical story title that exceeds sixty characters in total' >>"${legacy_long}/_bmad-output/planning-artifacts/epics.md"
+python3 "${controller}" --project-root "${legacy_long}" --story-key 21-8-a-deliberately-very-long-historical-story-title-that-exceeds-sixty-characters-in-total >/dev/null || fail "legacy long key refused"
+
+fences="$(make_project fences)"
+cat >>"${fences}/_bmad-output/planning-artifacts/epics.md" <<'EOF'
+```
+``` not a closing fence
+#### Story 21.9 : Hidden example
+```
+## Epic 21.3 is not an epic heading
+EOF
+expect_fail python3 "${controller}" --project-root "${fences}" --story-key 21-9-hidden-example
+python3 "${controller}" --project-root "${fences}" --story-key 21-6-github-review-decision-controller >/dev/null || fail "non-epic heading disrupted existing epic"
+
 echo "PASS: story status synchronization"
