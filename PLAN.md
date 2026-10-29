@@ -38,7 +38,10 @@ tracker.
 
 ### Proposition — accélération des releases V2 (2026-10-23)
 
-**Statut : proposé, non approuvé pour implémentation.** Demande : séparer la
+**Statut : proposé, non approuvé pour implémentation.** Révision du contrat A
+autorisée par Patrice le 2026-10-23 après vérification de parité local/CI :
+CI complète de référence, E2E locaux à la demande. Constat détaillé :
+[_bmad-output/specs/spec-release-delivery/local-ci-parity.md](_bmad-output/specs/spec-release-delivery/local-ci-parity.md). Demande : séparer la
 suppression des répétitions à couverture équivalente de la sélection des gates
 par blast radius. Référence factuelle et schémas avant/après :
 [audit du 23 octobre](docs/v2/technical/RELEASE_CHAIN_AUDIT_2026-10-23.md).
@@ -47,15 +50,32 @@ Les procédures actuelles restent applicables. Ce plan n'autorise aucun push,
 tag, changement de gate effective ou déploiement.
 
 **Sens de « couverture équivalente » pour le volet A :** conserver sur le
-candidat final les scénarios/assertions et les environnements de preuve
-exigés : local, CI T1, staging T2, recette humaine et contrôle prod. Retirer
-une répétition identique ne conserve pas le nombre d'observations, ni une
-éventuelle occasion de détecter un défaut intermittent ; ce risque est explicité.
-Supprimer la diversité local/CI ou alléger C1–C5 appartient au volet B.
+candidat final les scénarios/assertions via une CI T1 complète de référence,
+le staging T2, C1–C5 + delta humain et le contrôle prod. Le local est à la
+demande. La diversité poste/runner et les observations répétées ne sont plus
+obligatoires ; ce risque est explicitement accepté dans ce contrat de cible.
+Les différences de retries/workers restent visibles et leur disposition relève
+de Q-3. B reste compatible : il peut sélectionner moins de scénarios bloquants
+sur ce même socle, après adoption distincte de ses règles et risques.
 
 #### Ordre et dépendances
 
-`A0 → A1 → A2 → bilan du volet A → B1 → B2 → B3`
+**Cible clarifiée par Patrice (2026-10-23) :** clôture de story selon le
+contrat existant → intégration dans `v2` → évaluation du blast radius de tout
+le delta non livré → proposition de release avec un parcours ou d’attente.
+Un accord pour lancer la release déclenche le mécanisme optimisé A avec les
+vérifications du parcours B retenu, sous les gates/autorités de release. Un
+refus ne lance aucun travail de release ; les E2E locaux restent recommandés
+et disponibles à la demande. Les tests/readiness propres à la story et les
+workflows déjà déclenchés par son intégration gardent leur contrat distinct.
+
+Cette cible remplace le cadrage « A systématique puis B éventuellement ».
+Elle n’active aucun parcours réduit : deux parcours (ciblé/complet) et critères sémantiques sont validés ; les
+sélections exactes, preuves et dispositions restent à décider dans l’architecture. A peut être construit
+indépendamment ; l’ordre détaillé d’implémentation de la cible reste à arrêter
+après ces décisions. Aucune implémentation n’est autorisée dans ce cadrage.
+
+`A0 → A1 → A2 → bilan sur 2–3 releases autorisées`
 
 `A3` peut suivre A1 indépendamment d'A2 ; son gain doit être mesuré séparément.
 Chaque étape est livrable et réversible indépendamment. Mettre à jour scripts,
@@ -67,29 +87,66 @@ sans laisser l'ancienne procédure contredire le nouveau mécanisme.
 | Étape | Livraison | Gain attendu | Risque / coût accepté | Critère de validation |
 |---|---|---|---|---|
 | **A0 — Identifier et mesurer** | Définir le manifeste de release : prod servie, delta, SHA candidat, RC, image staging/prod, suites/projets/environnements requis, résultats avec retries/skips, recette humaine et horodatages. Faire vérifier ces preuves par le préflight de promotion et la révision réellement servie en staging. | Aucun gain direct promis ; rend les suppressions suivantes vérifiables. | Complexité du manifeste et possibles blocages légitimes si preuve manquante. Une ascendance Git seule ne vaut pas résultat de test. | Tests du contrôleur : refus de SHA différent, preuve absente/périmée, couverture insuffisante et staging remplacé ; distinctions pass/failed/blocked/waived ; pas d'acceptation implicite d'un retry/skip. Inspecter aussi les protections externes avant de revendiquer une enforcement complète. |
-| **A1 — Un candidat final, un cycle staging** | Préparer merge, version et changelogs avant les validations de release. Conserver une suite complète locale sur le candidat final, T1 CI complet, build/deploy staging, T2 et C1–C5 + delta humain. RC et preuves désignent ce candidat. Prévoir reprise des pushs partiels, pas d'écrasement de tag. | Évite un cycle staging : ordre de grandeur **13–15 min actives** observées, parfois davantage ; ne pas prendre l'incident Chromium de 8 min comme gain récurrent. | Abandon de la validation de l'état intermédiaire sans version finale. Moins d'observations répétées des défauts intermittents ; couverture du candidat final conservée. Nouveau séquencement Git à sécuriser. | Démontrer un seul cycle staging, mêmes suites/assertions/conditions de skip documentées sur candidat final ; version, notes et métadonnées présentes pendant la recette ; validation finale attachée au RC ; aucun besoin de redéployer pour ajouter sa version. |
-| **A2 — Réutiliser la preuve locale à la promotion** | Ne plus relancer la suite locale avant prod lorsqu'une preuve de son exécution complète sur ce même candidat existe déjà depuis A1. Conserver une exécution locale ET une CI, ainsi que T2 et recette humaine. Sinon, relancer la preuve manquante. | Une suite locale de release économisée ; **durée non mesurée**. Les E2E CI observés ne sont pas une mesure de sa durée locale. | Perte d'une seconde observation locale et du contrôle plus tardif ; dérive d'environnement possible. Conditions de validité explicites : identité du code, dépendances, contrat et configuration pertinents, fraîcheur de la preuve. | Invalidation si candidat ou entrées pertinentes changent ; expiration définie ; aucun résultat CI seul ne supprime la preuve locale dans ce volet ; aucun résultat d'un autre checkout accepté. |
+| **A1 — Un candidat final, un cycle staging** | Préparer merge, version et changelogs avant les validations de release. Conserver T1 CI complet de référence sur le candidat final, local à la demande, build/deploy staging, T2 et C1–C5 + delta humain. RC et preuves désignent ce candidat. Prévoir reprise des pushs partiels, pas d'écrasement de tag. | Évite un cycle staging : ordre de grandeur **13–15 min actives** observées, parfois davantage ; ne pas prendre l'incident Chromium de 8 min comme gain récurrent. | Abandon de la validation de l'état intermédiaire sans version finale. Moins d'observations répétées des défauts intermittents ; couverture du candidat final conservée. Nouveau séquencement Git à sécuriser. | Démontrer un seul cycle staging, mêmes suites/assertions/conditions de skip documentées sur candidat final ; version, notes et métadonnées présentes pendant la recette ; validation finale attachée au RC ; aucun besoin de redéployer pour ajouter sa version. |
+| **A2 — Faire référence à la CI complète** | Remplacer les deux préflights E2E locaux obligatoires de release par la vérification de la CI complète du candidat final ; local à la demande. Réutiliser cette preuve à la promotion si elle reste valide. T2 et C1–C5 + delta restent requis. Une preuve CI manquante/invalide exige une nouvelle CI complète. | Jusqu’à deux suites locales obligatoires évitées ; **durée locale non mesurée**. Ne pas confondre durée CI et gain local. | Perte de diversité poste/runner, de retour avant push et d’observations répétées. CI avec deux workers/un retry versus un worker/sans retry en local : disposition explicite requise. | Parité de sélection vérifiée : 110 cas/18 projets, aucun cas local exclusif au 2026-10-23. Refus de preuve CI absente/périmée, candidat ou entrées incompatibles ; suivi des skips/retries ; politique Q-3 à décider. Le local ne remplace pas implicitement la CI manquante. |
 | **A3 — Chevaucher build et tests, maîtriser les installations** | Construire l'image staging en parallèle de T1 ; deploy après succès des deux. Ajouter les caches justifiés par les mesures et des clés liées aux entrées ; conserver le même navigateur/version et les mêmes tests. | Jusqu'à **environ 3 min** de chevauchement dans l'échantillon ; caches : gain non chiffré, réduction de variance espérée. | Calcul gaspillé si les tests échouent ; coût et maintenance des caches, risque d'artefact périmé à prévenir. | Deploy impossible avec tests ou build rouges ; comparaison d'identité et de résultats avec/sans cache ; mesure à cache froid et chaud ; aucun déploiement spéculatif. |
 
-**Bilan du volet A avant ouverture du volet B :** constater sur deux releases
-autorisées que les preuves requises restent présentes et que le cycle staging
-intermédiaire a disparu. Enregistrer séparément temps runner, attentes,
-préparation locale et recette humaine. Les deux releases sont un pilote, pas
-une preuve statistique d'absence de régression. Revenir au chemin complet si
-le contrôleur ne peut pas établir la validité des preuves.
+**Bilan du volet A sur 2–3 releases autorisées :** vérifier que les preuves
+requises restent présentes, que le cycle staging intermédiaire a disparu et
+que les suites locales ne sont plus obligatoires. Mesurer candidat prêt → prod
+vérifiée et décision → prod, en séparant exécution des gates, attente runner,
+préparation locale, travail et attente humains, déploiement et contrôle final.
+Relever les relances, skips/retries, incidents et retours arrière ; rapprocher
+les durées de l’audit sans inventer une baseline locale/humaine non mesurée.
+
+Patrice juge ensuite si le coût et le délai restants sont acceptables. Si oui,
+rester sur A. Si c’est encore trop lourd, décider explicitement de rouvrir
+l’étude de B ; aucune activation ni reprise automatique à l’issue du pilote.
+Deux ou trois releases ne prouvent pas l’absence de régression. Si les preuves
+ne peuvent pas être validées, refuser la promotion jusqu’à vérification
+complète du candidat par le chemin supporté ; aucun contournement implicite.
 
 Ne pas annoncer la somme des gains comme une garantie : le chevauchement,
 les caches et les attentes interagissent. Le gain A1 est le mieux étayé ; le
 gain A2 doit être chronométré. Aucun objectif global « décision → prod » n'est
 fixé tant que le temps humain et local n'est pas mesuré.
 
-#### Volet B — moins de couverture bloquante lorsque le risque le justifie
+#### Volet B — cible d’évaluation et de sélection ; règles non activées
+
+**Décision de concurrence staging :** un nouveau candidat autorisé annule les
+tests différés de l’ancien au lieu d’attendre leur fin. Arrêter leurs opérations
+avant de remplacer staging ; conserver résultats partiels, échecs connus et
+statut annulé/incomplet. Aucun verrou jusqu’à fin de régression. Le nouveau
+candidat garde sa propre évaluation et ses contrôles obligatoires.
+
+**Étude rétrospective autorisée le 2026-10-23 :** examiner la nature des
+changements de maintenance après l’arrivée des utilisateurs en septembre,
+avec sensibilité octobre seul. Distinguer changements bornés et lots réellement
+livrés ; ne pas comparer les durées historiques de build/test/release, dont la
+mécanique évoluait. [Rapport et sources](_bmad-output/planning-artifacts/research/technical-post-opening-v2-release-paths-2026-10-23/research.md).
+Cette étude n’autorise aucune implémentation ou activation. La cible est
+désormais, après clôture et intégration de la story dans `v2`, de recommander
+« livrer maintenant » ou « attendre », puis préciser la vérification requise.
+Réutiliser l’intention `batch` / `release-now` d’Epic 21 sans la confondre avec
+un accord prod. **Décision Patrice : tout ou rien.** La recommandation porte sur tous les
+changements de `v2` non livrés depuis la production réellement servie. Attendre
+assume leur accumulation ; à la fin du développement suivant, réévaluer
+l’ensemble cumulé, y compris ses interactions. Aucun candidat extrait,
+cherry-pick de release ou circuit de hotfix isolé n’est souhaité. Si le delta
+évolue, la recommandation et la sélection doivent être réévaluées. Aucun
+automatisme de release n’est adopté par cette piste.
+
+Deux parcours et leurs critères sont validés : ciblé si tout le delta cumulé
+est démontré borné, complet sinon. Le parcours intermédiaire standard n’est
+pas retenu. Les modalités opérationnelles restent à fixer ; aucune sélection
+réduite n’est activée. Même une bonne
+classification ne promet pas une réduction des tests « sans risque ».
 
 | Étape | Livraison | Gain attendu | Risque / coût accepté | Critère de validation |
 |---|---|---|---|---|
-| **B1 — Classifier sans alléger** | Établir la grille faible/moyen/élevé sur tout le delta prod→candidat, les dépendances partagées, données, effets externes et réversibilité. Cartographier contrôles et parcours voisins ; mode d'observation qui propose un niveau mais garde toutes les gates. | Aucun gain immédiat ; évite les classifications opportunistes ou fondées sur le nombre de lignes. | Entretien de la cartographie et erreurs de classification encore possibles. Inconnu = renforcé ; l'urgence ne réduit pas le niveau. | Exemples contradictoires testés : CSS local versus tokens globaux, récupération de vue versus auth partagée, hotfix seul versus release groupée ; classification justifiée et lisible par l'opérateur. |
-| **B2 — Livrer un hotfix isolé par le fast path** | Candidat depuis le tag réellement en prod + correctif isolé ; pas de merge automatique de tout v2. Review, régression du bug, tests ciblés des appelants, build, staging court, auth/navigation/API et recette du correctif avec résultat persisté. Accord prod distinct, contrôles après deploy, repli préparé, puis réintégration du correctif et des artefacts nécessaires dans les lignées actives sans écraser des changements plus récents. | Objectif exploratoire **10–15 min candidat prêt → prod vérifiée**, hors correction et attentes humaines non bornées ; à mesurer, pas un engagement. Évite les suites complètes et le C1–C5 intégral sur le chemin bloquant. | Régression hors périmètre potentiellement livrée puis détectée plus tard ; moins de diversité de vérification qu'en A. Régression complète différée avec alerte, responsable de réaction et arrêt des fast paths suivants si échec non résolu. Réintégration potentiellement conflictuelle. | Éligibilité faible explicite ; pas de migration, auth/permissions, contrat partagé, dépendance, infra, effet externe ou PWA/cache global. Fixtures sûres, assertions persistées ; exercice de repli et de réintégration ; échec ciblé bloque prod. Mesurer le premier hotfix autorisé. |
-| **B3 — Ouvrir le parcours standard, conserver le renforcé par défaut** | Moyen : tests du domaine, intégration et voisins, E1 pertinent + recette ciblée. Élevé/incertain : suite complète sur candidat, API complète si concernée, E1 complet, C1–C5 + delta et risques spécifiques. Vérifier explicitement les parcours métier que T2 saute ou réduit aujourd'hui ; fixer les fixtures manquantes plutôt que compter un skip comme preuve. | Standard : objectif exploratoire **15–25 min candidat prêt → prod vérifiée**, mêmes réserves ; renforcé : bénéficie d'A sans nouvel allègement de couverture. | En standard, régression hors domaine détectable plus tard ; cartographie plus complexe que pour un hotfix isolé. Le renforcé reste plus long, surtout pour migrations et essais matériels. | Pilote limité aux domaines dont les dépendances sont connues ; sélection insuffisante = renforcé. Comparer sélection proposée et résultats des suites complètes différées, défauts échappés, rollbacks et temps gagné. Suspendre l'éligibilité d'un domaine si une dépendance non couverte est découverte. |
+| **B1 — Classifier sans alléger** | Établir la grille faible/moyen/élevé sur tout le delta prod→candidat, les dépendances partagées, données, effets externes et réversibilité. Cartographier contrôles et parcours voisins ; mode d'observation qui propose un niveau mais garde toutes les gates. | Aucun gain immédiat ; évite les classifications opportunistes ou fondées sur le nombre de lignes. | Entretien de la cartographie et erreurs de classification encore possibles. Inconnu = renforcé ; l'urgence ne réduit pas le niveau. | Exemples contradictoires testés : CSS local versus tokens globaux, récupération de vue versus auth partagée, petit delta cumulé versus release multi-domaines ; classification justifiée et lisible par l'opérateur. |
+| **B2 — Évaluer un fast path sur le delta cumulé** | Tout le delta prod servie → candidat v2 doit être éligible ; aucun correctif extrait ni candidat isolé. Review, régression du bug, tests ciblés des appelants, build, staging, auth/navigation/API et recette persistée du delta livré. Accord prod distinct, contrôles après deploy et repli préparé. | Objectif exploratoire **10–15 min candidat prêt → prod vérifiée**, hors correction et attentes humaines non bornées ; à mesurer, pas un engagement. Évite les suites complètes et le C1–C5 intégral sur le chemin bloquant. | Régression hors périmètre potentiellement livrée puis détectée plus tard ; moins de diversité de vérification qu'en A. Couverture bloquante/différée/omise explicite ; des tests peuvent suivre la MEP sur staging à la bonne révision. Échec = diagnostic puis décision Patrice, sans rollback automatique. Interactions du delta cumulé susceptibles d’élargir le risque. | Éligibilité faible explicite ; pas de migration, auth/permissions, contrat partagé, dépendance, infra, effet externe ou PWA/cache global. Fixtures sûres, assertions persistées ; exercice de repli ; échec ciblé bloque prod. Aucune extraction si une partie du delta est inéligible ; attendre ou choisir la vérification complète. |
+| **B3 — Valider les deux parcours en usage** | Ciblé : sélection et recette justifiées sur tout le delta cumulé. Complet : régression complète, API si requise, E1 complet, C1–C5 + delta et risques spécifiques. | Gain à mesurer sur la mécanique alors en place ; aucune comparaison des durées historiques. | Erreur de périmètre ou dépendance inconnue ; complet si doute. Pas de troisième parcours standard sans besoin futur démontré. | Vérifier la reproductibilité des classifications, la validité des preuves, les omissions déclarées et les contrôles de livraison en lecture seule. |
 
 **Activation des parcours :** chaque passage d'une couverture complète vers
 une sélection exige l'adoption explicite de son contrat et de ses exclusions.
@@ -99,8 +156,8 @@ release, secrets/configuration, contrôles de version/révision et accord prod
 restent requis ; aucune recette mutante sur données de production.
 
 **Hors de cette proposition initiale :** promotion d'un digest unique (contrat
-de configuration/PWA à repenser), suppression générale de la diversité
-local/CI, sharding aveugle et suppression par simple filtre de chemins des
+de configuration/PWA à repenser), substitution de T2/humain par T1,
+sharding aveugle et suppression par simple filtre de chemins des
 workflows déclenchés par la sync dev. Ces options ont des arbitrages propres ;
 leurs gains ne sont pas inclus dans les chiffres ci-dessus. Réduire les runs
 dev parallèles économiserait surtout du calcul, pas nécessairement du temps

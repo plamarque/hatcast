@@ -3316,6 +3316,153 @@ En tant que **propriétaire produit**, je veux retirer l'approche CN-2 devenue o
 3. **Given** une migration des comportements existants, **when** elle est livrée, **then** CN-1 est revalidé comme garde-fou de préservation et les projections ordinaires ne voient jamais de détail organisateur.
 4. **Couverture :** FR35. **Priorité :** P1. **Depends:** 22.3.
 
+### Epic 24 — Livrer les évolutions V2 avec une vérification adaptée
+
+**Statut : découpage validé avec réserves pour préparation ; disponibilité à l'implémentation à vérifier au sprint planning.** Sources : [spec release-delivery](../specs/spec-release-delivery/SPEC.md), ses compagnons et [architecture cible](../specs/spec-release-delivery/ARCHITECTURE-SPINE.md). Cette cible ne modifie pas les mécanismes ni les autorisations de release actuels.
+
+L'opérateur peut évaluer l'ensemble des changements en attente, choisir avec Patrice de livrer ou d'attendre, puis conduire une release autorisée sur un candidat identifiable avec des vérifications adaptées et une reprise sûre.
+
+**Couverture du contrat :** CAP-1 identité et preuves ; CAP-2 candidat final ; CAP-3 réemploi des vérifications ; CAP-4 exécution efficace ; CAP-5 évaluation d'impact ; CAP-6 parcours et couverture ; CAP-8 promotion et reprise ; CAP-9 mesure ; CAP-10 recommandation cumulative. CAP-7 est retirée et son identifiant n'est pas réutilisé.
+
+**Exigences et contraintes transverses :**
+
+- Évaluer le cumul depuis la production effectivement servie ; recommander Targeted seulement si toutes les conditions sont démontrées, sinon Complete. Livrer tout le cumul sélectionné ou attendre ; les merges ultérieurs restent en attente.
+- Présenter chemin, contrôles bloquants et différés, lacunes et risques avant le go release ; approbation des notes et go prod après recette staging restent distincts. Toute nouvelle lacune exige une décision de Patrice.
+- Figer commit final, version et RC ; relier candidat, builds, images, révision staging, preuves et décisions dans une fiche partageable. Les rapports automatiques restent dans Actions ; une preuve manquante ou incompatible ne vaut pas succès.
+- Tracer changements et voisins jusqu'aux risques, scénarios, assertions et fixtures sûres ou recette humaine. Les deux parcours conservent le socle staging et les scénarios changements/voisins ; C2–C5 suivent l'impact en Targeted et sont systématiques en Complete. CI est la référence T1 ; E2E local reste à la demande.
+- Préserver les échecs initiaux, skips et relances ; obtenir les vérifications critiques. Présenter à Patrice un échec inexpliqué suivi d'un succès sur une vérification liée aux changements, sans le transformer en réussite sans réserve.
+- Lancer les éventuels contrôles différés sur staging et le candidat identifié après les contrôles bloquants ; en cas de remplacement autorisé, arrêter les opérations possédées, préserver les résultats partiels et rejeter les preuves tardives ou mixtes. Arbitrage de Patrice requis si deux releases avant production demandent staging.
+- Superposer build et tests sans déploiement spéculatif ; conserver des builds staging et production distincts. Après incident, constater les effets réels et reprendre le même candidat au dernier point sûr ; observations de production en lecture seule.
+- Mesurer exécutions, attentes et incidents sans additionner les travaux parallèles. Aucun engagement de gain chiffré, troisième parcours, livraison isolée, test fonctionnel en production ou rollback automatique n'est introduit.
+
+**À préciser pour l'implémentation :** Q-1 preuve et mécanismes de fiche, Q-2 sélecteurs et fixtures, Q-3 mécanique des résultats, Q-4 lancement et arrêt des différés, Q-5 orchestration, publication et reprise. Les fiches utilisent une branche Git dédiée partagée, un fichier par release ; son nom, son format, les permissions et l'exclusion atomique restent à définir et vérifier. Les décisions AD-1 à AD-7 de l'architecture restent applicables ; leur présence ne signifie pas que les contrôles sont déjà en place. UI Angular : N/A pour ce cadrage opérateur.
+
+**Garde d'activation :** le découpage ne suppose pas qu'une story intermédiaire active isolément la politique cible. Avant toute activation, les exigences applicables de la spec, y compris la reprise sûre de 24.5a, doivent être satisfaites ; les procédures actuelles et autorisations distinctes restent en vigueur entre-temps.
+
+#### Story 24.1 : Recommander une release ou l'attente sur le cumul
+
+En tant qu'**opérateur de release**, je veux évaluer tous les changements intégrés depuis la version réellement servie en production, afin de proposer à Patrice de livrer avec un parcours justifié ou d'attendre.
+
+**Acceptance Criteria**
+
+1. **Given** une clôture de story demandée et son intégration achevée sur `v2`, **when** la clôture se termine, **then** une évaluation identifie la production réellement servie et l'ensemble du delta non livré, y compris les interactions entre changements, et fournit la recommandation ; les contrôles de story et la CI d'intégration restent distincts des contrôles de release.
+2. **Given** ce cumul, **when** les conditions Targeted sont toutes démontrées, **then** la proposition expose ce parcours et sa justification ; si une condition est fausse ou inconnue, elle propose Complete.
+3. **Given** la proposition, **when** elle est présentée, **then** elle distingue la recommandation de livrer ou d'attendre, les contrôles envisagés et les risques ou incertitudes connus. Une story approuvée ou une CI verte ne constitue pas une autorisation de release.
+4. **Given** le choix d'attendre, **when** Patrice refuse la release, **then** aucun travail de préparation de release ne démarre ; tout le delta reste en attente et sera réévalué après le développement suivant. L'E2E local reste disponible et recommandé à la demande.
+5. **Given** l'évaluation, **when** elle est exécutée, **then** elle ne déclenche ni release, ni tag, ni déploiement et n'extrait aucun correctif du cumul. Les mécanismes existants restent applicables tant que la cible de l'Epic 24 n'est pas mise en œuvre.
+6. **Couverture :** CAP-5, CAP-10, sélection CAP-6 ; AD-1, AD-2, AD-5. **UI : N/A.**
+
+#### Story 24.2 : Identifier le candidat et conserver ses preuves
+
+En tant qu'**opérateur de release**, je veux disposer d'une fiche liée au candidat final, afin de retrouver les vérifications et décisions qui lui correspondent et de refuser toute preuve inadéquate.
+
+**Acceptance Criteria**
+
+1. **Given** le go release et l'approbation des notes, **when** le candidat final est préparé, **then** son commit, sa version, son RC et la production servie prise comme base sont identifiés ; un merge ultérieur sur `v2` ne le modifie pas.
+2. **Given** ce candidat, **when** la fiche est consultée, **then** elle est durable et partageable entre sessions, sous forme d'un fichier par release sur une branche Git dédiée partagée, distincte de `v2` et `staging-v2`. Elle relie le périmètre retenu, les décisions humaines et les exécutions GitHub Actions. Les rapports automatisés restent dans Actions ; aucun secret n'est enregistré.
+3. **Given** un contrôle, **when** ses preuves sont consultées, **then** la fiche permet de retrouver le run et sa tentative, la sélection, les assertions exécutées et les résultats, y compris skips et échecs. Une observation humaine conserve la révision, le rôle ou la fixture, les actions et le résultat persistant observé.
+4. **Given** des mises à jour concurrentes, **when** une transition est demandée, **then** le contrôleur, seul responsable des transitions, vérifie la version précédente et ne peut accepter silencieusement des décisions concurrentes.
+5. **Given** une preuve d'un autre candidat ou de portée, d'entrées pertinentes ou de détail insuffisants, **when** elle est évaluée, **then** elle est refusée. Les détails nécessaires sont accessibles pour les runs réussis comme pour les échecs ; sinon la preuve est manquante.
+6. **Given** la conception, **when** le nom de branche, le format de la fiche, les permissions, les mises à jour atomiques, la disponibilité des rapports et les règles de validité sont arrêtés, **then** Q-1 est explicité et vérifié avant activation ; aucun délai uniforme d'expiration n'est supposé et la branche seule n'est ni un verrou ni une porte.
+7. **Given** une preuve staging, **when** son attribution est vérifiée, **then** elle relie explicitement commit testé, build, image et révision servie ; elle établit la révision avant et après le run ainsi que la génération d'occupation staging. Une identité ou continuité non établie rend la preuve inutilisable ; le hash de `version.txt` n'est pas supposé être le SHA du commit RC.
+8. **Given** une preuve à réutiliser, **when** sa validité est vérifiée, **then** elle dépend des conditions attribuables et de l'accessibilité des détails nécessaires, sans expiration uniforme arbitraire ; si la validité ne peut être établie, une nouvelle preuve est obtenue.
+9. **Given** une preuve requise du parcours retenu manquante ou inaccessible, **when** le parcours est réévalué, **then** le repli est Complete et ses preuves requises sont obtenues selon les règles de résultat adoptées ; une preuve absente n'est jamais une réussite.
+10. **Given** les futures preuves de release Actions, **when** leur conservation est configurée, **then** la durée par défaut de 90 jours est retenue après vérification du réglage effectif et des éventuelles exceptions par artefact. La fiche conserve candidat, contrôles, résultats, lacunes et décisions avec les liens, sans copier les rapports complets ; rétention et validité sont distinctes.
+11. **Given** un run lancé par le contrôleur, **when** son identité est obtenue, **then** le contrôleur le corrèle fiablement à la demande et enregistre automatiquement identité et lien après vérification du candidat, workflow, tentative, sélection exécutée et entrées pertinentes. Les runs existants sont recherchés sans choisir arbitrairement parmi des correspondances ambiguës ; le mécanisme de corrélation et les accès sont vérifiés.
+12. **Given** une fiche mise à jour depuis un état lu, **when** une autre session a fait avancer la branche, **then** le push sans force est rejeté, le contrôleur relit l'état et les décisions conflictuelles demandent une nouvelle résolution humaine. Cette protection ne réserve pas staging et n'assure pas les portes de déploiement, qui relèvent de Q-5.
+13. **Couverture :** CAP-1, CAP-3, CAP-9 ; AD-1, AD-3, AD-4. **Depends:** 24.1. **UI : N/A.**
+
+#### Story 24.3 : Définir les vérifications du candidat
+
+En tant qu'**opérateur de release**, je veux relier les changements et leurs effets voisins à des scénarios de vérification explicites, afin de savoir ce qui bloque la livraison et ce qui reste à vérifier par une personne.
+
+**Acceptance Criteria**
+
+1. **Given** le cumul, **when** les scénarios sont définis, **then** chaque changement et voisin retenu est relié par dépendance → risque → scénario, puis aux tests, projets, assertions et fixtures applicables ou au parcours humain nécessaire.
+2. **Given** la proposition, **when** elle est présentée, **then** elle distingue les vérifications bloquantes, différées et omises, les lacunes et risques connus, ce que les assertions automatiques démontrent réellement et ce qui reste à vérifier en recette humaine.
+3. **Given** un candidat, **when** son parcours est défini, **then** les deux parcours comprennent la version staging attendue, la santé API, le chargement PWA, le parcours humain C1 et les scénarios propres aux changements et voisins. Complete comprend systématiquement C2–C5 ; Targeted les comprend lorsque le cumul ou ses voisins les affectent.
+4. **Given** une vérification métier, **when** un résultat persistant est pertinent, **then** il est vérifié ; une assertion ignorée ou limitée à l'affichage ne démontre pas la persistance. Une fixture critique absente empêche de considérer la vérification critique comme obtenue.
+5. **Given** des mutations staging, **when** les scénarios sont exécutés, **then** seules des fixtures réservées, adaptées et sûres sont utilisées. Les sélecteurs et fixtures concrets sont établis à partir des tests existants et des besoins du candidat ; leur définition relève de Q-2.
+6. **Given** la proposition, **when** le go release est demandé, **then** elle est présentée avant ce go. Une lacune découverte hors du périmètre annoncé est soumise à Patrice avant poursuite. L'automatisation complète de tous les scénarios n'est pas un préalable.
+7. **Couverture :** CAP-5, CAP-6 ; AD-2, AD-5. **Depends:** 24.1, 24.2. **UI : N/A.**
+
+#### Story 24.4 : Exécuter les contrôles et interpréter leurs résultats
+
+En tant qu'**opérateur de release**, je veux exécuter les contrôles requis sur le candidat identifié et conserver leurs résultats exacts, afin de ne pas promouvoir une couverture manquante ou présenter une anomalie comme une réussite.
+
+**Acceptance Criteria**
+
+1. **Given** le parcours retenu, **when** les contrôles bloquants sont exécutés, **then** ils ciblent le candidat et la sélection définis dans la fiche. Le build peut se dérouler en parallèle, mais le déploiement staging attend les succès requis du build et des contrôles préalables.
+2. **Given** une preuve T1, **when** elle est évaluée, **then** la CI constitue la référence de release ; une réussite locale ne remplace pas une preuve CI requise manquante. L'E2E local reste disponible à la demande. Une preuve valide peut être réutilisée si candidat, portée et entrées pertinentes correspondent.
+3. **Given** des résultats de contrôle, **when** ils sont enregistrés, **then** les échecs initiaux, relances, skips et vérifications non exécutées restent visibles. Un skip ou une dérogation ne devient jamais une réussite. Les mécanismes précis de relance et de traitement des résultats relèvent de Q-3.
+4. **Given** une vérification manquante liée aux changements du cumul ou à leurs voisins affectés, **when** la livraison est envisagée, **then** elle doit être obtenue avant livraison. Hors de ce périmètre, une lacune peut être non bloquante selon les règles adoptées, avec justification et risque explicites.
+5. **Given** une vérification liée aux changements qui échoue puis réussit à la relance sans cause identifiée, **when** la poursuite est envisagée, **then** les deux résultats, l'analyse et le risque sont présentés à Patrice ; sa décision ne transforme pas le résultat en réussite sans réserve.
+6. **Given** un défaut produit ou un échec inexpliqué, **when** il est diagnostiqué, **then** il ne peut pas être automatiquement qualifié de problème de fixture ou de test. Une nouvelle lacune hors du périmètre annoncé est soumise à Patrice avant poursuite.
+7. **Given** le parcours Complete, **when** son périmètre est exécuté, **then** il comprend la suite CI T1 complète, la suite E1 applicable sur staging et les tests API complets lorsque le périmètre l'exige, ainsi que C1–C5 et les scénarios du cumul. Les skips et fixtures manquantes suivent les dispositions adoptées sans être comptés comme réussites.
+8. **Given** un cache de préparation, **when** il est réutilisé, **then** ses entrées pertinentes, navigateur et version, scénarios, assertions et artefacts restent compatibles ; une incompatibilité invalide l'entrée et ne fournit pas de preuve équivalente.
+9. **Couverture :** CAP-3, CAP-4, CAP-6 ; AD-4, AD-7. **Depends:** 24.2, 24.3. **UI : N/A.**
+
+#### Story 24.5 : Promouvoir le candidat autorisé
+
+En tant qu'**opérateur de release**, je veux promouvoir le candidat vérifié avec l'accord distinct de Patrice, afin de livrer le bon cumul sans inclure de changements ultérieurs.
+
+**Acceptance Criteria**
+
+1. **Given** une proposition, **when** Patrice donne le go release, **then** il autorise la préparation et le parcours annoncé. Après présentation des résultats et acceptation de la recette staging, un go prod distinct est requis pour promouvoir le candidat. L'approbation des notes reste distincte.
+2. **Given** une promotion demandée, **when** elle est envisagée, **then** le contrôleur vérifie juste avant promotion que staging sert toujours le candidat identifié et que les preuves requises restent valides. Il réutilise les preuves valides sans lancer automatiquement une nouvelle campagne complète.
+3. **Given** les chemins de mutation staging et production, y compris les déclenchements manuels et publications Git concernés, **when** ils sont utilisés, **then** ils respectent les mêmes portes et ciblent explicitement le commit ou RC retenu, sans sélectionner implicitement le dernier RC ni le `v2` courant.
+4. **Given** une autre release qui demande staging tandis qu'une première est encore en cours avant production, **when** le remplacement est envisagé, **then** Patrice choisit laquelle poursuivre avant remplacement. Un simple merge sur `v2` ne déclenche ni remplacement ni interruption.
+5. **Given** la livraison, **when** elle est vérifiée, **then** les builds et images staging et production restent distincts ; les observations en production vérifient identité et accessibilité en lecture seule sans parcours métier. Un déploiement réussi et un échec ultérieur d'observabilité sont rapportés séparément.
+6. **Given** la conception, **when** les mécanismes de publication, concurrence et protection des portes sont arrêtés, **then** ils sont définis et vérifiés dans Q-5, notamment face aux protections externes effectives.
+7. **Given** le candidat final contenant code, version et notes approuvées, **when** il est validé, **then** un seul cycle staging le vérifie sans redéploiement supplémentaire uniquement pour ajouter les métadonnées de release.
+8. **Couverture :** CAP-2, CAP-8 ; AD-2, AD-6, AD-7. **Depends:** 24.2, 24.3, 24.4. **UI : N/A.**
+
+#### Story 24.5a : Reprendre une release après incident
+
+En tant qu'**opérateur de release**, je veux constater les effets réels d'un incident et reprendre le candidat retenu au dernier point sûr, afin de ne pas inclure de nouveaux changements ni répéter des opérations déjà réalisées.
+
+**Acceptance Criteria**
+
+1. **Given** un échec de build, publication ou déploiement, **when** la reprise est envisagée, **then** références Git et tags, publication GitHub Release, builds et images, déploiements, version et trafic réellement servis ainsi que l'observabilité sont constatés et rapportés séparément.
+2. **Given** ces effets et une reprise autorisée, **when** l'opération reprend, **then** elle cible le même candidat au dernier point sûr et réutilise les preuves encore valides sans inclure les merges ultérieurs ; une correction de code impose une nouvelle évaluation du candidat et des vérifications affectées.
+3. **Given** un retour arrière envisagé, **when** sa cible est préparée, **then** sa cible connue et ses limites, notamment données, notifications et clients PWA, sont explicites ; aucun tag n'est réécrit et aucun rollback automatique n'est déduit. La production ne reçoit que des observations d'identité et d'accessibilité en lecture seule.
+4. **Given** les mécanismes de reprise, **when** ils sont définis, **then** ils traitent les effets partiels et l'idempotence dans Q-5 et ne créent aucune nouvelle autorité de mutation en production.
+5. **Couverture :** CAP-8, CAP-9 ; AD-3, AD-7. **Depends:** 24.5. **UI : N/A.**
+
+#### Story 24.6 : Exécuter et interrompre les contrôles différés sur staging
+
+En tant qu'**opérateur de release**, je veux lancer les contrôles différés compatibles avec staging et les interrompre proprement lorsqu'un nouveau candidat prend sa place, afin d'obtenir des observations utiles sans bloquer la livraison ni mélanger les preuves.
+
+**Acceptance Criteria**
+
+1. **Given** les contrôles différés déclarés, **when** les contrôles bloquants sont terminés, **then** ils sont lancés automatiquement dans des runs GitHub Actions séparés, liés au candidat et à la révision staging servie, avec des assertions compatibles et des fixtures sûres ; ils ne ciblent jamais la production.
+2. **Given** des contrôles différés, **when** le go prod est attendu ou la mise en production est en cours ou terminée, **then** ils peuvent commencer ou continuer sur staging ; leur achèvement n'est pas nécessaire pour démarrer la promotion.
+3. **Given** un nouveau candidat autorisé à remplacer staging, **when** le changement de cible est préparé, **then** le contrôleur ferme la génération d'occupation précédente, annule les seuls runs différés concernés et confirme l'arrêt de leurs opérations et fixtures possédées avant le changement. Si l'arrêt sûr ne peut être établi, diagnostiquer avant remplacement.
+4. **Given** un run interrompu, **when** son état est enregistré, **then** les observations terminées et échecs connus sont conservés ; les contrôles restants sont marqués annulés ou incomplets. Une preuve tardive, de révision mélangée ou attribuée au mauvais candidat est rejetée ; aucun succès complet n'est hérité et aucun ancien run ne reprend silencieusement sur la nouvelle version.
+5. **Given** un échec différé, **when** il est diagnostiqué, **then** les observations et l'impact probable sont présentés à Patrice. Avant mise en production, les règles de criticité adoptées s'appliquent ; après, Patrice décide de la réponse. Aucun rollback ni affaiblissement des tests n'est automatique.
+6. **Given** deux releases qui demandent staging avant la mise en production de la première, **when** le remplacement est envisagé, **then** l'arbitrage de la story 24.5 s'applique avant remplacement. Un merge sur `v2` seul n'annule pas les contrôles différés.
+7. **Given** la conception des contrôles différés, **when** elle est arrêtée, **then** les scénarios exacts et mécanismes de lancement, annulation, nettoyage et rejet des résultats tardifs sont définis et vérifiés dans Q-4.
+8. **Couverture :** CAP-6, CAP-8 ; AD-6. **Depends:** 24.2, 24.3, 24.4, 24.5. **UI : N/A.**
+
+#### Story 24.7 : Mesurer la livraison et ses compromis
+
+En tant qu'**opérateur de release**, je veux distinguer les temps de travail, les attentes et les incidents de chaque livraison, afin d'évaluer les gains réels sans masquer une réduction de couverture ou additionner des activités parallèles.
+
+**Acceptance Criteria**
+
+1. **Given** une release, **when** la fiche est consultée, **then** elle permet de retrouver les moments et durées disponibles de décision, préparation, contrôles, attente de runner ou humaine, déploiement et vérification de livraison.
+2. **Given** les résultats de la release, **when** ils sont présentés, **then** les relances, skips, annulations, incidents, reprises et éventuels retours arrière restent distingués des succès et de la durée nominale.
+3. **Given** des travaux parallèles, **when** leurs durées sont présentées, **then** elles sont séparées et ne sont pas additionnées pour prétendre représenter la durée totale de livraison. Une mesure indisponible reste indiquée comme telle.
+4. **Given** un bilan, **when** les gains sont présentés, **then** les gains observés sont distingués des estimations et le parcours retenu, la couverture différée ou omise et les risques acceptés sont précisés. Les durées historiques issues d'une chaîne différente ne sont pas présentées comme une preuve des gains du parcours ciblé.
+5. **Given** le dispositif de mesure, **when** il est utilisé, **then** il n'impose ni objectif de délai chiffré ni fréquence de release. La séquence d'évaluation reste définie dans `PLAN.md`.
+6. **Couverture :** CAP-9 ; AD-3. **Depends:** 24.2, 24.5. **UI : N/A.**
+
+#### Validation du découpage — 2026-10-28
+
+- **Couverture :** CAP-1 → 24.2 ; CAP-2 → 24.2, 24.5 ; CAP-3 → 24.2, 24.4, 24.5 ; CAP-4 → 24.4 ; CAP-5 → 24.1, 24.3 ; CAP-6 → 24.1, 24.3, 24.4, 24.6 ; CAP-8 → 24.5, 24.5a, 24.6 ; CAP-9 → 24.2, 24.5a, 24.7 ; CAP-10 → 24.1. CAP-7 reste retirée.
+- **Architecture :** AD-1 à AD-7 sont réparties dans les critères ; les dépendances déclarées pointent vers des stories précédentes. Aucun starter ni nouveau modèle de données imposé par avance ; UI Angular hors périmètre.
+- **Réserves de préparation :** Q-1 à Q-5 et les protections externes doivent être résolues ou cadrées au niveau des stories concernées ; Q-1 adopte depuis une branche dédiée partagée pour les fiches, dont les mécanismes restent à vérifier. Le séquencement d'activation et la faisabilité d'une livraison incrémentale sûre, notamment 24.5/24.5a, ainsi que la taille des stories 24.2, 24.4 et 24.5, sont à vérifier au sprint planning. Ce constat ne valide pas la préparation à l'implémentation ni n'active la politique cible.
+
 The approved Advent requirements inventory and source references are recorded in `_bmad-output/planning-artifacts/hatcast-avent/epics.md`. This Epic 25 section is the canonical story list for tracking.
 
 ## Epic 25: Discover La Malice through an Advent calendar

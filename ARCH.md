@@ -8,9 +8,9 @@ Describes the system architecture **as-is** and principles for evolving safely. 
 
 **V2 stale-route recovery:** `withNavigationErrorHandler` delegates recognized lazy-module errors to the eager `ChunkRecoveryService` and a standard Material `ChunkRecoveryDialog`; the router still reports the original error. All configured lazy routes share this hook. Without a previously rendered usable route, the modal only offers update/retry and cannot be dismissed; the `/` AuthRedirect loading placeholder does not count as a usable route. The root hides install/update banners while the modal is active without destroying their instances. Recovery does not replace `ErrorHandler`, subscribe to worker-only failure events, persist pending destinations, or alter route guards. On explicit consent, actual `navigator.serviceWorker.controller` selects a bounded `SwUpdate.checkForUpdate()` (new version or `NO_NEW_VERSION_DETECTED`) before full navigation; recovery never calls `activateUpdate()`. Failed/late checks do not navigate. Same-document/hash-only targets use history replacement followed by reload. nginx returns 404 for absent root JS/MJS/CSS and revalidates index/worker manifest while retaining navigation fallback and API proxying. The existing normal update path retains activation-on-click, with its optional changelog storage isolated so it cannot prevent the subsequent reload.
 
-### Évolution V2 (contrats — prod utilisateur V1 inchangée)
+### Architecture V2 et déploiement
 
-La cible documentée (Angular SPA sous [`apps/web/`](apps/web/), API Kotlin/Spring sous [`services/api/`](services/api/), PostgreSQL sur **Neon**, Cloud Run) est décrite dans [`docs/shared/technical/MONOREPO.md`](docs/shared/technical/MONOREPO.md) et les artefacts `_bmad-output/planning-artifacts/`. **Déploiement V2 validé** sur l’environnement **development** (branche `v2`) ; staging/production Cloud Run sont **reportés** (voir [`docs/shared/technical/BRANCH_ENVIRONMENTS.md`](docs/shared/technical/BRANCH_ENVIRONMENTS.md)). Persistance V2 : **ADR-0009** ([docs/adr/0009-neon-postgres-environments.md](docs/adr/0009-neon-postgres-environments.md)). Authentification V2 :
+La V2 utilise Angular sous [`apps/web/`](apps/web/), une API Kotlin/Spring sous [`services/api/`](services/api/), PostgreSQL sur **Neon** et Cloud Run. La chaîne existante cible development depuis `v2`, staging depuis `staging-v2` et la production depuis un tag `vX.Y.Z` ; voir le [workflow de déploiement V2](docs/v2/technical/DEPLOYMENT_WORKFLOW.md) et la [configuration Cloud Run](docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md). Persistance V2 : **ADR-0009** ([docs/adr/0009-neon-postgres-environments.md](docs/adr/0009-neon-postgres-environments.md)). Authentification V2 :
 
 - **Décision cible :** [docs/adr/0010-v2-auth-identity-platform.md](docs/adr/0010-v2-auth-identity-platform.md) (**Google Cloud Identity Platform** — pas Firebase comme backend V1 ; confort proche de l’auth managée historique : Google + email/mot de passe, reset, multi-appareils ; Postgres reste le référentiel métier).
 - **Implémentation actuelle (slice historique, en attendant migration) :** [docs/adr/0008-v2-spa-auth-google-session.md](docs/adr/0008-v2-spa-auth-google-session.md) — **Deprecated** ; OIDC Google direct + session serveur.
@@ -27,7 +27,7 @@ La cible documentée (Angular SPA sous [`apps/web/`](apps/web/), API Kotlin/Spri
 - **Notifications V2 (Stories 8.1–8.6) :** module `com.hatcast.api.notification` — **`NotificationDispatcher`** après commit transaction domaine (listeners Spring sur `EventAvailabilityOpenedEvent`, validate composition, **proxy dispo/participation** (`ProxyAvailabilityRecordedEvent` / `ProxyParticipationRecordedEvent`), etc.) ; intents membre **`PROXY_AVAILABILITY_RECORDED`** / **`PROXY_CONFIRMATION_RECORDED`** (story **8.6**, accusé orga→sujet lié uniquement) ; canaux **Web Push** (`nl.martijndwars:web-push` + provider JCE **BouncyCastle** obligatoire) et **email** (Spring Mail auto-config, pas de `pushQueue` Firestore V1) ; journal `notification_delivery_log` ; abonnements push en Postgres (`user_push_subscriptions`, story 8.1). Opt-in client : `/compte` + service worker (`custom-sw.js`). Recette locale push / PWA / auth email prod-like : `./scripts/start-dev.sh --with-push` (injecte `environment.ts` depuis `.env` puis build Angular production + watch + serve `dist/` HTTPS). **Catalogue intents, copy, prefs et backlog :** [docs/v2/technical/NOTIFICATIONS_CATALOG.md](docs/v2/technical/NOTIFICATIONS_CATALOG.md). Cloud Run : secrets `HATCAST_WEB_PUSH_VAPID_*`, `HATCAST_FIREBASE_*`, `HATCAST_NOTIFICATION_*`, `SPRING_MAIL_*` — voir [DEPLOY_V2_CLOUD_RUN.md](docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md). Handoff impl. : [_bmad-output/implementation-artifacts/8-3-notifications-mep-dispos-et-confirmation-assignes.md](_bmad-output/implementation-artifacts/8-3-notifications-mep-dispos-et-confirmation-assignes.md).
 - **Routes saison V2 (canonique, ADR 0013 amend. 2026-06-03) :** workspace **`/saison/:troupeSlug/:seasonSlug`** (+ sous-routes admin et **`/event/:eventSlug`**) ; slug saison unique **par troupe** ; alias legacy **`/saison/:seasonSlug`** → composant **`SaisonLegacyRedirect`** ; builders et parseurs : **`apps/web/src/app/core/navigation/troupe-routes.ts`** ; visibilité du chrome membre (rail Accueil · Agenda · Stats) : **`member-shell-nav-visibility.ts`** — motifs legacy **et** canoniques requis.
 
-Le client V1 sous [`legacy/`](legacy/) reste la référence runtime actuelle pour la production Firebase décrite ci-dessous jusqu’à bascule explicite.
+Les sections Firebase et Vue ci-dessous décrivent la V1 historique sous [`legacy/`](legacy/), et non le runtime V2 sur Cloud Run.
 
 ---
 
@@ -51,13 +51,13 @@ V2 organizer analytics (Story 11.4) is centralized in `ProductAnalyticsService`,
 | **Firestore (server)** | Triggers (audit, mail, reminder, push); admin DB access | [functions/](functions/) using `admin.firestore()` |
 | **Hosting** | Serve static `legacy/dist`; SPA fallback | [firebase.json](firebase.json) hosting, [.github/workflows/](.github/workflows/) |
 
-**Monorepo:** V1 client lives under [`legacy/`](legacy/); future V2 client under [`apps/web/`](apps/web/); API V2 under [`services/api/`](services/api/). See [docs/shared/technical/MONOREPO.md](docs/shared/technical/MONOREPO.md).
+**Monorepo:** V1 client lives under [`legacy/`](legacy/); V2 client under [`apps/web/`](apps/web/); API V2 under [`services/api/`](services/api/). See [docs/shared/technical/MONOREPO.md](docs/shared/technical/MONOREPO.md).
 
-No separate API server; backend is Firebase (Firestore + Auth + Functions).
+For V1, there is no separate API server; its backend is Firebase (Firestore + Auth + Functions).
 
 ---
 
-## Runtime topology
+## Runtime topology — V1 legacy
 
 ```
 [Browser / PWA]
@@ -115,14 +115,14 @@ No separate API server; backend is Firebase (Firestore + Auth + Functions).
 - **CI:** `test:ci` uses `BASE_URL=http://localhost:5173`; Playwright typically starts the dev server unless disabled.
 - **Unit (Vitest):** Logic tests in [`legacy/tests/unit/*.spec.js`](legacy/tests/unit/). Run with `npm run test:unit`. Playwright ignores `tests/unit/**` via `testIgnore`.
 
-### V2 (Angular + Spring — cible)
+### V2 (Angular + Spring)
 
 - **Unit (Vitest):** `apps/web` — `ng test` / Vitest component tests (`*.spec.ts`).
 - **API integration (H2):** `services/api` — `./gradlew test`, profil Spring `test`, CI [`api-test.yml`](.github/workflows/api-test.yml) (palier 1 PR).
 - **Availability reminder dispatch:** `share-recipients` builds a preference-aware preview for `availability_nudge`; its confirmation fingerprint is required by POST, which revalidates it before using the existing email/push dispatcher. The response records request acceptance, not provider delivery.
 - **E2E (Playwright):** `apps/web/e2e/` + [`playwright.config.ts`](apps/web/playwright.config.ts). Playwright démarre l’API en profil **`e2e`** (H2 + seeds Flyway, **CSRF désactivé**, auth Google mockée via `E2eGoogleIdTokenService`, fixtures hybrides `POST /v1/e2e/fixtures/story-3-19/reset`) et le front `ng serve` (TLS). Auth Playwright : `storageState` (`e2e/.auth/admin.json`). Recette 3.19 : `recette-3.19.spec.ts` (S1–S9, hors M1/M2 manuels). CI palier 2 : [`.github/workflows/e2e-smoke.yml`](.github/workflows/e2e-smoke.yml). Voir [`apps/web/e2e/README.md`](apps/web/e2e/README.md) et `services/api/README.md` § Profil `e2e`.
 - **Hors scope E2E V2 :** porter `legacy/tests/` tel quel ; exécuter E2E contre Neon prod / troupe La Malice (données migration réelles).
-- **Gate deploy staging Cloud Run :** sur branche `staging-v2` uniquement, [`deploy-v2-cloud-run.yml`](.github/workflows/deploy-v2-cloud-run.yml) appelle [`e2e-smoke.yml`](.github/workflows/e2e-smoke.yml) (`workflow_call`) avant le déploiement ; **pas** de gate E2E sur `v2` (dev cloud) ni `production-v2`. Le workflow standalone `e2e-smoke.yml` reste actif sur PR / push `v2` (palier 2 CI).
+- **Gate deploy staging Cloud Run :** sur branche `staging-v2`, [`deploy-v2-cloud-run.yml`](.github/workflows/deploy-v2-cloud-run.yml) appelle [`e2e-smoke.yml`](.github/workflows/e2e-smoke.yml) (`workflow_call`) avant le déploiement ; ce gate n'est pas appelé pour `v2` (dev cloud) ni pour les tags de production. Le workflow standalone `e2e-smoke.yml` reste actif sur PR / push `v2` (palier 2 CI).
 
 - **Improvements (minimal, non-invasive):** Keep a single "smoke" suite that loads home and one season route; avoid disabling tests to fix CI; document test:with-server and env requirements in DEVELOPMENT.md. No refactor of test architecture required for v0.1.
 

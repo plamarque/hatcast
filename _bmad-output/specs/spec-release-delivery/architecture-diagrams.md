@@ -1,44 +1,60 @@
-# Process boundaries
+# Target process boundaries
 
-These diagrams express proposed contracts, not deployed changes or an implementation schedule. Current topology and the measured before-process remain in the adopted audit. Continuous edges denote verification/data dependencies; dashed edges denote nonblocking observation. Production authorization is always separate.
+Accepted behavioral target for architecture, not current runtime or implementation order. Q-1–Q-5 retain evidence lookup, exact selectors, validity, residual outcome and recovery mechanics; competing pre-production staging candidates require asking Patrice before replacement.
 
-## Contract A: equivalent coverage
-
-```mermaid
-flowchart TB
-  C["Final candidate<br/>Code + version + approved notes"] --> L["Complete local E2E<br/>Candidate-bound proof"]
-  C --> T["Complete CI T1<br/>H2 + mock auth"]
-  C --> B["Staging image build<br/>May overlap tests"]
-  L --> G["Required proofs and build valid"]
-  T --> G
-  B --> G
-  G --> S["One staging deployment<br/>Verify candidate revision"]
-  S --> E["Cloud T2 E1<br/>Explicit skip/retry dispositions"]
-  E --> H["Human C1–C5 + delta<br/>Persisted outcomes"]
-  H --> P["Validate current proofs<br/>Reuse local proof only if still valid<br/>Separate prod authorization"]
-  P --> D["Prod tag + Release<br/>Production-specific build + deploy"]
-  D --> V["Read-only production verification<br/>Recovery target identified"]
-```
-
-Local and CI remain distinct. Removing a metadata-only intermediate candidate and an identical valid local rerun does not remove a proof environment. API or other controls required by the governing scope remain required even if omitted from this compact diagram.
-
-## Contract B: coverage intentionally selected by blast radius
+## Closure and release decision
 
 ```mermaid
 flowchart TB
-  BASE["Actually served production baseline"] --> DELTA["Complete candidate delta<br/>Hotfix isolated when applicable"]
-  DELTA --> R{"Classify dependencies and consequences"}
-  R --> OBS["Observation mode<br/>Full gates retained"]
-  R --> POLICY{"Reduced-coverage policy adopted?"}
-  POLICY -->|"No or unknown"| FULL["Reinforced<br/>Full regression + relevant API<br/>Cloud E1 + C1–C5 and delta"]
-  POLICY -->|"Yes, eligible low"| FAST["Fast<br/>Bug/caller tests<br/>Cloud baseline + persisted correction smoke"]
-  POLICY -->|"Yes, known medium"| STD["Standard<br/>Domain/integration/neighbors<br/>Pertinent E1 + persisted human smoke"]
-  FAST --> COMMON["Build + candidate-bound evidence<br/>Current staging revision<br/>Separate production authorization"]
-  STD --> COMMON
-  FULL --> COMMON
-  COMMON --> PROD["Production-specific build + deploy<br/>Read-only verification + prepared recovery"]
-  FAST -.-> DEF["Deferred complete regression<br/>Alert owner + response + suspension policy"]
-  STD -.-> DEF
+  STORY["Story complete"] --> CLOSE["Requested closure<br/>Own checks and integration into v2"]
+  CLOSE --> ASSESS["Assess all unreleased v2 changes<br/>Since actually served production"]
+  ASSESS --> PROPOSE["Recommend release with path<br/>or wait"]
+  PROPOSE --> GO{"Explicit release go?"}
+  GO -->|No| HOLD["Whole delta stays pending<br/>Local E2E recommended on demand"]
+  HOLD -.->|Next development| CLOSE
+  GO -->|Yes| FINAL["A: final candidate<br/>Code + version + approved notes"]
+  FINAL --> PATH{"B: selected verification scope"}
+  PATH -->|All eligibility conditions demonstrated| TARGET["Targeted<br/>Change, callers and neighbors"]
+  PATH -->|Broad or uncertain| FULL["Complete<br/>Full governing verification"]
 ```
 
-Reduced coverage accepts potential post-delivery detection outside selected scope. Missing eligibility, mapping confidence or required proof selects reinforced coverage. This diagram does not define proof expiry, fixture waivers, alert ownership or a Git lineage mechanism; Q-1 through Q-5 retain those decisions explicitly.
+Existing complete procedures apply until reduced operational rules are adopted/implemented. Story approval/integration CI are distinct from release proof. Go initiates release work without silently removing notes, staging/human or production authority gates.
+
+## Shared mechanism A
+
+```mermaid
+flowchart TB
+  C["Final identified candidate<br/>Selected blocking scope"] --> TEST["Required CI assertions"]
+  C --> BUILD["Staging build<br/>May overlap tests"]
+  TEST --> JOIN["Build AND required tests successful"]
+  BUILD --> JOIN
+  JOIN --> STAGE["One actual staging deploy<br/>Expected revision/image"]
+  STAGE --> CLOUD["Required cloud assertions"]
+  CLOUD --> HUMAN["Human staging verification<br/>C1 always; C2-C5 by path/impact + delta"]
+  HUMAN --> GATE["Current candidate evidence<br/>Explicit go prod"]
+  GATE --> PROD["Separate production build + deploy"]
+  PROD --> CHECK["Read-only served identity/reachability<br/>Prepared recovery target"]
+```
+
+Complete retains full T1, relevant API, full governing E1 and C1–C5 plus delta. Both paths retain version/API health/PWA and C1, plus changed/neighbor scenarios; Targeted selects C2–C5 by impact. Later v2 merges do not alter or interrupt this candidate. Resume mechanical failures on the same candidate only after inspecting actual effects. Targeted changes only adopted scope. Final metadata is validated with the candidate; valid proof can be reused, local is on demand, and separate images remain attributable.
+
+## Deferred staging checks, diagnosis and preemption
+
+```mermaid
+flowchart TB
+  READY["Blocking verification complete<br/>Selected staging candidate"] --> DEFER["Optional deferred staging checks<br/>Start while awaiting go prod"]
+  READY --> GO{"Human staging acceptance<br/>Explicit go prod"}
+  GO --> MEP["Production build + deploy<br/>Deferred completion not required"]
+  DEFER -.-> PARALLEL["Continue on staging during/after MEP<br/>Safe compatible fixtures"]
+  NEXT["New authorized staging candidate"] --> CANCEL["Cancel old deferred run<br/>Stop owned operations before switch"]
+  DEFER -.->|Preempted| CANCEL
+  CANCEL --> PARTIAL["Keep partial results and known failures<br/>Remaining coverage cancelled/incomplete"]
+  CANCEL --> NEW["New candidate's own gates<br/>No wait for old suite completion"]
+  DEFER --> RESULT{"Attributable outcome?"}
+  RESULT -->|Pass| RECORD["Record only covered assertions"]
+  RESULT -->|Failure| DIAG["Diagnose product / test / fixture / environment"]
+  RESULT -->|Late or mixed revision| REJECT["Reject as proof; retain diagnostic record"]
+  DIAG --> HUMAN["Patrice decides<br/>Repair, justified test adjustment,<br/>investigation or rollback"]
+```
+
+No automatic rollback/replay or inherited full pass. Cancellation cannot erase observed failures. Deferred tests remain on staging, never production, and do not reserve it through completion. Exact cancellation and fixture/result fencing remain open.

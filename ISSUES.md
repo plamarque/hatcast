@@ -15,6 +15,8 @@ historical registry below.
 
 ### Open defects and limitations
 
+BUG-049 (production scheduled reminder encountered a database connection timeout).
+
 LIMIT-011 (repeated release validation and deployment cycles), and LIMIT-012
 (release evidence is not fully bound to the promoted candidate).
 
@@ -53,6 +55,22 @@ BUG-037 and BUG-029 have fixture-only corrections verified by the complete API s
 - **Evidence**: [PR #14](https://github.com/plamarque/hatcast/pull/14); local source analysis. Production frequency remains unquantified.
 
 ### Historical registry
+
+### BUG-049 — Scheduled reminder failed to acquire a database connection
+- **Status**: Open — observed in production logs; impact and recurrence not established.
+- **Severity**: Undetermined.
+- **Affected area**: V2 API `AssigneePresenceReminderJob`, datasource connection acquisition.
+- **Observed behavior**: On 2026-10-28 at approximately 08:00 Paris time, the scheduled job logged `CannotCreateTransactionException` following a Hikari connection acquisition timeout. Whether any eligible reminder was missed is unknown.
+- **Expected behavior**: Scheduled reminder processing can access its database or recover from a transient failure.
+- **Notes/context**: Observed during a read-only Cloud Run log inspection on 2026-10-29; no production data or infrastructure was changed. Root cause, retry behavior and relation to CPU allocation remain unverified.
+
+### BUG-DOC-002 — ARCH retains a deferred V2 release topology
+- **Status**: Fixed locally — ARCH now distinguishes the existing V2 Cloud Run release topology from the historical V1 Firebase description.
+- **Severity**: Medium (conflicting architecture inputs).
+- **Affected area**: `ARCH.md`, section « Évolution V2 »; V2 release-delivery architecture planning.
+- **Observed behavior**: `ARCH.md` says staging/production Cloud Run are deferred and production remains V1. The V2 deployment runbook, release skill and 2026-10-23 release audit describe the staging/prod chain; `.github/workflows/deploy-v2-cloud-run.yml` configures staging branch and production-tag targets.
+- **Expected behavior**: Normative as-is architecture and release documentation agree on the deployed product line and release topology.
+- **Notes/context**: Found during planning-only `bmad-architecture` activation on 2026-10-23. Corrected on 2026-10-27 with Patrice's approval using the existing workflow and deployment runbook; no runtime change or fresh cloud inspection.
 
 ### BUG-048 — Event details fail when a new troupe has unseeded categories
 - **Status**: Open — correction deferred; explicitly accepted as non-blocking for release 2.7.0 by Patrice on 2026-10-23. Reproduced on staging `v2.7.0-rc.2`, revision `hatcast-v2-staging-00129-pr4`. Not fixed.
