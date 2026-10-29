@@ -105,6 +105,19 @@ describe('member shell bootstrap navigation', () => {
     })
   })
 
+  it('remembers the requested Advent URL when a signed-out visitor opens it', async () => {
+    localStorage.clear()
+    const bootstrap = TestBed.inject(MemberShellBootstrapService)
+    vi.spyOn(bootstrap, 'ensureReady').mockResolvedValue({ ok: false } as never)
+    const router = TestBed.inject(Router)
+
+    await router.navigateByUrl('/avent-test?aper%C3%A7u=2')
+
+    expect(localStorage.getItem('hatcast.postLoginRedirect')).toBe('/avent-test?aper%C3%A7u=2')
+    expect(router.url).toBe('/connexion')
+    localStorage.clear()
+  })
+
   it('fetches auth/me and troupes once when navigating agenda → event in-app', async () => {
     const router = TestBed.inject(Router)
 

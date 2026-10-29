@@ -45,6 +45,20 @@ human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
 
+### BUG-052 — Unverified identity email can link an existing account
+- **Status**: Mitigated for the two development testers; the general account-linking behavior remains open.
+- **Affected area**: Identity Platform sign-in and email-based account linking.
+- **Observed behavior**: The Identity Platform token payload does not carry email verification state, and a sign-in may link an existing user by email without checking that the email was verified. The proposed Advent test allowlist relies on that session email.
+- **Expected behavior**: Access to the Advent preview must establish possession of the allowed address using the current authenticated identity; an unverified identity must not claim an existing tester account.
+- **Notes**: The actual exploitability depends on Identity Platform account configuration; do not deploy the email-based preview until the boundary is verified and protected.
+
+### BUG-051 — Advent preview diverged from approved design
+- **Status**: Corrected locally; awaiting user review.
+- **Affected area**: V2 Advent story 25.1 test preview.
+- **Observed behavior**: The original preview lacked the festive palette, decorated full-page door, floating ornaments and visible opening with light from the approved UX direction.
+- **Expected behavior**: The preview reflects the approved door and quiz direction, including an equivalent reduced-motion experience.
+- **Notes**: Automatic entry on eligible visits belongs to story 25.6 and is not implemented in this preview. The first badge-removal edits introduced blurry, pixelated translucent halos; replacement local illustrations use a clean transparent background and await user review.
+
 ### BUG-050 — PWA banner masked the Advent test label
 - **Status**: Fixed locally in story 25.1; integration and deployment not yet verified.
 - **Severity**: Medium (the test-only label was hidden on mobile).

@@ -16,6 +16,7 @@ class FirebaseIdpIdTokenVerifier : IdpIdTokenVerifier {
             uid = decoded.uid,
             email = decoded.email,
             displayName = decoded.name,
+            emailVerified = decoded.claims["email_verified"] == true,
         )
     }
 }

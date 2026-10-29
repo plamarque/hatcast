@@ -27,7 +27,7 @@ import java.time.Instant
 import java.util.Base64
 import org.junit.jupiter.api.Assertions.assertEquals
 
-@SpringBootTest
+@SpringBootTest(properties = ["K_SERVICE=hatcast-v2-dev", "GOOGLE_CLOUD_PROJECT=impro-selector"])
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Order(1)
@@ -229,6 +229,17 @@ class AuthControllerIntegrationTest {
             .perform(
                 get("/v1/auth/me").cookie(cookie),
             ).andExpect(status().isUnauthorized)
+    }
+
+    @Test
+    fun `unverified development tester cannot link an identity`() {
+        whenever(idpIdTokenVerifier.verify(any())).thenReturn(
+            IdpTokenPayload(uid = "unverified-test", email = "brousseau.ant@gmail.com", displayName = "Test", emailVerified = false),
+        )
+        mockMvc.perform(post("/v1/auth/idp").contentType(MediaType.APPLICATION_JSON)
+            .content("""{"idToken":"unverified"}"""))
+            .andExpect(status().isForbidden)
+        assertEquals(null, userRepository.findByIdpUid("unverified-test"))
     }
 
     @Test

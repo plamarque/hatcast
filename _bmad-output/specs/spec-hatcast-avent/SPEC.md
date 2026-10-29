@@ -35,7 +35,7 @@ Give La Malice members a surprise Christmas activity within HatCast: discover on
   - **success:** Existing Spring reminders target 10:00 Europe/Paris on 1–24 December, checking availability and eligibility at actual execution; late or missed delivery is acceptable and no special recovery is added (FR-3, AD-5).
 - **CAP-6**
   - **intent:** Organizers publish consented content and safely test the experience before opening.
-  - **success:** Content is added by release, the false statement is stable after play, and configured troupe members test in isolated development using a forward-only shared simulated clock, future-case access and targeted reset (FR-11, FR-13, AD-2).
+  - **success:** Content is added by release, the false statement is stable after play, and configured active troupe members on the dedicated tester allowlist test in isolated development using a forward-only shared simulated clock, future-case access and targeted reset (FR-11, FR-13, AD-2).
 - **CAP-7**
   - **intent:** Organizers assess participation without exposing quiz content or mixing test and real play.
   - **success:** Two global totals distinguish distinct real players and recorded real answers; test data, anecdotes, choices and pending correctness and scores are excluded, with the database authoritative if telemetry is missed (AD-6).

@@ -24,9 +24,10 @@ class AdventTestControllerTest {
     private val metadata = mock<DatabaseMetaData>()
     private val memberships = mock<TroupeMembershipService>()
     private val troupe = UUID.randomUUID()
-    private val user = SessionUserPrincipal(UUID.randomUUID(), "sub", null, null)
+    private val user = SessionUserPrincipal(UUID.randomUUID(), "sub", null, "test@example.com")
     private val offlineRoot = mock<AdventOfflineRoot>()
-    private val controller = AdventTestController(env, dataSource, memberships, offlineRoot)
+    private val cloudImages = mock<AdventPreviewImages>()
+    private val controller = AdventTestController(env, dataSource, memberships, offlineRoot, cloudImages)
 
     @TempDir lateinit var tempDir: Path
     @BeforeEach fun createIsolatedDatabase() {
@@ -38,6 +39,7 @@ class AdventTestControllerTest {
     private fun isolated() {
         whenever(env.activeProfiles).thenReturn(arrayOf("dev", "offline"))
         whenever(env.getProperty("hatcast.advent-test.enabled")).thenReturn("true")
+        whenever(env.getProperty("hatcast.advent-test.allowed-emails", "")).thenReturn("test@example.com")
         whenever(env.getProperty("hatcast.advent-test.troupe-id")).thenReturn(troupe.toString())
         whenever(dataSource.connection).thenReturn(connection)
         whenever(connection.metaData).thenReturn(metadata)
@@ -50,10 +52,56 @@ class AdventTestControllerTest {
         val quiz = controller.door(1, user)
         verify(memberships).requireActiveMemberMembership(user.userId, troupe)
         assertEquals(3, quiz.statements.size)
-        assertTrue(quiz.statements.all { it.contains("Camille") })
-        assertEquals("Sacha Givre", controller.door(12, user).name)
+        assertEquals("Camille", controller.door(3, user).name)
         assertTrue(quiz.portrait.startsWith("data:image/png;base64,"))
-        assertThrows(ResponseStatusException::class.java) { controller.door(2, user) }
+        assertThrows(ResponseStatusException::class.java) { controller.door(25, user) }
+    }
+    @Test fun `all 24 test days contain distinct fictional quizzes`() {
+        isolated()
+        val quizzes = (1..24).map { controller.door(it, user) }
+        assertEquals(listOf("Patrice", "Will", "Camille", "Angie"), quizzes.take(4).map { it.name })
+        assertTrue(quizzes.drop(4).all { it.name == "Lutin de Noël" && it.genericElf })
+        assertTrue(quizzes.all { it.statements.size == 3 && it.statements.all(String::isNotBlank) })
+        assertEquals(24, quizzes.map { it.statements }.toSet().size)
+        assertThrows(ResponseStatusException::class.java) { controller.door(0, user) }
+        assertThrows(ResponseStatusException::class.java) { controller.door(25, user) }
+    }
+    @Test fun `only explicitly listed emails can see test content`() {
+        isolated()
+        whenever(env.getProperty("hatcast.advent-test.allowed-emails", "")).thenReturn(" TEST@example.com , other@example.com ")
+        assertEquals(1, controller.door(1, user).day)
+        val outsider = SessionUserPrincipal(UUID.randomUUID(), "other", null, "outsider@example.com")
+        assertEquals(HttpStatus.FORBIDDEN, assertThrows(ResponseStatusException::class.java) { controller.door(1, outsider) }.statusCode)
+        whenever(env.getProperty("hatcast.advent-test.allowed-emails", "")).thenReturn("")
+        assertEquals(HttpStatus.FORBIDDEN, assertThrows(ResponseStatusException::class.java) { controller.door(1, user) }.statusCode)
+    }
+    @Test fun `cloud preview requires the development service and Neon branch`() {
+        isolated()
+        whenever(env.activeProfiles).thenReturn(arrayOf("cloud"))
+        whenever(env.getProperty("K_SERVICE")).thenReturn("hatcast-v2-dev")
+        whenever(env.getProperty("GOOGLE_CLOUD_PROJECT")).thenReturn("impro-selector")
+        whenever(metadata.url).thenReturn("jdbc:postgresql://ep-weathered-fog-al1law06.c-3.eu-central-1.aws.neon.tech/neondb")
+        val request = org.springframework.mock.web.MockHttpServletRequest()
+        request.getSession(true)!!.setAttribute("hatcast.auth.verified-email", true)
+        val patrice = SessionUserPrincipal(UUID.randomUUID(), "sub", null, "patrice.lamarque@gmail.com")
+        whenever(cloudImages.read("patrice-net.png")).thenReturn(byteArrayOf(1, 2, 3))
+        val quiz = controller.door(1, patrice, request)
+        assertEquals(1, quiz.day)
+        assertEquals("data:image/png;base64,AQID", quiz.portrait)
+        assertFalse(quiz.genericElf)
+        val unverified = SessionUserPrincipal(UUID.randomUUID(), "sub", null, "patrice.lamarque@gmail.com")
+        assertEquals(HttpStatus.FORBIDDEN, assertThrows(ResponseStatusException::class.java) { controller.door(1, unverified) }.statusCode)
+        val antoine = SessionUserPrincipal(UUID.randomUUID(), "sub", null, "brousseau.ant@gmail.com")
+        assertEquals(1, controller.door(1, antoine, request).day)
+        assertThrows(ResponseStatusException::class.java) { controller.door(1, user, request) }
+        whenever(env.getProperty("GOOGLE_CLOUD_PROJECT")).thenReturn("wrong-project")
+        assertEquals(HttpStatus.NOT_FOUND, assertThrows(ResponseStatusException::class.java) { controller.door(1, patrice, request) }.statusCode)
+        whenever(env.getProperty("GOOGLE_CLOUD_PROJECT")).thenReturn("impro-selector")
+        whenever(env.getProperty("K_SERVICE")).thenReturn("hatcast-v2")
+        assertEquals(HttpStatus.NOT_FOUND, assertThrows(ResponseStatusException::class.java) { controller.door(1, patrice, request) }.statusCode)
+        whenever(env.getProperty("K_SERVICE")).thenReturn("hatcast-v2-dev")
+        whenever(metadata.url).thenReturn("jdbc:postgresql://production.example/neondb")
+        assertEquals(HttpStatus.NOT_FOUND, assertThrows(ResponseStatusException::class.java) { controller.door(1, patrice, request) }.statusCode)
     }
     @Test fun `membership denial also denies platform administrators`() {
         isolated()

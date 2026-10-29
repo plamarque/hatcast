@@ -3476,7 +3476,7 @@ As an eligible member testing the calendar, I want to open an available test doo
 **Acceptance Criteria:**
 
 1. In isolated development, active members of the configured troupe can open available future cases before their simulated day; the interface visibly identifies test mode. Test statements are fictional; actual names or portraits require consent.
-2. The API enforces active troupe membership and environment restrictions on each read. Platform administrators outside the troupe are not exempt. Production offers no test mode; future content, revealing portraits and answers are inaccessible through API, bundles, assets or direct URLs.
+2. The API enforces active troupe membership, the dedicated test-user allowlist and environment restrictions on each read. Platform administrators outside the troupe are not exempt. Production offers no test mode; future content, revealing portraits and answers are inaccessible through API, bundles, assets or direct URLs.
 3. Opening the full-page decorated door reveals only the selected permitted portrait and quiz content; reduced motion gives equivalent immediate access. Answering is not yet available and is explicitly identified as unfinished in the demonstration.
 4. Before a human demonstration, verify development data, notifications and analytics are isolated from production. Keyboard access, focus, accessible state, responsive layout, HatCast Material 3 tokens and touch targets follow the UX contract.
 

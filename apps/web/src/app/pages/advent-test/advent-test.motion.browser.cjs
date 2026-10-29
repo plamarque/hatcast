@@ -4,30 +4,21 @@ const { readFileSync } = require('node:fs')
 const { join } = require('node:path')
 const { chromium } = require('playwright')
 
-test('door animation preserves visible focus and respects reduced motion', async () => {
+test('elf approach respects reduced motion and gift remains accessible', async () => {
   const browser = await chromium.launch({ headless: true })
   try {
     const page = await browser.newPage({ viewport: { width: 375, height: 800 } })
     const css = readFileSync(join(__dirname, 'advent-test.scss'), 'utf8')
-    await page.setContent(`<style>${css}</style><section class="advent__quiz"><div class="advent__opening" aria-hidden="true"></div><h2 id="quiz-title" tabindex="-1">Portrait fictif</h2><p>Quiz</p></section>`)
-    const door = page.locator('.advent__opening')
-    const title = page.locator('#quiz-title')
-    assert.equal(await door.evaluate(e => getComputedStyle(e).animationName), 'advent-door-open')
-    await title.focus()
-    assert.equal(await title.evaluate(e => document.activeElement === e), true)
-    assert.equal(await title.evaluate(e => {
-      const rect = e.getBoundingClientRect()
-      const top = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2)
-      return top === e || e.contains(top)
-    }), true)
+    await page.setContent(`<style>${css}</style><div class="advent__scene"><div class="advent__elf"><button class="advent__gift" aria-label="Ouvrir le cadeau du jour 12"></button></div></div>`)
+    const elf = page.locator('.advent__elf')
+    const gift = page.getByRole('button', { name: 'Ouvrir le cadeau du jour 12' })
+    assert.equal(await elf.evaluate(e => getComputedStyle(e).animationName), 'advent-approach')
+    await gift.focus()
+    assert.equal(await gift.evaluate(e => document.activeElement === e), true)
     await page.emulateMedia({ reducedMotion: 'reduce' })
-    assert.equal(await door.evaluate(e => getComputedStyle(e).animationName), 'none')
-    assert.equal(await door.evaluate(e => getComputedStyle(e).display), 'none')
-    assert.equal(await title.isVisible(), true)
-    assert.equal(await title.evaluate(e => document.activeElement === e), true)
-  } finally {
-    await browser.close()
-  }
+    assert.equal(await elf.evaluate(e => getComputedStyle(e).animationName), 'none')
+    assert.equal(await gift.isVisible(), true)
+  } finally { await browser.close() }
 })
 
 test('PWA banners stay in flow on the Advent preview at mobile and enlarged text sizes', async () => {

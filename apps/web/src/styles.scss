@@ -90,3 +90,16 @@ app-root:has(app-advent-test) .pwa-system-banner.pwa-system-banner {
   position: relative;
   top: 0 !important; /* Also cancels the fixed-banner stacking offset when both are shown. */
 }
+
+/* Advent palette: festive tokens shared by the isolated preview. */
+:root {
+  --hatcast-avent-red: #ad2e40;
+  --hatcast-avent-green: #16684c;
+  --hatcast-avent-gold: #e9c881;
+  --hatcast-avent-cream: #fff9ea;
+  --hatcast-avent-mint: #f1faf2;
+  --hatcast-avent-ink: #302832;
+  --hatcast-avent-white: #fff;
+  --hatcast-avent-door-light: #a76359;
+  --hatcast-avent-door-dark: #704642;
+}

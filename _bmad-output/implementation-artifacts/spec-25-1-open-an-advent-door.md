@@ -62,6 +62,12 @@ context:
 - Given keyboard or reduced motion, when opening the door, then access, focus and state are equivalent; mobile layout and Material 3 controls meet the HatCast checklist.
 - Given a potential human demonstration, when isolation of data, notifications and analytics has not been verified, then no demonstration is handed off.
 
+## Décision utilisateur à intégrer — accès à la démonstration distante (2026-10-30)
+
+L’accès au mode test en développement est réservé aux comptes de Patrice Lamarque et Antoine Brousseau par une liste d’adresses dédiée à l’Avent. Cette liste est distincte des rôles d’administration de troupe et de plateforme ; elle ne confère aucun autre privilège. Elle constitue une restriction supplémentaire aux contrôles d’adhésion active existants, sans en modifier les rôles. L’accès doit rester impossible en production. Après connexion, l’aperçu de test doit s’ouvrir automatiquement pour ces personnes dans l’environnement de développement isolé. Les conditions d’isolation des données, notifications et analytics restent à vérifier avant toute démonstration distante. Cette décision modifie le périmètre initial gelé ci-dessus et doit être intégrée aux contrats et vérifications avant clôture.
+
+En production, Patrice et Toinou peuvent jouer et consulter leur score personnel, mais sont exclus du classement : ce comportement appartient à la story 25.4 et ne découle pas des droits d’administration du mode test.
+
 ## Implementation Notes
 
 ## Spec Change Log
@@ -92,3 +98,14 @@ context:
 - Mouvement : animation d’ouverture décorative sans blocage du contenu ou du focus ; vérification Chromium à 375 px des styles avec et sans préférence de mouvement réduit.
 - M3 : contrôles Material, tokens, cibles de 48 px, libellés FR et focus vérifiés dans le code et les tests ; dialogs, onglets et changements de navigation non applicables. Captures Chromium locales inspectées à 320 et 375 px et à 200 % (viewport 768 px) ; libellé test visible après correction de BUG-050, sans débordement horizontal. Contrastes calculés : texte du quiz 14,70:1, texte de page 16,33:1 et libellé de test 6,16:1, sur leurs fonds du thème clair. Autres thèmes et appareils réels non vérifiés.
 - Isolation effective des notifications et de l’analytics non vérifiée ; aucune démonstration humaine proposée.
+
+### User review correction (2026-10-29)
+
+The original preview did not reflect the approved festive door and quiz. Reworked palette, full-page door interaction, floating decorations and opening light. Automatic entry remains story 25.6. Awaiting renewed visual review.
+
+### Final review (2026-10-30)
+
+- User approved the festive preview; 24 fictional days are available, answering remains story 25.2.
+- Two independent reviewers examined the final changes. The test allowlist requires a verified email in the current session; unverified tester identities are refused before linking on the development service. Existing sessions must sign in again. The broader existing identity-linking concern is recorded as BUG-052.
+- Cloud access requires the development Cloud Run service and actual Neon development endpoint, active La Malice membership, and the dedicated two-person allowlist. Private consented illustrations are read only after authorization from a private storage bucket; generic fallback is local to the API. Development builds omit PostHog.
+- Targeted API tests (door, offline integration, authentication), 36 frontend tests, and frontend build passed. The remote deployment and Google sign-in remain to be verified after push.

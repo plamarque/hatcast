@@ -28,7 +28,7 @@ import java.util.Comparator
 import java.util.UUID
 import javax.sql.DataSource
 
-@SpringBootTest(properties = ["hatcast.advent-test.enabled=true", "hatcast.advent-test.troupe-id=a0000001-0000-4000-8000-000000000001", "hatcast.auth.super-admin-emails=advent-admin@example.com"])
+@SpringBootTest(properties = ["hatcast.advent-test.enabled=true", "hatcast.advent-test.troupe-id=a0000001-0000-4000-8000-000000000001", "hatcast.auth.super-admin-emails=advent-admin@example.com", "hatcast.advent-test.allowed-emails=advent-member@example.com,advent-admin@example.com"])
 @AutoConfigureMockMvc
 @ActiveProfiles("offline")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
@@ -56,12 +56,21 @@ class AdventOfflineIntegrationTest {
     @Test fun `real membership protects each fictional door`() {
         whenever(offlineRoot.worktreeRoot()).thenReturn(testRoot)
         val cookie = TestAuthSupport.memberSessionCookieFromGoogleSignIn(mvc, google, "advent-member")
-        mvc.perform(get("/v1/advent-test/doors/12").cookie(cookie)).andExpect(status().isOk)
+        val fixtures = Files.createDirectories(testRoot.resolve(".local/hatcast-avent-test"))
+        val camille = fixtures.resolve("camille-net.png")
+        Files.write(camille, byteArrayOf(1, 2, 3))
+        mvc.perform(get("/v1/advent-test/doors/3").cookie(cookie)).andExpect(status().isOk)
+            .andExpect(jsonPath("$.portrait").value("data:image/png;base64,AQID"))
+            .andExpect(jsonPath("$.genericElf").value(false))
+        Files.delete(camille)
+        mvc.perform(get("/v1/advent-test/doors/3").cookie(cookie)).andExpect(status().isOk)
+            .andExpect(jsonPath("$.genericElf").value(true))
+        mvc.perform(get("/v1/advent-test/doors/3").cookie(cookie)).andExpect(status().isOk)
             .andExpect(header().string("Cache-Control", "no-store"))
-            .andExpect(jsonPath("$.name").value("Sacha Givre"))
+            .andExpect(jsonPath("$.name").value("Camille"))
             .andExpect(jsonPath("$.statements.length()").value(3))
             .andExpect(jsonPath("$.answer").doesNotExist())
-        mvc.perform(get("/v1/advent-test/doors/2").cookie(cookie)).andExpect(status().isNotFound)
+        mvc.perform(get("/v1/advent-test/doors/25").cookie(cookie)).andExpect(status().isNotFound)
             .andExpect(header().string("Cache-Control", "no-store"))
         val user = users.findByGoogleSub("advent-member")!!
         val member = memberships.findByTroupe_IdAndUser_Id(troupe, user.id)!!
@@ -76,6 +85,6 @@ class AdventOfflineIntegrationTest {
             .andExpect(header().string("Cache-Control", "no-store"))
         val admin = TestAuthSupport.sessionCookieFromGoogleSignIn(mvc, google, "advent-admin", "advent-admin@example.com")
         mvc.perform(get("/v1/advent-test/doors/1").cookie(admin)).andExpect(status().isForbidden)
-        mvc.perform(get("/v1/advent-test/doors/2").cookie(admin)).andExpect(status().isForbidden)
+        mvc.perform(get("/v1/advent-test/doors/25").cookie(admin)).andExpect(status().isForbidden)
     }
 }
