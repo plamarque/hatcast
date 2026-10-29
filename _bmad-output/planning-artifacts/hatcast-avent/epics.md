@@ -1,6 +1,6 @@
 ---
 stepsCompleted: [step-01-validate-prerequisites, step-02-design-epics, step-03-create-stories, step-04-final-validation]
-status: ready-for-planning
+status: final
 inputDocuments:
   - _bmad-output/specs/spec-hatcast-avent/SPEC.md
   - _bmad-output/planning-artifacts/prds/prd-hatcast-2026-10-28/prd.md
@@ -14,25 +14,37 @@ inputDocuments:
 
 ## Overview
 
-Draft requirements inventory for the La Malice Advent calendar. The approved spec and its companions remain the source contract. The UX-linked mockup is illustrative and subordinate to the UX documents. Epic design and stories are pending.
+Updated requirements inventory for the La Malice Advent calendar. The spec and companions are the source contract; the UX-linked mockup is illustrative. Revised stories were validated with Patrice on 2026-10-29.
 
 ## Requirements Inventory
 
 ### Functional Requirements
 
-- **FR-1:** Hide production access before 1 December; show the animated Santa entry near account from 1 December through 15 January inclusive; remove it on 16 January.
-- **FR-2:** Automatically open the available unanswered daily quiz on the first eligible visit; persist dismissal for that day across devices. An unavailable quiz does not consume the opening, and an existing answer prevents it.
-- **FR-3:** Target a 09:00 Paris invitation on 1–25 December for members with no answer when the quiz is available and normal notification preferences allow it; open the quiz and do not catch up a later publication.
-- **FR-4:** Prioritize the available unanswered quiz; allow a single selection and explicit confirmation, including for the member portrayed; a recorded answer is final.
-- **FR-5:** Award 3 points for a correct answer on its day, 1 late, 0 if incorrect; award one streak point for a daily answer when the previous case was answered on its day regardless of correctness. No bonus on day 1 or late; a missing quiz breaks the streak. Confirmation time governs; theoretical maximum 99.
-- **FR-6:** Show correctness, earned points and relevant streak information; reveal the right answer on error, provide the appropriate next-day, Christmas, ranking or catch-up return path.
-- **FR-7:** Allow retry if not recorded; recover an unseen saved result first on return the same day, otherwise prioritize the normal journey while retaining access to the old result.
-- **FR-8:** List all classable members from zero, highlight the current member, use competition ranks (1, 1, 3), exclude Patrice and Toinou while showing each their personal score without rank. The prize draw is external.
-- **FR-9:** Open ranking after today's answer; from 26 December through 15 January inclusive offer final ranking and calendar to all members without automatic opening or answering.
-- **FR-10:** Show all 25 cases and their played, past, today and locked future states; allow eligible catch-up, review played choices and points, and read-only discovery of available unplayed content after closure. Missing cases show the specified message.
-- **FR-11:** Permit starting with incomplete content and adding it through releases; make new content available according to its day and the game deadline; do not change the correct answer after any member has answered.
-- **FR-12:** On a day without a quiz, suppress auto-opening and invitations; the entry displays the absence message and ranking access, with the Christmas variation on 25 December.
-- **FR-13:** Offer visibly marked isolated development testing for active members of the configured troupe, including available future cases, 3 points for a correct future answer and targeted reset; configure troupe per environment and never enable test mode in production.
+- **FR-1:** En production, l’animation est invisible avant le 1er décembre pour les membres ; aucun mode test n’y est disponible. Du 1er décembre au 15 janvier 2027 inclus, une icône Père Noël près de Mon compte permet d’accéder à l’animation. Sa micro-animation est discrète et festive ; ses détails sont à définir en UX. L’accès disparaît à partir du 16 janvier.
+
+- **FR-2:** Du 1er au 24 décembre, lorsqu’un quiz du jour est disponible et que le membre n’y a pas répondu, il s’ouvre automatiquement lors de sa première ouverture pertinente de HatCast, après l’éventuelle révélation prioritaire prévue par FR-7. Le membre peut le fermer ; une fois fermé, il ne s’ouvre plus automatiquement ce jour-là sur aucun appareil du membre et reste accessible par l’icône. Une réponse enregistrée sur un autre appareil empêche aussi l’ouverture automatique. Une visite sans quiz disponible ne consomme pas cette ouverture : si le quiz paraît plus tard, il peut s’ouvrir lors d’une visite ultérieure, sauf si l’expérience a déjà été fermée ce jour-là.
+
+- **FR-3:** Du 1er au 24 décembre, HatCast tente d’envoyer à 10 h, heure de Paris, une invitation habituelle aux membres qui n’ont pas répondu au quiz du jour. Le traitement vérifie la disponibilité du quiz lorsqu’il s’exécute et respecte les préférences habituelles. Si le quiz manque ou si le traitement ne se déclenche pas, aucune invitation n’est envoyée ; un envoi tardif ou manqué est acceptable, sans reprise particulière. L’invitation mène au parcours du jour en respectant la priorité de révélation de FR-7.
+
+- **FR-4:** Le membre sélectionne l’anecdote qu’il estime fausse parmi trois, puis confirme ; une réponse enregistrée est définitive et unique par quiz. Chaque personne présentée peut jouer à son propre quiz. Le quiz est jouable uniquement pendant son jour de jeu ; aucun rattrapage n’est possible. Une confirmation reçue par l’API avant minuit est admissible même si son enregistrement se termine après minuit ; reçue à partir de minuit, elle est refusée, même si le quiz a été ouvert avant minuit.
+
+- **FR-5:** Une bonne réponse rapporte 10 points, une mauvaise 0. Chaque jour répondu rapporte en outre 1 point de participation, dès le premier jour et quelle que soit la justesse ; un jour manqué ne rapporte aucun point. Un bonus de 2 points est attribué pour chaque groupe de trois bonnes réponses consécutives : une mauvaise réponse remet la série à zéro, une journée manquée la laisse intacte. Après un bonus, le décompte repart pour le groupe de trois suivant : les groupes ne se chevauchent pas. Les bonus sont donc attribués aux 3ᵉ, 6ᵉ, 9ᵉ bonnes réponses consécutives, et ainsi de suite. Les points deviennent visibles et comptent dans le classement à la révélation, pas avant. Le maximum théorique est de 280 points : 240 de bonnes réponses, 24 de participation et 16 de bonus.
+
+- **FR-6:** Après confirmation, afficher uniquement un accusé de réception, une invitation à revenir demain et une action pour voir le classement. Ne donner aucun indice sur la justesse ou les points du quiz en attente : notamment, le classement et les scores visibles ne doivent pas permettre de les déduire. À la révélation, afficher le choix du membre, la fausse anecdote, la justesse et les points gagnés, avec un complément d’anecdote facultatif s’il existe. Distinguer les points de réponse, de participation et le bonus lorsqu’il est acquis.
+
+- **FR-7:** Si une réponse n’a pas été enregistrée, le membre peut réessayer tant que le quiz reste jouable. Au retour, si un résultat révélable n’a pas été vu, le plus récent de ces résultats est présenté avant le quiz du jour, même si une réponse plus récente attend sa révélation ; proposer ensuite ce quiz lorsqu’il est disponible. Aucun accès au calendrier n’est proposé sur cet écran de révélation prioritaire. L’état de consultation est partagé entre appareils ; une interruption après enregistrement ne fait pas perdre le résultat. Les résultats révélables plus anciens non vus restent consultables dans leurs cases du calendrier, sans repère particulier ni enchaînement automatique.
+
+- **FR-8:** Le classement présente sous leur nom tous les membres classables dès le départ, y compris ceux qui n’ont pas encore joué, à 0 point. Il met en évidence la position du membre connecté. Les ex æquo reçoivent tous le rang le plus bas de leur groupe : par exemple 1, 3, 3, 4 ; si tous les N membres sont à égalité, ils sont tous Nᵉ. Patrice et Toinou ne figurent pas dans ce classement ; chacun voit son score personnel séparément, sans rang. Le départage éventuel pour les lots reste à discuter et n’est pas automatisé dans ce périmètre.
+
+- **FR-9:** Après réponse au quiz du jour, l’accès à l’animation ouvre le classement, sous réserve de la priorité de FR-7. Le 25 décembre, après l’éventuelle révélation du 24, présenter un message de Noël et un bilan personnel ; son contenu spécial et une éventuelle animation restent à discuter. Le classement est final dès la révélation du 24. Jusqu’au 15 janvier 2027 inclus, tous les membres peuvent consulter le classement final et le calendrier, même sans avoir joué ; après le 24, aucune réponse n’est possible et aucun quiz ne s’ouvre automatiquement.
+
+- **FR-10:** Le calendrier représente les 24 quiz et le 25 décembre, dont la présentation reste à définir en UX. Il distingue les quiz joués, passés non joués, celui du jour et les futurs bloqués. Une case passée non jouée peut être consultée après sa date de révélation : portrait, anecdotes et fausse anecdote disponibles, sans réponse ni points. Une case jouée montre le choix, la fausse anecdote et les points obtenus uniquement après leur révélation. Une case sans contenu affiche « Il n’y a rien ici. Reviens plus tard ! ». Le calendrier et le classement restent accessibles depuis l’expérience, sauf sur l’écran prioritaire de révélation de FR-7.
+
+- **FR-11:** L’animation peut commencer sans les 24 quiz. Patrice peut ajouter les contenus par une nouvelle release ; un quiz publié pendant son jour devient jouable dès sa disponibilité et jusqu’à minuit. Un contenu publié après son jour n’est pas jouable ; il peut être consulté comme contenu passé après révélation. Patrice vérifie les anecdotes avant publication ; la fausse anecdote ne change pas une fois qu’un membre a répondu.
+
+- **FR-12:** Un jour de jeu sans quiz disponible, il n’y a ni notification ni ouverture automatique. L’icône mène au message « Il n’y a rien ici. Reviens plus tard ! » et à un accès au classement pour tous, même sans participation, après l’éventuelle révélation prioritaire. Le 25 décembre suit FR-9 et ne comporte pas de quiz.
+
+- **FR-13:** Avant décembre, Patrice et Toinou peuvent tester et présenter le calendrier dans un environnement de développement isolé de la production. Le mode test permet aux membres actifs de la troupe configurée d’ouvrir librement les cases disponibles avant leur jour prévu ; il doit permettre de vérifier les nouvelles règles de jeu et de révélation, sans affecter la partie réelle. Les réponses y sont définitives ; une remise à zéro ciblée des données du calendrier permet de recommencer. La troupe peut être choisie par environnement. Aucun mode test n’est disponible en production. Une horloge simulée commune côté serveur avance seulement ; répondre à une case future la fait avancer jusqu’au jour de cette case. Le barème normal s’applique et le résultat est révélé le lendemain simulé. Revenir en arrière exige de réinitialiser la partie de test et son horloge. Les limites réelles sont vérifiées séparément.
 
 ### NonFunctional Requirements
 
@@ -45,23 +57,22 @@ Draft requirements inventory for the La Malice Advent calendar. The approved spe
 
 ### Additional Requirements
 
-- **AD-1:** API enforces active membership and date/mode restrictions for every read and mutation; platform admin is not exempt. Future content and revealing portraits must not reach bundles or public caches; withhold the correct answer until authorized.
-- **AD-2:** Configure troupe per environment; development-only test mode and targeted reset; verify isolation of database, notifications and analytics before demonstration.
-- **AD-2 — November simulation:** In isolated development, 25 quizzes with fictitious assertions and optionally consented real member names and portraits, and November 1–25 map to December 1–25 for daily state, journeys, score and streak; preserve free future-case access, safe targeted reset and isolation. Verify real December boundaries separately.
-- **AD-3:** API owns availability, time and scoring; database enforces one immutable response under concurrency. Persist selection, correct statement, points, dismissal and unseen-result state; emitting an HTTP response alone does not mark a result seen.
-- **AD-4:** Derive scores from responses, include zero-score eligible members and exclude designated accounts; retain results after 15 January. No special post-closure membership-change mechanism is specified.
-- **AD-5:** Reuse existing Spring scheduling and reminder mechanisms without Advent-specific infrastructure, recovery or additional guarantees; do not create a fictitious show.
-- **AD-6:** Measure two global totals: distinct real participants with at least one recorded response and recorded real responses. Exclude development tests and quiz content or choices; the database is authoritative if telemetry is missed; no daily breakdown required.
-- Content is delivered by release without an administration interface. Define a safe development-only reset procedure and production safeguards; verify operational effects on portraits, caches, releases and retained data. Later access to retained data is deferred, with no new interface specified.
+- **AD-1:** Enforce membership, date and mode on all API reads and mutations; keep future content, pending answers and derived correctness or points out of clients, URLs, caches and analytics; sensitive responses are no-store.
+- **AD-2:** Development-only isolated mode, fictional statements, configured troupe, shared forward-only simulated clock and targeted reset of game and clock; advancing to a future answer uses normal scoring and next-day reveal. Verify real boundaries separately.
+- **AD-3:** Persist unique answers, scores, daily dismissal and seen state; server receipt time governs the midnight limit, and acknowledgment follows actual reveal display. Select the most recent revealable unseen result.
+- **AD-4:** Ranking and personal totals include only revealed points, use lowest ranks for ties, include zero scores and exclude designated accounts; retain answers after access ends.
+- **AD-5:** Existing Spring reminder targets 10:00 Paris on days 1–24, checks actual execution availability and eligibility, tolerates late or missed notifications, without dedicated recovery or publication timestamp.
+- **AD-6:** Measure distinct real players and recorded real answers; exclude tests and sensitive information, with the database authoritative.
+- Contents arrive by release without an administration interface; verify reset safeguards, client and shared caches, isolation and operational effects.
 
 ### UX Design Requirements
 
 - **UX-DR1:** Use HatCast Angular Material 3 components, typography and `--mat-sys-*` tokens; translate the festive visual direction into the theme and verify contrast, without ad hoc component colors.
 - **UX-DR2:** Provide a full-page decorated discovery door, short opening and soft light, with immediate equivalent access under reduced motion.
 - **UX-DR3:** Place portrait, three single-choice statements and explicit confirmation on the quiz; selection can change until confirmation. Aim for no scrolling on usual phones but never truncate content or sacrifice accessibility.
-- **UX-DR4:** Replace quiz with result on the same surface; show response points, bonus when earned and total; celebrate only correct answers briefly and omit motion when requested. Revisited results show choice, correct answer and points without replaying celebration.
-- **UX-DR5:** Provide separate HatCast-style Calendar and Ranking tabs, with the daily quiz priority, catch-up return to Calendar and personal ranking summary defined in EXPERIENCE.md.
-- **UX-DR6:** Render 25 numbered doors in a four-column, left-to-right grid; distinguish played, past, today, future locked and missing-content cases without color alone; expose number and state accessibly without revealing future content.
+- **UX-DR4:** After a neutral acknowledgment, reveal the result from next midnight on the same surface; show response, participation and earned bonus points and total; celebrate only correct answers briefly and omit motion when requested. Revisited results show choice, correct answer and points without replaying celebration.
+- **UX-DR5:** Provide separate HatCast-style Calendar and Ranking tabs, with the priority reveal, daily quiz and personal ranking summary defined in EXPERIENCE.md.
+- **UX-DR6:** Render 24 numbered quiz cases and a 25 December case in a four-column, left-to-right grid; distinguish played, past, today, future locked and missing-content cases without color alone; expose number and state accessibly without revealing future content.
 - **UX-DR7:** Show the Santa icon near account with a discreet movement once at HatCast opening, less than five seconds, and no movement under reduced-motion preference.
 - **UX-DR8:** Use French, tutoiement and encouraging festive tone; preserve the specified missing-content, bonus and Christmas messages and result variations.
 - **UX-DR9:** Support keyboard operation, visible focus, appropriate focus entry/restoration and announcements for door, result and errors without a keyboard trap; use meaningful portrait alternatives and single-choice semantics.
@@ -79,7 +90,7 @@ Draft requirements inventory for the La Malice Advent calendar. The approved spe
 - FR-7 → Advent epic: retry and unseen-result recovery.
 - FR-8 → Advent epic: ranking, ties and exclusions.
 - FR-9 → Advent epic: ranking and final consultation.
-- FR-10 → Advent epic: calendar, catch-up and review.
+- FR-10 → Advent epic: calendar, read-only past discovery and review.
 - FR-11 → Advent epic: content availability and release publication.
 - FR-12 → Advent epic: missing daily content.
 - FR-13 → Advent epic: isolated development testing.
@@ -88,174 +99,142 @@ Draft requirements inventory for the La Malice Advent calendar. The approved spe
 
 ### Approved epic: La Malice Advent calendar
 
-Members of La Malice discover each other through a daily festive quiz, catch up and review their results, then consult the final friendly ranking; organizers prepare and test the experience safely before opening.
+Members of La Malice discover each other through a daily festive quiz, review revealed results and past content, then consult the final friendly ranking; organizers prepare and test the experience safely before opening.
 
 **FRs covered:** FR-1–FR-13. **Architecture:** AD-1–AD-6. **UX:** UX-DR1–UX-DR11.
 
 Progressive human checkpoints follow the journey: door, quiz, result, ranking, calendar, Santa icon, then notifications. Show each partial experience to Patrice and Toinou as soon as it is safe and testable; explicitly identify unfinished parts. The first usable test requires development isolation and the protections relevant to what is exposed.
 
-The experience and its security, scoring, ranking and state share one domain and are already designed together. One epic avoids artificial boundaries and repeated work on the same components; independently reviewable stories will be ordered inside it. The production entry must not expose an incomplete or unprotected experience. Epic number remains to be confirmed against the current tracker when stories are created.
+The experience and its security, scoring, ranking and state share one domain and are already designed together. One epic avoids artificial boundaries and repeated work on the same components; independently reviewable stories will be ordered inside it. The production entry must not expose an incomplete or unprotected experience. Epic 25 and its story identifiers remain stable; revised criteria and dependencies were validated with Patrice on 2026-10-29.
 
 
 ## Epic 25: Discover La Malice through an Advent calendar
 
-Members discover each other through daily quizzes and a friendly ranking; Patrice and Toinou can validate successive parts of the journey in isolated development before the production opening.
+Members discover each other through 24 daily quizzes, delayed reveals and a friendly ranking; Patrice and Toinou validate the journey in isolated development before production opening. The PRD, UX, spec and architecture remain binding. Partial checkpoints identify unfinished features and must never expose protected production data.
 
 ### Story 25.1: Open an Advent door in isolated development
 
-As Patrice or Toinou,
-I want to open an Advent door with test content on the development server,
-So that we can assess the first moment of discovery together before the rest of the journey is implemented.
+As an eligible member testing the calendar, I want to open an available test door so that I can explore the discovery experience.
 
 **Acceptance Criteria:**
 
-1. **Given** the isolated development environment is configured for a troupe and test mode, **when** an active member of that troupe accesses the partial Advent experience before December, **then** a visible “Mode test” indicator and a numbered discovery door are displayed; the unfinished quiz and later steps are clearly identified as unavailable, without pretending a response was recorded.
-2. **Given** 25 test quizzes with fictitious assertions are configured only in development, optionally using actual members’ names and portraits with their consent, **when** the date is 1–25 November 2026, **then** the displayed simulated day corresponds to the same day in December; an available future test case can also be opened freely. Only the content authorized for the selected case may be returned to the client.
-3. **Given** an eligible member activates the door, **when** it opens, **then** the short festive opening reveals its available portrait and case identity; no correct answer or other future case content is disclosed. With reduced motion enabled, the same content is immediately accessible without motion.
-4. **Given** a non-member, inactive member, or platform administrator outside the configured troupe, **when** they request the experience or content, **then** the API refuses access. Production has no test mode or fictitious test assertions, and future production content is not sent in public bundles or caches (AD-1, AD-2).
-5. **Given** the development test environment, **when** it is prepared for a human demonstration, **then** its data, notifications and analytics are verified isolated from production; the test cannot send production invitations or count as real participation.
-6. **Given** keyboard, screen-reader or touch use, **when** the door is operated, **then** its number and state are accessible, focus and announcements follow the UX contract, and controls remain usable at small widths and enlarged text. Target 48 × 48 px and document any permitted 40 px exception; use HatCast Material 3 components and tokens.
+1. In isolated development, active members of the configured troupe can open available future cases before their simulated day; the interface visibly identifies test mode. Test statements are fictional; actual names or portraits require consent.
+2. The API enforces active troupe membership and environment restrictions on each read. Platform administrators outside the troupe are not exempt. Production offers no test mode; future content, revealing portraits and answers are inaccessible through API, bundles, assets or direct URLs.
+3. Opening the full-page decorated door reveals only the selected permitted portrait and quiz content; reduced motion gives equivalent immediate access. Answering is not yet available and is explicitly identified as unfinished in the demonstration.
+4. Before a human demonstration, verify development data, notifications and analytics are isolated from production. Keyboard access, focus, accessible state, responsive layout, HatCast Material 3 tokens and touch targets follow the UX contract.
 
-**References:** FR-1, FR-10, FR-13; AD-1, AD-2; UX-DR1, UX-DR2, UX-DR6, UX-DR9–UX-DR11. Approved by Patrice. This partial development checkpoint does not enable the production member entry or implement answering.
+**References:** FR-1, FR-10, FR-13; AD-1, AD-2; UX-DR1, UX-DR2, UX-DR6, UX-DR9–UX-DR11.
 
 ### Story 25.2: Answer the quiz after opening a door
 
-As an active member testing the calendar,
-I want to select and confirm one of three statements about the person revealed,
-So that I can try the central quiz interaction on a real device.
+As an eligible member, I want to select and confirm a single statement so that my answer is saved for the next day's reveal.
 
 **Acceptance Criteria:**
 
-1. **Given** an available test case opened in isolated development, **when** its door opens, **then** the portrait and three fictitious statements are displayed as a single-choice quiz. Names and portraits may be those of real consenting members; statements remain fictitious.
-2. **Given** the quiz is displayed, **when** the member selects an answer, **then** they can change it until explicit confirmation; confirmation is unavailable without a selection and the controls expose single-choice semantics.
-3. **Given** a confirmed answer, **when** the API accepts it, **then** exactly one immutable answer is persisted for that member and case, with the choice, correct statement and points including any applicable streak bonus; server-side simulated time determines the result in development under AD-2 and AD-3. The interface clearly acknowledges the recorded answer without displaying the unfinished result screen as if it existed.
-4. **Given** a retry, interruption or concurrent submission, **when** a response has already been recorded, **then** no second answer or score is created and the recorded outcome remains retrievable for the later result journey. If recording fails, the interface does not claim success and the member can retry while the case is playable.
-5. **Given** a future case opened freely in test mode, **when** a correct answer is confirmed, **then** it earns 3 points as specified by FR-13; test mode remains isolated and unavailable in production. Actual December date boundaries are verified separately.
-6. **Given** mobile, enlarged text, keyboard or assistive technology, **when** the member reads and answers, **then** portrait alternative text, visible focus, announcements, contrast and target sizes meet the UX contract; content and confirmation remain available without truncation, using scrolling when necessary and HatCast Material 3 tokens.
+1. Display the portrait and three single-choice statements; allow selection changes until explicit confirmation. One immutable answer per member and quiz is enforced in the database under concurrent requests and retries.
+2. The API accepts a confirmation received before the next Paris midnight even if persistence completes after midnight; a request received at or after midnight is rejected. An uncertain response is resolved by checking stored state, with retry only while admissible.
+3. Persist the selection and stable result data and calculate 10 points for a correct answer or 0 for incorrect, plus 1 participation point and 2 for each non-overlapping group of three consecutive correct responses. A wrong answer resets the sequence; a missed day does not. Concurrent writes cannot corrupt the sequence or duplicate scores.
+4. Before reveal return only a neutral recorded acknowledgment and return-tomorrow message; identify Ranking as unavailable in the partial demonstration until its action becomes operational in 25.4. API responses, errors, metadata, scores and client state must not disclose correctness, answer, points or other clues. No past quiz accepts a catch-up answer.
+5. In isolated test mode, confirming a future case advances the shared simulated server clock to its day; normal scoring applies and the result is revealed the following simulated day. The clock cannot move backward except through the targeted reset. Actual production date boundaries are verified separately.
+6. Verify single-choice semantics, portrait alternatives, keyboard, focus, announcements, contrast, small screens and enlarged text; use HatCast Material 3 and never truncate the content.
 
-**References:** FR-4, FR-5, FR-7, FR-13; AD-1–AD-3; UX-DR1, UX-DR3, UX-DR9–UX-DR11. Approved by Patrice. Result presentation, calendar and ranking remain separate later checkpoints.
+**References:** FR-4–FR-7, FR-13; AD-1–AD-3; UX-DR1, UX-DR3, UX-DR9–UX-DR11.
 
 ### Story 25.2a: Restart an isolated test session
 
-As an organizer testing with Toinou,
-I want to safely reset Advent test data in development,
-So that we can repeat the complete journey and evaluate changes.
+As an organizer, I want to reset the test game so that I can replay its dates and results safely.
 
 **Acceptance Criteria:**
 
-1. **Given** isolated development and its configured troupe, **when** an authorized operator follows the documented targeted reset procedure, **then** Advent test responses, scores and related per-member journey state for the intended scope are cleared so the journey can be replayed, while test content and unrelated data are preserved.
-2. **Given** production or an environment whose isolation cannot be established, **when** the reset is attempted, **then** it is refused by effective safeguards; the procedure does not touch production data, notifications or analytics.
-3. **Given** a reset test session, **when** a member plays again, **then** the result is computed from the new test responses and November simulation, and previous test responses do not affect the ranking or streak.
-4. **Given** the reset procedure, **when** it is prepared for use, **then** its target, prerequisites, effects and verification are documented and demonstrated against isolated development data. No general administration interface is added.
+1. A documented targeted reset in verified isolated development clears test answers, scores, shared per-member journey state and the simulated clock for the intended scope while preserving test content and unrelated data; the clock can then start earlier.
+2. Production and any environment whose isolation cannot be established reject reset and clock control on the server. The procedure cannot affect production data, notifications or analytics.
+3. Replaying after reset computes results and series solely from new answers. Document target, prerequisites, effects and verification; no general administration interface is required.
 
-**References:** FR-13; AD-2, AD-3, AD-4; UX-DR11. Approved by Patrice. This capability follows story 25.2 and precedes the first human checkpoint that needs replaying recorded answers.
-
+**References:** FR-13; AD-2–AD-4; UX-DR11.
 
 ### Story 25.3: Discover and recover the quiz result
 
-As a member who has confirmed a quiz answer,
-I want to see and recover my result,
-So that I understand what I earned and can enjoy the reveal even after an interruption.
+As a member who answered, I want to discover my saved result after its reveal so that I can enjoy it even after interruption or on another device.
 
 **Acceptance Criteria:**
 
-1. **Given** a recorded answer, **when** the result is displayed, **then** it replaces the quiz on the same surface and shows whether the answer was correct and the recorded points; on error it reveals the correct statement with an encouraging message.
-2. **Given** a same-day answer with a streak bonus, **when** the result is displayed, **then** response points, the +1 regularity bonus and their total are understandable, including without animation. Without a bonus, invite the member to return tomorrow without emphasizing a missed point; on 25 December show “Joyeux Noël !” instead. A late answer shows earned points without mention of the bonus.
-3. **Given** a correct answer, **when** the result first appears, **then** short confetti and point animations celebrate it; an incorrect answer does not trigger confetti. Reduced motion removes animations while preserving all information. Reviewing a result does not replay celebration.
-4. **Given** the answer was saved but the result was not seen, **when** the member returns on the same simulated or real day, **then** the recorded result is shown first across devices; issuing an HTTP response does not itself mark it seen. On a later day the normal daily journey takes priority and the saved result remains retrievable for the later calendar journey.
-5. **Given** a recorded answer whose confirmation crossed midnight or the end of play, **when** the member sees the outcome, **then** the displayed result uses the server's recorded decision; after closure an unrecorded answer is rejected with a game-ended message and access to available navigation as it is delivered.
-6. **Given** the first partial test, **when** the result offers onward navigation, **then** unfinished ranking or calendar actions are clearly identified as unavailable until their stories are delivered; on completion they follow FR-6 and the UX contract.
-7. **Given** keyboard, screen-reader, mobile or reduced-motion use, **when** quiz changes to result or an error occurs, **then** focus and announcements follow the UX contract, information is not conveyed by animation or color alone, and no text or action is truncated.
+1. Starting at the following 00:00 Paris, show the selected statement, false statement, correctness, response and participation points, earned streak bonus if any, total and optional anecdote; before that instant none is available through API or interface.
+2. On return present the most recent revealable unseen answer first, even when a newer answer is pending. No Calendar action is offered on this priority screen; afterwards offer today's quiz if available, or the relevant missing-content or 25 December path.
+3. Persist seen state by member and answer across devices only after the reveal screen is actually displayed and the client acknowledges it; HTTP delivery alone does not mark it seen. A lost acknowledgment can cause a repeat and simultaneous devices can both show it; acknowledgments are idempotent. Older unseen results remain accessible through their calendar cases without special markers or automatic chaining; verify that calendar access when 25.5 is available.
+4. Celebrate correct answers only on initial reveal, with an equivalent reduced-motion result; revisiting does not replay celebration. A failed or uncertain submission is checked before offering a retry; after closure explain that the quiz is closed.
+5. Verify focus, announcements, accessible error handling, no truncated text and navigation on narrow screens with Material 3 components.
 
-**References:** FR-5–FR-7; AD-2, AD-3; UX-DR4, UX-DR8–UX-DR10. Approved by Patrice. Ranking and calendar are later checkpoints; all test data stays isolated.
+**References:** FR-5–FR-7, FR-9–FR-10; AD-1–AD-3; UX-DR4, UX-DR8–UX-DR10.
 
 ### Story 25.4: See the friendly ranking
 
-As a member participating in the Advent calendar,
-I want to see the ranking and my own score,
-So that I can share the fun with other members after answering.
+As a member, I want to see the revealed ranking and my own score so that I can share the fun without learning today's result early.
 
 **Acceptance Criteria:**
 
-1. **Given** an eligible member, **when** they open the ranking from a result or an available entry, **then** all classable active members appear by name from the start, including those with zero points; the member's rank and score are highlighted both in a personal summary and in the list.
-2. **Given** recorded responses, **when** the ranking is computed, **then** scores derive from recorded response and streak points and ties share competition ranks (for example 1, 1, 3), including ties at zero. Only total scores are shown in the ranking.
-3. **Given** Patrice or Toinou is connected, **when** the ranking is displayed, **then** their personal score is shown without a rank and neither designated account appears in the ranking. The external prize draw is not automated.
-4. **Given** the game has closed at the end of 25 December Paris time, **when** an eligible member consults the ranking through 15 January inclusive, **then** it is presented as final; no new answer can alter it. Answers and results remain retained afterward, while member access ends on 16 January. No special post-closure membership-change mechanism is added.
-5. **Given** development test mode, **when** the ranking is inspected during the simulated November period, **then** it reflects only isolated test answers and the simulated game state; actual December and January boundaries are separately verified.
-6. **Given** a member using keyboard, assistive technology, a narrow screen or enlarged text, **when** they consult the ranking, **then** names, scores and position are understandable, focus is visible and content is not truncated; styling follows HatCast Material 3 and UX requirements.
-7. **Given** the calendar has not yet been implemented, **when** navigation is shown in the partial test, **then** its unfinished action is clearly identified as unavailable; it becomes the separate calendar tab in the next story.
+1. Include all classable members by name from zero; show the connected member's position and revealed score. Patrice and Toinou see their own scores without rank and are excluded from the list.
+2. Derive scores and ranks using one server reference time and only answers already revealable; no pending correctness, points, subtotal or derived clue is returned. Ties receive the lowest position of the group: 1, 3, 3, 4; all N tied receive rank N.
+3. At 00:00 Paris on 25 December the result of the 24th is revealable and the ranking is final. The ranking is available to all eligible members through 15 January, even without answers; verify calendar availability with 25.5. Member access ends on 16 January; results remain retained. No special membership-change mechanism is added.
+4. Verify ranking against correct, incorrect, missed and third/sixth correct answers, including exclusion, cross-account requests and before/after-midnight snapshots. Test simulated time and actual date boundaries separately.
+5. Names, position and scores remain readable and accessible on small screens and with keyboard, assistive technology and text enlargement; use Material 3.
 
-**References:** FR-6, FR-8, FR-9; AD-1, AD-3, AD-4; UX-DR1, UX-DR5, UX-DR9, UX-DR10. Approved by Patrice. Final-ranking consultation is testable in isolated development from 25 November; earlier access is a separate story only if needed. Actual December and January boundaries are verified separately.
+**References:** FR-5, FR-6, FR-8–FR-9; AD-1, AD-3, AD-4; UX-DR1, UX-DR5, UX-DR9–UX-DR10.
 
-### Story 25.5: Browse and catch up through the calendar
+### Story 25.5: Browse the calendar and past content
 
-As a member,
-I want to browse the 25 doors, catch up and revisit my answers,
-So that I can enjoy the calendar at my own pace and discover its contents after the game.
+As a member, I want to browse the calendar and revisit permitted content so that I can enjoy the discoveries at my own pace.
 
 **Acceptance Criteria:**
 
-1. **Given** an eligible member opens Calendar, **when** the calendar is displayed, **then** 25 numbered doors appear in a four-column, left-to-right grid, distinguishably indicating played, past unplayed, today and future locked cases; each exposes its number and state accessibly without revealing future content or relying on color alone.
-2. **Given** an available past unplayed case before the game closes, **when** the member opens and answers it, **then** the standard immutable response and late scoring rules apply; the result returns the member to Calendar and Ranking remains accessible in its own tab.
-3. **Given** a played case, **when** it is opened, **then** the member sees their recorded choice, correct statement, response points and any streak bonus without being able to answer again or replaying celebration.
-4. **Given** a past case with no content, **when** its door is opened, **then** it shows “Il n’y a rien ici. Reviens plus tard !”. Content added by release becomes available immediately according to FR-11; a correct answer must not change after a member has answered.
-5. **Given** 26 December through 15 January inclusive, **when** a member opens an unplayed case, **then** available content reveals the portrait and correct statement without answering or awarding points; missing content shows the absence message. Ranking and Calendar remain available to members who never played.
-6. **Given** a future case in production, **when** the member attempts to access it, **then** it stays locked and the API does not disclose its content; in isolated test mode available future cases can be opened freely. A correct future test response earns 3 points.
-7. **Given** small screens, zoom, enlarged text, keyboard, screen reader or reduced motion, **when** the member uses the grid and doors, **then** scrolling or accessible adaptation is allowed without truncation; focus, announcements, touch targets and motion follow the UX contract and Material 3 conventions.
+1. Show 24 numbered quiz cases and a 25 December case in a four-column ordered grid. Distinguish played, past unplayed, today, future locked and missing states accessibly, without exposing future content or relying on color alone.
+2. A played case before revelation provides only the neutral pending state. After revelation it provides the choice, false statement and points without allowing another answer or replaying celebration. An unplayed past quiz is read-only after its reveal, with portrait, anecdotes and false statement but no points or answer action.
+3. No past case can be answered. A future production case remains locked at both UI and API. An absent case shows “Il n’y a rien ici. Reviens plus tard !”; content published during its day becomes playable until midnight, and content published later is read-only after reveal.
+4. From 25 December through 15 January, eligible members can consult calendar and final ranking, even without playing. The 25 displays the Christmas message, personal score and decorative Santa and box according to UX; no quiz or automatic quiz opening occurs.
+5. Verify case states and content permissions through direct API, URLs, cache and two accounts; meet keyboard, screen-reader, responsive, reduced-motion and Material 3 requirements.
 
-**References:** FR-5, FR-6, FR-9–FR-11, FR-13; AD-1–AD-4; UX-DR1, UX-DR2, UX-DR4–UX-DR6, UX-DR9–UX-DR11. Approved by Patrice.
+**References:** FR-6, FR-9–FR-11, FR-13; AD-1–AD-4; UX-DR1–UX-DR6, UX-DR9–UX-DR11.
 
 ### Story 25.6: Enter the Advent experience from HatCast
 
-As an eligible member,
-I want to discover and reopen the Advent experience from HatCast,
-So that the daily quiz is easy to find without disturbing me repeatedly.
+As an eligible member, I want to discover and reopen the experience without repeated automatic interruptions.
 
 **Acceptance Criteria:**
 
-1. **Given** production and an active member of the configured troupe, **when** the date is 1 December 2026 through 15 January 2027 inclusive in Paris, **then** a Santa icon appears near My Account and opens the appropriate experience; before that interval and from 16 January it is absent and the API enforces the same access window.
-2. **Given** 1–25 December and an available unanswered quiz for today, **when** the member first opens HatCast on an eligible visit, **then** the discovery door opens automatically before ranking or other cases. Closing it or the quiz suppresses automatic reopening for that member that day across devices; an answer recorded on any device also suppresses reopening.
-3. **Given** no quiz is available today, **when** the member visits, **then** no automatic opening occurs and the visit does not consume it. If content appears later that day, the next eligible visit may open it unless the experience was already closed that day; manual entry presents the absence message and ranking access, with the specified Christmas greeting on 25 December.
-4. **Given** today's answer exists, **when** the member enters via the icon, **then** Ranking opens unless an unseen saved result from today has priority. From 26 December through 15 January the icon opens the final ranking for everyone with Calendar available, and no automatic opening or answering occurs.
-5. **Given** the icon or automatic surface, **when** the member uses keyboard or assistive technology, **then** focus enters the opened surface and returns appropriately without a trap; announcements and accessible labels follow the UX contract. The icon moves discreetly once on HatCast opening for less than five seconds, and does not animate when reduced motion is requested.
-6. **Given** isolated development test mode, **when** the experience is accessed before December, **then** the icon and delivered journey are available under the approved November simulation and visibly marked as test; production never exposes this test access.
+1. In production show the Santa icon near My Account from 1 December to 15 January inclusive Paris time; hide it outside that window and enforce the same server access. Its discreet motion lasts less than five seconds, once on opening, and respects reduced motion.
+2. From 1–24 December, automatically open an available unanswered daily quiz on the first eligible visit after any priority reveal. Persist dismissal by member and day across devices; a recorded answer also prevents opening. Visiting without available content does not consume the opening; closing the experience does.
+3. With no quiz, no automatic opening occurs; the icon offers the absence message and Calendar and Ranking after the priority reveal. When content appears later that day, it may auto-open on a later eligible visit unless already closed.
+4. After today's answer, the icon opens Ranking subject to reveal priority. On 25 December show the Christmas journey after any priority reveal; thereafter and through 15 January provide final Ranking and Calendar without new answers or automatic quiz opening.
+5. Test mode is development-only and visibly identified. Verify cross-device state, active membership, focus entry and restoration, keyboard and accessible labels.
 
-**References:** FR-1, FR-2, FR-7, FR-9, FR-12, FR-13; AD-1–AD-3; UX-DR1, UX-DR5, UX-DR7–UX-DR11. Approved by Patrice.
+**References:** FR-1, FR-2, FR-7, FR-9, FR-12, FR-13; AD-1–AD-3; UX-DR1, UX-DR5, UX-DR7–UX-DR11.
 
 ### Story 25.7: Invite members to the daily quiz
 
-As an eligible member who has not yet answered,
-I want to receive the usual HatCast invitation to the day's quiz,
-So that I can join the daily discovery when my notification preferences permit it.
+As an eligible member, I want the usual invitation to the day's quiz so that I can take part when notifications are enabled.
 
 **Acceptance Criteria:**
 
-1. **Given** 1–25 December and the existing Spring reminder mechanism runs at its intended 09:00 Europe/Paris time, **when** the day's quiz is available, **then** active members of the configured troupe who have not answered are eligible according to their usual notification preferences; the invitation opens the quiz.
-2. **Given** the quiz is unavailable at 09:00, or the member has already answered or disabled the applicable usual notifications, **when** the reminder is processed, **then** no invitation is sent for that condition. A quiz published after 09:00 does not receive a catch-up invitation.
-3. **Given** the invitation integration, **when** it is implemented, **then** it reuses existing Spring scheduling and HatCast reminder delivery, does not create a fictitious show, and adds no Advent-specific infrastructure, recovery mechanism or delivery guarantee. Existing operational limits apply.
-4. **Given** development testing, **when** invitation eligibility is exercised against the simulated day, **then** it uses isolated test data and cannot send production notifications; production and test boundaries are verified before demonstration.
-5. **Given** game dates and timezone boundaries, **when** eligibility is checked, **then** server-side Europe/Paris civil time and recorded answers govern the decision, including separate checks of the real December boundaries.
+1. Schedule an attempt with existing Spring reminders at 10:00 Europe/Paris on 1–24 December. At actual execution check the day's available quiz, active troupe membership, no recorded answer and ordinary notification preferences. The link follows the priority reveal before the daily path.
+2. If the quiz is unavailable or the job does not run, no invitation is sent. A late execution may invite a quiz published after 10:00; late or missed delivery is acceptable. No dedicated publication timestamp, recovery, delivery guarantee or fictitious show is added.
+3. Adapt existing notification dispatch and deduplication to a quiz and recipient without a fictitious event; ensure repeated or concurrent processing does not intentionally send duplicate invitations. Respect normal eligibility checks and test both answered and disabled-preference cases.
+4. Test with isolated development data and notifications without production effects; verify Paris time boundaries and real dates separately.
 
-**References:** FR-3, FR-12, FR-13; AD-1, AD-2, AD-5. Approved by Patrice.
+**References:** FR-3, FR-12, FR-13; AD-1, AD-2, AD-5.
 
 ### Story 25.9: Measure actual participation
 
-As an organizer,
-I want to know how many people played and how many answers were recorded,
-So that I can assess participation without exposing the anecdotes.
+As an organizer, I want to know how many people played and how many answers were recorded without exposing quiz contents.
 
 **Acceptance Criteria:**
 
-1. **Given** real recorded answers, **when** participation is measured, **then** two global totals distinguish unique people with at least one recorded real answer and the total number of recorded real answers; no daily breakdown is required.
-2. **Given** development test activity, **when** analytics is emitted or queried, **then** it is excluded from the real totals and no anecdote, statement or selected answer is sent to PostHog.
-3. **Given** lost or duplicated telemetry, **when** totals must be verified, **then** recorded database answers are authoritative and can establish both totals; no participation target is imposed.
+1. Measure two global totals: distinct real players with at least one saved answer and the number of real saved answers. No daily breakdown or participation target is required.
+2. Exclude development tests and never transmit anecdotes, statements, choices, pending correctness or points. Repeated submissions must not inflate counts.
+3. Recorded database answers are authoritative for both totals if telemetry is missing or duplicated. This story does not authorize an analysis of existing PostHog data.
 
-**References:** AD-6, AD-2; PRD success signal. Approved by Patrice. This is not authorization to analyze existing PostHog data.
+**References:** AD-2, AD-6; PRD success signal.
 
 ## Final validation
 
-- **Coverage:** FR-1–FR-13, AD-1–AD-6 and UX-DR1–UX-DR11 are addressed across stories 25.1–25.7, 25.2a and 25.9. The PRD, UX and architecture remain binding for details beyond this summary.
-- **Delivery order:** 25.1 → 25.2 → 25.2a → 25.3 → 25.4 → 25.5 → 25.6 → 25.7; 25.9 follows the recorded-answer capability and remains within the epic. 25.2a was renumbered from 25.8 and moved after 25.2 to make the approved early reset dependency explicit.
-- **Checks:** A single user-value epic avoids cross-epic dependency. Each partial checkpoint identifies unavailable later steps; entities are introduced when needed. No starter template is specified. Security and isolation apply from the first exposed checkpoint.
-- **Final-ranking test:** Make final-ranking consultation testable in isolated development from 25 November; an earlier-access story is only needed if requested. Verify actual December and January boundaries separately.
-- **Status:** Workflow completed; sprint planning will check implementation readiness and tracking.
+- **Coverage:** FR-1–FR-13, AD-1–AD-6 and UX-DR1–UX-DR11 are covered across stories 25.1–25.7, 25.2a and 25.9; companions retain full contractual detail.
+- **Order:** 25.1 → 25.2 → 25.2a → 25.3 → 25.4 → 25.5 → 25.6 → 25.7; 25.9 follows recorded answers. Development isolation and protections precede human testing; partial features are identified as such.
+- **Validation:** Revised criteria and dependencies reviewed and approved with Patrice on 2026-10-29. Check real date boundaries separately from the simulated clock; verify device, keyboard, contrast and reduced-motion behavior. The Christmas recap, optional animation and graphical treatment of missed cases remain open for story design.

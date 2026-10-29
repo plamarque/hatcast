@@ -1,49 +1,53 @@
-# Rapport de validation — Calendrier de l’Avent La Malice
+# Validation — Calendrier de l’Avent
 
-- Documents : DESIGN.md et EXPERIENCE.md ; examen du PRD et des règles HatCast.
-- Date : 28 octobre 2026.
+- **DESIGN.md :** `DESIGN.md`
+- **EXPERIENCE.md :** `EXPERIENCE.md`
+- **Date :** 2026-10-29T21:02:52+01:00
 
-## Verdict
+## Synthèse
 
-Les intentions et les parcours principaux sont cohérents. Le cadrage reste en brouillon : deux divergences avec le PRD et plusieurs états et détails d’accessibilité empêchent encore un passage fiable à l’implémentation. Aucun écran n’a encore de référence visuelle.
+La structure essentielle du parcours révisé est présente : réponse sans résultat, révélation différée, calendrier, classement et clôture du 25. Le contrat n’est toutefois pas encore suffisamment précis pour implémenter sans choix supplémentaires la fin de la révélation prioritaire, l’état « vu » et la navigation depuis certaines surfaces. Les références au statut et au barème du PRD sont périmées : le PRD actuel est final et le barème confirmé y figure déjà.
 
-## Évaluation par catégorie
+## Verdicts par catégorie
 
-- Couverture des parcours : partielle.
-- Tokens et héritage du thème : adéquats pour un brouillon ; contrastes à vérifier.
-- Composants : partielle.
-- États : partielle.
-- Références visuelles : absentes, à produire ou explicitement écarter.
-- Proportion : adéquate.
-- Sources et cohérence : partielle ; divergences FR-7 et FR-12.
-- Structure : adéquate ; identifiants UJ et chemins d’échec à améliorer.
+- 1. Flow coverage — adequate
+- 2. Token completeness — thin
+- 3. Component coverage — thin
+- 4. State coverage — thin
+- 5. Visual reference coverage — adequate
+- 6. Bloat & overspecification — adequate
+- 7. Inheritance discipline — thin
+- 8. Shape fit — adequate
 
-## Constats prioritaires
+## Constats par gravité
 
-### Haut
+### Critiques (0)
 
-1. **Résultat non vu** — La règle choisie pour un retour un autre jour diverge de FR-7. Le cas sans quiz disponible et le retour après le 25 restent à décider ; réconcilier le PRD avant implémentation.
-2. **Message d’absence** — « Reviens plus tard ! » diverge de l’invitation à revenir demain mentionnée par FR-12 et FR-10. Confirmer et réconcilier le PRD ; le libellé des cases passées est explicitement ouvert à l’UX.
-3. **Fermeture** — Décrire la sortie de la porte ou du quiz automatique, la non-réouverture le jour même sur les appareils et la reprise par l’icône, conformément à FR-2.
-4. **Case vide après le 25** — Le texte actuel promet un portrait et une bonne réponse pour toute case non jouée alors qu’un contenu peut manquer. Clarifier le cas.
-5. **Accessibilité des transitions** — Définir le focus et les annonces pour les ouvertures, le résultat, les erreurs et le retour au calendrier, sans piège clavier.
+Aucun.
 
-### Moyen
+### Élevés (3)
 
-6. **Retour de rattrapage et classement vide** — Définir la destination exacte après résultat et le rappel personnel quand Camille n’a pas encore joué.
-7. **Changement de date** — Décrire le passage de minuit et la fermeture des réponses ; les points dépendent de l’heure de confirmation selon le PRD.
-8. **Résultat et calendrier** — Ajouter « Joyeux Noël » au résultat du 25 et le rendez-vous du lendemain après erreur, prévus par FR-6.
-9. **Petits écrans** — Vérifier la grille et le quiz avec texte agrandi, zoom et fenêtres étroites ; prévoir défilement ou réorganisation sans texte tronqué ni cible inaccessible.
-10. **Libellés et portraits** — Nom et état accessibles des cases, navigation dans la grille désordonnée, alternative textuelle pertinente des portraits, sans révéler les contenus futurs.
+- **1. Flow coverage** — La révélation prioritaire ne définit l’action suivante que lorsque le quiz du jour existe ou le 25 ; elle ne précise pas le chemin si aucun quiz n’est disponible, si l’on revient du 26 décembre au 15 janvier, ni ce que fait « Fermer ». Le PRD impose notamment l’accès au message d’absence et au classement après révélation (EXPERIENCE.md:20-28, 38-39, 80-84 ; PRD:52, 58, 66). *Fix:* décrire les destinations et actions de sortie de la révélation pour chacun de ces cas, conformément au PRD, en laissant les choix UX non tranchés explicitement ouverts.
+- **4. State coverage** — « Vu » est partagé entre appareils mais le moment où une révélation devient vue, notamment si elle est fermée ou interrompue, n’est pas défini ; la maquette montre « Fermer » sans en indiquer l’effet (EXPERIENCE.md:20, 48 ; mockups/parcours-revise.html:8 ; PRD:52). *Fix:* arbitrer le déclencheur de consultation et le comportement après fermeture/interruption, puis transmettre son contrat à l’architecture sans supposer sa mise en œuvre.
+- **4. State coverage** — La case jouée dont le résultat est encore en attente ne précise ni le libellé, ni l’action, ni le retour en cas de consultation le jour même ; le seul interdit est la divulgation (EXPERIENCE.md:46-50 ; PRD:50, 60). *Fix:* définir un état et une interaction sans indice, compatibles avec l’accusé de réception et les accès exigés.
 
-### Faible
+### Moyens (6)
 
-11. **Mouvement et contraste** — Préciser les alternatives sans mouvement pour la porte, la célébration et l’icône, ainsi que le focus visible et les contrastes.
-12. **Références de parcours** — Reprendre UJ-1 à UJ-3 et détailler les échecs pertinents pour faciliter la traçabilité.
+- **1. Flow coverage** — UJ-4 dans le PRD couvre aussi le recueil et la transmission des anecdotes ainsi que l’intégration des contenus ; le parcours UX ne couvre que le test (EXPERIENCE.md:92-96 ; PRD:24, 64). *Fix:* expliciter que cette partie relève de la préparation hors interface et n’appelle pas de surface UX ; maintenir le parcours de test dédié.
+- **2. Token completeness** — L’héritage reste trop générique pour relier les composants et états à des rôles de couleurs, typo et composants nommés ; les couples de contraste à vérifier ne sont pas identifiés (DESIGN.md:1-9, 15-21, 33-41 ; EXPERIENCE.md:64-70). *Fix:* référencer les rôles et tokens HatCast pertinents, sans inventer de palette ad hoc, et préciser les combinaisons à vérifier ; laisser les adaptations graphiques pour les stories comme convenu.
+- **3. Component coverage** — La confirmation, le classement et les états de la grille ne disposent pas tous d’une description visuelle propre dans Components ; l’état de réponse enregistrée en attente et la case du 25 restent particulièrement peu spécifiés (DESIGN.md:31-41, 49 ; EXPERIENCE.md:22-25, 44-58). *Fix:* référencer explicitement les composants Material et préciser les seuls deltas visuels et états nécessaires, en marquant ce qui reste à affiner en story.
+- **4. State coverage** — Les onglets sont dits accessibles depuis l’expérience sauf révélation prioritaire, mais les accès concrets depuis porte, quiz, confirmation et message de contenu absent ne sont pas tous décrits ; seule l’action vers le classement est explicite après confirmation (EXPERIENCE.md:18-28, 37-39 ; PRD:50, 60, 66). *Fix:* expliciter les points d’entrée par surface en respectant la priorité et la non-divulgation.
+- **4. State coverage** — L’erreur d’enregistrement autorise un réessai mais l’état d’incertitude (confirmation en vol ou résultat inconnu après coupure), notamment si la réponse a en réalité été enregistrée sur un autre appareil, n’est pas traité côté expérience (EXPERIENCE.md:36-37, 54 ; PRD:40, 52, 73). *Fix:* prévoir une vérification de l’état enregistré, un message et la reprise appropriée, avec la résolution technique en architecture.
+- **7. Inheritance discipline** — EXPERIENCE indique que le PRD est en draft et que la confirmation du bonus est encore à y reporter, alors que son frontmatter indique `final` et que FR-5 précise déjà le non-chevauchement (EXPERIENCE.md:14, 101 ; PRD:3, 48). *Fix:* mettre à jour le constat et la mention de relais après vérification du PRD actuel, sans modifier celui-ci.
 
-## Revues détaillées
+### Faibles (5)
 
-- review-rubric.md
-- review-accessibilite.md
-- review-parcours.md
-- review-prd.md
+- **1. Flow coverage** — Les chemins d’échec de sauvegarde et de clôture sont présents dans les tableaux mais pas dans le parcours UJ-1 lui-même (EXPERIENCE.md:37, 54, 74-78). *Fix:* ajouter une branche d’échec courte avec réessai et expiration pour aider les lecteurs des parcours.
+- **5. Visual reference coverage** — La maquette de la révélation montre une action « Découvrir la case du jour » et « Fermer » sans variantes pour jour sans contenu ou après le 25 (mockups/parcours-revise.html:8-10). *Fix:* une fois les parcours de sortie arbitrés, compléter ou annoter la maquette ; la laisser illustrative.
+- **6. Bloat & overspecification** — L’architecture d’information du 25 répète deux fois les accès au classement et calendrier (EXPERIENCE.md:25). *Fix:* fusionner les deux mentions lors d’une mise à jour éditoriale.
+- **7. Inheritance discipline** — Les intitulés UJ-4 et la portée du parcours diffèrent du PRD (« testent » au lieu de « préparent la surprise »), malgré l’identifiant commun (EXPERIENCE.md:92 ; PRD:24). *Fix:* conserver l’intitulé source et préciser que le parcours UX décrit la partie test.
+- **8. Shape fit** — Les décisions graphiques du 25 apparaissent sous Do's and Don'ts, plutôt que sous Components ou Layout & Spacing (DESIGN.md:43-49). *Fix:* déplacer ce contenu à l’endroit correspondant sans changer la décision.
+
+## Revue source
+
+- [review-rubric.md](review-rubric.md)

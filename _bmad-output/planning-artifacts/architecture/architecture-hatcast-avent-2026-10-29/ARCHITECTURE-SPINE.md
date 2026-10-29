@@ -17,9 +17,11 @@ sources:
 
 # Architecture Spine — Calendrier de l’Avent La Malice
 
+> Le PRD, la spec et l’epic 25 sont réconciliés avec les décisions ci-dessous ; les critères et dépendances des stories révisées ont été validés avec Patrice le 29 octobre 2026.
+
 ## Paradigme
 
-L’interface Angular présente les parcours ; l’API HatCast contrôle l’accès, les dates et les mutations du jeu ; PostgreSQL conserve les données partagées. Les notifications et l’analytics sont des effets associés au jeu, jamais la source des scores.
+Angular présente les parcours ; l’API contrôle accès, temps, divulgation et mutations ; PostgreSQL conserve l’état partagé. Notifications et analytics ne font pas autorité sur les scores.
 
 ```mermaid
 flowchart LR
@@ -34,54 +36,53 @@ flowchart LR
 
 ### AD-1 — Accès et confidentialité [ADOPTED]
 
-- **Binds:** FR-1, FR-4, FR-10, FR-13 ; contenus et portraits.
-- **Prevents:** Accès hors troupe, révélation anticipée par le client ou privilège générique d’administration.
-- **Rule:** L’API autorise uniquement les membres actifs de la troupe configurée pour l’environnement et applique les dates et modes autorisés à chaque lecture et mutation. Le privilège d’administrateur plateforme ne dispense pas de cette appartenance. Les quiz futurs, leurs réponses et portraits révélateurs ne sont pas distribués au client avant autorisation, notamment dans les bundles ou caches publics ; la bonne réponse du quiz jouable ne l’est qu’après confirmation ou selon les règles de consultation du PRD.
+- **Binds:** FR-1, FR-4, FR-6, FR-10, FR-11, FR-13 ; contenus, API et caches.
+- **Prevents:** Accès hors troupe et divulgation des contenus futurs ou de la justesse avant révélation.
+- **Rule:** L’API vérifie à chaque lecture et mutation l’appartenance active à la troupe configurée et les dates et modes autorisés ; l’administration plateforme ne dispense pas de cette appartenance. Les contenus futurs, réponses correctes et compléments révélateurs ne figurent ni dans les bundles, assets publics, caches partagés, notifications ou analytics, ni dans une réponse API anticipée. Pour un quiz jouable, l’API ne fournit que portrait et trois anecdotes ; jusqu’à minuit Paris suivant son jour, aucune réponse, erreur, métadonnée ou donnée dérivée accessible ne révèle sa justesse ou ses points, y compris pour d’autres membres. Les réponses et scores en attente restent côté serveur. Les portraits sensibles et leurs URL directes sont soumis aux mêmes contrôles. Les lectures sensibles sont privées et non mises en cache (`Cache-Control: no-store`) ; service worker, stockage client et intermédiaires ne doivent pas conserver ou servir des données Avent sensibles périmées ou destinées à un autre compte. La protection ne couvre pas le partage volontaire par une personne ayant découvert un contenu.
 
 ### AD-2 — Essais isolés et configuration [ADOPTED]
 
-- **Binds:** FR-13 ; environnements et opérations de test.
-- **Prevents:** Exposition anticipée en production et contamination du jeu réel.
-- **Rule:** Le mode test n’existe qu’en développement isolé, jamais en production ; il rend disponibles les cases fournies avant leur date pour tous les membres actifs de la troupe configurée et indique visiblement le mode. Une bonne réponse à une case future rapporte 3 points en test. La troupe cible est configurable par environnement. Les réponses suivent le parcours définitif et une remise à zéro ciblée des données de développement permet de recommencer. Vérifier l’isolation effective de la base, des notifications et de l’analytics avant les essais.
-
-#### Simulation de novembre — précision validée
-
-Sur le serveur de développement isolé uniquement, un jeu de 25 quiz aux affirmations fictives est disponible pour les essais. Les noms et portraits peuvent être ceux de membres réels de La Malice, avec leur accord ; leur utilisation en test ne décide pas du contenu final. Du 1er au 25 novembre 2026, le jour de novembre correspond au même jour de décembre : cette date simulée gouverne les états, parcours quotidiens, scores et bonus de régularité des réponses de test. Les fonctionnalités de test sont accessibles avant décembre. Les membres actifs de la troupe configurée peuvent également ouvrir librement les cases disponibles avant leur jour simulé ; une bonne réponse future rapporte 3 points. Les réponses sont définitives jusqu’à une remise à zéro ciblée en développement. Contenus fictifs, réponses, notifications et analytics de test restent isolés de la production ; aucun mode test ni affirmation fictive de test n’y est accessible. La consultation du classement final est testable en développement à partir du 25 novembre ; si un accès anticipé devient nécessaire, il fera l’objet d’une story dédiée. Les frontières réelles de décembre et janvier sont vérifiées séparément.
+- **Binds:** FR-13 ; développement, simulation et opérations.
+- **Prevents:** Accès au mode test en production ou contamination de la partie réelle.
+- **Rule:** Le mode test existe exclusivement en développement isolé, jamais en production ; il est visible et accessible aux membres actifs de la troupe configurée. Les cases disponibles peuvent être ouvertes avant leur jour en test ; les réponses restent définitives jusqu’à une remise à zéro ciblée. Utiliser des anecdotes fictives et, avec accord, éventuellement des noms ou portraits réels. Isoler effectivement données, notifications et analytics de production et interdire côté serveur toute commande de simulation ou de reset en production. Une horloge simulée commune côté serveur permet de régler la date et l’heure en avançant uniquement ; revenir en arrière exige une remise à zéro ciblée de la partie de test et de son horloge. Répondre à une case future avance automatiquement l’horloge simulée jusqu’au jour de cette case ; appliquer le barème normal, puis révéler le résultat le lendemain simulé. L’ancien barème et la simulation de 25 quiz ne sont plus applicables. Tester séparément les vraies limites temporelles de production sans autoriser une horloge simulée en production.
 
 ### AD-3 — Réponses et état partagés [ADOPTED]
 
-- **Binds:** FR-2, FR-4 à FR-7, FR-10.
-- **Prevents:** Réponses multiples, scores contradictoires ou perte du parcours entre appareils.
-- **Rule:** L’API est seule autorité pour la disponibilité, l’heure et le score ; la base garantit une réponse définitive par membre et case, y compris sous concurrence ou après réessai. Après interruption ou conflit, le client peut retrouver le résultat enregistré sans créer une seconde réponse. Une réponse conserve le choix, la bonne affirmation et les points nécessaires à restituer fidèlement son résultat. La fermeture quotidienne de l’ouverture automatique et l’état de résultat non vu sont persistés par membre, avec les priorités et limites temporelles du PRD ; la seule émission d’une réponse HTTP ne marque pas le résultat comme vu.
+- **Binds:** FR-2, FR-4 à FR-7, FR-10, FR-11.
+- **Prevents:** Double réponse, calcul incohérent, perte ou divulgation du résultat entre appareils.
+- **Rule:** Le serveur applique les jours civils Europe/Paris : les quiz 1 à 24 acceptent une confirmation de 00 h inclus à 00 h le lendemain exclu ; une confirmation reçue par l’API avant la limite reste admissible même si son enregistrement se termine après ; une confirmation reçue à partir de minuit est refusée même si la case était ouverte. La réception à l’API fait foi, et non l’heure du client ou la fin de transaction. La base garantit une réponse définitive par membre et quiz sous concurrence et réessai ; une transaction sérialise pour un membre les mutations nécessaires au calcul. L’API permet de résoudre une confirmation incertaine sans deuxième réponse et ne retourne qu’un accusé avant révélation. Conserver choix et informations nécessaires à restituer fidèlement le résultat ; la fausse anecdote ne change plus après une première réponse. Calculer 10 ou 0 points de réponse, 1 de participation et 2 par groupe non chevauchant de trois bonnes réponses successives ; une mauvaise rompt la série, un jour manqué ne la rompt pas. Ces données sont conservées mais non exposées avant révélation. Les totaux et rangs n’intègrent que les réponses dont le lendemain a commencé à Paris, indépendamment de la consultation par le membre.
+
+La fermeture de l’ouverture automatique est persistée par membre et jour, y compris si le contenu apparaît plus tard ; une visite sans contenu ne la consomme pas. La réponse enregistrée empêche l’ouverture automatique sur tous les appareils. Pour le retour, présenter en priorité le résultat non vu de la réponse révélable la plus récente, même si une réponse plus récente attend encore sa révélation ; les résultats plus anciens restent consultables dans leurs cases. Ne marquer vu qu’après affichage effectif de l’écran via un accusé explicite du client, idempotent et persisté côté serveur ; une réponse HTTP perdue avant affichage ne suffit pas. Une interruption ou deux appareils concurrents peuvent afficher le même résultat avant que l’accusé soit reçu : ne pas prétendre garantir un affichage unique distribué ; après enregistrement du vu, les accès suivants en tiennent compte. La consultation d’une case révélée ne rejoue pas la célébration.
 
 ### AD-4 — Classement et conservation [ADOPTED]
 
-- **Binds:** FR-5, FR-8 à FR-10 ; données après l’animation.
-- **Prevents:** Scores divergents et perte des résultats après la période de consultation.
-- **Rule:** Les scores proviennent des réponses enregistrées ; le classement inclut les membres classables sans réponse, applique les rangs 1, 1, 3 et exclut les deux comptes désignés, dont le score reste personnel. Il devient final à la clôture du jeu. Les réponses et résultats sont conservés après le 15 janvier ; l’accès membre cesse le 16 janvier. Aucun mécanisme spécifique aux changements d’adhésion après clôture n’est prévu.
+- **Binds:** FR-5, FR-8 à FR-10 ; conservation après l’animation.
+- **Prevents:** Indices via score ou rang, classements incohérents et perte des résultats.
+- **Rule:** Calculer chaque score personnel et chaque classement exclusivement à partir des points révélables au même instant de référence serveur ; ne publier aucun sous-total, évolution ou indicateur permettant de déduire la justesse ou les points en attente. Inclure tous les membres classables même sans réponse ; attribuer aux ex æquo le rang le plus bas du groupe (1, 3, 3, 4 ; tous à égalité = rang N). Exclure les comptes de Patrice et Toinou du classement tout en conservant leur score personnel. Le 25 décembre à 00 h Paris, les résultats du 24 deviennent révélables et le classement devient final ; aucun quiz du 25 et aucune réponse après le 24. Conserver réponses et résultats après le 15 janvier ; l’accès membre cesse le 16 janvier à 00 h Paris. Aucun mécanisme spécifique aux changements d’adhésion après clôture n’est prévu.
 
 ### AD-5 — Invitation quotidienne [ADOPTED]
 
 - **Binds:** FR-3 ; notifications.
-- **Prevents:** Invitations multiples, notifications aux membres ayant déjà répondu et envoi pour un quiz publié après 9 h.
-- **Rule:** Réutiliser le planificateur Spring et les mécanismes habituels des rappels HatCast, sans infrastructure, reprise ni garantie supplémentaires propres à l’Avent. Le traitement vise 9 h Europe/Paris du 1er au 25 décembre et applique les règles du PRD : quiz disponible, membre sans réponse et préférences habituelles ; aucun envoi de rattrapage pour un quiz publié après 9 h. Adapter le circuit de notification sans créer de spectacle fictif.
+- **Prevents:** Invitation sans quiz disponible à 10 h ou adressée aux membres ayant déjà répondu.
+- **Rule:** Réutiliser le planificateur Spring et les mécanismes habituels de rappels HatCast, sans infrastructure, reprise ni garantie supplémentaires propres à l’Avent. Viser 10 h Europe/Paris du 1er au 24 décembre ; à son exécution effective, vérifier la disponibilité du quiz du jour, l’absence de réponse et les préférences habituelles. Un quiz publié après 10 h peut être invité si le traitement démarre après sa publication ; une notification manquée est acceptée. Aucun horodatage dédié ni reprise spécifique. Le lien ouvre le parcours avec priorité à la révélation ; aucun spectacle fictif. Le circuit actuel associe notifications et déduplication à un spectacle : l’adapter à une identité de quiz et de destinataire, sans créer de spectacle factice. Les limites de disponibilité et de déclenchement des rappels existants restent applicables ; le mécanisme choisi ne garantit pas un envoi à heure exacte.
 
 ### AD-6 — Mesure de participation [ADOPTED]
 
 - **Binds:** Réussite ; PostHog.
-- **Prevents:** Confusion entre nombre de joueurs et réponses, mélange des essais et données réelles, exposition de contenus.
-- **Rule:** Mesurer deux totaux globaux : personnes distinctes ayant au moins une réponse réelle enregistrée et réponses réelles enregistrées. Exclure les essais de développement et ne transmettre ni anecdotes, ni affirmations, ni choix. La base fait autorité si la télémétrie est manquée ; aucune ventilation par jour n’est requise.
+- **Prevents:** Mélange des essais et du jeu réel, exposition de contenus et confusion entre personnes et réponses.
+- **Rule:** Mesurer deux totaux globaux : personnes distinctes ayant au moins une réponse réelle enregistrée et réponses réelles enregistrées. Exclure les essais et ne transmettre ni anecdotes, affirmations, choix, justesse ou points en attente. La base fait autorité si la télémétrie est manquée ; aucune ventilation par jour n’est requise.
 
-## Conventions
+## Conventions et vérifications
 
-- Dates, dates de confirmation et limites de jeu : heure civile Europe/Paris, calculée côté serveur.
-- Contenus intégrés par release, sans interface d’administration ; la bonne réponse ne change pas après une première réponse.
-- Interface et accessibilité : les documents UX finalisés et les conventions Angular Material HatCast gouvernent les parcours et composants.
-- Le développement et la production possèdent des configurations et données isolées ; la vérification opérationnelle précède toute démonstration.
+- Toute décision temporelle utilise une référence serveur cohérente, jamais l’horloge du navigateur. Les contenus sont intégrés par release, sans back-office.
+- Un quiz publié pendant son jour devient jouable jusqu’à minuit ; publié après son jour, il est consultable après révélation sans réponse ni points. La notification vérifie la disponibilité à l’exécution effective, selon AD-5.
+- Les cases passées non jouées ne deviennent consultables qu’après leur date de révélation. Les écrans du 25 et après respectent la priorité de révélation et l’UX révisée.
+- Angular Material et les documents UX gouvernent l’interface. Les configurations, données et effets de développement et de production sont isolés.
+- Vérifier API directes, navigateur, service worker et caches sur deux comptes et appareils ; tester concurrence, réessai, 23:59:59/00:00 Paris, 24/25 décembre et 15/16 janvier, y compris contenu publié tardivement et séries interrompues ou non par un jour manqué.
 
-## Points reportés à l’implémentation
+## Questions ouvertes et relais
 
-- Les invitations héritent des limites opérationnelles des rappels existants ; aucun traitement de reprise spécifique à l’Avent n’est prévu.
-- Définir la procédure sûre et ciblée de remise à zéro en développement et les garde-fous effectifs interdisant son usage en production.
-- Définir l’accès ultérieur aux données conservées si le besoin se présente ; aucune nouvelle interface n’est prévue ici.
-- Vérifier les implications opérationnelles des changements de contenu et de la conservation des résultats, notamment portraits, cache client et cycle de release.
+- **PRD :** reformuler FR-3 simplement : tentative d’invitation à 10 h, sous réserve du quiz disponible à l’exécution et des conditions habituelles ; envoi éventuellement tardif ou manqué sans gravité. Un quiz publié après 10 h peut être invité si le job est retardé. Réconcilier aussi FR-4 avec l’heure de réception à l’API et FR-7 avec le résultat révélable non vu le plus récent.
+- **Implémentation :** définir la procédure de reset ciblé, les garde-fous d’isolation ; vérifier les conditions de concurrence, de livraison des notifications et de publication par release. Définir l’accès ultérieur aux données conservées si nécessaire.
+- **Spec :** réconcilier FR-1–FR-13 et AD-1–AD-6 : 24 quiz, confidentialité et projection révélée, frontières Paris, unicité, deux composantes de bonus, dernier résultat non vu, consultation des cases manquées, rangs, 25, notification et simulation retenue ; préserver rétention et mesure compatibles.
+- **Epic 25 :** les critères et dépendances des stories 25.1, 25.2, 25.2a, 25.3–25.7 et 25.9 ont été révisés et validés avec Patrice le 29 octobre 2026. Couvrir les tests de fuite et caches, minuit, concurrence, reprise multi-appareils, série et frontières réelles.

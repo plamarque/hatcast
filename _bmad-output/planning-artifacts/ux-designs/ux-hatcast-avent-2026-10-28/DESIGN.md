@@ -14,7 +14,7 @@ sources:
 
 ## Colors
 
-Hériter des tokens de thème HatCast `--mat-sys-*`. Les états des cases doivent être distinguables autrement que par la couleur. La maquette explore des tons rouges, verts et dorés ; les valeurs de production et leur contraste restent à définir via le thème HatCast, sans couleurs ad hoc dans les composants.
+Hériter des tokens de thème HatCast `--mat-sys-*` : notamment `surface` / `on-surface` pour les contenus, `primary` / `on-primary` pour les actions principales et `outline-variant` pour les séparations, selon les composants Material existants. Vérifier les contrastes de ces couples et des états interactifs dans les thèmes utilisés. Les états des cases doivent être distinguables autrement que par la couleur. La maquette explore des tons rouges, verts et dorés ; les valeurs de production et leur contraste restent à définir via le thème HatCast, sans couleurs ad hoc dans les composants.
 
 ## Typography
 
@@ -32,11 +32,14 @@ Les cases évoquent des portes de calendrier : ouvertes après avoir joué, ferm
 
 ## Components
 
-Référence visuelle validée : [écrans clés](mockups/ecrans-cles.html). Les décisions de DESIGN.md et EXPERIENCE.md prévalent sur la maquette.
+[Maquette du parcours révisé](mockups/parcours-revise.html) : dispositions de référence approuvées globalement, graphisme à affiner en story. [Ancienne maquette](mockups/ecrans-cles.html) : référence pour la direction visuelle validée uniquement ; ses parcours, scores et rangs sont obsolètes depuis le PRD du 29 octobre. Les décisions de DESIGN.md et EXPERIENCE.md prévalent sur la maquette.
 
 - **Porte de découverte** : grande case isolée en pleine page, évoquant une porte en carton décorée de flocons et d’étoiles ; ouverture courte révélant une lumière douce.
 - **Choix du quiz** : reprendre l’apparence ronde familière de la saisie des disponibilités, avec une sémantique de choix unique.
-- **Résultat** : remplace le quiz sur la même surface ; célébration à la bonne réponse : confettis qui jaillissent puis retombent et points de couleur vive animés brièvement, avec alternative sans mouvement. En cas d’erreur, message encourageant dans la même ambiance festive.
+- **Révélation différée** : reprend la surface du quiz après minuit, heure de Paris ; célébration à la bonne réponse : confettis qui jaillissent puis retombent et points de couleur vive animés brièvement, avec alternative sans mouvement. En cas d’erreur, message encourageant dans la même ambiance festive.
+- **Confirmation et attente** : reprendre la surface de quiz, avec message clair et action de classement ; aucun indice sur la réponse ou les points.
+- **Calendrier et classement** : grille et liste utilisent les composants et rôles Material HatCast ; différencier les états par texte et forme, et conserver le rang et le score lisibles. Les détails graphiques des cases manquées, en attente et du 25 seront affinés en story.
+- **25 décembre** : Pour le 25, Patrice retient un Père Noël à tête classique, dessiné dans le même style que les lutins, tendant une boîte décorative portant le logo de La Malice. Le personnage et sa boîte se placent au-dessus du message ; le score bien visible et les accès au classement et au calendrier suivent. Un village est un décor possible ; la réalisation graphique reste à préciser. La boîte ne propose pas d’ouverture pour l’instant.
 - **Onglets** : reprendre le style d’onglets HatCast pour Calendrier et Classement.
 - **Icône Père Noël** : près de Mon compte ; léger mouvement discret de moins de cinq secondes, une fois à l’ouverture de HatCast.
 
@@ -45,3 +48,5 @@ Référence visuelle validée : [écrans clés](mockups/ecrans-cles.html). Les d
 - Préserver la surprise sans cacher les états nécessaires à la compréhension.
 - Utiliser les composants Material et les tokens HatCast ; pas de palette ad hoc arrêtée ici.
 - Prévoir une expérience équivalente avec mouvement réduit.
+
+La représentation de la case du 25 reste à explorer. Pour le 25, Patrice retient un Père Noël à tête classique, dessiné dans le même style que les lutins, tendant une boîte décorative portant le logo de La Malice. Le personnage et sa boîte se placent au-dessus du message ; le score bien visible et les accès au classement et au calendrier suivent. Un village est un décor possible ; la réalisation graphique reste à préciser. La boîte ne propose pas d’ouverture pour l’instant.
