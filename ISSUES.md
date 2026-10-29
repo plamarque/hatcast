@@ -45,6 +45,13 @@ human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
 
+### BUG-053 — Development Google sign-in rejected the Cloud Run origin
+- **Status**: OAuth configuration updated; awaiting end-to-end user verification.
+- **Affected area**: V2 development Google sign-in on the Cloud Run `-od.a.run.app` hostname.
+- **Observed behavior**: Google returned HTTP 400 `origin_mismatch` because the development service origin was missing from the OAuth client’s authorized JavaScript origins.
+- **Expected behavior**: The development URL can initiate Google sign-in and return to the requested test page.
+- **Notes**: The missing origin was added on 2026-10-30. Google reports that propagation may take from five minutes to several hours.
+
 ### BUG-052 — Unverified identity email can link an existing account
 - **Status**: Mitigated for the two development testers; the general account-linking behavior remains open.
 - **Affected area**: Identity Platform sign-in and email-based account linking.
