@@ -1,0 +1,35 @@
+.advent { max-width: 42rem; margin: 0 auto; padding: 1.5rem; color: var(--mat-sys-on-surface); }
+.advent__eyebrow { font: var(--mat-sys-label-large); color: var(--mat-sys-primary); }
+h1 { font: var(--mat-sys-headline-medium); }
+h2 { font: var(--mat-sys-title-large); }
+.advent__door { min-height: 20rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.5rem; border: 2px solid var(--mat-sys-outline); border-radius: 2rem 2rem 0 0; background: var(--mat-sys-primary-container); color: var(--mat-sys-on-primary-container); }
+.advent__door button { min-height: 3rem; }
+.advent__number { font: var(--mat-sys-display-large); }
+.advent__quiz { position: relative; overflow: hidden; padding: 1rem; border-radius: 1rem; background: var(--mat-sys-surface-container); }
+li { margin-block: 1rem; }
+
+.advent__selection { display: flex; gap: .75rem; margin-block: 1rem; }
+.advent__selection button { min-height: 3rem; }
+.advent__portrait { width: 6rem; height: 6rem; border-radius: 50%; }
+
+/* Keep the focused heading above the purely visual door throughout its animation. */
+.advent__quiz h2 { position: relative; z-index: 2; background: var(--mat-sys-surface-container); }
+.advent__opening {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  border: 2px solid var(--mat-sys-outline);
+  border-radius: 2rem 2rem 0 0;
+  background: var(--mat-sys-primary-container);
+  box-shadow: 0 0 2rem var(--mat-sys-primary-container);
+  transform-origin: left center;
+  animation: advent-door-open 450ms ease-out forwards;
+}
+@keyframes advent-door-open {
+  from { transform: perspective(50rem) rotateY(0); opacity: 1; }
+  to { transform: perspective(50rem) rotateY(-85deg); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .advent__opening { display: none; animation: none; }
+}

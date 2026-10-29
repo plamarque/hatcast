@@ -40,6 +40,7 @@ export const routes: Routes = [
     canActivate: [memberShellBootstrapGuard],
     children: [
       { path: 'accueil', component: MemberHomeTodo },
+      { path: 'avent-test', loadComponent: () => import('./pages/advent-test/advent-test').then((m) => m.AdventTest) },
       {
         path: 'agenda',
         loadComponent: () =>

@@ -1,0 +1,29 @@
+<main class="advent">
+  <p class="advent__eyebrow">Mode test · contenu fictif</p>
+  <h1>Calendrier de l’Avent</h1>
+  <p>Cette expérience est en cours de construction. Les réponses ne sont pas encore disponibles.</p>
+  @if (!quiz()) {
+    <p>Choisis une porte fictive disponible :</p>
+    <div class="advent__selection" aria-label="Choix de la porte">
+      <button mat-stroked-button type="button" [disabled]="loading()" (click)="selectedDay.set(1)" [attr.aria-pressed]="selectedDay() === 1">Porte 1</button>
+      <button mat-stroked-button type="button" [disabled]="loading()" (click)="selectedDay.set(12)" [attr.aria-pressed]="selectedDay() === 12">Porte 12</button>
+    </div>
+    <div class="advent__door">
+      <mat-icon aria-hidden="true">auto_awesome</mat-icon>
+      <span class="advent__number" aria-hidden="true">{{ selectedDay() }}</span>
+      <button mat-flat-button type="button" (click)="openDoor()" [disabled]="loading()">
+        {{ loading() ? 'Ouverture…' : 'Ouvrir la porte ' + selectedDay() }}
+      </button>
+    </div>
+    @if (error()) { <p role="alert">La porte est indisponible. Vérifie ton accès et réessaie.</p> }
+  } @else if (quiz(); as content) {
+    <section class="advent__quiz" aria-labelledby="quiz-title">
+      <div class="advent__opening" aria-hidden="true"></div>
+      <h2 #quizHeading id="quiz-title" tabindex="-1">Portrait fictif : {{ content.name }}</h2>
+      <img class="advent__portrait" [src]="content.portrait" [alt]="'Illustration fictive de '+ content.name">
+      <p>Quelle affirmation est fausse ?</p>
+      <ol>@for (statement of content.statements; track $index) { <li>{{ statement }}</li> }</ol>
+      <p>Il n’est pas encore possible de répondre à ce quiz de test.</p>
+    </section>
+  }
+</main>

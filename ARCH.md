@@ -31,6 +31,12 @@ Les sections Firebase et Vue ci-dessous décrivent la V1 historique sous [`legac
 
 ---
 
+### Aperçu Avent isolé (story 25.1)
+
+Une lecture fictive est disponible uniquement avec les profils `dev,offline` (ou `offline` seul), la base H2 fichier hors ligne effective, `hatcast.advent-test.enabled=true` et `hatcast.advent-test.troupe-id` contenant un UUID de troupe. Chaque requête vérifie une adhésion active membre, y compris pour les administrateurs plateforme ; réponse et erreurs portent `Cache-Control: no-store`. Route directe authentifiée `/avent-test`, sans entrée de navigation. Aucun enregistrement de réponse ni notification ou événement analytique Avent ne sont ajoutés. L’isolation effective des données, notifications et analytics doit être vérifiée avant toute démonstration humaine.
+
+---
+
 ## High-level component map
 
 V2 organizer analytics (Story 11.4) is centralized in `ProductAnalyticsService`, backed by the browser PostHog facade. Event-local `actor_scope` is derived from already-loaded permissions; payloads are reconstructed from allow-listed fields. Workspace entries are deduplicated per event/browser session with an in-memory fallback and reset on logout. Composition mutations are captured at confirmed API success; manual announcement captures describe Copy/WhatsApp choices or dismissal without a choice, separately from automatic notifications. Successful chance-breakdown openings additionally emit only their bounded Dispos/Équipe entry point and responsive presentation; the explicit help action retains that entry point without participant or draw data. The only additional People trait is `has_ever_organized: true`. Event vocabulary, property bounds and operator funnels are documented in [the PostHog runbook](docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md#parcours-organisateur-story-114).

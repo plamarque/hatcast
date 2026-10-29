@@ -1,0 +1,81 @@
+package com.hatcast.api.advent
+
+import com.zaxxer.hikari.HikariDataSource
+import com.hatcast.api.auth.GoogleIdTokenService
+import com.hatcast.api.auth.IdpIdTokenVerifier
+import com.hatcast.api.support.TestAuthSupport
+import com.hatcast.api.troupe.TroupeBaselineRole
+import com.hatcast.api.troupe.TroupeMembershipRepository
+import com.hatcast.api.troupe.TroupeMembershipStatus
+import com.hatcast.api.user.UserRepository
+import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
+import org.mockito.kotlin.whenever
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.test.mock.mockito.MockBean
+import org.springframework.test.annotation.DirtiesContext
+import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.context.DynamicPropertyRegistry
+import org.springframework.test.context.DynamicPropertySource
+import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
+import java.nio.file.Files
+import java.util.Comparator
+import java.util.UUID
+import javax.sql.DataSource
+
+@SpringBootTest(properties = ["hatcast.advent-test.enabled=true", "hatcast.advent-test.troupe-id=a0000001-0000-4000-8000-000000000001", "hatcast.auth.super-admin-emails=advent-admin@example.com"])
+@AutoConfigureMockMvc
+@ActiveProfiles("offline")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+class AdventOfflineIntegrationTest {
+    companion object {
+        private val testRoot = Files.createTempDirectory("hatcast-advent-test-")
+        @JvmStatic @DynamicPropertySource fun isolatedProperties(registry: DynamicPropertyRegistry) {
+            registry.add("spring.datasource.url") { "jdbc:h2:file:${testRoot}/.local/hatcast-offline/hatcast;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;INIT=CREATE DOMAIN IF NOT EXISTS TIMESTAMPTZ AS TIMESTAMP WITH TIME ZONE" }
+        }
+    }
+    @Autowired private lateinit var dataSource: DataSource
+    @MockBean private lateinit var offlineRoot: AdventOfflineRoot
+    @AfterAll fun removeTemporaryDatabase() {
+        dataSource.unwrap(HikariDataSource::class.java).close()
+        Files.walk(testRoot).use { paths -> paths.sorted(Comparator.reverseOrder()).forEach(Files::delete) }
+    }
+    @Autowired private lateinit var mvc: MockMvc
+    @Autowired private lateinit var users: UserRepository
+    @Autowired private lateinit var memberships: TroupeMembershipRepository
+    @MockBean private lateinit var google: GoogleIdTokenService
+    @MockBean private lateinit var idp: IdpIdTokenVerifier
+    private val troupe = UUID.fromString("a0000001-0000-4000-8000-000000000001")
+
+    @Test fun `real membership protects each fictional door`() {
+        whenever(offlineRoot.worktreeRoot()).thenReturn(testRoot)
+        val cookie = TestAuthSupport.memberSessionCookieFromGoogleSignIn(mvc, google, "advent-member")
+        mvc.perform(get("/v1/advent-test/doors/12").cookie(cookie)).andExpect(status().isOk)
+            .andExpect(header().string("Cache-Control", "no-store"))
+            .andExpect(jsonPath("$.name").value("Sacha Givre"))
+            .andExpect(jsonPath("$.statements.length()").value(3))
+            .andExpect(jsonPath("$.answer").doesNotExist())
+        mvc.perform(get("/v1/advent-test/doors/2").cookie(cookie)).andExpect(status().isNotFound)
+            .andExpect(header().string("Cache-Control", "no-store"))
+        val user = users.findByGoogleSub("advent-member")!!
+        val member = memberships.findByTroupe_IdAndUser_Id(troupe, user.id)!!
+        member.status = TroupeMembershipStatus.INACTIVE
+        memberships.saveAndFlush(member)
+        mvc.perform(get("/v1/advent-test/doors/1").cookie(cookie)).andExpect(status().isForbidden)
+            .andExpect(header().string("Cache-Control", "no-store"))
+        member.status = TroupeMembershipStatus.ACTIVE
+        member.baselineRole = TroupeBaselineRole.EXTERNE
+        memberships.saveAndFlush(member)
+        mvc.perform(get("/v1/advent-test/doors/1").cookie(cookie)).andExpect(status().isForbidden)
+            .andExpect(header().string("Cache-Control", "no-store"))
+        val admin = TestAuthSupport.sessionCookieFromGoogleSignIn(mvc, google, "advent-admin", "advent-admin@example.com")
+        mvc.perform(get("/v1/advent-test/doors/1").cookie(admin)).andExpect(status().isForbidden)
+        mvc.perform(get("/v1/advent-test/doors/2").cookie(admin)).andExpect(status().isForbidden)
+    }
+}

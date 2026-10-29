@@ -45,6 +45,14 @@ human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
 
+### BUG-050 — PWA banner masked the Advent test label
+- **Status**: Fixed locally in story 25.1; integration and deployment not yet verified.
+- **Severity**: Medium (the test-only label was hidden on mobile).
+- **Affected area**: V2 `/avent-test`, PWA install/update banners.
+- **Observed behavior**: The fixed install banner covered the test label and part of the title at 320–375 px.
+- **Expected behavior**: The test label and page content remain visible below banners, including at increased zoom.
+- **Notes**: The Advent route places the existing banners in normal flow. Local Chromium captures used fictional data and intercepted all network requests; browser checks cover one or two banners and 200% zoom. Other routes were not changed.
+
 ### PERF-003 — Accueil shifts when an empty-inbox confirmation appears after revalidation
 - **Status**: Fixed locally — human smoke accepted; real-device and production CLS checks pending
 - **Severity**: Medium (visual stability on mobile)

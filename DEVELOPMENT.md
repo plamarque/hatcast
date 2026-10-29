@@ -105,6 +105,17 @@ Une demande explicite de clôture suit la politique locale définie dans [AGENTS
 ```
 
 - Base H2 fichier : `.local/hatcast-offline/` (gitignored) — persiste entre redémarrages API.
+
+Pour activer l’aperçu fictif Avent dans ce seul environnement isolé, fournir les variables au lancement :
+
+```bash
+HATCAST_ADVENT_TEST_ENABLED=true \
+HATCAST_ADVENT_TEST_TROUPE_ID=a0000001-0000-4000-8000-000000000001 \
+./scripts/start-dev.sh --offline
+```
+
+Cet UUID correspond à la troupe seed **Les Improbots** ; utiliser un compte seed membre actif de cette troupe. La route directe `/avent-test` donne accès à l’aperçu incomplet, sans réponse. La base H2 doit rester dans le répertoire hors ligne du worktree, sans lien symbolique sur `.local`, `hatcast-offline` ou le fichier de base. Ne proposer aucune démonstration humaine avant d’avoir vérifié l’isolation effective des données, des notifications et de l’analytics.
+
 - Connexion : `/connexion` avec un compte seed `@seed.improbots.test` (ex. `charlene@seed.improbots.test` / `charlene`, ou `patrice@seed.improbots.test` / `patricep` si slug < 8 caractères) — voir § Les Improbots ci-dessous.
 - **Indisponible offline** : Google OAuth, Identity Platform (email réel), Neon, `--with-push`, Tailscale (désactivé automatiquement).
 - Reset données : `rm -rf .local/hatcast-offline/` puis relancer `--offline`.

@@ -84,3 +84,9 @@ body {
 @import 'styles/hatcast-filter-picker-overlays.scss';
 @import 'styles/hatcast-dialog-actions.scss';
 @import 'styles/hatcast-equipe-composition';
+
+/* On the partial Advent preview, keep PWA banners in flow so the test label stays visible. */
+app-root:has(app-advent-test) .pwa-system-banner.pwa-system-banner {
+  position: relative;
+  top: 0 !important; /* Also cancels the fixed-banner stacking offset when both are shown. */
+}

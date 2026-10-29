@@ -462,3 +462,7 @@ Toute réponse disponible enregistrée pour un événement proposant des places 
 ## V2 — Accueil task confirmation
 
 Accueil verifies the inbox on each entry and always displays newly received tasks. An empty cache or failed request is not a fresh confirmation. A first confirmed empty inbox may show “Tout est à jour”; with an upcoming event, it remains readable briefly, fades, then its space collapses. An unchanged empty state does not replay the confirmation or recreate its placeholder across navigation. Observed tasks rearm the confirmation so resolving them can show it again; newly received tasks take precedence over every dismissal timer. Pending verification uses a skeleton with the eventual banner dimensions when that confirmation is still eligible. Without an upcoming event, the useful empty explanation and “Mes troupes” destination remain visible. Confirmation is announced without moving focus; reduced-motion preferences disable animated dismissal. Presentation memory is scoped to the authenticated user and reset on logout or user switch.
+
+### Aperçu de test Avent
+
+En développement isolé, un membre actif de la troupe configurée peut ouvrir une porte fictive et voir trois affirmations fictives. Cet aperçu indique que les réponses ne sont pas encore disponibles ; il ne constitue pas le calendrier complet.
