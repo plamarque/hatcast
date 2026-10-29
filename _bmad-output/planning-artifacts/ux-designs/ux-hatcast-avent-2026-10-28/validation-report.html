@@ -1,0 +1,50 @@
+<!doctype html><html lang="fr"><meta charset="utf-8"><title>Validation UX — Calendrier de l’Avent</title><style>body{font:16px/1.55 system-ui;max-width:860px;margin:3rem auto;padding:0 1.5rem;color:#222} pre{white-space:pre-wrap;font:inherit} </style><body><pre># Rapport de validation — Calendrier de l’Avent La Malice
+
+- Documents : DESIGN.md et EXPERIENCE.md ; examen du PRD et des règles HatCast.
+- Date : 28 octobre 2026.
+
+## Verdict
+
+Les intentions et les parcours principaux sont cohérents. Le cadrage reste en brouillon : deux divergences avec le PRD et plusieurs états et détails d’accessibilité empêchent encore un passage fiable à l’implémentation. Aucun écran n’a encore de référence visuelle.
+
+## Évaluation par catégorie
+
+- Couverture des parcours : partielle.
+- Tokens et héritage du thème : adéquats pour un brouillon ; contrastes à vérifier.
+- Composants : partielle.
+- États : partielle.
+- Références visuelles : absentes, à produire ou explicitement écarter.
+- Proportion : adéquate.
+- Sources et cohérence : partielle ; divergences FR-7 et FR-12.
+- Structure : adéquate ; identifiants UJ et chemins d’échec à améliorer.
+
+## Constats prioritaires
+
+### Haut
+
+1. **Résultat non vu** — La règle choisie pour un retour un autre jour diverge de FR-7. Le cas sans quiz disponible et le retour après le 25 restent à décider ; réconcilier le PRD avant implémentation.
+2. **Message d’absence** — « Reviens plus tard ! » diverge de l’invitation à revenir demain mentionnée par FR-12 et FR-10. Confirmer et réconcilier le PRD ; le libellé des cases passées est explicitement ouvert à l’UX.
+3. **Fermeture** — Décrire la sortie de la porte ou du quiz automatique, la non-réouverture le jour même sur les appareils et la reprise par l’icône, conformément à FR-2.
+4. **Case vide après le 25** — Le texte actuel promet un portrait et une bonne réponse pour toute case non jouée alors qu’un contenu peut manquer. Clarifier le cas.
+5. **Accessibilité des transitions** — Définir le focus et les annonces pour les ouvertures, le résultat, les erreurs et le retour au calendrier, sans piège clavier.
+
+### Moyen
+
+6. **Retour de rattrapage et classement vide** — Définir la destination exacte après résultat et le rappel personnel quand Camille n’a pas encore joué.
+7. **Changement de date** — Décrire le passage de minuit et la fermeture des réponses ; les points dépendent de l’heure de confirmation selon le PRD.
+8. **Résultat et calendrier** — Ajouter « Joyeux Noël » au résultat du 25 et le rendez-vous du lendemain après erreur, prévus par FR-6.
+9. **Petits écrans** — Vérifier la grille et le quiz avec texte agrandi, zoom et fenêtres étroites ; prévoir défilement ou réorganisation sans texte tronqué ni cible inaccessible.
+10. **Libellés et portraits** — Nom et état accessibles des cases, navigation dans la grille désordonnée, alternative textuelle pertinente des portraits, sans révéler les contenus futurs.
+
+### Faible
+
+11. **Mouvement et contraste** — Préciser les alternatives sans mouvement pour la porte, la célébration et l’icône, ainsi que le focus visible et les contrastes.
+12. **Références de parcours** — Reprendre UJ-1 à UJ-3 et détailler les échecs pertinents pour faciliter la traçabilité.
+
+## Revues détaillées
+
+- review-rubric.md
+- review-accessibilite.md
+- review-parcours.md
+- review-prd.md
+</pre></body></html>

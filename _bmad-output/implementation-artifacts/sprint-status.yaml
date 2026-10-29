@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 10-14-2026 17:55
-last_updated: 10-27-2026 22:57
+last_updated: 10-29-2026 08:26
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -288,3 +288,15 @@ development_status:
   23-8-sélectionner-sans-demander-de-confirmation: backlog
   23-9-adapter-le-vocabulaire-à-son-groupe: backlog
   epic-23-retrospective: optional
+
+  epic-25: backlog
+  25-1-open-an-advent-door-in-isolated-development: backlog
+  25-2-answer-the-quiz-after-opening-a-door: backlog
+  25-2a-restart-an-isolated-test-session: backlog
+  25-3-discover-and-recover-the-quiz-result: backlog
+  25-4-see-the-friendly-ranking: backlog
+  25-5-browse-and-catch-up-through-the-calendar: backlog
+  25-6-enter-the-advent-experience-from-hatcast: backlog
+  25-7-invite-members-to-the-daily-quiz: backlog
+  25-9-measure-actual-participation: backlog
+  epic-25-retrospective: optional
