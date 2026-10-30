@@ -75,3 +75,11 @@
       radial-gradient(ellipse at 100% 100%, var(--advent-foliage) 0 20%, transparent 21%);
   }
 }
+
+// Shared surface for status messages and confirmation across Advent screens.
+@mixin panel {
+  border: 2px solid var(--advent-border);
+  border-radius: 1.5rem;
+  background: linear-gradient(180deg, var(--advent-panel-top), var(--advent-surface));
+  box-shadow: 0 .4rem .8rem var(--advent-shadow), inset 0 .3rem var(--hatcast-avent-white);
+}

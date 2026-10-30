@@ -30,7 +30,7 @@
           <button class="advent__gift" type="button" (click)="openDoor()" [attr.aria-label]="'Ouvrir le cadeau du jour ' + character.day"><span class="advent__hint" aria-hidden="true">Touche la carte pour découvrir le quiz <span aria-hidden="true">➜</span></span></button>
         </div>
       } @else if (loading()) {
-        <p role="status">Le lutin arrive…</p>
+        <p class="advent__state" role="status">Le lutin arrive…</p>
       }
       @if (error()) { <p class="advent__feedback" role="alert">Le lutin est indisponible. Si tu as accès au mode test, déconnecte-toi puis reconnecte-toi avant de réessayer.</p><button mat-stroked-button type="button" (click)="selectDay(selectedDay())">Réessayer</button> }
     } @else if (quiz(); as content) {
@@ -53,11 +53,11 @@
             <p class="advent__recorded-message">Reviens demain pour découvrir le résultat !</p>
           </div>
         } @else if (answerState() === 'closed') {
-          <p role="status">Ce quiz est fermé.</p>
+          <p class="advent__state" role="status">Ce quiz est fermé.</p>
         } @else if (answerState() === 'uncertain') {
           <p class="advent__feedback" role="alert">Impossible de vérifier ta réponse pour le moment.</p>
           <button mat-stroked-button type="button" (click)="reconcile()">Vérifier à nouveau</button>
-        } @else { <p role="status">Vérification en cours…</p> }
+        } @else { <p class="advent__state" role="status">Vérification en cours…</p> }
       </section>
     }
   </div>

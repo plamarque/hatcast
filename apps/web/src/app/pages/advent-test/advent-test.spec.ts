@@ -50,6 +50,27 @@ describe('AdventTest', () => {
     expect(fixture.nativeElement.querySelector('[aria-label="Effacer ma réponse et rejouer"]')).toBeTruthy()
   })
 
+  it('announces loading and a closed quiz through request transitions', async () => {
+    let resolvePreview!: (response: Response) => void
+    vi.mocked(window.fetch).mockReturnValueOnce(new Promise(resolve => { resolvePreview = resolve }))
+    const selection = fixture.componentInstance.selectDay(2)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.advent__state[role=status]').textContent).toContain('Le lutin arrive')
+    resolvePreview(new Response(JSON.stringify({ day: 2, name: 'Lutin', portrait: '', statements: ['un', 'deux', 'trois'] })))
+    await selection
+
+    let resolveReconciliation!: (response: Response) => void
+    vi.mocked(window.fetch).mockReturnValueOnce(new Promise(resolve => { resolveReconciliation = resolve }))
+    const opening = fixture.componentInstance.openDoor()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.advent__state[role=status]').textContent).toContain('Vérification en cours')
+    resolveReconciliation(new Response(JSON.stringify({ status: 'closed' })))
+    await opening
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.advent__state[role=status]').textContent).toContain('Ce quiz est fermé')
+    expect(fixture.nativeElement.querySelector('mat-radio-group')).toBeNull()
+  })
+
   it('opens the selected gift and focuses the fictional quiz', async () => {
     await fixture.componentInstance.selectDay(12)
     fixture.detectChanges()

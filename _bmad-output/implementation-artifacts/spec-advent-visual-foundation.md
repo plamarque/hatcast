@@ -2,7 +2,7 @@
 title: 'Advent visual foundation and preview alignment'
 type: 'feature'
 created: '2026-10-30'
-status: 'in-progress'
+status: 'done'
 baseline_commit: '7be61ff9db810c5d5171beedb27ea02ffabe2f8e'
 route: 'dispatch'
 review_loop_iteration: 0
@@ -48,9 +48,9 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `apps/web/src/app/pages/advent-test/`, `apps/web/src/app/shared/advent/` — extend the existing scoped Advent foundation and align discovery, quiz, recorded and existing error states with the approved visual references; preserve the committed 25.2 replay and focus behavior.
-- [ ] `apps/web/src/styles.scss` — verify the existing migration; preserve the PWA banner rule and other global rules.
-- [ ] `apps/web/e2e/` and component tests — cover behavior, responsiveness, accessibility and isolation using representative stable fixtures.
+- [x] `apps/web/src/app/pages/advent-test/`, `apps/web/src/app/shared/advent/` — extend the existing scoped Advent foundation and align discovery, quiz, recorded and existing error states with the approved visual references; preserve the committed 25.2 replay and focus behavior.
+- [x] `apps/web/src/styles.scss` — verify the existing migration; preserve the PWA banner rule and other global rules.
+- [x] `apps/web/e2e/` and component tests — cover behavior, responsiveness, accessibility and isolation using representative stable fixtures, subject to the scoped verification waiver recorded below.
 
 **Acceptance Criteria:**
 - Given the test preview, when opening and answering a door, then the screens follow the approved festive visual direction with accessible text and unchanged behavior.
@@ -68,6 +68,13 @@ context:
 - Compared the current uncommitted tree with an independent local build of `e6940c9b` using identical mocked home data and Chromium at 320, 375, 390, 430, 768 and 1280 px. Full-page home screenshots and computed styles of headings and buttons matched. This commit already contains part of the Advent refoundation, so it is not a baseline before that integrated work. Screenshots and the one-off comparison script are in `/private/tmp`; this is evidence for this run, not a durable visual baseline.
 - Still incomplete: inspect real rendered Advent states against both reference boards at the requested widths, verify contrast and assistive technology across states, establish a baseline preceding the integrated work, and audit every matrix row with executed tests. The change remains in progress.
 - Subsequent user feedback: discovery now presents the member's name in red in a single heading, with an always-visible hint and a full-card button. Confirmation reuses the quiz's circular portrait and removes the calendar and winter scenery at the bottom. The 15 component tests and seven targeted E2E tests passed after these changes; earlier notes about a full-body confirmation illustration describe the superseded iteration.
+- Continuation: a scoped panel mixin now styles loading, checking, closed and confirmation surfaces. The component suite passes 16 tests, including actual mocked loading and closed request transitions. Seven targeted E2E and two motion/banner browser tests pass; the production web build passes with an Advent CSS budget warning (9.62 kB against 9 kB).
+- An independently built `7be61ff9db810c5d5171beedb27ea02ffabe2f8e` home and the current home were compared with matching mocked data at 320, 375, 390, 430, 768 and 1280 px: full-page screenshots and heading/button computed styles matched. The script and captures are temporary run evidence, not a committed baseline.
+- Captured discovery, question and confirmation at those six widths using a fictional generic portrait and long answer text. Inspected the 320 and 390 px screens and desktop confirmation against both approved boards, applying the user's later preference for a circular confirmation portrait and no lower decoration. The visual direction is suggestive rather than pixel-identical; error and loading states were not visually inspected at all widths.
+- Calculated token contrast ratios: green/cream 8.31, red/cream 6.03, ink/white 12.29, ink/selected 10.69, error/white 8.19, white/red 6.47, disabled ink/surface 5.28. The existing browser test measures the selected answer text. These do not establish every actual rendered pair, focus indicator or assistive-technology announcement; no screen-reader session was performed.
+- User decision on 2026-10-30: for this visual-foundation acceptance, do not block on a screen-reader session, exhaustive contrast measurements, or inspection of every loading/error state at every narrow width. Existing accessible controls and behavior remain in place; this is a scoped verification waiver, not evidence those checks passed or a change to the project's standing accessibility contracts.
+- Real API recipe on 2026-10-30: Playwright used the actual Angular UI and an isolated Spring `dev,offline` API with a fresh H2 database in `/private/tmp/hatcast-api-recipe`; no Advent responses were mocked. Seed sign-in, opening day 1, choosing and confirming, neutral acknowledgement, recovery after reload and personal replay all succeeded. The isolated clock and answers are separate from the user's running local session. Requests were routed to the temporary API by Playwright; production and Neon were not exercised.
+- Acceptance: the user approved the recorded visual journey and authorized closure. The preceding incomplete notes describe earlier checkpoints; the remaining verification exclusions are explicitly waived for this acceptance as stated above. Future screens remain in their respective stories.
 
 ## Spec Change Log
 
@@ -96,6 +103,9 @@ context:
 - medium — The visible confirmation illustration has presence and source assertions, but its framing and overlap at widths and zoom have not been visually checked.
 - low — Unchecked tasks and verification reflect ongoing work; no completion is claimed.
 - Edge-case review of the current uncommitted diff reported no findings.
+- medium — Loading and closed status tests originally forced state or omitted loading; the component test now observes pending requests and a mocked closed response.
+- maybe-false — A dynamically inserted populated status may not be announced by every screen reader; verify with real assistive technology before claiming coverage.
+- Verification-gap and edge-case reviewers reported no findings for the continuation diff.
 
 ## Verification
 
