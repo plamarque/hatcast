@@ -185,6 +185,7 @@ As a member, I want to see the revealed ranking and my own score so that I can s
 3. At 00:00 Paris on 25 December the result of the 24th is revealable and the ranking is final. The ranking is available to all eligible members through 15 January, even without answers; verify calendar availability with 25.5. Member access ends on 16 January; results remain retained. No special membership-change mechanism is added.
 4. Verify ranking against correct, incorrect, missed and third/sixth correct answers, including exclusion, cross-account requests and before/after-midnight snapshots. Test simulated time and actual date boundaries separately.
 5. Names, position and scores remain readable and accessible on small screens and with keyboard, assistive technology and text enlargement; use Material 3.
+6. Provide an accessible legend on the ranking screen explaining the scoring rules: 10 points for a correct answer, 0 for an incorrect answer, 1 participation point per answer and 2 bonus points per non-overlapping group of three consecutive correct answers. Explain that an incorrect answer resets the streak and a missed day does not. The legend must not reveal any pending result or points.
 
 **Visual contract:** Apply the Advent visual foundation to ranking and personal score states; retain the existing accessible data and pending-score protections. Use the Advent DESIGN and EXPERIENCE contracts and architecture AD-7; test keyboard, accessible states, responsive rendering and isolation from HatCast.
 
