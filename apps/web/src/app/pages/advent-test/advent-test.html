@@ -3,8 +3,9 @@
     <span class="advent__header-title" [class.advent__header-title--replay]="(quiz() || result()) && answerState() === 'recorded'">Quiz de l’Avent</span>
     <div class="advent__test-actions" aria-label="Commandes de test">
       <span class="advent__test-label">Mode test</span>
-      <button mat-icon-button type="button" (click)="previousDay()" [disabled]="loading() || submitting() || (quiz() && answerState() === 'checking') || !clockDate() || clockDate()! <= '2026-12-01'" aria-label="Revenir au jour précédent" title="Jour précédent"><mat-icon aria-hidden="true">arrow_back</mat-icon></button>
-      <button mat-icon-button type="button" (click)="nextDay()" [disabled]="loading() || submitting() || (quiz() && answerState() === 'checking') || !clockDate() || clockDate()! >= '2026-12-25'" aria-label="Avancer au jour suivant" title="Jour suivant"><mat-icon aria-hidden="true">arrow_forward</mat-icon></button>
+      <button mat-icon-button type="button" (click)="previousDay()" [disabled]="transitionRequired() || loading() || submitting() || (quiz() && answerState() === 'checking') || !clockDate() || clockDate()! <= '2026-12-01'" aria-label="Revenir au jour précédent" title="Jour précédent"><mat-icon aria-hidden="true">arrow_back</mat-icon></button>
+      <span class="advent__simulated-day" role="status" aria-live="polite" [attr.aria-label]="simulatedDay() === null ? 'Jour simulé non disponible' : 'Jour simulé : ' + simulatedDay() + ' décembre'">{{ simulatedDay() === null ? '–' : simulatedDay() + ' déc.' }}</span>
+      <button mat-icon-button type="button" (click)="nextDay()" [disabled]="transitionRequired() || loading() || submitting() || (quiz() && answerState() === 'checking') || !clockDate() || clockDate()! >= '2026-12-25'" aria-label="Avancer au jour suivant" title="Jour suivant"><mat-icon aria-hidden="true">arrow_forward</mat-icon></button>
       @if ((result() || quiz()) && answerState() === 'recorded') {
         <button mat-icon-button type="button" (click)="replay()" [disabled]="submitting()" aria-label="Effacer ma réponse et rejouer" title="Effacer ma réponse et rejouer"><mat-icon aria-hidden="true">delete_outline</mat-icon></button>
       }
@@ -13,7 +14,12 @@
   </header>
   <div class="advent__content">
     @if (error() && (quiz() || result())) { <p class="advent__feedback" role="alert">{{ sessionChanged() ? 'La partie de test a été réinitialisée. Recharge l’aperçu.' : 'Impossible de mettre à jour la partie de test. Réessaie.' }}</p> }
-    @if (result(); as reveal) {
+    @if (transitionRequired()) {
+      <p class="advent__state" role="alert">Les anciennes réponses de test doivent être réinitialisées par l’opérateur avant d’utiliser les quiz préparés.</p>
+    } @else if (unavailable()) {
+      <p class="advent__state" role="status">Ce quiz est indisponible pour le moment.</p>
+      <button mat-stroked-button type="button" (click)="selectDay(selectedDay())">Réessayer</button>
+    } @else if (result(); as reveal) {
       @if (resultContent(); as content) {
         <section class="advent__quiz advent__reveal" [class.advent__reveal--correct]="reveal.correct" aria-labelledby="advent-result-title">
           <p class="advent__date">{{ content.day }} décembre</p>
@@ -38,6 +44,7 @@
               <div class="advent__result-answer"><span class="advent__answer-label">Ton choix</span><p>{{ content.statements[reveal.selectedChoice] }}</p></div>
             }
             <div class="advent__result-answer advent__result-answer--truth"><span class="advent__answer-label">La bonne réponse</span><p>{{ content.statements[reveal.falseChoice] }}</p></div>
+            @if (reveal.explanation) { <p>{{ reveal.explanation }}</p> }
           </div>
           <button mat-flat-button type="button" (click)="continueAfterResult()" [disabled]="loading()">Continuer <mat-icon aria-hidden="true">arrow_forward</mat-icon></button>
         </section>

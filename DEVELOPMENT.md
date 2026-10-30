@@ -106,7 +106,7 @@ Une demande explicite de clôture suit la politique locale définie dans [AGENTS
 
 - Base H2 fichier : `.local/hatcast-offline/` (gitignored) — persiste entre redémarrages API.
 
-Pour activer l’aperçu fictif Avent dans ce seul environnement isolé, fournir les variables au lancement :
+Pour activer l’aperçu Avent dans ce seul environnement isolé, fournir les variables au lancement :
 
 ```bash
 HATCAST_ADVENT_TEST_ENABLED=true \
@@ -114,9 +114,9 @@ HATCAST_ADVENT_TEST_TROUPE_ID=a0000001-0000-4000-8000-000000000001 \
 ./scripts/start-dev.sh --offline
 ```
 
-Les jours 1 à 24 disposent chacun de trois anecdotes fictives pour la vérification visuelle. Les jours 1 à 5 utilisent les fixtures de Toinou, Patrice, Will, Camille et Angie lorsqu’elles sont disponibles ; les autres utilisent le lutin générique. Les flèches avancent ou reculent l’horloge simulée commune d’un jour, sans effacer les réponses, entre le 1er et le 25 décembre ; chaque déplacement simule une nouvelle ouverture : le résultat révélable non vu le plus récent est prioritaire, sinon la case du jour est proposée ; « Continuer » mène ensuite à la case du jour. Seul le reset ciblé redémarre la partie et l’horloge. Les lutins personnalisés facultatifs sont placés localement dans `.local/hatcast-avent-test/` sous les noms `toinou-net.png`, `patrice-net.png`, `will-net.png`, `camille-net.png`, `angie-net.png` ; ce dossier est ignoré par Git. En l’absence d’un fichier, l’API renvoie le lutin générique. Ces images restent derrière les contrôles de lecture de l’API ; aucune anecdote réelle ni solution n’est chargée. Cette correspondance est une fixture locale, pas la structure finale des quiz.
+Les jours 1 à 24 sont disponibles lorsqu’un quiz valide a été préparé en base. Les flèches avancent ou reculent l’horloge simulée commune d’un jour, sans effacer les réponses ; le résultat révélable non vu le plus récent est prioritaire. Seul le reset ciblé redémarre la partie et l’horloge. Les portraits facultatifs sont placés localement dans `.local/hatcast-avent-test/` et sélectionnés par la référence privée du quiz ; en leur absence, l’API renvoie le lutin générique. Préparer le contenu selon [la procédure du catalogue](docs/v2/technical/AVENT_CATALOGUE.md).
 
-Cet UUID correspond à la troupe seed **Les Improbots** ; utiliser un compte seed membre actif de cette troupe. La route directe `/avent-test` donne accès à l’aperçu incomplet et au quiz fictif avec confirmation, révélation différée et rejeu personnel. Le résultat non vu le plus récent est présenté en priorité ; une interruption avant l’accusé peut conduire à le revoir. Le classement et le calendrier complet ne sont pas inclus. La base H2 doit rester dans le répertoire hors ligne du worktree, sans lien symbolique sur `.local`, `hatcast-offline` ou le fichier de base. Ne proposer aucune démonstration humaine avant d’avoir vérifié l’isolation effective des données, des notifications et de l’analytics.
+Cet UUID correspond à la troupe seed **Les Improbots** ; utiliser un compte seed membre actif de cette troupe. La route directe `/avent-test` donne accès à l’aperçu incomplet et aux quiz préparés en base avec confirmation, révélation différée et rejeu personnel. Le résultat non vu le plus récent est présenté en priorité ; une interruption avant l’accusé peut conduire à le revoir. Le classement et le calendrier complet ne sont pas inclus. La base H2 doit rester dans le répertoire hors ligne du worktree, sans lien symbolique sur `.local`, `hatcast-offline` ou le fichier de base. Ne proposer aucune démonstration humaine avant d’avoir vérifié l’isolation effective des données, des notifications et de l’analytics.
 
 - Connexion : `/connexion` avec un compte seed `@seed.improbots.test` (ex. `charlene@seed.improbots.test` / `charlene`, ou `patrice@seed.improbots.test` / `patricep` si slug < 8 caractères) — voir § Les Improbots ci-dessous.
 - **Indisponible offline** : Google OAuth, Identity Platform (email réel), Neon, `--with-push`, Tailscale (désactivé automatiquement).
@@ -312,6 +312,16 @@ const result = await fetch('/v1/advent-test/session/reset', { method: 'POST', he
 console.log(result.status)
 ```
 
-Only HTTP 200 confirms success. This resets the shared test game for all testers: answers, scores/streaks, replay and attempt/generation records, clock advances and the simulated clock. Fictional fixtures, users and other data are retained. A stale session returns 409; reload clients to acquire the new session. Personal replay and navigating to day 1 do not reset the shared clock.
+Only HTTP 200 confirms success. This resets the shared test game for all testers: answers, scores/streaks, replay and attempt/generation records, clock advances and the simulated clock. Quiz content, users and other data are retained. If migration detected existing fictional test answers or other test-game state, this explicit operator reset is required before the database-backed preview can be used. A stale session returns 409; reload clients to acquire the new session. Personal replay and navigating to day 1 do not reset the shared clock.
 
 Verify the response and obtain a new session ID; reload the preview, confirm a new answer and check that the test clock starts again at day 1 and prior answers are absent. Verify real Paris date boundaries separately using the date-rule tests; simulated time is not production time. The reset sends no notifications or analytics. Do not run this operation against production.
+
+Les quiz de l’aperçu sont lus dans `advent_quizzes` ; la migration ne fournit aucun contenu. Préparation et promotion sélective : [catalogue privé](docs/v2/technical/AVENT_CATALOGUE.md). Le reset conserve ces quiz.
+
+### Données fictives Avent pour la recette hors ligne
+
+Au démarrage avec les seuls profils `offline` ou `dev,offline`, l’API vérifie que la connexion effective est la base H2 fichier du worktree dans `.local/hatcast-offline/hatcast`, sans liens symboliques sur les répertoires et le fichier de base. Elle prépare les jours 2 à 24 manquants avec des quiz clairement fictifs et variés dont les positions de réponse fausse diffèrent ; elle ne modifie ni un quiz existant ni une réponse. Un jour qui a déjà une réponse mais pas de quiz reste absent pour éviter d’associer une ancienne réponse à un nouveau contenu. Ce remplissage est rejoué aux démarrages suivants et n’est pas activé pour les profils cloud ou dev seul. Ces quiz ne sont pas des contributions validées et ne doivent jamais être promus.
+
+Le jour 1 est préparé séparément à partir de la contribution privée validée de Patrice, sans copier son contenu dans Git ou les journaux ; voir [la procédure du catalogue](docs/v2/technical/AVENT_CATALOGUE.md#recette-hors-ligne). Le portrait reste dans `.local/hatcast-avent-test/` et l’API l’autorise avant de le servir. Si un ancien état de jeu est signalé à la migration, seul le reset ciblé autorisé décrit ci-dessus peut libérer la transition.
+
+En recette hors ligne, les quiz fictifs des jours 2, 3, 9 et 10 utilisent respectivement les portraits privés d’Antoine, Camille, Will et Angie lorsqu’ils sont disponibles ; sinon le portrait générique est utilisé. Les affirmations restent fictives. Les fichiers des portraits restent hors Git.

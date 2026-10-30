@@ -339,3 +339,7 @@ The isolated Advent test session has a server-issued generation. A reset rotates
 Pour chaque réponse de test, le résultat devient révélable au début du jour suivant à Paris. Le vu est propre au membre et à la réponse ; rejouer crée une nouvelle réponse et un ancien accusé ne marque pas celle-ci comme vue. Les scores révélés comprennent 10 ou 0 points de réponse, un point de participation et deux points par groupe non chevauchant de trois bonnes réponses consécutives ; un jour manqué ne rompt pas la série.
 
 En mode test isolé, les flèches déplacent la date commune d’un jour en avant ou en arrière, sans effacer les réponses. Une réponse ne redevient visible comme résultat que lorsque la date simulée autorise sa révélation.
+
+### Advent quiz content
+
+A prepared quiz identifies a day, a display name, three ordered statements and the index of the false statement, with an optional private portrait reference and explanation. The explanation is disclosed only with an eligible result. Test game state is separate from quiz content. An exceptional edit during play may produce an inconsistent result.

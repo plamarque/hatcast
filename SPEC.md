@@ -472,6 +472,8 @@ En développement isolé, un membre actif de la troupe configurée, dont l’adr
 Les interfaces Advent Quiz adoptent la direction artistique propre approuvée décrite dans [DESIGN.md](_bmad-output/planning-artifacts/ux-designs/ux-hatcast-avent-2026-10-28/DESIGN.md) et les parcours et états de [EXPERIENCE.md](_bmad-output/planning-artifacts/ux-designs/ux-hatcast-avent-2026-10-28/EXPERIENCE.md). Leur identité est distincte de celle de HatCast ; les autres surfaces conservent leur apparence. Les maquettes sont des références graphiques et ne créent pas de fonctionnalités ni ne modifient les règles de révélation.
 
 
-In verified isolated Advent development, an authorized operator can restart the shared test session. Reset clears only the test-game state and simulated clock; fictional content and unrelated data remain. Existing clients must refresh their session before further test mutations.
+In verified isolated Advent development, an authorized operator can restart the shared test session. Reset clears only the test-game state and simulated clock; prepared quiz content and unrelated data remain. Existing clients must refresh their session before further test mutations.
 
 Dans l’aperçu isolé, un membre autorisé découvre son résultat après le début du jour suivant à Paris. Le résultat révélable non vu le plus récent est prioritaire au retour ; son affichage est suivi d’un accusé persistant. Une interruption ou des appareils concurrents peuvent entraîner une nouvelle présentation. Les commandes de test avancent ou reculent l’horloge partagée d’un jour sans effacer les réponses ; le reset ciblé redémarre la partie.
+
+The isolated Advent preview reads prepared database quizzes; an unavailable or invalid quiz cannot be answered. Optional explanations are disclosed only with eligible results. The production member journey is not yet delivered.

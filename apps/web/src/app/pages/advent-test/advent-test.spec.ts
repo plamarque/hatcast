@@ -23,6 +23,63 @@ describe('AdventTest', () => {
     fixture.detectChanges()
   })
   afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks() })
+  it('reports a missing quiz without suggesting reconnection', async () => {
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response('', { status: 404 }))
+    await fixture.componentInstance.selectDay(2)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.advent__state[role=status]').textContent).toContain('quiz est indisponible')
+    expect(fixture.nativeElement.textContent).not.toContain('déconnecte-toi')
+  })
+  it('reports removal while reconciling or reserving', async () => {
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ status: 'unavailable' })))
+    await fixture.componentInstance.openDoor()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('quiz est indisponible')
+    expect(fixture.nativeElement.querySelector('mat-radio-group')).toBeNull()
+  })
+  it('reports removal during reservation and confirmation', async () => {
+    const component = fixture.componentInstance
+    await component.openDoor()
+    component.choice.set(0)
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ status: 'unavailable' })))
+    await component.confirm()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('quiz est indisponible')
+    await component.selectDay(1)
+    await component.openDoor()
+    component.choice.set(0)
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ status: 'available' })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'unavailable' })))
+    await component.confirm()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('quiz est indisponible')
+    expect(fixture.nativeElement.querySelector('mat-radio-group')).toBeNull()
+  })
+
+  it('allows recovery when an unseen result has lost its content', async () => {
+    fixture.componentInstance.selectedDay.set(2)
+    const result = { answerId: 'old', day: 1, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false }
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      if (String(input).endsWith('/session')) return new Response(JSON.stringify({ sessionId: 's' }))
+      if (String(input).endsWith('/clock')) return new Response(JSON.stringify({ date: '2026-12-02' }))
+      if (String(input).endsWith('/latest-unseen')) return new Response(JSON.stringify({ result }))
+      return new Response('', { status: 404 })
+    })
+    await fixture.componentInstance.start()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('quiz est indisponible')
+    expect(fixture.componentInstance.selectedDay()).toBe(1)
+    await fixture.componentInstance.selectDay(fixture.componentInstance.selectedDay())
+    expect(String(vi.mocked(window.fetch).mock.calls.at(-1)?.[0])).toBe('/v1/advent-test/doors/1')
+    expect(fixture.nativeElement.querySelector('[aria-label="Avancer au jour suivant"]')).toBeTruthy()
+  })
+  it('explains that the operator must reset legacy test answers', async () => {
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ sessionId: 's', transitionRequired: true })))
+    await fixture.componentInstance.start()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('[role=alert]').textContent).toContain('réinitialisées par l’opérateur')
+  })
+
   it('keeps the recorded confirmation neutral and uses the authorized portrait', async () => {
     vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ status: 'recorded', replayToken: 'token' })))
     await fixture.componentInstance.openDoor()
@@ -330,6 +387,35 @@ describe('AdventTest', () => {
       expect(call?.[1]?.headers).toMatchObject({ 'X-Advent-Test-Session': 'test-session' })
     }
   })
+  it('shows a reveal after leaving an unavailable quiz', async () => {
+    const component = fixture.componentInstance
+    const result = { answerId: 'answer-one', day: 1, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false }
+    component.unavailable.set(true)
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url = String(input)
+      if (url.endsWith('/next-day')) return new Response(JSON.stringify({ date: '2026-12-02' }))
+      if (url.endsWith('/latest-unseen')) return new Response(JSON.stringify({ result }))
+      if (url.endsWith('/answer')) return new Response(JSON.stringify({ status: 'recorded', replayToken: 'token' }))
+      if (url.endsWith('/result')) return new Response(JSON.stringify(result))
+      return new Response(JSON.stringify({ day: 1, name: 'Lutin', portrait: '', statements: ['un', 'deux', 'trois'] }))
+    })
+    await component.advanceClock()
+    fixture.detectChanges()
+    expect(component.unavailable()).toBe(false)
+    expect(fixture.nativeElement.textContent).toContain('Bravo, tu as trouvé')
+  })
+
+  it('shows Christmas after leaving an unavailable quiz', async () => {
+    const component = fixture.componentInstance
+    component.unavailable.set(true)
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ date: '2026-12-25' })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ result: null })))
+    await component.advanceClock()
+    fixture.detectChanges()
+    expect(component.unavailable()).toBe(false)
+    expect(fixture.nativeElement.textContent).toContain('Joyeux Noël')
+  })
+
   it('prioritizes a reveal and acknowledges only after it is rendered', async () => {
     const frames: FrameRequestCallback[] = []
     vi.spyOn(window, 'requestAnimationFrame').mockImplementation(callback => { frames.push(callback); return frames.length })
@@ -362,10 +448,42 @@ describe('AdventTest', () => {
     fixture.detectChanges()
     expect(fixture.nativeElement.querySelector('.advent__result-points').textContent).toContain('+1 point gagné')
     expect(fixture.nativeElement.textContent).not.toContain('42 points')
+    component.result.set({ ...result, explanation: 'Explication fictive' })
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('Explication fictive')
+    component.result.set(result)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).not.toContain('Explication fictive')
     component.result.set({ ...result, correct: true, falseChoice: 0, responsePoints: 10, bonusPoints: 2 })
     fixture.detectChanges()
     expect(fixture.nativeElement.querySelector('.advent__result-points').textContent).toContain('+13 points gagnés')
     expect(fixture.nativeElement.querySelectorAll('.advent__result-answer')).toHaveLength(1)
+  })
+
+  it('distinguishes the simulated day from the quiz date and continues without advancing', async () => {
+    const component = fixture.componentInstance
+    component.clockDate.set('2026-12-09')
+    component.resultContent.set({ day: 8, name: 'Lutin', portrait: '', statements: ['un', 'deux', 'trois'], genericElf: true })
+    component.result.set({ answerId: 'a', day: 8, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: true })
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.advent__reveal .advent__date').textContent).toContain('8 décembre')
+    const day = fixture.nativeElement.querySelector('.advent__simulated-day') as HTMLElement
+    expect(day.textContent?.trim()).toBe('9 déc.')
+    expect(day.getAttribute('aria-label')).toBe('Jour simulé : 9 décembre')
+    vi.mocked(window.fetch).mockClear()
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url = String(input)
+      if (url.endsWith('/clock')) return new Response(JSON.stringify({ date: '2026-12-09' }))
+      if (url.endsWith('/session')) return new Response(JSON.stringify({ sessionId: 's' }))
+      if (url.endsWith('/answer')) return new Response(JSON.stringify({ status: 'available' }))
+      return new Response(JSON.stringify({ day: 9, name: 'Lutin du jour', portrait: '', statements: ['un', 'deux', 'trois'], genericElf: true }))
+    })
+    await component.continueAfterResult()
+    fixture.detectChanges()
+    expect(component.clockDate()).toBe('2026-12-09')
+    expect(component.preview()?.day).toBe(9)
+    expect(fixture.nativeElement.querySelector('[aria-label="Ouvrir le cadeau du jour 9"]')).toBeTruthy()
+    expect(vi.mocked(window.fetch).mock.calls.some(([url]) => String(url).includes('/clock/next-day'))).toBe(false)
   })
 
   it('refreshes the shared clock before continuing after a result', async () => {

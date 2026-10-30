@@ -3,6 +3,9 @@ package com.hatcast.api.advent
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.mockito.kotlin.spy
+import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.jdbc.core.JdbcTemplate
@@ -25,9 +28,60 @@ class AdventTestAnswersIntegrationTest {
     private val user = UUID.randomUUID()
 
     @BeforeEach fun prepare() {
+        seedAdventQuizzes(jdbc)
         jdbc.update("INSERT INTO users (id, google_sub, slug, created_at, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", user, "advent-$user", "advent-$user")
         jdbc.update("DELETE FROM advent_test_clock_advances")
         jdbc.update("UPDATE advent_test_clock SET offset_seconds = 0, observed_at = NULL WHERE id = 1")
+    }
+
+    @Test fun `missing or invalid content cannot receive an answer and reset preserves quizzes`() {
+        val now = Instant.parse("2026-12-01T12:00:00Z")
+        jdbc.update("DELETE FROM advent_quizzes WHERE quiz_day = 1")
+        assertEquals("unavailable", answers.confirm(user, 1, 0, now).status)
+        assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM advent_test_answers WHERE user_id = ?", Int::class.java, user))
+        jdbc.update("UPDATE advent_quizzes SET portrait_ref = '../unsafe.png' WHERE quiz_day = 2")
+        assertEquals("unavailable", answers.confirm(user, 2, 0, now).status)
+        val before = jdbc.queryForList("SELECT * FROM advent_quizzes ORDER BY quiz_day")
+        answers.reset(answers.session())
+        assertEquals(before, jdbc.queryForList("SELECT * FROM advent_quizzes ORDER BY quiz_day"))
+    }
+
+    @Test fun `legacy transition retains answers and quiz until authorized reset`() {
+        val now = Instant.parse("2026-12-01T12:00:00Z")
+        answers.confirm(user, 1, 0, now)
+        val before = jdbc.queryForList("SELECT * FROM advent_quizzes ORDER BY quiz_day")
+        val oldSession = answers.session()
+        jdbc.update("UPDATE advent_content_transition SET reset_required = TRUE WHERE id = 1")
+        assertTrue(answers.transitionRequired())
+        assertThrows(org.springframework.web.server.ResponseStatusException::class.java) { answers.requireContentReady() }
+        assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM advent_test_answers WHERE user_id = ?", Int::class.java, user))
+        answers.reset(oldSession)
+        assertFalse(answers.transitionRequired())
+        assertEquals(before, jdbc.queryForList("SELECT * FROM advent_quizzes ORDER BY quiz_day"))
+        assertThrows(org.springframework.web.server.ResponseStatusException::class.java) { answers.requireSession(oldSession) }
+    }
+
+    @Test fun `missing result content does not block another unseen result`() {
+        val now = Instant.parse("2026-12-01T12:00:00Z")
+        answers.confirm(user, 1, 0, now)
+        answers.confirm(user, 2, 1, now)
+        answers.advanceDay(now)
+        jdbc.update("DELETE FROM advent_quizzes WHERE quiz_day = 2")
+        assertNull(answers.result(user, 2, now))
+        assertEquals(1, answers.latestUnseen(user, now)!!.day)
+    }
+
+    @Test fun `quiz disappearing before key lookup does not advance or record`() {
+        val service = spy(AdventTestAnswers(jdbc))
+        val content = answers.quiz(2)!!
+        doReturn(content, null).whenever(service).quiz(2)
+        val before = jdbc.queryForMap("SELECT offset_seconds FROM advent_test_clock WHERE id = 1")
+        val advances = jdbc.queryForObject("SELECT COUNT(*) FROM advent_test_clock_advances", Int::class.java)
+        val state = TransactionTemplate(txManager).execute { service.confirm(user, 2, 1, Instant.parse("2026-12-01T12:00:00Z")) }
+        assertEquals("unavailable", state!!.status)
+        assertEquals(before, jdbc.queryForMap("SELECT offset_seconds FROM advent_test_clock WHERE id = 1"))
+        assertEquals(advances, jdbc.queryForObject("SELECT COUNT(*) FROM advent_test_clock_advances", Int::class.java))
+        assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM advent_test_answers WHERE user_id = ?", Int::class.java, user))
     }
 
     @Test fun `concurrent retries save one answer and one score`() {
