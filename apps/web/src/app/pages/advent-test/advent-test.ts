@@ -15,7 +15,7 @@ interface FictionalQuiz { day: number; name: string; portrait: string; statement
   standalone: true,
   imports: [MatButtonModule, MatIconModule, MatRadioModule, RouterLink],
   templateUrl: './advent-test.html',
-  styleUrl: './advent-test.scss',
+  styleUrls: ['./advent-test.scss', './advent-result.scss'],
 })
 export class AdventTest {
   readonly result = signal<AdventResult | null>(null)
@@ -58,10 +58,7 @@ export class AdventTest {
       const session = await this.requestJson<{ sessionId: string }>('/v1/advent-test/session', { credentials: 'include', cache: 'no-store' })
       this.sessionId = session.sessionId
       const clock = await this.requestJson<{ date: string }>('/v1/advent-test/clock', { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
-      this.clockDate.set(clock.date)
-      const latest = await this.requestJson<{ result: AdventResult | null }>('/v1/advent-test/results/latest-unseen', { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
-      if (latest.result) await this.showResult(latest.result)
-      else { this.loading.set(false); if (clock.date < '2026-12-25') await this.selectDay(Math.min(24, Math.max(1, Number(clock.date.slice(-2))))) }
+      await this.enterAt(clock.date)
     } catch { this.error.set(true); this.loading.set(false) }
   }
 
@@ -99,21 +96,29 @@ export class AdventTest {
     else { this.visibilityListener = display; document.addEventListener('visibilitychange', display) }
   }
 
+  /** Re-enter at a simulated date, giving any eligible unseen reveal priority. */
+  private async enterAt(date: string): Promise<void> {
+    this.clockDate.set(date)
+    const latest = await this.requestJson<{ result: AdventResult | null }>('/v1/advent-test/results/latest-unseen', { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
+    if (latest.result) {
+      this.preview.set(null)
+      await this.showResult(latest.result)
+    } else {
+      this.clearVisibilityListener()
+      this.result.set(null); this.resultContent.set(null); this.quiz.set(null); this.preview.set(null)
+      this.replayToken = null
+      this.loading.set(false)
+      if (date < '2026-12-25') await this.selectDay(Math.min(24, Math.max(1, Number(date.slice(-2)))))
+    }
+  }
+
   async advanceClock(): Promise<void> {
     if (this.loading() || this.submitting()) return
     this.loading.set(true)
+    this.error.set(false)
     try {
       const clock = await this.requestJson<{ date: string }>('/v1/advent-test/clock/next-day', { method: 'POST', credentials: 'include', cache: 'no-store', headers: { ...this.csrfHeaders(), ...this.sessionHeaders() } })
-      this.clockDate.set(clock.date)
-      const latest = await this.requestJson<{ result: AdventResult | null }>('/v1/advent-test/results/latest-unseen', { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
-      if (latest.result) await this.showResult(latest.result)
-      else {
-        this.clearVisibilityListener()
-        this.result.set(null); this.resultContent.set(null); this.quiz.set(null); this.preview.set(null)
-        this.replayToken = null
-        this.loading.set(false)
-        if (clock.date < '2026-12-25') await this.selectDay(Math.min(24, Math.max(1, Number(clock.date.slice(-2)))))
-      }
+      await this.enterAt(clock.date)
     } catch { this.error.set(true); this.loading.set(false) }
   }
 
@@ -176,15 +181,23 @@ export class AdventTest {
     }
   }
 
-  previousDay(): void {
-    if (this.selectedDay() > 1) void this.selectDay(this.selectedDay() - 1)
+  async previousDay(): Promise<void> {
+    if (this.loading() || this.submitting() || (this.quiz() && this.answerState() === 'checking')) return
+    this.loading.set(true)
+    this.error.set(false)
+    try {
+      const clock = await this.requestJson<{ date: string }>('/v1/advent-test/clock/previous-day', { method: 'POST', credentials: 'include', cache: 'no-store', headers: { ...this.csrfHeaders(), ...this.sessionHeaders() } })
+      await this.enterAt(clock.date)
+    } catch {
+      this.error.set(true)
+      this.loading.set(false)
+    }
   }
 
-  nextDay(): void {
-    if (this.selectedDay() < 24) void this.selectDay(this.selectedDay() + 1)
+  async nextDay(): Promise<void> {
+    if ((this.clockDate() ?? '') >= '2026-12-25') return
+    await this.advanceClock()
   }
-
-  resetDay(): void { void this.selectDay(1) }
 
   async openDoor(): Promise<void> {
     if (this.loading() || this.submitting() || (this.quiz() && this.answerState() === 'checking')) return

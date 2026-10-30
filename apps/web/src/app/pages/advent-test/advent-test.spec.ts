@@ -144,7 +144,9 @@ describe('AdventTest', () => {
     await vi.advanceTimersByTimeAsync(10_000)
     await opening
     expect(fixture.componentInstance.answerState()).toBe('uncertain')
-    fixture.componentInstance.nextDay()
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ date: '2026-12-02' })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ result: null })))
+    await fixture.componentInstance.nextDay()
     expect(fixture.componentInstance.selectedDay()).toBe(2)
   })
   it('reconciles a timed-out answer before allowing another confirmation', async () => {
@@ -176,23 +178,45 @@ describe('AdventTest', () => {
     expect(fixture.componentInstance.loading()).toBe(false)
     expect(fixture.componentInstance.error()).toBe(true)
   })
-  it('advances the test day and returns to the beginning', async () => {
-    fixture.componentInstance.nextDay()
-    await fixture.whenStable()
-    fixture.detectChanges()
-    expect(fixture.componentInstance.selectedDay()).toBe(2)
-    expect(fixture.nativeElement.querySelector('.advent__date').textContent.trim()).toBe('2 décembre')
-    fixture.componentInstance.previousDay()
-    await fixture.whenStable()
-    fixture.detectChanges()
-    expect(fixture.componentInstance.selectedDay()).toBe(1)
-    await fixture.componentInstance.selectDay(12)
-    fixture.componentInstance.resetDay()
-    await fixture.whenStable()
-    fixture.detectChanges()
-    expect(fixture.componentInstance.selectedDay()).toBe(1)
-    expect(fixture.nativeElement.querySelector('.advent__date').textContent.trim()).toBe('1 décembre')
+  it('moves the shared clock by one day with each arrow', async () => {
+    const component = fixture.componentInstance
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ date: '2026-12-02' })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ result: null })))
+    await component.nextDay()
+    expect(component.clockDate()).toBe('2026-12-02')
+    expect(component.selectedDay()).toBe(2)
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ date: '2026-12-01' })))
+    await component.previousDay()
+    expect(component.clockDate()).toBe('2026-12-01')
+    expect(component.selectedDay()).toBe(1)
+    expect(vi.mocked(window.fetch).mock.calls.some(([url]) => String(url).endsWith('/clock/previous-day'))).toBe(true)
   })
+  it('re-enters at the previous date and prioritizes its latest unseen reveal', async () => {
+    const component = fixture.componentInstance
+    const result = { answerId: 'a', day: 2, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false }
+    component.clockDate.set('2026-12-04')
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ date: '2026-12-03' })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ result })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ day: 2, name: 'Lutin', portrait: '', statements: ['un', 'deux', 'trois'] })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'recorded', replayToken: 'token' })))
+      .mockResolvedValueOnce(new Response(JSON.stringify(result)))
+    await component.previousDay()
+    expect(component.clockDate()).toBe('2026-12-03')
+    expect(component.result()?.day).toBe(2)
+    expect(component.preview()).toBeNull()
+  })
+
+  it('opens the previous date quiz when no unseen result is eligible', async () => {
+    const component = fixture.componentInstance
+    component.clockDate.set('2026-12-04')
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ date: '2026-12-03' })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ result: null })))
+    await component.previousDay()
+    expect(component.clockDate()).toBe('2026-12-03')
+    expect(component.result()).toBeNull()
+    expect(component.preview()?.day).toBe(3)
+  })
+
   it('locks selection while the selected preview loads', async () => {
     let resolveFetch!: (response: Response) => void
     vi.mocked(window.fetch).mockReturnValueOnce(new Promise(resolve => { resolveFetch = resolve }))
@@ -324,10 +348,24 @@ describe('AdventTest', () => {
     document.body.appendChild(fixture.nativeElement)
     fixture.detectChanges()
     expect(fixture.nativeElement.textContent).toContain('Bravo, tu as trouvé')
-    expect(fixture.nativeElement.textContent).toContain('Total : 11 points')
+    expect(fixture.nativeElement.querySelector('.advent__result-points').textContent).toContain('+11 points gagnés')
     for (let i = 0; i < 20 && frames.length; i++) frames.shift()!(0)
     const ack = vi.mocked(window.fetch).mock.calls.find(([url]) => String(url).endsWith('/acknowledge'))!
     expect(JSON.parse(String(ack[1]?.body))).toEqual({ answerId: 'answer-one' })
+  })
+
+  it('shows only the points earned today, including participation and bonus', () => {
+    const component = fixture.componentInstance
+    component.resultContent.set({ day: 1, name: 'Lutin', portrait: '', statements: ['un', 'deux', 'trois'], genericElf: true })
+    const result = { answerId: 'a', day: 1, selectedChoice: 0, falseChoice: 1, correct: false, responsePoints: 0, participationPoints: 1, bonusPoints: 0, totalPoints: 42, seen: true }
+    component.result.set(result)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.advent__result-points').textContent).toContain('+1 point gagné')
+    expect(fixture.nativeElement.textContent).not.toContain('42 points')
+    component.result.set({ ...result, correct: true, falseChoice: 0, responsePoints: 10, bonusPoints: 2 })
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.advent__result-points').textContent).toContain('+13 points gagnés')
+    expect(fixture.nativeElement.querySelectorAll('.advent__result-answer')).toHaveLength(1)
   })
 
   it('refreshes the shared clock before continuing after a result', async () => {
@@ -405,9 +443,11 @@ describe('AdventTest', () => {
 
   it('clears the old quiz on Christmas when advancing without a reveal', async () => {
     await fixture.componentInstance.openDoor()
+    fixture.componentInstance.selectedDay.set(24)
+    fixture.componentInstance.clockDate.set('2026-12-24')
     vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ date: '2026-12-25' })))
       .mockResolvedValueOnce(new Response(JSON.stringify({ result: null })))
-    await fixture.componentInstance.advanceClock()
+    await fixture.componentInstance.nextDay()
     fixture.detectChanges()
     expect(fixture.componentInstance.quiz()).toBeNull()
     expect(fixture.nativeElement.textContent).toContain('Joyeux Noël')
@@ -438,6 +478,15 @@ describe('AdventTest', () => {
     expect(component.result()?.answerId).toBe('a')
     expect(component.error()).toBe(true)
     expect(vi.mocked(window.fetch).mock.calls.some(([url]) => String(url).endsWith('/reconcile'))).toBe(false)
+  })
+
+  it('advances the shared clock when the forward arrow is on the current day', async () => {
+    vi.mocked(window.fetch).mockClear()
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ date: '2026-12-02' })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ result: null })))
+    await fixture.componentInstance.nextDay()
+    expect(vi.mocked(window.fetch).mock.calls.some(([url]) => String(url).endsWith('/clock/next-day'))).toBe(true)
+    expect(fixture.componentInstance.selectedDay()).toBe(2)
   })
 
   it('opens the current day when the clock advances without a reveal', async () => {

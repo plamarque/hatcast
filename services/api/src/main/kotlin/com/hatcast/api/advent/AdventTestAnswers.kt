@@ -179,6 +179,21 @@ class AdventTestAnswers(private val jdbc: JdbcTemplate) {
         return next.atZone(paris).toLocalDate()
     }
 
+    /** Development-only control: move the isolated shared clock back one Paris day without deleting answers. */
+    @Transactional
+    fun previousDay(receipt: Instant): LocalDate {
+        val now = simulatedInstant(receipt)
+        val current = now.atZone(paris).toLocalDate()
+        val first = LocalDate.of(2026, 12, 1)
+        if (!current.isAfter(first)) return current
+        val previous = current.minusDays(1).atStartOfDay(paris).toInstant()
+        val processing = maxOf(receipt, Instant.now())
+        val offset = previous.epochSecond - processing.epochSecond
+        jdbc.update("UPDATE advent_test_clock SET offset_seconds = ?, observed_at = ? WHERE id = 1", offset, Timestamp.from(previous))
+        jdbc.update("INSERT INTO advent_test_clock_advances (received_at, offset_seconds) VALUES (?, ?)", Timestamp.from(receipt), offset)
+        return previous.atZone(paris).toLocalDate()
+    }
+
     private fun recompute(user: UUID) {
         val scored = jdbc.query("SELECT quiz_day, choice, correct_choice FROM advent_test_answers WHERE user_id = ? ORDER BY quiz_day", { rs, _ -> Triple(rs.getInt(1), rs.getInt(2), rs.getInt(3)) }, user)
         var streak = 0

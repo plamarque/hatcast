@@ -77,7 +77,7 @@ test(`Advent preserves the HatCast home at ${width}px`, async ({ page }, testInf
   await page.getByRole('radio').first().click()
   await page.getByRole('button', { name: 'Confirmer ma réponse' }).click()
   await expect(page.locator('.advent__recorded')).toBeVisible()
-  await page.getByRole('button', { name: 'Avancer au lendemain' }).click()
+  await page.getByRole('button', { name: 'Avancer au jour suivant' }).click()
   await expect(page.getByRole('heading', { name: 'Bravo, tu as trouvé !' })).toBeVisible()
   await page.getByRole('link', { name: 'Fermer le quiz' }).click()
   await expect(page).toHaveURL(/\/accueil$/)

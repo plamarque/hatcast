@@ -147,6 +147,14 @@ class AdventTestController(
         return mapOf("date" to answers.advanceDay(request.getAttribute("hatcast.advent.received-at") as? Instant ?: Instant.now()).toString())
     }
 
+    @PostMapping("/clock/previous-day")
+    @Transactional
+    fun previousDay(@AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): Map<String, String> {
+        authorize(principal, request)
+        answers.requireSession(sessionHeader(request))
+        return mapOf("date" to answers.previousDay(request.getAttribute("hatcast.advent.received-at") as? Instant ?: Instant.now()).toString())
+    }
+
     private fun authorize(principal: SessionUserPrincipal, request: HttpServletRequest?): Boolean {
         val profiles = environment.activeProfiles.toSet()
         val cloudPreview = profiles == setOf("cloud") &&

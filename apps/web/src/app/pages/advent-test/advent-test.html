@@ -1,14 +1,10 @@
 <main class="advent">
   <header class="advent__header">
-    <span class="advent__header-title" [class.advent__header-title--replay]="quiz() && answerState() === 'recorded'">Quiz de l’Avent</span>
+    <span class="advent__header-title" [class.advent__header-title--replay]="(quiz() || result()) && answerState() === 'recorded'">Quiz de l’Avent</span>
     <div class="advent__test-actions" aria-label="Commandes de test">
       <span class="advent__test-label">Mode test</span>
-      <button class="advent__clock-action" mat-stroked-button type="button" (click)="advanceClock()" [disabled]="loading() || submitting()">Avancer au lendemain</button>
-      @if (!result()) {
-      <button mat-icon-button type="button" (click)="previousDay()" [disabled]="loading() || submitting() || (quiz() && answerState() === 'checking') || selectedDay() === 1" aria-label="Revenir au jour précédent" title="Jour précédent"><mat-icon aria-hidden="true">arrow_back</mat-icon></button>
-      <button mat-icon-button type="button" (click)="nextDay()" [disabled]="loading() || submitting() || (quiz() && answerState() === 'checking') || selectedDay() === 24" aria-label="Avancer au jour suivant" title="Jour suivant"><mat-icon aria-hidden="true">arrow_forward</mat-icon></button>
-      <button mat-icon-button type="button" (click)="resetDay()" [disabled]="loading() || submitting() || (quiz() && answerState() === 'checking') || (selectedDay() === 1 && !quiz())" aria-label="Revenir au début" title="Revenir au début"><mat-icon aria-hidden="true">restart_alt</mat-icon></button>
-      }
+      <button mat-icon-button type="button" (click)="previousDay()" [disabled]="loading() || submitting() || (quiz() && answerState() === 'checking') || !clockDate() || clockDate()! <= '2026-12-01'" aria-label="Revenir au jour précédent" title="Jour précédent"><mat-icon aria-hidden="true">arrow_back</mat-icon></button>
+      <button mat-icon-button type="button" (click)="nextDay()" [disabled]="loading() || submitting() || (quiz() && answerState() === 'checking') || !clockDate() || clockDate()! >= '2026-12-25'" aria-label="Avancer au jour suivant" title="Jour suivant"><mat-icon aria-hidden="true">arrow_forward</mat-icon></button>
       @if ((result() || quiz()) && answerState() === 'recorded') {
         <button mat-icon-button type="button" (click)="replay()" [disabled]="submitting()" aria-label="Effacer ma réponse et rejouer" title="Effacer ma réponse et rejouer"><mat-icon aria-hidden="true">delete_outline</mat-icon></button>
       }
@@ -19,17 +15,31 @@
     @if (error() && (quiz() || result())) { <p class="advent__feedback" role="alert">{{ sessionChanged() ? 'La partie de test a été réinitialisée. Recharge l’aperçu.' : 'Impossible de mettre à jour la partie de test. Réessaie.' }}</p> }
     @if (result(); as reveal) {
       @if (resultContent(); as content) {
-        <section class="advent__quiz advent__reveal" aria-labelledby="advent-result-title">
+        <section class="advent__quiz advent__reveal" [class.advent__reveal--correct]="reveal.correct" aria-labelledby="advent-result-title">
           <p class="advent__date">{{ content.day }} décembre</p>
-          <div class="advent__portrait"><img [src]="content.portrait" [alt]="'Portrait du lutin ' + owner(content.name)"></div>
-          <h1 #resultHeading id="advent-result-title" tabindex="-1">{{ reveal.correct ? 'Bravo, tu as trouvé !' : 'Bien tenté !' }}</h1>
-          @if (reveal.correct && !reveal.seen) { <div class="advent__confetti" aria-hidden="true">✦ ✧ ✦</div> }
-          <p>Ton choix : {{ content.statements[reveal.selectedChoice] }}</p>
-          <p>La fausse affirmation : {{ content.statements[reveal.falseChoice] }}</p>
-          <p>Réponse : {{ reveal.responsePoints }} points · Participation : {{ reveal.participationPoints }} point</p>
-          <p>Bonus de série : {{ reveal.bonusPoints }} points</p>
-          <p><strong>Total : {{ reveal.totalPoints }} points</strong></p>
-          <button mat-flat-button type="button" (click)="continueAfterResult()" [disabled]="loading()">Continuer</button>
+          <div class="advent__reveal-scene">
+            <span class="advent__reveal-star advent__reveal-star--left" aria-hidden="true">✦</span>
+            <div class="advent__portrait advent__reveal-portrait"><img [src]="content.portrait" [alt]="'Portrait du lutin ' + owner(content.name)"></div>
+            <span class="advent__reveal-star advent__reveal-star--right" aria-hidden="true">✧</span>
+          </div>
+          @if (reveal.correct && !reveal.seen) {
+            <div class="advent__confetti" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          }
+          <div class="advent__result-banner">
+            <span class="advent__banner-star" aria-hidden="true">✦</span>
+            <div>
+              <h1 #resultHeading id="advent-result-title" tabindex="-1">{{ reveal.correct ? 'Bravo, tu as trouvé !' : 'Bien tenté !' }}</h1>
+              <p class="advent__result-points"><strong>+{{ reveal.responsePoints + reveal.participationPoints + reveal.bonusPoints }}</strong> {{ reveal.responsePoints + reveal.participationPoints + reveal.bonusPoints === 1 ? 'point gagné' : 'points gagnés' }}</p>
+            </div>
+            <span class="advent__banner-star" aria-hidden="true">✦</span>
+          </div>
+          <div class="advent__result-card">
+            @if (!reveal.correct) {
+              <div class="advent__result-answer"><span class="advent__answer-label">Ton choix</span><p>{{ content.statements[reveal.selectedChoice] }}</p></div>
+            }
+            <div class="advent__result-answer advent__result-answer--truth"><span class="advent__answer-label">La bonne réponse</span><p>{{ content.statements[reveal.falseChoice] }}</p></div>
+          </div>
+          <button mat-flat-button type="button" (click)="continueAfterResult()" [disabled]="loading()">Continuer <mat-icon aria-hidden="true">arrow_forward</mat-icon></button>
         </section>
       }
     } @else if ((clockDate() ?? '') >= '2026-12-25' && !preview() && !quiz()) {

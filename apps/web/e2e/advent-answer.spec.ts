@@ -163,7 +163,7 @@ test('reveals the most recent result accessibly after advancing the shared clock
     if (path.endsWith('/latest-unseen')) return route.fulfill({ json: { result: date === '2026-12-02' && !seen ? result : null } })
     if (path.endsWith('/acknowledge')) { expect(route.request().postDataJSON()).toEqual({ answerId: 'answer-one' }); seen = true; return route.fulfill({ status: 200 }) }
     if (path.endsWith('/answer')) {
-      if (date === '2026-12-02') {
+      if (date === '2026-12-02' && path.includes('/doors/1/')) {
         expect(route.request().headers()['x-advent-test-session']).toBe('test-session')
         return route.fulfill({ json: { status: 'recorded', replayToken: 'test-token' } })
       }
@@ -173,17 +173,19 @@ test('reveals the most recent result accessibly after advancing the shared clock
       expect(route.request().headers()['x-advent-test-session']).toBe('test-session')
       return route.fulfill({ json: result })
     }
-    if (path.includes('/doors/')) return route.fulfill({ json: { day: 1, name: 'Lutin', portrait: '', statements: ['Une', 'Deux', 'Trois'], genericElf: true } })
+    if (path.includes('/doors/')) return route.fulfill({ json: { day: Number(path.split('/').pop()), name: 'Lutin', portrait: '', statements: ['Une', 'Deux', 'Trois'], genericElf: true } })
     return route.fulfill({ json: {} })
   })
   await page.goto('/avent-test')
-  await page.getByRole('button', { name: 'Avancer au lendemain' }).click()
+  await page.getByRole('button', { name: 'Avancer au jour suivant' }).click()
   const title = page.getByRole('heading', { name: 'Bravo, tu as trouvé !' })
   await expect(title).toBeFocused()
-  await expect(page.getByText('La fausse affirmation : Une')).toBeVisible()
-  await expect(page.getByText('Total : 11 points')).toBeVisible()
+  await expect(page.locator('.advent__result-answer--truth')).toContainText('La bonne réponse')
+  await expect(page.locator('.advent__result-answer--truth')).toContainText('Une')
+  await expect(page.locator('.advent__result-points')).toHaveText('+11 points gagnés')
   await expect.poll(() => seen).toBe(true)
   await expect(page.locator('.advent__confetti')).toHaveCSS('animation-name', 'none')
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
-  await expect(page.getByRole('button', { name: 'Continuer' })).toBeVisible()
+  await page.getByRole('button', { name: 'Continuer' }).click()
+  await expect(page.getByRole('button', { name: 'Ouvrir le cadeau du jour 2' })).toBeVisible()
 })

@@ -23,7 +23,7 @@ context:
 
 ## Boundaries & Constraints
 
-**Always:** Enforce server-side eligibility, isolation, session fencing, Paris time, no-store and secrecy across accounts, errors and caches. Serialize result reads with confirmations using the singleton clock lock, sample authoritative time after locking and read committed answers before release. Show selected and false statements, correctness, response and participation points, earned streak bonus, total and optional anecdote. Score 10/0 plus 1 participation and 2 per non-overlapping three consecutive correct answers; missed days do not break a streak. Use the scoped Advent visual contracts and accessible Material 3 behavior; preserve HatCast styling. In isolated test mode, provide a visible authorized control to advance the shared simulated clock to the next Paris day, including 25 December, without answering another quiz; allow only forward movement and preserve the targeted reset as the sole way to restart. Treat a demonstration as partial and isolated.
+**Always:** Enforce server-side eligibility, isolation, session fencing, Paris time, no-store and secrecy across accounts, errors and caches. Serialize result reads with confirmations using the singleton clock lock, sample authoritative time after locking and read committed answers before release. Show correctness, the false statement, the selected statement when different, and the points earned that day (response, participation and any streak bonus), plus any optional anecdote. Score 10/0 plus 1 participation and 2 per non-overlapping three consecutive correct answers; missed days do not break a streak. Use the scoped Advent visual contracts and accessible Material 3 behavior; preserve HatCast styling. In isolated test mode, provide visible authorized controls to move the shared simulated clock one Paris day forward or backward, including 25 December, without deleting answers; each change simulates a new entry at that date and the targeted reset restarts the game. Treat a demonstration as partial and isolated.
 
 **Never:** Reveal pending correctness, points or derived clues, change production data or weaken protections. Do not build the ranking, complete calendar, production entry or notifications from later stories. Do not promise exactly-once display or calendar access that is not yet implemented.
 
@@ -32,6 +32,7 @@ context:
 | Scenario | Input / state | Expected behavior |
 |---|---|---|
 | Test clock | An answer is saved and the tester advances to the next day, including 24 to 25 December | The shared simulated clock advances without another answer; the previously pending result becomes revealable. All testers share the new time; rejected or stale-session operations do not advance it. |
+| Moving backward | An authorized tester moves to the previous Paris day | Retain answers and seen state; simulate a new entry at that date and prioritize its latest eligible unseen reveal, otherwise offer that day’s quiz. |
 | Before and after reveal | Saved answer around next Paris midnight | Before: no result or revealing derivative in API/UI; after: faithful result and points. A transaction holding the lock may delay availability. |
 | Return | Several answers, including a newer pending one | Show the most recent revealable unseen result first; no calendar action on this priority screen. Then offer today's quiz, missing-content state or 25 December path as applicable. Older unseen results remain available through their cases when the calendar exists, without automatic chaining or special markers. |
 | Seen state | Screen displayed and client acknowledges | Persist per member and answer across devices; acknowledgment is idempotent. Delivery alone does not mark seen; lost acknowledgment or concurrent devices may repeat the reveal. |
@@ -54,14 +55,14 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [x] `services/api/src/main/kotlin/com/hatcast/api/advent/` and migrations — implement authorized, serialized reveal, durable idempotent acknowledgment and isolated forward-only next-day clock control, with safe reset and replay semantics.
+- [x] `services/api/src/main/kotlin/com/hatcast/api/advent/` and migrations — implement authorized, serialized reveal, durable idempotent acknowledgment and isolated one-day forward/backward clock controls, with safe reset and replay semantics.
 - [x] `services/api/src/test/kotlin/com/hatcast/api/advent/` — test the matrix, cross-account secrecy, scoring, time boundaries, rollback and concurrent transactions on PostgreSQL and H2.
 - [x] `apps/web/src/app/pages/advent-test/` — implement priority reveal, displayed-screen acknowledgment, accessible celebration and continuation, and expose the isolated next-day test control using Advent styles.
 - [x] `apps/web/src/app/pages/advent-test/advent-test.spec.ts`, `apps/web/e2e/` — verify client states, acknowledgment timing, recovery, responsive layout, keyboard, announcements, reduced motion and visual isolation.
 - [x] `SPEC.md`, `DOMAIN.md`, `ARCH.md`, `DEVELOPMENT.md` — document shipped behavior and limitations as appropriate.
 
 **Acceptance Criteria:**
-- Given a saved answer in an authorized isolated test session, when the tester advances the shared clock to the following Paris day without answering another quiz, then the result becomes available, including the 24 December answer on 25 December. The operation cannot rewind time and respects authorization and session fencing.
+- Given a saved answer in an authorized isolated test session, when the tester advances the shared clock to the following Paris day without answering another quiz, then the result becomes available, including the 24 December answer on 25 December. Clock changes respect authorization and session fencing, preserve answers and re-enter at the simulated date.
 - Given a saved answer, when the next Paris day begins and serialized reading completes, then its owner can see the faithful result and points; before then no result is accessible.
 - Given an unseen revealable answer and a newer pending answer, when the member returns on any device, then the most recent eligible unseen reveal takes priority until displayed and acknowledged.
 - Given a revealed answer, when acknowledgment is lost or repeated, then no result is lost and repeated acknowledgments are harmless.
@@ -70,9 +71,11 @@ context:
 
 ## Implementation Notes
 
-The isolated preview provides a shared forward-only next-day control and refreshes the clock on continuation. Result acknowledgments bind to answer identity. H2 integration, HTTP security, PostgreSQL locking on a disposable schema, Angular unit tests, responsive browser checks and a real offline two-account 24-to-25 journey passed. A local service-worker smoke verified no cached Advent responses across account change and offline access; the test proxy adapts its test origin to the allowed offline origin. The Angular build passes with an Advent CSS budget warning.
+The isolated preview provides shared one-day forward/backward controls, re-enters at the selected date, and refreshes the clock on continuation. Result acknowledgments bind to answer identity. H2 integration, HTTP security, PostgreSQL locking on a disposable schema, Angular unit tests, responsive browser checks and a real offline two-account 24-to-25 journey passed. A local service-worker smoke verified no cached Advent responses across account change and offline access; the test proxy adapts its test origin to the allowed offline origin. The Angular build passes with an Advent CSS budget warning.
 
 ## Spec Change Log
+
+- Patrice revised the accepted test-clock behavior: each arrow moves the shared simulated date by one day without erasing answers and simulates opening the experience on that date. The reveal displays only that day’s earned points, including participation and any bonus. The result styling and compact test bar were approved during human testing.
 
 - Review corrections applied in place at the user’s request: preserve replay from reveals, refresh the displayed day after clock advancement, delay acknowledgment until visible, revalidate session before display, bound the result request and test historical answers without identifiers.
 
@@ -95,6 +98,9 @@ The isolated preview provides a shared forward-only next-day control and refresh
 - **Medium — patch:** Add a migration compatibility test for an existing answer whose answer_id is null and confirm stable acknowledgment.
 
 ## Verification
+
+Closure checks: 32 targeted Angular tests, nine mocked browser scenarios, H2 Advent result/security/concurrency tests, and a PostgreSQL locking and clock test passed; the production build passed with an existing Advent stylesheet budget warning. Patrice accepted the compact result display after testing. Real two-account offline coverage and service-worker checks were performed earlier; physical multi-device validation and full PostgreSQL migrations were not separately verified.
+
 
 After review corrections: 28 targeted Angular tests, H2 result integration tests, nine responsive/isolation browser scenarios, production build, the real two-account offline 24-to-25 journey, and the active service-worker cache/account smoke passed. The PostgreSQL locking test passed before the frontend-only correction. Full migrations on PostgreSQL and a physical second device were not separately verified.
 

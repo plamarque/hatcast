@@ -173,4 +173,17 @@ class AdventResultIntegrationTest {
         assertTrue(answers.result(user, 1, now)!!.seen)
     }
 
+    @Test fun `moving the test clock backward keeps answers and hides the not yet revealed result`() {
+        answers.confirm(user, 1, 0, now)
+        assertEquals("2026-12-02", answers.advanceDay(now).toString())
+        assertNotNull(answers.result(user, 1, now))
+        assertEquals("2026-12-01", answers.previousDay(now).toString())
+        assertEquals("2026-12-01", answers.clockDate(now).toString())
+        assertNull(answers.result(user, 1, now))
+        assertEquals("recorded", answers.state(user, 1, now).status)
+        assertEquals("2026-12-01", answers.previousDay(now).toString())
+        assertEquals("2026-12-02", answers.advanceDay(now).toString())
+        assertEquals(11, answers.result(user, 1, now)!!.totalPoints)
+    }
+
 }

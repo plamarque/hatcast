@@ -42,6 +42,8 @@ class AdventTestIntegrationTest {
             mvc.perform(get(path)).andExpect(status().isUnauthorized).andExpect(header().string("Cache-Control", "private, no-store"))
             mvc.perform(get(path).cookie(cookie)).andExpect(status().isNotFound).andExpect(header().string("Cache-Control", "private, no-store"))
         }
+        mvc.perform(post("/v1/advent-test/clock/previous-day").cookie(cookie).with(csrf()))
+            .andExpect(status().isNotFound).andExpect(header().string("Cache-Control", "private, no-store"))
         mvc.perform(post("/v1/advent-test/clock/next-day").cookie(cookie).with(csrf()))
             .andExpect(status().isNotFound).andExpect(header().string("Cache-Control", "private, no-store"))
         mvc.perform(post("/v1/advent-test/doors/1/result/acknowledge").cookie(cookie).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("""{"answerId":"${UUID.randomUUID()}"}"""))

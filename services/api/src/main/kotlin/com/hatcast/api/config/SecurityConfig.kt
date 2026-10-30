@@ -68,7 +68,7 @@ class SecurityConfig(
                     .requestMatchers(HttpMethod.POST, "/v1/auth/idp").permitAll()
                     .requestMatchers(HttpMethod.GET, "/v1/auth/me").authenticated()
                     .requestMatchers(HttpMethod.GET, "/v1/advent-test/doors/*", "/v1/advent-test/doors/*/answer", "/v1/advent-test/session", "/v1/advent-test/results/latest-unseen", "/v1/advent-test/doors/*/result", "/v1/advent-test/clock").authenticated()
-                    .requestMatchers(HttpMethod.POST, "/v1/advent-test/doors/*/answer", "/v1/advent-test/doors/*/answer/reserve", "/v1/advent-test/doors/*/answer/reconcile", "/v1/advent-test/doors/*/answer/replay", "/v1/advent-test/session/reset", "/v1/advent-test/clock/next-day", "/v1/advent-test/doors/*/result/acknowledge").authenticated()
+                    .requestMatchers(HttpMethod.POST, "/v1/advent-test/doors/*/answer", "/v1/advent-test/doors/*/answer/reserve", "/v1/advent-test/doors/*/answer/reconcile", "/v1/advent-test/doors/*/answer/replay", "/v1/advent-test/session/reset", "/v1/advent-test/clock/next-day", "/v1/advent-test/clock/previous-day", "/v1/advent-test/doors/*/result/acknowledge").authenticated()
                     .requestMatchers(HttpMethod.GET, "/v1/me/agenda").authenticated()
                     .requestMatchers(HttpMethod.GET, "/v1/me/inbox").authenticated()
                     .requestMatchers(HttpMethod.GET, "/v1/me/preferences").authenticated()

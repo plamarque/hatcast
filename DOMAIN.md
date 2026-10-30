@@ -337,3 +337,5 @@ Une réponse fictive confirmée est unique par membre et par jour. En test isol�
 The isolated Advent test session has a server-issued generation. A reset rotates it atomically with clearing test answers, streaks, replay and reservation state, and the simulated clock. Personal replay remains scoped to one member and day.
 
 Pour chaque réponse de test, le résultat devient révélable au début du jour suivant à Paris. Le vu est propre au membre et à la réponse ; rejouer crée une nouvelle réponse et un ancien accusé ne marque pas celle-ci comme vue. Les scores révélés comprennent 10 ou 0 points de réponse, un point de participation et deux points par groupe non chevauchant de trois bonnes réponses consécutives ; un jour manqué ne rompt pas la série.
+
+En mode test isolé, les flèches déplacent la date commune d’un jour en avant ou en arrière, sans effacer les réponses. Une réponse ne redevient visible comme résultat que lorsque la date simulée autorise sa révélation.

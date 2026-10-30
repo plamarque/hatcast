@@ -64,6 +64,10 @@ class AdventResultPostgresTest {
                 assertNull(read.get(10, TimeUnit.SECONDS))
                 tx.executeWithoutResult { service.confirm(member, 1, 0, now); service.advanceDay(now) }
                 assertEquals(11, tx.execute { service.latestUnseen(member, now) }!!.totalPoints)
+                assertEquals("2026-12-01", tx.execute { service.previousDay(now) }.toString())
+                assertNull(tx.execute { service.result(member, 1, now) })
+                assertEquals("2026-12-02", tx.execute { service.advanceDay(now) }.toString())
+                assertEquals(11, tx.execute { service.result(member, 1, now) }!!.totalPoints)
             } finally { release.countDown(); pool.shutdownNow() }
         } finally { rootJdbc.execute("DROP SCHEMA $schema CASCADE") }
     }
