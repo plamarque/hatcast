@@ -30,6 +30,12 @@ Cette exigence est alignée avec le positionnement produit (PWA, usage sur le te
 
 ---
 
+## Exception de thème : Advent Quiz
+
+La direction artistique Advent Quiz approuvée le 30 octobre 2026 prévoit une identité indépendante, isolée dans sa propre racine et ses composants. Les règles de palette, de typographie et de style des onglets HatCast ci-dessous continuent de s'appliquer au reste de l'application ; dans l'Avent, utiliser les tokens et typographies dédiés du [contrat UX](../../../_bmad-output/planning-artifacts/ux-designs/ux-hatcast-avent-2026-10-28/DESIGN.md), sans changer le thème global. Conserver les comportements accessibles Material 3 et vérifier l'absence d'effet sur les autres pages conformément à AD-7.
+
+---
+
 ## Material 3 — exigence transverse (UX-DR11)
 
 Le PRD et les epics imposent **Angular Material en première intention**, le **theming M3** (`mat.theme()` dans [`apps/web/src/styles.scss`](../../../apps/web/src/styles.scss)), et **pas Tailwind comme surface de style principale** (utilitaires ponctuels tolérés s’ils ne pilotent pas layout ni identité visuelle).

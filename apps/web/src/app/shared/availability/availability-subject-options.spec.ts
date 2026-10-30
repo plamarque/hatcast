@@ -13,7 +13,7 @@ describe('summaryParticipantsToSelectors', () => {
         gender: 'male',
         status: 'available',
         roleKeys: ['player'],
-        comment: null,
+        comment: 'Je serai en retard',
       },
       {
         participantId: 'ep-1',
@@ -34,6 +34,7 @@ describe('summaryParticipantsToSelectors', () => {
         kind: 'LINKED',
         userId: 'user-1',
         gender: 'male',
+        hasAvailabilityComment: true,
       },
       {
         id: 'ep-1',
@@ -42,6 +43,7 @@ describe('summaryParticipantsToSelectors', () => {
         kind: 'NAME_ONLY',
         userId: null,
         gender: undefined,
+        hasAvailabilityComment: false,
       },
     ])
   })

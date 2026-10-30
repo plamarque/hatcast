@@ -58,6 +58,8 @@ export interface ParticipantSelector {
   kind: ParticipantKind
   userId?: string | null
   gender?: MemberGender
+  /** Local presentation marker for availability-aware subject selectors. */
+  hasAvailabilityComment?: boolean
 }
 
 type ApiResponse<T> = { ok: boolean; status: number; data?: T }

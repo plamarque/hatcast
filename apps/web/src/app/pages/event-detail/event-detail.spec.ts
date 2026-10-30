@@ -21,11 +21,16 @@ import { SeasonApiService } from '../../core/seasons/season-api.service'
 import { TroupeApiService } from '../../core/troupes/troupe-api.service'
 import { EventDetail } from './event-detail'
 import { emptyRoleSlots } from '../../core/events/event-types'
+import { ProductAnalyticsService } from '../../core/analytics/product-analytics.service'
+import { EventDisposTab } from '../../shared/availability/event-dispos-tab'
 
 type EventDetailHarness = {
   event: WritableSignal<EventResponse | null>
   activeTab: WritableSignal<string>
+  composition: WritableSignal<CompositionResponse | null>
   canManageEvents: () => boolean
+  loadComposition: (seasonId: string, eventId: string) => Promise<void>
+  onEventInfosUpdated: (event: EventResponse) => void
 }
 
 function ev(id: string, overrides: Partial<EventResponse> = {}): EventResponse {
@@ -302,6 +307,95 @@ describe('EventDetail', () => {
       expect(getEventPage).toHaveBeenCalledWith('season-1', 'event-2', expect.objectContaining({ tab: 'infos', bySlug: true }))
     })
     expect((fixture.componentInstance as unknown as EventDetailHarness).event()?.id).toBe('event-2')
+  })
+
+  it.each(['draft', 'validated', 'published'] as const)('captures the %s workspace lifecycle after an organizer composition loads', async (lifecycle) => {
+    getComposition.mockResolvedValue({ ok: true, data: {
+      slots: [],
+      validatedAt: lifecycle !== 'draft' ? '2026-01-01T00:00:00Z' : null,
+      publishedAt: lifecycle === 'published' ? '2026-01-01T00:00:00Z' : null,
+    } })
+    pagePermissions = { ...defaultSeasonPermissions, eventOrganizerFor: ['event-2'] }
+    fixture.detectChanges()
+    const component = fixture.componentInstance as unknown as EventDetailHarness
+    await vi.waitFor(() => expect(component.event()).not.toBeNull())
+    const captureWorkspace = vi.spyOn(
+      TestBed.inject(ProductAnalyticsService),
+      'captureCompositionWorkspaceOpened',
+    )
+    component.activeTab.set('equipe')
+
+    await component.loadComposition('season-1', 'event-2')
+
+    expect(captureWorkspace).toHaveBeenCalledTimes(1)
+    expect(captureWorkspace).toHaveBeenCalledWith(
+      expect.objectContaining({ event_id: 'event-2', actor_scope: 'event_organizer' }),
+      lifecycle,
+    )
+  })
+
+  it('captures a workspace hydrated directly by the equipe page response', async () => {
+    fixture.detectChanges()
+    await vi.waitFor(() => expect(fixture.componentInstance['event']()).not.toBeNull())
+    const captureWorkspace = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureCompositionWorkspaceOpened')
+    fixture.componentInstance['activeTab'].set('equipe')
+    fixture.componentInstance['applyEventPageResponse']({
+      event: ev('event-2'),
+      participantSelectors: [],
+      permissions: { ...defaultSeasonPermissions, eventOrganizerFor: ['event-2'] },
+      composition: { slots: [], validatedAt: null, publishedAt: null, visibility: 'organizerDraft' },
+    } as EventPageResponse, 'equipe')
+    expect(captureWorkspace).toHaveBeenCalledWith(
+      expect.objectContaining({ event_id: 'event-2', actor_scope: 'event_organizer' }), 'draft',
+    )
+  })
+
+  it('propagates loaded organizer scope through the Dispos template', async () => {
+    pagePermissions = { ...defaultSeasonPermissions, eventOrganizerFor: ['event-2'] }
+    queryParamMap$.next(convertToParamMap({ tab: 'dispos' }))
+    fixture.detectChanges()
+    await vi.waitFor(() => {
+      fixture.detectChanges()
+      const dispos = fixture.debugElement.query(node => node.componentInstance instanceof EventDisposTab)?.componentInstance as EventDisposTab | undefined
+      expect(dispos?.actorScope()).toBe('event_organizer')
+    })
+  })
+
+  it('keeps the post-format composition when an earlier load resolves late', async () => {
+    fixture.detectChanges()
+    const component = fixture.componentInstance as unknown as EventDetailHarness
+    await vi.waitFor(() => expect(component.event()).not.toBeNull())
+
+    let resolveEarlier!: (value: { ok: true; status: number; data: CompositionResponse }) => void
+    let resolveAfterFormat!: (value: { ok: true; status: number; data: CompositionResponse }) => void
+    const earlier = new Promise<{ ok: true; status: number; data: CompositionResponse }>((resolve) => {
+      resolveEarlier = resolve
+    })
+    const afterFormat = new Promise<{ ok: true; status: number; data: CompositionResponse }>((resolve) => {
+      resolveAfterFormat = resolve
+    })
+    getComposition.mockReset()
+    getComposition.mockReturnValueOnce(earlier).mockReturnValueOnce(afterFormat)
+
+    void component.loadComposition('season-1', 'event-2')
+    component.onEventInfosUpdated(ev('event-2', { roleSlots: { ...emptyRoleSlots(), player: 2 } }))
+
+    await vi.waitFor(() => expect(getComposition).toHaveBeenCalledTimes(2))
+    resolveAfterFormat({
+      ok: true,
+      status: 200,
+      data: { visibility: 'organizerDraft', slots: [{ roleKey: 'player', slotIndex: 2, participationStatus: 'pending' }] },
+    })
+    await vi.waitFor(() => expect(component.composition()?.slots[0]?.slotIndex).toBe(2))
+
+    resolveEarlier({
+      ok: true,
+      status: 200,
+      data: { visibility: 'organizerDraft', slots: [{ roleKey: 'player', slotIndex: 1, participationStatus: 'pending' }] },
+    })
+    await Promise.resolve()
+
+    expect(component.composition()?.slots[0]?.slotIndex).toBe(2)
   })
 
   it('replaces UUID route with canonical slug URL', async () => {
@@ -772,7 +866,11 @@ describe('EventDetail', () => {
     expect(dialogOpen).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        data: expect.objectContaining({ intent: 'availability_nudge' }),
+        data: expect.objectContaining({
+          intent: 'availability_nudge',
+          troupeId: expect.any(String),
+          actorScope: 'event_organizer',
+        }),
       }),
     )
   })
@@ -1540,6 +1638,51 @@ describe('EventDetail', () => {
 
     expect(cmp.event()?.compositionLifecycle).toBe('gapsToFill')
     expect(cmp.event()?.teamStatusBadge?.shortLabel).toBe('Préparation')
+    expect(getEventPage).toHaveBeenCalledTimes(1)
+  })
+
+  it('synchronizes the real parent lifecycle and badges after a child unlock conflict', async () => {
+    pagePermissions = { ...defaultSeasonPermissions, isSeasonOrganizer: true }
+    queryParamMap$.next(convertToParamMap({ tab: 'equipe' }))
+    const locked: CompositionResponse = {
+      publishedAt: '2026-01-01T00:00:00.000Z',
+      validatedAt: '2026-01-01T00:00:00.000Z',
+      visibility: 'validated',
+      slots: [{
+        roleKey: 'player',
+        slotIndex: 0,
+        participantId: 'p-1',
+        participantDisplayName: 'Alice',
+        participationStatus: 'confirmed',
+      }],
+    }
+    const draft: CompositionResponse = { ...locked, validatedAt: null, visibility: 'organizerDraft' }
+    mockEventPageResponse(ev('event-2', {
+      compositionLifecycle: 'complete',
+      compositionPublishedAt: locked.publishedAt,
+      teamStatusBadge: { key: 'confirmed', label: 'Équipe confirmée', shortLabel: 'Confirmé', tone: 'confirmed' },
+    }), { composition: locked })
+    const unlock = vi.fn().mockResolvedValue({ ok: false, status: 409, errorMessage: "La composition n'est pas validée" })
+    TestBed.inject(CompositionApiService).unlockComposition = unlock
+    getComposition.mockResolvedValue({ ok: true, status: 200, data: draft })
+    fixture.detectChanges()
+    await vi.waitFor(() => {
+      fixture.detectChanges()
+      expect(fixture.nativeElement.querySelector('.event-equipe-tab__unlock')).not.toBeNull()
+    })
+    const unlockButton = fixture.nativeElement.querySelector('.event-equipe-tab__unlock') as HTMLButtonElement
+    unlockButton.click()
+    await vi.waitFor(() => {
+      fixture.detectChanges()
+      const cmp = fixture.componentInstance as unknown as EventDetailHarness
+      expect(unlock).toHaveBeenCalledWith('season-1', 'event-2')
+      expect(cmp.composition()).toEqual(draft)
+      expect(cmp.event()?.compositionLifecycle).toBe('draftComposition')
+      expect(cmp.event()?.teamStatusBadge?.shortLabel).toBe('Préparation')
+      expect(cmp.event()?.compositionPublishedAt).toBe(locked.publishedAt)
+      expect(fixture.nativeElement.querySelector('.event-equipe-tab__unlock')).toBeNull()
+      expect(fixture.nativeElement.textContent).toContain('Publier')
+    })
     expect(getEventPage).toHaveBeenCalledTimes(1)
   })
 

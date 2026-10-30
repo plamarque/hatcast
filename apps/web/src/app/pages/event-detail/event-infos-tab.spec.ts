@@ -12,7 +12,6 @@ import { CALENDAR_SNACKBAR_MESSAGES } from '../../core/events/event-calendar-exp
 import { OrganizerApiService } from '../../core/permissions/organizer-api.service'
 import { TroupeApiService } from '../../core/troupes/troupe-api.service'
 import { CATEGORY_HELP, DEFAULT_CATEGORY_DISPLAY_LABEL } from './event-category.constants'
-import { FORMAT_AND_ROLES_HELP } from './event-type-roles-dialog'
 import { ORGANIZERS_HELP } from './event-organizers-dialog'
 import { EventInfosTab } from './event-infos-tab'
 
@@ -505,12 +504,12 @@ describe('EventInfosTab', () => {
     })
   })
 
-
-  it('shows format and roles help on every Infos load', () => {
+  it('keeps the format and needs summary read-only for an event manager', () => {
+    fixture.componentRef.setInput('canManageEvents', true)
     fixture.detectChanges()
 
-    const help = fixture.nativeElement.querySelector('#event-infos-format-help')
-    expect(help?.textContent?.trim()).toBe(FORMAT_AND_ROLES_HELP)
+    expect(fixture.nativeElement.querySelector('.event-infos__format-edit')).toBeNull()
+    expect(fixture.nativeElement.querySelector('app-role-display-chip-set')).not.toBeNull()
   })
 
   it('shows organizers help when section is visible', () => {

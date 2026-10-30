@@ -37,6 +37,7 @@ import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequ
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
@@ -158,6 +159,7 @@ class CompositionSlotAssignmentIntegrationTest {
         eventId: UUID,
         status: String,
         roleKeys: List<String> = listOf("player"),
+        comment: String? = null,
     ) {
         val roleKeysJson =
             if (roleKeys.isEmpty()) {
@@ -170,7 +172,9 @@ class CompositionSlotAssignmentIntegrationTest {
                 put("/v1/seasons/$seasonId/events/$eventId/availability/me")
                     .cookie(cookie)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"status":"$status","roleKeys":$roleKeysJson}""")
+                    .content(
+                        """{"status":"$status","roleKeys":$roleKeysJson,"comment":${comment?.let { "\"$it\"" } ?: "null"}}""",
+                    )
                     .with(csrf()),
             ).andExpect(status().isOk)
     }
@@ -281,7 +285,7 @@ class CompositionSlotAssignmentIntegrationTest {
         val member2 = memberCookie("sub-assign-member-3b")
         val seasonId = createSeason(adminCookie)
         val eventId = createEvent(adminCookie, seasonId, """{ "player": 1 }""")
-        setAvailability(member1, seasonId, eventId, "available")
+        setAvailability(member1, seasonId, eventId, "available", comment = "Arrive après 19 h")
         setAvailability(member2, seasonId, eventId, "available")
         seasonParticipantService.ensureMembershipParticipants(seasonRepository.findById(seasonId).orElseThrow())
 
@@ -295,6 +299,7 @@ class CompositionSlotAssignmentIntegrationTest {
                 ).andExpect(status().isOk)
                 .andExpect(jsonPath("$.candidates.length()").value(Matchers.greaterThanOrEqualTo(1)))
                 .andExpect(jsonPath("$.candidates[0].chancePercent").exists())
+                .andExpect(jsonPath("$.candidates[?(@.availabilityComment == 'Arrive après 19 h')]").isNotEmpty)
                 .andReturn()
         val candidates = mapper.readTree(res.response.contentAsString).get("candidates")
         if (candidates.size() >= 2) {
@@ -394,6 +399,49 @@ class CompositionSlotAssignmentIntegrationTest {
     }
 
     @Test
+    fun `DELETE slot reduces needs and compacts later assignments`() {
+        val adminCookie = memberCookie("sub-slot-delete-admin", admin = true)
+        val firstMember = memberCookie("sub-slot-delete-first")
+        val secondMember = memberCookie("sub-slot-delete-second")
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, """{ "player": 2 }""")
+        setAvailability(firstMember, seasonId, eventId, "available")
+        setAvailability(secondMember, seasonId, eventId, "available")
+        val firstId = participantIdForUser(seasonId, "sub-slot-delete-first")
+        val secondId = participantIdForUser(seasonId, "sub-slot-delete-second")
+        assignSlot(adminCookie, seasonId, eventId, "player", 0, firstId)
+        assignSlot(adminCookie, seasonId, eventId, "player", 1, secondId)
+
+        mockMvc
+            .perform(
+                delete("/v1/seasons/$seasonId/events/$eventId/composition/slots/player/0")
+                    .cookie(adminCookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.roleSlots.player").value(1))
+
+        assertTrue(slotRepository.findByEventIdAndRoleKeyAndSlotIndex(eventId, "player", 0)?.assignedParticipantId() == secondId)
+        assertTrue(slotRepository.findByEventIdAndRoleKeyAndSlotIndex(eventId, "player", 1) == null)
+    }
+
+    @Test
+    fun `DELETE empty slot reduces need without creating a composition`() {
+        val adminCookie = memberCookie("sub-slot-delete-empty", admin = true)
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, """{ "player": 1 }""")
+
+        mockMvc
+            .perform(
+                delete("/v1/seasons/$seasonId/events/$eventId/composition/slots/player/0")
+                    .cookie(adminCookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.roleSlots.player").value(0))
+
+        assertTrue(compositionRepository.findById(eventId).isEmpty)
+    }
+
+    @Test
     @Tag("NFR-S2")
     fun `member without manage permission gets 403`() {
         val adminCookie = memberCookie("sub-assign-admin-403", admin = true)
@@ -414,6 +462,13 @@ class CompositionSlotAssignmentIntegrationTest {
                     .cookie(memberCookie)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"participantId":null}""")
+                .with(csrf()),
+            ).andExpect(status().isForbidden)
+
+        mockMvc
+            .perform(
+                delete("/v1/seasons/$seasonId/events/$eventId/composition/slots/player/0")
+                    .cookie(memberCookie)
                     .with(csrf()),
             ).andExpect(status().isForbidden)
     }
@@ -462,6 +517,30 @@ class CompositionSlotAssignmentIntegrationTest {
                     .content("""{"participantId":null}""")
                     .with(csrf()),
             ).andExpect(status().isOk)
+    }
+
+    @Test
+    fun `DELETE slot rejects a locked composition`() {
+        val adminCookie = memberCookie("sub-slot-delete-locked", admin = true)
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, """{ "player": 1 }""")
+        val now = Instant.now()
+        compositionRepository.save(
+            EventCompositionEntity(
+                eventId = eventId,
+                validatedAt = now,
+                publishedAt = null,
+                createdAt = now,
+                updatedAt = now,
+            ),
+        )
+
+        mockMvc
+            .perform(
+                delete("/v1/seasons/$seasonId/events/$eventId/composition/slots/player/0")
+                    .cookie(adminCookie)
+                    .with(csrf()),
+            ).andExpect(status().isConflict)
     }
 
     @Test

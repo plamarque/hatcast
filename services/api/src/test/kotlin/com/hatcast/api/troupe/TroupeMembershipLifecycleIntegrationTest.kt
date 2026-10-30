@@ -16,6 +16,7 @@ import com.hatcast.api.troupe.TroupeMembershipRepository
 import com.hatcast.api.troupe.TroupeMembershipStatus
 import com.hatcast.api.user.UserRepository
 import jakarta.servlet.http.Cookie
+import org.hamcrest.Matchers.hasItems
 import org.hamcrest.Matchers.hasSize
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -30,6 +31,7 @@ import org.springframework.http.MediaType
 import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf
 import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.annotation.DirtiesContext
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
@@ -42,6 +44,7 @@ import java.util.UUID
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class TroupeMembershipLifecycleIntegrationTest {
     @Autowired
     private lateinit var mockMvc: MockMvc
@@ -67,7 +70,16 @@ class TroupeMembershipLifecycleIntegrationTest {
     @MockBean
     private lateinit var idpIdTokenVerifier: IdpIdTokenVerifier
 
-    private val seedTroupeId: UUID = UUID.fromString("a0000001-0000-4000-8000-000000000001")
+    @Autowired
+    private lateinit var troupeRepository: TroupeRepository
+
+    private lateinit var fixtureTroupe: TroupeEntity
+    private val fixtureTroupeId: UUID get() = fixtureTroupe.id
+
+    @org.junit.jupiter.api.BeforeEach
+    fun isolateTroupe() {
+        fixtureTroupe = TestAuthSupport.isolatedTroupe(troupeRepository)
+    }
     private val mapper = ObjectMapper()
 
     @Test
@@ -76,7 +88,7 @@ class TroupeMembershipLifecycleIntegrationTest {
         val memberCookie = signIn("sub-lifecycle-member", "lifecycle-member@example.com", "Laetitia LC")
         val memberUser = userRepository.findByGoogleSub("sub-lifecycle-member")!!
         val membership =
-            membershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, memberUser.id)!!
+            membershipRepository.findByTroupe_IdAndUser_Id(fixtureTroupeId, memberUser.id)!!
         assertEquals(TroupeBaselineRole.MEMBER, membership.baselineRole)
 
         val pastSeason = createSeason(adminCookie, "Past season LC")
@@ -94,7 +106,7 @@ class TroupeMembershipLifecycleIntegrationTest {
 
         mockMvc
             .perform(
-                post("/v1/troupes/$seedTroupeId/members/${membership.id}/convert-to-externe")
+                post("/v1/troupes/$fixtureTroupeId/members/${membership.id}/convert-to-externe")
                     .cookie(adminCookie)
                     .with(csrf())
                     .contentType(MediaType.APPLICATION_JSON)
@@ -139,14 +151,14 @@ class TroupeMembershipLifecycleIntegrationTest {
         signIn("sub-lifecycle-reint-member", "lifecycle-reint-member@example.com", "Guest Reint")
         val memberUser = userRepository.findByGoogleSub("sub-lifecycle-reint-member")!!
         var membership =
-            membershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, memberUser.id)!!
+            membershipRepository.findByTroupe_IdAndUser_Id(fixtureTroupeId, memberUser.id)!!
         val activeSeason = createSeason(adminCookie, "Reint season")
         activateSeason(activeSeason)
         seasonParticipantService.ensureMembershipParticipants(seasonRepository.findById(activeSeason).orElseThrow())
 
         mockMvc
             .perform(
-                post("/v1/troupes/$seedTroupeId/members/${membership.id}/convert-to-externe")
+                post("/v1/troupes/$fixtureTroupeId/members/${membership.id}/convert-to-externe")
                     .cookie(adminCookie)
                     .with(csrf())
                     .contentType(MediaType.APPLICATION_JSON)
@@ -165,7 +177,7 @@ class TroupeMembershipLifecycleIntegrationTest {
 
         mockMvc
             .perform(
-                post("/v1/troupes/$seedTroupeId/members/${membership.id}/convert-to-member")
+                post("/v1/troupes/$fixtureTroupeId/members/${membership.id}/convert-to-member")
                     .cookie(adminCookie)
                     .with(csrf()),
             ).andExpect(status().isOk)
@@ -184,7 +196,7 @@ class TroupeMembershipLifecycleIntegrationTest {
         signIn("sub-lifecycle-remove-member", "lifecycle-remove-member@example.com", "Remove Member")
         val memberUser = userRepository.findByGoogleSub("sub-lifecycle-remove-member")!!
         val membership =
-            membershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, memberUser.id)!!
+            membershipRepository.findByTroupe_IdAndUser_Id(fixtureTroupeId, memberUser.id)!!
         val guestSeason = createSeason(adminCookie, "Guest season remove")
         val removedSeason = createSeason(adminCookie, "Removed season")
         activateSeason(guestSeason)
@@ -194,7 +206,7 @@ class TroupeMembershipLifecycleIntegrationTest {
 
         mockMvc
             .perform(
-                post("/v1/troupes/$seedTroupeId/members/${membership.id}/convert-to-externe")
+                post("/v1/troupes/$fixtureTroupeId/members/${membership.id}/convert-to-externe")
                     .cookie(adminCookie)
                     .with(csrf())
                     .contentType(MediaType.APPLICATION_JSON)
@@ -226,7 +238,7 @@ class TroupeMembershipLifecycleIntegrationTest {
         signIn("sub-lifecycle-default-member", "lifecycle-default-member@example.com", "Default Member")
         val memberUser = userRepository.findByGoogleSub("sub-lifecycle-default-member")!!
         val membership =
-            membershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, memberUser.id)!!
+            membershipRepository.findByTroupe_IdAndUser_Id(fixtureTroupeId, memberUser.id)!!
         val seasonA = createSeason(adminCookie, "Default season A")
         val seasonB = createSeason(adminCookie, "Default season B")
         activateSeason(seasonA)
@@ -236,7 +248,7 @@ class TroupeMembershipLifecycleIntegrationTest {
 
         mockMvc
             .perform(
-                post("/v1/troupes/$seedTroupeId/members/${membership.id}/convert-to-externe")
+                post("/v1/troupes/$fixtureTroupeId/members/${membership.id}/convert-to-externe")
                     .cookie(adminCookie)
                     .with(csrf())
                     .contentType(MediaType.APPLICATION_JSON)
@@ -265,14 +277,14 @@ class TroupeMembershipLifecycleIntegrationTest {
         val memberCookie = signIn("sub-lifecycle-guest-member", "lifecycle-guest-member@example.com", "Guest Member")
         val memberUser = userRepository.findByGoogleSub("sub-lifecycle-guest-member")!!
         val membership =
-            membershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, memberUser.id)!!
+            membershipRepository.findByTroupe_IdAndUser_Id(fixtureTroupeId, memberUser.id)!!
         val activeSeason = createSeason(adminCookie, "Guest workspace season")
         activateSeason(activeSeason)
         seasonParticipantService.ensureMembershipParticipants(seasonRepository.findById(activeSeason).orElseThrow())
 
         mockMvc
             .perform(
-                post("/v1/troupes/$seedTroupeId/members/${membership.id}/convert-to-externe")
+                post("/v1/troupes/$fixtureTroupeId/members/${membership.id}/convert-to-externe")
                     .cookie(adminCookie)
                     .with(csrf())
                     .contentType(MediaType.APPLICATION_JSON)
@@ -299,7 +311,7 @@ class TroupeMembershipLifecycleIntegrationTest {
         mockMvc
             .perform(get("/v1/me/agenda").cookie(memberCookie))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.content", hasSize<Any>(2)))
+            .andExpect(jsonPath("$.content[*].title", hasItems("Guest show", "Sibling show")))
 
         mockMvc
             .perform(
@@ -321,7 +333,7 @@ class TroupeMembershipLifecycleIntegrationTest {
         val memberCookie = signIn("sub-lifecycle-hub-member", "lifecycle-hub-member@example.com", "Hub Member")
         val memberUser = userRepository.findByGoogleSub("sub-lifecycle-hub-member")!!
         val membership =
-            membershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, memberUser.id)!!
+            membershipRepository.findByTroupe_IdAndUser_Id(fixtureTroupeId, memberUser.id)!!
         val invitedSeason = createSeason(adminCookie, "Invited hub season")
         val removedSeason = createSeason(adminCookie, "Hidden hub season")
         activateSeason(invitedSeason)
@@ -331,7 +343,7 @@ class TroupeMembershipLifecycleIntegrationTest {
 
         mockMvc
             .perform(
-                post("/v1/troupes/$seedTroupeId/members/${membership.id}/convert-to-externe")
+                post("/v1/troupes/$fixtureTroupeId/members/${membership.id}/convert-to-externe")
                     .cookie(adminCookie)
                     .with(csrf())
                     .contentType(MediaType.APPLICATION_JSON)
@@ -346,14 +358,14 @@ class TroupeMembershipLifecycleIntegrationTest {
             ).andExpect(status().isOk)
 
         mockMvc
-            .perform(get("/v1/troupes/$seedTroupeId/seasons").cookie(memberCookie))
+            .perform(get("/v1/troupes/$fixtureTroupeId/seasons").cookie(memberCookie))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.content", hasSize<Any>(1)))
             .andExpect(jsonPath("$.content[0].id").value(invitedSeason.toString()))
             .andExpect(jsonPath("$.content[0].guestSeasonWorkspaceMode").value("AGENDA_ONLY"))
 
         mockMvc
-            .perform(get("/v1/troupes/by-slug/les-improbots/context").cookie(memberCookie))
+            .perform(get("/v1/troupes/by-slug/${fixtureTroupe.slug}/context").cookie(memberCookie))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.membership.baselineRole").value("EXTERNE"))
     }
@@ -364,7 +376,7 @@ class TroupeMembershipLifecycleIntegrationTest {
         val memberCookie = signIn("sub-lifecycle-325-member", "lifecycle-325-member@example.com", "Laetitia 325")
         val memberUser = userRepository.findByGoogleSub("sub-lifecycle-325-member")!!
         val membership =
-            membershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, memberUser.id)!!
+            membershipRepository.findByTroupe_IdAndUser_Id(fixtureTroupeId, memberUser.id)!!
         val pastSeason = createSeason(adminCookie, "Past 325 season")
         val activeSeason = createSeason(adminCookie, "Active 325 season")
         activateSeason(pastSeason)
@@ -375,7 +387,7 @@ class TroupeMembershipLifecycleIntegrationTest {
 
         mockMvc
             .perform(
-                post("/v1/troupes/$seedTroupeId/members/${membership.id}/convert-to-externe")
+                post("/v1/troupes/$fixtureTroupeId/members/${membership.id}/convert-to-externe")
                     .cookie(adminCookie)
                     .with(csrf())
                     .contentType(MediaType.APPLICATION_JSON)
@@ -410,7 +422,7 @@ class TroupeMembershipLifecycleIntegrationTest {
             .andExpect(jsonPath("$.content[?(@.eventId == '$activeEvent')]", hasSize<Any>(1)))
 
         mockMvc
-            .perform(get("/v1/troupes/$seedTroupeId/seasons").cookie(memberCookie))
+            .perform(get("/v1/troupes/$fixtureTroupeId/seasons").cookie(memberCookie))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.content", hasSize<Any>(1)))
             .andExpect(jsonPath("$.content[0].id").value(activeSeason.toString()))
@@ -480,7 +492,7 @@ class TroupeMembershipLifecycleIntegrationTest {
                 ).andExpect(status().isOk)
                 .andReturn()
         val cookie = result.response.getCookie("HATCAST_SESSION")!!
-        TestAuthSupport.joinSeedTroupe(mockMvc, cookie, seedTroupeId)
+        TestAuthSupport.joinSeedTroupe(mockMvc, cookie, fixtureTroupeId)
         return cookie
     }
 
@@ -491,7 +503,7 @@ class TroupeMembershipLifecycleIntegrationTest {
     ): Cookie {
         val cookie = signIn(googleSub, email, displayName)
         val user = userRepository.findByGoogleSub(googleSub)!!
-        val membership = membershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, user.id)!!
+        val membership = membershipRepository.findByTroupe_IdAndUser_Id(fixtureTroupeId, user.id)!!
         membership.baselineRole = TroupeBaselineRole.TROUPE_ADMIN
         membershipRepository.save(membership)
         return cookie
@@ -504,7 +516,7 @@ class TroupeMembershipLifecycleIntegrationTest {
         val result =
             mockMvc
                 .perform(
-                    post("/v1/troupes/$seedTroupeId/seasons")
+                    post("/v1/troupes/$fixtureTroupeId/seasons")
                         .cookie(cookie)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)

@@ -77,7 +77,25 @@ Stack : [`services/api/`](services/api/) (Kotlin / Spring Boot) et [`apps/web/`]
 **Notifications email (V2, story 8.3)** : dans `.env`, `HATCAST_NOTIFICATION_EMAIL_ENABLED=true` (+ optionnel `HATCAST_NOTIFICATION_EMAIL_FROM`). Avec **`./scripts/start-dev.sh`** (recommandé) : le script démarre **Mailpit** via Docker, force `SPRING_MAIL_HOST=127.0.0.1:1025` pour l’API, attend le SMTP, arrête Mailpit à la fin. UI de recette : **http://127.0.0.1:8025**. Pas de `SPRING_MAIL_*` local requis (les lignes Gmail du `.env` sont ignorées par le script). **`npm run dev:api` seul** ne démarre pas Mailpit — utiliser `start-dev.sh` pour tester l’envoi email. Staging/prod : secrets GitHub `SPRING_MAIL_*` (Gmail), pas Mailpit.
 4. **Client** : dans `apps/web`, éditer `src/environments/environment.development.ts` et renseigner `googleOAuthWebClientId` (même valeur publique que l’API) et, pour email/mot de passe, le bloc `firebase`, puis `npm install && npm run dev` (port **4200** en **HTTPS** ; le proxy envoie `/v1` et `/actuator` vers l’API en HTTP, voir `proxy.conf.json`). Routes : **`/`** redirige selon la session ; **`/connexion`** (Google + email si config Firebase présente) ; **`/accueil`** une fois connecté. Au premier chargement, le navigateur peut avertir sur le certificat de dev — accepter pour localhost.
 
-**Tout-en-un (recommandé) :** `./scripts/start-dev.sh` à la racine — démarre l’API puis le client Angular (`ng serve --host`, HTTPS). Variables `HATCAST_*` lues depuis `.env` si le fichier existe. **E2E :** arrêter ce script puis `./scripts/run_e2e.sh` (voir § Tests).
+**Tout-en-un (recommandé) :** `./scripts/start-dev.sh` à la racine — démarre l’API puis le client Angular (`ng serve --host`, HTTPS). Dans un worktree, il recharge le `.env` du checkout `v2` si le worktree n’en a pas, et réutilise le certificat mkcert `localhost` partagé sous `v2/.local/hatcast-dev-certs/`; ces fichiers locaux ne sont pas versionnés. Les variables `HATCAST_WEB_SSL_CERT` et `HATCAST_WEB_SSL_KEY` permettent de fournir un autre couple certificat/clé. **E2E :** arrêter ce script puis `./scripts/run_e2e.sh` (voir § Tests).
+
+### Recette manuelle V2 depuis un worktree
+
+Pour remettre une URL à une personne afin qu’elle teste un développement V2, démarrer la **stack complète** depuis le worktree :
+
+```bash
+./scripts/start-dev.sh --offline
+```
+
+Ce mode est le défaut sûr pour une recette locale : il démarre l’API Spring en profil `dev,offline`, une base H2 gitignorée propre au worktree et le front HTTPS sur `https://localhost:4200`. Il ne demande ni `.env`, ni Neon, ni Identity Platform réel. Pour les comptes seed, utiliser l’adresse complète `prenom@seed.improbots.test` — par exemple `patrice@seed.improbots.test` / `patricep`.
+
+`npm run dev:web:v2` et `ng serve` ne démarrent que le front et son proxy `/v1` : ils sont utiles uniquement si une API **compatible et déjà vérifiée** écoute sur `127.0.0.1:8080`. Ne pas les utiliser seuls pour une recette humaine, sinon la connexion et les actions métier échouent avec une indisponibilité du service.
+
+Avant de transmettre l’URL, vérifier la chaîne complète : le front doit répondre sur `/connexion`, `/actuator/health` doit répondre sur l’API et `/v1/auth/me` doit répondre `401` avant connexion. Garder le processus `start-dev.sh` actif pendant la recette. S’il faut libérer les ports `4200` ou `8080`, n’arrêter que la stack locale identifiée comme appartenant au même worktree.
+
+### Clôturer une story
+
+Une demande explicite de clôture suit la politique locale définie dans [AGENTS.md](AGENTS.md#clôture-dune-story). Elle met à jour le tracker par son contrôleur, intègre dans `v2`, puis retire seulement le worktree et la branche locale dédiés, une fois l'intégration vérifiée. Push, déploiement et suppression distante restent des autorisations séparées.
 
 **Mode offline (sans Neon / sans internet)** : si la branche Neon `local` est injoignable (train, avion, etc.), **ou** pour éviter de consommer des CU-h Free, lancer avec une base H2 locale et les seeds Les Improbots :
 
@@ -87,13 +105,26 @@ Stack : [`services/api/`](services/api/) (Kotlin / Spring Boot) et [`apps/web/`]
 ```
 
 - Base H2 fichier : `.local/hatcast-offline/` (gitignored) — persiste entre redémarrages API.
+
+Pour activer l’aperçu fictif Avent dans ce seul environnement isolé, fournir les variables au lancement :
+
+```bash
+HATCAST_ADVENT_TEST_ENABLED=true \
+HATCAST_ADVENT_TEST_TROUPE_ID=a0000001-0000-4000-8000-000000000001 \
+./scripts/start-dev.sh --offline
+```
+
+Les jours 1 à 24 disposent chacun de trois anecdotes fictives pour la vérification visuelle. Les jours 1 à 5 utilisent les fixtures de Toinou, Patrice, Will, Camille et Angie lorsqu’elles sont disponibles ; les autres utilisent le lutin générique. Les boutons de la barre de test avancent l’aperçu ou le ramènent au jour 1 ; ils ne règlent pas encore l’horloge partagée et ne réinitialisent aucune partie. Les lutins personnalisés facultatifs sont placés localement dans `.local/hatcast-avent-test/` sous les noms `toinou-net.png`, `patrice-net.png`, `will-net.png`, `camille-net.png`, `angie-net.png` ; ce dossier est ignoré par Git. En l’absence d’un fichier, l’API renvoie le lutin générique. Ces images restent derrière les contrôles de lecture de l’API ; aucune anecdote réelle ni solution n’est chargée. Cette correspondance est une fixture locale, pas la structure finale des quiz.
+
+Cet UUID correspond à la troupe seed **Les Improbots** ; utiliser un compte seed membre actif de cette troupe. La route directe `/avent-test` donne accès à l’aperçu incomplet et au quiz fictif avec confirmation et rejeu personnel. La base H2 doit rester dans le répertoire hors ligne du worktree, sans lien symbolique sur `.local`, `hatcast-offline` ou le fichier de base. Ne proposer aucune démonstration humaine avant d’avoir vérifié l’isolation effective des données, des notifications et de l’analytics.
+
 - Connexion : `/connexion` avec un compte seed `@seed.improbots.test` (ex. `charlene@seed.improbots.test` / `charlene`, ou `patrice@seed.improbots.test` / `patricep` si slug < 8 caractères) — voir § Les Improbots ci-dessous.
 - **Indisponible offline** : Google OAuth, Identity Platform (email réel), Neon, `--with-push`, Tailscale (désactivé automatiquement).
 - Reset données : `rm -rf .local/hatcast-offline/` puis relancer `--offline`.
 - Prérequis : `npm install` et dépendances Gradle déjà en cache (première install nécessite internet).
 - Polices et icônes Material : embarquées dans le build Angular (plus de chargement depuis Google Fonts).
 
-Scripts racine optionnels : `npm run dev:api`, `npm run dev:web:v2`. Détail : [services/api/README.md](services/api/README.md), [apps/web/README.md](apps/web/README.md), [docs/v2/technical/V2_GOOGLE_OAUTH_SETUP.md](docs/v2/technical/V2_GOOGLE_OAUTH_SETUP.md).
+Scripts racine optionnels : `npm run dev:api`, `npm run dev:web:v2` (front seul : voir les préconditions de recette ci-dessus). Détail : [services/api/README.md](services/api/README.md), [apps/web/README.md](apps/web/README.md), [docs/v2/technical/V2_GOOGLE_OAUTH_SETUP.md](docs/v2/technical/V2_GOOGLE_OAUTH_SETUP.md).
 
 **Trois troupes en local (`./scripts/start-dev.sh`, profil `dev`, Neon branche `local`) :**
 
@@ -264,3 +295,5 @@ Commit messages must follow the [Commit Message Guidelines](docs/shared/technica
 ## Lint / format
 
 - No shared lint/format script was observed in package.json. Use editor/IDE defaults or add eslint/prettier and wire scripts in a later slice (see PLAN.md). Do not disable or skip tests to satisfy a linter.
+
+Le mode de prévisualisation Avent vérifie également `HATCAST_ADVENT_TEST_ALLOWED_EMAILS`, liste d’adresses de test séparées par des virgules ; une liste absente refuse tout accès. Elle ne confère aucun rôle d’administration.

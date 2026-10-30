@@ -5,10 +5,8 @@
   <mat-form-field appearance="outline" class="type-roles-dialog__full">
       <mat-label>Format</mat-label>
     <mat-select
-      #formatSelect
       [value]="selectedTemplateType"
       (selectionChange)="onTemplateSelected($event.value)"
-      [disabled]="showTemplateChangeConfirmation"
     >
       @for (typeId of templateOrder; track typeId) {
         <mat-option [value]="typeId">
@@ -18,43 +16,27 @@
     </mat-select>
   </mat-form-field>
 
-  @if (showTemplateChangeConfirmation && pendingTemplateId) {
+  @if (shouldWarnAboutTemplateNeeds) {
     <div class="template-confirm" role="alert">
       <p class="template-confirm__title">Changement de format</p>
       <p class="template-confirm__text">
-        Les rôles actuels diffèrent du format « {{ getEventTypeLabel(pendingTemplateId) }} ».
-        Appliquer le nouveau format ?
+        Les rôles actuels diffèrent du format « {{ getEventTypeLabel(selectedTemplateType) }} ».
+        Appliquer ce format remplacera les besoins actuels.
       </p>
-      <div class="template-confirm__actions">
-        <button type="button" mat-flat-button color="primary" (click)="confirmTemplateChange()">
-          Appliquer
-        </button>
-        <button type="button" mat-button (click)="cancelTemplateChange()">Ignorer</button>
-      </div>
     </div>
   }
 
-  @if (!showTemplateChangeConfirmation) {
-    <p class="type-roles-dialog__slots-title">Effectifs par rôle</p>
-    <app-role-slot-chip-set
-      class="type-roles-dialog__slots"
-      [counts]="roleSlots"
-      [maxCount]="roleCountMax"
-      ariaLabel="Effectifs par rôle"
-      (countChange)="onSlotCountChange($event)"
-    />
-  }
   </div>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-  <button type="button" mat-button mat-dialog-close>Annuler</button>
+  <button type="button" mat-button [mat-dialog-close]="undefined">Annuler</button>
   <button
     type="button"
     mat-flat-button
     color="primary"
-    [disabled]="showTemplateChangeConfirmation"
+    [disabled]="!hasSelectedTemplateChange"
     (click)="submit()"
   >
-    Enregistrer
+    Appliquer
   </button>
 </mat-dialog-actions>

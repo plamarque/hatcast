@@ -1,0 +1,14 @@
+{
+  "version": "2.6.3",
+  "date": "__BUILD_DATE__",
+  "source": "curated-release",
+  "notes": "Organizer availability comments and product observability",
+  "changes": [
+    "🐛 Équipe — les orga voient les commentaires de disponibilité au moment de composer une équipe.",
+    "🐛 Dispos — repère les commentaires disponibles directement dans la liste des participant·es."
+  ],
+  "changes_en": [
+    "🐛 Team — organizers can see availability comments while building a lineup.",
+    "🐛 Availability — spot available comments directly in the participant list."
+  ]
+}

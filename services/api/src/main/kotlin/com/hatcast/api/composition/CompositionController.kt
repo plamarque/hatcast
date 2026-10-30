@@ -9,8 +9,10 @@ import com.hatcast.api.composition.dto.CompositionResponseDto
 import com.hatcast.api.composition.dto.AssignSlotRequestDto
 import com.hatcast.api.composition.dto.DrawCompositionRequestDto
 import com.hatcast.api.composition.dto.UpdateSlotParticipationRequestDto
+import com.hatcast.api.event.dto.EventResponseDto
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
@@ -26,6 +28,7 @@ class CompositionController(
     private val compositionService: CompositionService,
     private val compositionDrawService: CompositionDrawService,
     private val compositionSlotAssignmentService: CompositionSlotAssignmentService,
+    private val compositionSlotStructureService: CompositionSlotStructureService,
     private val compositionParticipationService: CompositionParticipationService,
     private val compositionDeclineRestoreService: CompositionDeclineRestoreService,
     private val compositionExplainabilityService: CompositionExplainabilityService,
@@ -162,4 +165,44 @@ class CompositionController(
             body,
             principal,
         )
+
+    @DeleteMapping("/slots/{roleKey}/{slotIndex}")
+    fun deleteCompositionSlot(
+        @PathVariable seasonId: UUID,
+        @PathVariable eventId: UUID,
+        @PathVariable roleKey: String,
+        @PathVariable slotIndex: Int,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): EventResponseDto =
+        compositionSlotStructureService.deleteSlot(
+            seasonId,
+            eventId,
+            roleKey,
+            slotIndex,
+            principal,
+        )
+
+    @DeleteMapping("/out-of-model-slots/{roleKey}/{slotIndex}/assignee")
+    fun clearOutOfModelSlot(
+        @PathVariable seasonId: UUID,
+        @PathVariable eventId: UUID,
+        @PathVariable roleKey: String,
+        @PathVariable slotIndex: Int,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): CompositionResponseDto {
+        compositionSlotStructureService.clearOutOfModelSlot(seasonId, eventId, roleKey, slotIndex, principal)
+        return compositionService.getCompositionStateAfterMutation(seasonId, eventId, principal)
+    }
+
+    @DeleteMapping("/out-of-model-slots/{roleKey}/{slotIndex}")
+    fun deleteOutOfModelSlot(
+        @PathVariable seasonId: UUID,
+        @PathVariable eventId: UUID,
+        @PathVariable roleKey: String,
+        @PathVariable slotIndex: Int,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): CompositionResponseDto {
+        compositionSlotStructureService.deleteOutOfModelSlot(seasonId, eventId, roleKey, slotIndex, principal)
+        return compositionService.getCompositionStateAfterMutation(seasonId, eventId, principal)
+    }
 }

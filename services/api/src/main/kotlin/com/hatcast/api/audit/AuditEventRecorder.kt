@@ -2,7 +2,6 @@ package com.hatcast.api.audit
 
 import org.springframework.stereotype.Service
 import java.time.Instant
-import java.time.temporal.ChronoUnit
 import java.util.UUID
 
 data class AuditRecordRequest(
@@ -24,7 +23,9 @@ class AuditEventRecorder(
     private val auditEventRepository: AuditEventRepository,
 ) {
     fun record(request: AuditRecordRequest) {
-        val now = Instant.now().truncatedTo(ChronoUnit.SECONDS)
+        // Ordering-sensitive consumers (for example the post-unlock composition
+        // deletion diff) need more precision than a civil-time audit display.
+        val now = Instant.now()
         auditEventRepository.save(
             AuditEventEntity(
                 occurredAt = now,

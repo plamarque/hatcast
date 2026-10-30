@@ -426,6 +426,8 @@ Détail dashboard (phases A–B) : [_bmad-output/implementation-artifacts/ops-10
 
 ### 7.5 PostHog EU + proxy `e.hatcast.app` (OPS-9 / FR47)
 
+**Installation, mises à jour et nouveautés (11.5)** : [contrat lifecycle et provisionnement CI](PWA_LIFECYCLE_POSTHOG.md), avec référence de release automatique, suivi nominatif autorisé et snapshot technique à l’ouverture des notes. L’adoption PWA/Web reste le sujet séparé 11.6.
+
 Analytics produit **MVP** : opérateurs via le projet PostHog uniquement (pas d’UI dans l’app). Événements workflow anonymisés côté `apps/web` (`posthog-js`).
 
 #### Configuration SDK (SPA Angular)
@@ -446,6 +448,18 @@ Après `GET /v1/auth/me`, `ProductAnalyticsService.identifyUser` appelle `postho
 
 **Gouvernance :** accès projet PostHog EU **restreint** (opérateurs produit / PO — pas admins troupe). Les captures FR47 restent **anonymisées** (ids + timestamps) ; **ne pas** exporter `email` / `name` sur les événements workflow. Filtre dashboard **`is_demo_troupe != true`** inchangé.
 
+#### Parcours organisateur (Story 11.4)
+
+Chaque événement organisateur porte un `actor_scope` **local à l'événement** : `platform_admin`, `troupe_admin`, `season_organizer`, `event_organizer`, puis `member` (dans cet ordre de précédence). Ce n'est pas une propriété People ni une autorisation persistée. Le seul trait People supplémentaire permis est `has_ever_organized: true` lorsqu'il est explicitement pris en charge par la façade.
+
+Catalogue borné : `composition_workspace_opened` (une fois par événement/session, `lifecycle` = `draft`/`validated`/`published`), `composition_mutation_completed` (`action` et `outcome` bornés ; `operation` de créneau = `assign`/`unassign`/`remove_slot`/`restore_slot`) et `availability_reminder_sent` (`outcome`, plus une tranche de volume `0`/`1`/`2_5`/`6_20`/`21_plus` seulement en cas de succès). Les événements FR47 du détail conservent leur nom et leurs propriétés, avec `actor_scope` lorsque le contexte chargé le permet.
+
+Le détail de cote ajoute `chance_breakdown_opened` uniquement après le succès API et l'ouverture effective du composant Material, avec `entry_point` parmi `dispos_poll`, `equipe_slot_picker`, `equipe_pool_preview`, `equipe_draw_step`, `equipe_slot_chance` et `presentation=bottom_sheet|dialog`. L'activation explicite de « Comprendre le tirage en général » émet `chance_breakdown_help_opened` avec le même `entry_point`, sans `presentation`. Ces événements réutilisent seulement `event_id`, `season_id`, `troupe_id`, `is_demo_troupe` et l'éventuel `actor_scope`; ils permettent aux opérateurs autorisés de filtrer les replays existants par surface sans modifier la capture Replay ni créer d'objet PostHog.
+
+`action=publish` correspond au succès de « Publier » : la composition devient visible et la fenêtre d'annonce s'ouvre. `action=announce` mesure les choix dans cette fenêtre : `outcome=succeeded` et `announcement_channel=copy|whatsapp` au clic, sans présumer l'envoi ou la réception. Une fermeture sans choix émet `outcome=refused`, sans canal ; fermer après un choix n'émet aucun abandon. Les notifications automatiques déclenchées par la validation restent distinctes. Les modifications de format/besoins et l'ajout d'une place sont des mutations `slot` sans `operation`, celles-ci étant réservées aux quatre opérations détaillées ci-dessus. La déduplication workspace utilise sessionStorage avec repli mémoire ; une réinitialisation de session l'efface.
+
+N'envoyer ni identifiant ou nom de participant, ni rôle libre, slug, contenu de notification, commentaire, avatar, email, payload API ou détail d'erreur. Dans PostHog, appliquer `is_demo_troupe != true`, puis construire les funnels `composition_workspace_opened → composition_mutation_completed(action=draw_execute|slot, outcome=succeeded) → composition_validated` et `composition_validated → composition_mutation_completed(action=publish, outcome=succeeded) → composition_mutation_completed(action=announce, outcome=succeeded)`. Maintenir `event_id` constant entre les étapes (et filtrer `season_id`/`troupe_id`) afin de ne pas mélanger plusieurs compositions. Mesurer les abandons séparément avec `action=announce, outcome=refused`. Filtrer ensuite par `actor_scope` si nécessaire. La création d'insights reste soumise à autorisation explicite.
+
 **Recette People (post-déploiement 11.2) :**
 
 1. Connexion membre test sur `https://hatcast.app`.
@@ -453,7 +467,7 @@ Après `GET /v1/auth/me`, `ProductAnalyticsService.identifyUser` appelle `postho
 3. Logout → login autre compte → deux personnes distinctes (`posthog.reset()` au logout).
 4. *(Optionnel P1)* **Live events** : `v2_migration_first_session` (une fois par utilisateur, `user_id` UUID seul).
 
-Hors scope : session replay, feature flags, `defaults: '2026-01-30'` (on fixe les options explicitement).
+Hors scope : modification de la capture ou du contenu des session replays, feature flags, `defaults: '2026-01-30'` (on fixe les options explicitement).
 
 #### Projet PostHog Cloud EU
 
@@ -462,6 +476,27 @@ Hors scope : session replay, feature flags, `defaults: '2026-01-30'` (on fixe le
 3. Dashboards pilote : filtrer **`is_demo_troupe != true`** pour exclure la troupe Démo (FR64 / ADR-0015).
 
 **Événement `notification_link_opened` (MVP)** : déclenché dès que l’URL contient `?tab=dispos|equipe`, `?showConfirm=true` ou `?showAvailability=true` — y compris navigation manuelle ou favori, pas seulement un clic email/push (pas de param `src=notif` dans cette story). Interpréter les KPI « suivi notification » comme indicateur de **deep-link tab**, pas de source notif exclusive.
+
+#### PWA adoption PostHog (Story 11.5)
+
+HatCast ne fournit que deux signaux bornés, via `ProductAnalyticsService` :
+
+| Événement | Moment | Propriétés applicatives autorisées | Limite |
+|---|---|---|---|
+| `pwa_access_mode_observed` | Après `identify`, une fois par personne/session navigateur | `access_mode`: `standalone` ou `web` | Le mode vient de `display-mode: standalone` ou iOS `navigator.standalone`; le stockage local n’est jamais une preuve. |
+
+Les captures n’ajoutent aucune propriété People et excluent user-agent brut, URL, identifiant appareil, texte libre et fingerprint. PostHog fournit déjà ses métadonnées serveur `$browser`, `$browser_version`, `$os`, `$os_version` et `$device_type`; HatCast ne les recopie donc pas.
+
+**Recette opérateur (PostHog, sans objet provisionné par le code) :** ouvrir l’intervalle des **30 derniers jours**, limiter aux personnes identifiées, puis :
+
+1. **PWA-used** : personnes uniques sur `pwa_access_mode_observed` où `access_mode = standalone`.
+2. **Web-only** : personnes uniques avec au moins un `access_mode = web` et aucune observation `standalone` sur le même intervalle.
+3. **Mixed-use** : intersection des deux populations, à présenter séparément.
+4. Pour les populations web-only, décomposer avec les métadonnées serveur PostHog par browser/browser version puis OS/OS version/device type; ne pas créer de propriété People pour cette analyse.
+
+Appliquer une exclusion démo/interne uniquement si un filtre déterministe, documenté et applicable à ces événements existe. À ce jour, `is_demo_troupe` n’est pas attachable à une observation globale de mode d’accès sans inventer un contexte de troupe : ne pas l’utiliser comme filtre de substitution. La création ou la modification d’insights, cohortes ou dashboards PostHog nécessite une autorisation explicite distincte.
+
+**Vérification production après déploiement :** avec deux comptes de test, ouvrir une session web normale et une session standalone, puis vérifier dans Live Events exactement une observation par compte/session et l’absence de propriétés interdites.
 
 #### Proxy managé (recommandé)
 

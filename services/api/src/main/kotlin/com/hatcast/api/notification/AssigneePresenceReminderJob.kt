@@ -5,6 +5,7 @@ import com.hatcast.api.composition.EventCompositionSlotRepository
 import com.hatcast.api.composition.SlotParticipationStatus
 import com.hatcast.api.composition.assignedParticipantId
 import com.hatcast.api.composition.hasAssignee
+import com.hatcast.api.composition.isRequiredBy
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.event.EventService
 import com.hatcast.api.participant.EventParticipantEntity
@@ -84,7 +85,8 @@ class AssigneePresenceReminderJob(
             slotRepository
                 .findByEventId(event.id)
                 .filter {
-                    it.hasAssignee() &&
+                    it.isRequiredBy(event.roleSlots) &&
+                        it.hasAssignee() &&
                         it.participationStatus == SlotParticipationStatus.CONFIRMED &&
                         !it.waived
                 }

@@ -6,9 +6,10 @@ import { Router, RouterLink } from '@angular/router'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
 import { MemberShellBootstrapService } from '../../core/member-shell/member-shell-bootstrap.service'
-import type { UserAgendaItem } from '../../core/agenda/user-agenda-api.service'
+import { UserAgendaApiService, type UserAgendaItem } from '../../core/agenda/user-agenda-api.service'
 import type { InboxAction, MeInboxResponse } from '../../core/inbox/me-inbox-api.service'
 import { MemberInboxBadgeService } from '../../core/inbox/member-inbox-badge.service'
+import { InboxFeedbackService } from '../../core/inbox/inbox-feedback.service'
 import {
   calendarDaysFromNow,
   enrichAgendaCardFields,
@@ -18,9 +19,8 @@ import {
   type AgendaCardEnrichedItem,
 } from '../../core/member-home/member-home-todo.utils'
 import { rememberCurrentUrlForPostLogin } from '../../core/navigation/auth-redirect.helper'
-import { LastVisitedSeasonShortcutService } from '../../core/navigation/last-visited-season-shortcut.service'
 import { DemoTroupeJoinService } from '../../core/troupes/demo-troupe-join.service'
-import { saisonEventPath, troupeHubPath } from '../../core/navigation/troupe-routes'
+import { saisonEventPath } from '../../core/navigation/troupe-routes'
 import { MePreferencesApiService } from '../../core/account/me-preferences-api.service'
 import type { MemberGender } from '../../core/account/member-gender'
 import { AgendaEventCard } from '../../shared/participation/agenda-event-card'
@@ -46,10 +46,12 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
   private readonly memberBootstrap = inject(MemberShellBootstrapService)
   private readonly mePreferencesApi = inject(MePreferencesApiService)
   private readonly inboxBadge = inject(MemberInboxBadgeService)
-  protected readonly seasonShortcut = inject(LastVisitedSeasonShortcutService)
+  private readonly inboxFeedback = inject(InboxFeedbackService)
   private readonly router = inject(Router)
   private readonly snack = inject(MatSnackBar)
   private readonly demoJoin = inject(DemoTroupeJoinService)
+  private readonly agendaApi = inject(UserAgendaApiService)
+  private agendaGeneration = 0
 
   protected readonly joiningDemo = this.demoJoin.joining
 
@@ -57,10 +59,16 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
   protected readonly loadingInbox = signal(false)
   protected readonly inboxLoaded = signal(false)
   protected readonly inboxRevalidating = signal(false)
+  private readonly inboxConfirmed = signal(false)
+  protected readonly confirmationPhase = signal<'idle' | 'shown' | 'fading' | 'collapsing' | 'dismissed'>('idle')
+  protected readonly feedbackAnnouncement = signal('')
+  private feedbackTimer: ReturnType<typeof setTimeout> | null = null
+  private destroyed = false
   protected readonly loadError = signal(false)
   protected readonly actions = signal<InboxAction[]>([])
   protected readonly completedGhosts = signal<CompletedGhost[]>([])
   protected readonly nextEvent = signal<AgendaCardEnrichedItem | null>(null)
+  protected readonly upcomingEvents = signal<AgendaCardEnrichedItem[]>([])
   protected readonly noParticipation = signal(false)
   protected readonly referenceNow = signal(new Date())
   protected readonly viewerGender = signal<MemberGender | undefined>(undefined)
@@ -70,6 +78,31 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
   private inboxLoadingRequests = 0
 
   constructor() {
+    effect(() => {
+      const ready = this.inboxConfirmed() && !this.inboxRevalidating() &&
+        !this.loadingInbox() && !this.loadingSession() && !this.noParticipation() &&
+        !this.loadError() && this.actions().length === 0 && this.completedGhosts().length === 0
+      if (!ready) {
+        this.cancelConfirmation()
+        return
+      }
+      if (!this.inboxFeedback.confirmationPending()) return
+      this.inboxFeedback.markPresented()
+      this.feedbackAnnouncement.set('Tout est à jour')
+      if (!this.nextEvent()) return // This useful empty state remains visible.
+      this.confirmationPhase.set('shown')
+      this.feedbackTimer = setTimeout(() => {
+        if (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          this.confirmationPhase.set('dismissed')
+          return
+        }
+        this.confirmationPhase.set('fading')
+        this.feedbackTimer = setTimeout(() => {
+          this.confirmationPhase.set('collapsing')
+          this.feedbackTimer = setTimeout(() => this.confirmationPhase.set('dismissed'), 280)
+        }, 220)
+      }, 3000)
+    })
     effect(() => {
       const revision = this.mePreferencesApi.cacheRevision()
       if (revision === this.lastSeenPreferencesRevision) {
@@ -82,25 +115,6 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
       void this.loadViewerGender()
     })
   }
-  protected readonly seasonStatsLink = computed(() => {
-    const slug = this.seasonShortcut.seasonSlug()?.trim()
-    return slug ? this.seasonShortcut.link() : null
-  })
-
-  protected readonly seasonStatsShortcutLabel = computed(() => {
-    const title = this.seasonShortcut.seasonTitle()?.trim()
-    return title ? `Stats · ${title}` : 'Stats saison'
-  })
-
-  protected readonly seasonStatsAriaLabel = computed(() => {
-    const title = this.seasonShortcut.seasonTitle()?.trim()
-    return title ? `Statistiques de la saison ${title}` : 'Statistiques saison'
-  })
-
-  protected readonly troupeHubLink = computed(() => {
-    const slug = this.seasonShortcut.troupeSlug()?.trim()
-    return slug ? troupeHubPath(slug) : null
-  })
   protected readonly visibleActions = computed(() =>
     this.actions().slice(0, MAX_VISIBLE_ACTIONS),
   )
@@ -109,16 +123,28 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
 
   protected readonly showActionsSection = computed(() => this.actions().length > 0)
 
-  protected readonly showAllCaughtUpBanner = computed(
-    () =>
-      this.inboxLoaded() &&
-      !this.inboxRevalidating() &&
-      !this.noParticipation() &&
-      !this.loadingSession() &&
-      !this.loadingInbox() &&
-      !this.loadError() &&
-      this.actions().length === 0 &&
+  private readonly emptyInboxVisible = computed(
+    () => this.inboxLoaded() && !this.noParticipation() && !this.loadingSession() &&
+      !this.loadingInbox() && !this.loadError() && this.actions().length === 0 &&
       this.completedGhosts().length === 0,
+  )
+
+  protected readonly showCaughtUpSkeleton = computed(
+    () => this.emptyInboxVisible() && this.inboxRevalidating() &&
+      this.inboxFeedback.confirmationPending(),
+  )
+
+  protected readonly showAllCaughtUpBanner = computed(() => {
+    if (!this.emptyInboxVisible()) return false
+    // Keep the useful no-upcoming-event state even on subsequent cached visits.
+    if (!this.nextEvent() && !this.inboxFeedback.confirmationPending()) return true
+    const phase = this.confirmationPhase()
+    return this.inboxConfirmed() && !this.inboxRevalidating() &&
+      phase !== 'idle' && phase !== 'dismissed'
+  })
+
+  protected readonly showCaughtUpRegion = computed(
+    () => this.showCaughtUpSkeleton() || this.showAllCaughtUpBanner(),
   )
 
   protected readonly showActionsSkeleton = computed(
@@ -142,11 +168,12 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
   )
 
   protected readonly showNoUpcomingEventsEmpty = computed(
-    () => this.showAllCaughtUpBanner() && !this.nextEvent() && !this.noParticipation(),
+    () => !this.nextEvent() && !this.noParticipation(),
   )
 
   async ngOnInit(): Promise<void> {
     const boot = await this.memberBootstrap.ensureReady()
+    if (this.destroyed) return
     if (!boot.ok) {
       await this.redirectToLogin()
       return
@@ -158,15 +185,23 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
     this.loadingSession.set(false)
     void this.troupeContext.load()
     void this.loadViewerGender()
-    void this.seasonShortcut.refresh()
     void this.bootstrapInbox()
   }
 
   ngOnDestroy(): void {
+    this.destroyed = true
+    this.cancelConfirmation()
     if (this.ghostTimer) {
       clearTimeout(this.ghostTimer)
       this.ghostTimer = null
     }
+  }
+
+  private cancelConfirmation(): void {
+    if (this.feedbackTimer) clearTimeout(this.feedbackTimer)
+    this.feedbackTimer = null
+    this.confirmationPhase.set('idle')
+    this.feedbackAnnouncement.set('')
   }
 
   protected async loadInbox(options?: { force?: boolean }): Promise<void> {
@@ -196,11 +231,14 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
       this.loadingInbox.set(true)
     }
     this.loadError.set(false)
+    this.inboxConfirmed.set(false)
 
     const r = await this.inboxBadge.refresh({
       force: options.force,
       preserveBadgeOnError: !options.showLoading || this.inboxLoaded(),
     })
+
+    if (this.destroyed) return
 
     if (options.showLoading) {
       this.inboxLoadingRequests = Math.max(0, this.inboxLoadingRequests - 1)
@@ -210,7 +248,8 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
     }
 
     if (r.ok && r.data) {
-      this.applyInboxResponse(r.data)
+      this.applyInboxResponse(r.data, true)
+      this.inboxConfirmed.set(true)
       return
     }
 
@@ -228,14 +267,33 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
     this.nextEvent.set(null)
   }
 
-  private applyInboxResponse(data: MeInboxResponse): void {
+  private applyInboxResponse(data: MeInboxResponse, confirmed = false): void {
     this.referenceNow.set(new Date())
     this.actions.set(data.actions)
     this.noParticipation.set(data.noParticipation ?? false)
     const next = data.nextEvent
     this.nextEvent.set(next ? enrichAgendaCardFields(next) : null)
-    this.detectCompletedGhosts(data.actions)
+    if (!next || data.noParticipation) this.upcomingEvents.set([])
+    else if (this.upcomingEvents()[0]?.eventId !== next.eventId) {
+      this.upcomingEvents.set([enrichAgendaCardFields(next)])
+    }
+    const generation = ++this.agendaGeneration
+    if (next && !data.noParticipation) void this.loadUpcomingEvents(generation)
+    if (confirmed) this.detectCompletedGhosts(data.actions)
     this.inboxLoaded.set(true)
+  }
+
+  private async loadUpcomingEvents(generation: number): Promise<void> {
+    const response = await this.agendaApi.listAgenda({ page: 0, size: 10, scope: 'upcoming' })
+    if (this.destroyed || generation !== this.agendaGeneration) return
+    if (response.status === 401) {
+      await this.redirectToLogin()
+      return
+    }
+    if (!response.ok || !response.data) return
+    const events = response.data.content.slice(0, 5).map(enrichAgendaCardFields)
+    this.upcomingEvents.set(events)
+    this.nextEvent.set(events[0] ?? null)
   }
 
   protected openAction(action: InboxAction): void {
@@ -307,11 +365,25 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
   }
 
   protected async openAvailability(item: UserAgendaItem): Promise<void> {
-    if (await this.eventActions.openAvailability(item)) await this.loadInbox()
+    const result = await this.eventActions.openAvailability(item)
+    if (result) {
+      this.updatePreviewItem(result.item)
+      await this.loadInbox()
+    }
   }
 
   protected async openParticipation(item: UserAgendaItem): Promise<void> {
-    if (await this.eventActions.openParticipation(item, this.viewerGender())) await this.loadInbox()
+    const result = await this.eventActions.openParticipation(item, this.viewerGender())
+    if (result) {
+      this.updatePreviewItem(result.item)
+      await this.loadInbox()
+    }
+  }
+
+  private updatePreviewItem(item: UserAgendaItem): void {
+    const enriched = enrichAgendaCardFields(item)
+    this.upcomingEvents.update(events => events.map(event => event.eventId === item.eventId ? enriched : event))
+    if (this.nextEvent()?.eventId === item.eventId) this.nextEvent.set(enriched)
   }
 
   protected isAvailabilityAction(action: InboxAction): boolean {

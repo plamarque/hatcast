@@ -1,0 +1,177 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Validation UX — Calendrier de l’Avent</title><style>
+  :root {
+    --bg: #fafaf9;
+    --surface: #ffffff;
+    --border: #e7e5e4;
+    --text: #1c1917;
+    --muted: #78716c;
+
+    --verdict-strong: #16a34a;
+    --verdict-adequate: #65a30d;
+    --verdict-thin: #d97706;
+    --verdict-broken: #dc2626;
+
+    --sev-low: #64748b;
+    --sev-medium: #ca8a04;
+    --sev-high: #ea580c;
+    --sev-critical: #dc2626;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    font-size: 15px;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 32px 24px 64px; }
+
+  header.report-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+  .title h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+  .title .subtitle { color: var(--muted); font-size: 13px; margin-top: 4px; font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+
+  .synthesis {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--muted);
+    border-radius: 8px;
+    padding: 18px 22px;
+    margin-bottom: 24px;
+    font-size: 15.5px;
+  }
+  .synthesis p { margin: 0 0 10px; }
+  .synthesis p:last-child { margin-bottom: 0; }
+
+  .dimension-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .dim-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .dim-card .dim-name { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .dim-card .dim-verdict { font-size: 14px; font-weight: 600; }
+
+  section.dimension, section.reviewer-section { margin-bottom: 14px; }
+  section.dimension details, section.reviewer-section details {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  section summary {
+    padding: 14px 20px;
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  section summary::-webkit-details-marker { display: none; }
+  section summary::before {
+    content: "▸";
+    display: inline-block;
+    color: var(--muted);
+    transition: transform 0.15s ease;
+  }
+  section details[open] summary::before { transform: rotate(90deg); }
+  section summary h2 {
+    display: inline;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    flex: 1;
+  }
+  .verdict-pill {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: white;
+  }
+  .verdict-strong { background: var(--verdict-strong); }
+  .verdict-adequate { background: var(--verdict-adequate); }
+  .verdict-thin { background: var(--verdict-thin); }
+  .verdict-broken { background: var(--verdict-broken); }
+
+  .dim-body { padding: 4px 20px 18px; }
+  .dim-judgment { color: var(--text); font-size: 14.5px; }
+  .dim-judgment p { margin: 0 0 10px; }
+
+  .findings-list { padding: 0 20px 4px; }
+  article.finding {
+    padding: 14px 0;
+    border-top: 1px solid var(--border);
+  }
+  article.finding:first-child { border-top: none; }
+  article.finding header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .badge {
+    font-size: 10.5px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1.4;
+  }
+  .badge-sev-low { background: rgba(100, 116, 139, 0.12); color: var(--sev-low); }
+  .badge-sev-medium { background: rgba(202, 138, 4, 0.14); color: var(--sev-medium); }
+  .badge-sev-high { background: rgba(234, 88, 12, 0.14); color: var(--sev-high); }
+  .badge-sev-critical { background: rgba(220, 38, 38, 0.14); color: var(--sev-critical); }
+  .finding-title { margin: 0; font-size: 15px; font-weight: 500; flex: 1; min-width: 200px; }
+  .finding-location { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; color: var(--muted); }
+  .finding-note, .finding-fix { margin-top: 6px; font-size: 14px; }
+  .finding-fix strong { color: var(--muted); font-weight: 500; }
+
+  .reviewer-source {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+
+  .mechanical {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-top: 24px;
+    font-size: 14px;
+  }
+  .mechanical h3 { margin: 0 0 10px; font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .mechanical ul { margin: 0; padding-left: 20px; }
+  .mechanical li { margin-bottom: 4px; color: var(--text); }
+
+  footer.report-footer {
+    margin-top: 40px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--muted);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  footer .meta { display: flex; gap: 24px; flex-wrap: wrap; }
+</style></head><body><div class="container"><header class="report-header"><div class="title"><h1>Validation UX — Calendrier de l’Avent</h1><div class="subtitle">DESIGN.md · EXPERIENCE.md</div></div></header><div class="synthesis"><p>La structure essentielle du parcours révisé est présente : réponse sans résultat, révélation différée, calendrier, classement et clôture du 25. Le contrat n’est toutefois pas encore suffisamment précis pour implémenter sans choix supplémentaires la fin de la révélation prioritaire, l’état « vu » et la navigation depuis certaines surfaces. Les références au statut et au barème du PRD sont périmées : le PRD actuel est final et le barème confirmé y figure déjà.</p></div><div class="dimension-summary"><div class="dim-card"><div class="dim-name">1. Flow coverage</div><div class="dim-verdict" style="color:var(--verdict-adequate)">adequate</div></div><div class="dim-card"><div class="dim-name">2. Token completeness</div><div class="dim-verdict" style="color:var(--verdict-thin)">thin</div></div><div class="dim-card"><div class="dim-name">3. Component coverage</div><div class="dim-verdict" style="color:var(--verdict-thin)">thin</div></div><div class="dim-card"><div class="dim-name">4. State coverage</div><div class="dim-verdict" style="color:var(--verdict-thin)">thin</div></div><div class="dim-card"><div class="dim-name">5. Visual reference coverage</div><div class="dim-verdict" style="color:var(--verdict-adequate)">adequate</div></div><div class="dim-card"><div class="dim-name">6. Bloat &amp; overspecification</div><div class="dim-verdict" style="color:var(--verdict-adequate)">adequate</div></div><div class="dim-card"><div class="dim-name">7. Inheritance discipline</div><div class="dim-verdict" style="color:var(--verdict-thin)">thin</div></div><div class="dim-card"><div class="dim-name">8. Shape fit</div><div class="dim-verdict" style="color:var(--verdict-adequate)">adequate</div></div></div><section class="dimension"><details><summary><h2>1. Flow coverage</h2><span class="verdict-pill verdict-adequate">adequate</span></summary><div class="dim-body"><p>Les quatre parcours UJ-1 à UJ-4 du PRD ont chacun un parcours nommé et numéroté dans EXPERIENCE ; les points forts de confirmation et de révélation y figurent. Les échecs et plusieurs sorties restent peu décrits dans les parcours.</p></div><div class="findings-list"><article class="finding"><header><span class="badge badge-sev-high">high</span></header><div class="finding-note">La révélation prioritaire ne définit l’action suivante que lorsque le quiz du jour existe ou le 25 ; elle ne précise pas le chemin si aucun quiz n’est disponible, si l’on revient du 26 décembre au 15 janvier, ni ce que fait « Fermer ». Le PRD impose notamment l’accès au message d’absence et au classement après révélation (EXPERIENCE.md:20-28, 38-39, 80-84 ; PRD:52, 58, 66). *Fix:* décrire les destinations et actions de sortie de la révélation pour chacun de ces cas, conformément au PRD, en laissant les choix UX non tranchés explicitement ouverts.</div></article><article class="finding"><header><span class="badge badge-sev-medium">medium</span></header><div class="finding-note">UJ-4 dans le PRD couvre aussi le recueil et la transmission des anecdotes ainsi que l’intégration des contenus ; le parcours UX ne couvre que le test (EXPERIENCE.md:92-96 ; PRD:24, 64). *Fix:* expliciter que cette partie relève de la préparation hors interface et n’appelle pas de surface UX ; maintenir le parcours de test dédié.</div></article><article class="finding"><header><span class="badge badge-sev-low">low</span></header><div class="finding-note">Les chemins d’échec de sauvegarde et de clôture sont présents dans les tableaux mais pas dans le parcours UJ-1 lui-même (EXPERIENCE.md:37, 54, 74-78). *Fix:* ajouter une branche d’échec courte avec réessai et expiration pour aider les lecteurs des parcours.</div></article></div></details></section><section class="dimension"><details open><summary><h2>2. Token completeness</h2><span class="verdict-pill verdict-thin">thin</span></summary><div class="dim-body"><p>DESIGN hérite du système Material HatCast, ce qui évite de dupliquer des couleurs en contradiction avec FRONTEND_UI. Aucun token n’est défini dans le frontmatter et aucune référence `{path.to.token}` n’existe. La consigne générique `--mat-sys-*` ne décrit pas les rôles effectivement utilisés pour les nouveaux éléments festifs ; aucun hex n’est défini, donc aucun token couleur défini n’a de valeur hex manquante.</p></div><div class="findings-list"><article class="finding"><header><span class="badge badge-sev-medium">medium</span></header><div class="finding-note">L’héritage reste trop générique pour relier les composants et états à des rôles de couleurs, typo et composants nommés ; les couples de contraste à vérifier ne sont pas identifiés (DESIGN.md:1-9, 15-21, 33-41 ; EXPERIENCE.md:64-70). *Fix:* référencer les rôles et tokens HatCast pertinents, sans inventer de palette ad hoc, et préciser les combinaisons à vérifier ; laisser les adaptations graphiques pour les stories comme convenu.</div></article></div></details></section><section class="dimension"><details open><summary><h2>3. Component coverage</h2><span class="verdict-pill verdict-thin">thin</span></summary><div class="dim-body"><p>La porte, le choix, la révélation, les onglets et l’icône possèdent une intention visuelle. L’expérience définit aussi confirmation, classement, calendrier et 25, mais leur traitement visuel ou comportemental est inégal.</p></div><div class="findings-list"><article class="finding"><header><span class="badge badge-sev-medium">medium</span></header><div class="finding-note">La confirmation, le classement et les états de la grille ne disposent pas tous d’une description visuelle propre dans Components ; l’état de réponse enregistrée en attente et la case du 25 restent particulièrement peu spécifiés (DESIGN.md:31-41, 49 ; EXPERIENCE.md:22-25, 44-58). *Fix:* référencer explicitement les composants Material et préciser les seuls deltas visuels et états nécessaires, en marquant ce qui reste à affiner en story.</div></article></div></details></section><section class="dimension"><details open><summary><h2>4. State coverage</h2><span class="verdict-pill verdict-thin">thin</span></summary><div class="dim-body"><p>Les états du quiz, du calendrier, du classement, l’absence de contenu, la clôture de minuit et les dates de fin sont couverts en partie. Les états relatifs à la révélation sur plusieurs appareils sont déterminants pour le parcours.</p></div><div class="findings-list"><article class="finding"><header><span class="badge badge-sev-high">high</span></header><div class="finding-note">« Vu » est partagé entre appareils mais le moment où une révélation devient vue, notamment si elle est fermée ou interrompue, n’est pas défini ; la maquette montre « Fermer » sans en indiquer l’effet (EXPERIENCE.md:20, 48 ; mockups/parcours-revise.html:8 ; PRD:52). *Fix:* arbitrer le déclencheur de consultation et le comportement après fermeture/interruption, puis transmettre son contrat à l’architecture sans supposer sa mise en œuvre.</div></article><article class="finding"><header><span class="badge badge-sev-high">high</span></header><div class="finding-note">La case jouée dont le résultat est encore en attente ne précise ni le libellé, ni l’action, ni le retour en cas de consultation le jour même ; le seul interdit est la divulgation (EXPERIENCE.md:46-50 ; PRD:50, 60). *Fix:* définir un état et une interaction sans indice, compatibles avec l’accusé de réception et les accès exigés.</div></article><article class="finding"><header><span class="badge badge-sev-medium">medium</span></header><div class="finding-note">Les onglets sont dits accessibles depuis l’expérience sauf révélation prioritaire, mais les accès concrets depuis porte, quiz, confirmation et message de contenu absent ne sont pas tous décrits ; seule l’action vers le classement est explicite après confirmation (EXPERIENCE.md:18-28, 37-39 ; PRD:50, 60, 66). *Fix:* expliciter les points d’entrée par surface en respectant la priorité et la non-divulgation.</div></article><article class="finding"><header><span class="badge badge-sev-medium">medium</span></header><div class="finding-note">L’erreur d’enregistrement autorise un réessai mais l’état d’incertitude (confirmation en vol ou résultat inconnu après coupure), notamment si la réponse a en réalité été enregistrée sur un autre appareil, n’est pas traité côté expérience (EXPERIENCE.md:36-37, 54 ; PRD:40, 52, 73). *Fix:* prévoir une vérification de l’état enregistré, un message et la reprise appropriée, avec la résolution technique en architecture.</div></article></div></details></section><section class="dimension"><details><summary><h2>5. Visual reference coverage</h2><span class="verdict-pill verdict-adequate">adequate</span></summary><div class="dim-body"><p>Les deux fichiers de mockups existants sont liés depuis les spines ; l’ancienne maquette est clairement qualifiée d’obsolète pour les parcours et les scores, et les spines prévalent. Le nouveau document illustre les surfaces clés avec exemples fictifs.</p></div><div class="findings-list"><article class="finding"><header><span class="badge badge-sev-low">low</span></header><div class="finding-note">La maquette de la révélation montre une action « Découvrir la case du jour » et « Fermer » sans variantes pour jour sans contenu ou après le 25 (mockups/parcours-revise.html:8-10). *Fix:* une fois les parcours de sortie arbitrés, compléter ou annoter la maquette ; la laisser illustrative.</div></article></div></details></section><section class="dimension"><details><summary><h2>6. Bloat &amp; overspecification</h2><span class="verdict-pill verdict-adequate">adequate</span></summary><div class="dim-body"><p>L’essentiel du détail recopié du PRD sert à éviter de réintroduire les anciens comportements. L’encadré d’arbitrages comporte cependant des éléments devenus obsolètes.</p></div><div class="findings-list"><article class="finding"><header><span class="badge badge-sev-low">low</span></header><div class="finding-note">L’architecture d’information du 25 répète deux fois les accès au classement et calendrier (EXPERIENCE.md:25). *Fix:* fusionner les deux mentions lors d’une mise à jour éditoriale.</div></article></div></details></section><section class="dimension"><details open><summary><h2>7. Inheritance discipline</h2><span class="verdict-pill verdict-thin">thin</span></summary><div class="dim-body"><p>Les deux sources frontmatter et les deux mockups cités sont présents et leurs chemins relatifs résolvent. La nomenclature générale correspond au PRD, mais l’état de celui-ci a changé depuis la rédaction UX.</p></div><div class="findings-list"><article class="finding"><header><span class="badge badge-sev-medium">medium</span></header><div class="finding-note">EXPERIENCE indique que le PRD est en draft et que la confirmation du bonus est encore à y reporter, alors que son frontmatter indique `final` et que FR-5 précise déjà le non-chevauchement (EXPERIENCE.md:14, 101 ; PRD:3, 48). *Fix:* mettre à jour le constat et la mention de relais après vérification du PRD actuel, sans modifier celui-ci.</div></article><article class="finding"><header><span class="badge badge-sev-low">low</span></header><div class="finding-note">Les intitulés UJ-4 et la portée du parcours diffèrent du PRD (« testent » au lieu de « préparent la surprise »), malgré l’identifiant commun (EXPERIENCE.md:92 ; PRD:24). *Fix:* conserver l’intitulé source et préciser que le parcours UX décrit la partie test.</div></article></div></details></section><section class="dimension"><details><summary><h2>8. Shape fit</h2><span class="verdict-pill verdict-adequate">adequate</span></summary><div class="dim-body"><p>Les sections DESIGN présentes respectent l’ordre canonique ; les huit sections EXPERIENCE obligatoires et la section responsive applicable sont présentes. Les listes et tableaux sont utilisables pour le transfert, même si les tokens et quelques états sont insuffisants.</p></div><div class="findings-list"><article class="finding"><header><span class="badge badge-sev-low">low</span></header><div class="finding-note">Les décisions graphiques du 25 apparaissent sous Do&#x27;s and Don&#x27;ts, plutôt que sous Components ou Layout &amp; Spacing (DESIGN.md:43-49). *Fix:* déplacer ce contenu à l’endroit correspondant sans changer la décision.</div></article></div></details></section><footer class="report-footer">Source : review-rubric.md · 2026-10-29T21:02:52+01:00</footer></div></body></html>

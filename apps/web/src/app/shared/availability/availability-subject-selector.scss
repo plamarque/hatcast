@@ -11,3 +11,11 @@
 .subject-selector__avatar {
   flex-shrink: 0;
 }
+
+.subject-selector__comment-icon {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 1.125rem;
+  height: 1.125rem;
+  margin-inline-start: 0.125rem;
+  width: 1.125rem;
+}

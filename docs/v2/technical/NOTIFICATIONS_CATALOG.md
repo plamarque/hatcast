@@ -570,7 +570,7 @@ Anti-spam : avertissement UI si envoi récent (6.10b).
 
 | Champ             | Valeur                                                                                     |
 | ----------------- | ------------------------------------------------------------------------------------------ |
-| **Déclenchement** | Automatique — retrait assigné sur compo **validée** (pas auto-déclin)                      |
+| **Déclenchement** | Automatique — revalidation réussie après suppression explicite d’un assigné dans un brouillon post-unlock d’une compo précédemment validée (pas auto-déclin) |
 | **Audience**      | Ancien assigné (compte lié)                                                                |
 | **Préférence**    | `CONFIRMATION_REQUEST` *(tension — voir ci-dessus)*                                        |
 | **Push title**    | `😔 Composition mise à jour`                                                               |
@@ -581,7 +581,7 @@ Anti-spam : avertissement UI si envoi récent (6.10b).
 | **Dédoublonnage** | Une fois par (intent, event, user) via `notification_reminder_marks` (`ONCE`)              |
 
 
-Éditions brouillon post-unlock : silencieuses jusqu’à revalidation.
+Éditions brouillon post-unlock : silencieuses jusqu’à revalidation. Hors modèle et simple désassignation ne déclenchent pas cet intent.
 
 #### `ASSIGNEE_PRESENCE_REMINDER`
 

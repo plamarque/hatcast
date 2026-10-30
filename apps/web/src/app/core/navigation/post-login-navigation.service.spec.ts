@@ -64,6 +64,17 @@ describe('PostLoginNavigationService', () => {
     TestBed.resetTestingModule()
   })
 
+  it('returns to the Advent preview after sign-in', async () => {
+    rememberPendingPostLoginRedirect('/avent-test?aper%C3%A7u=2')
+    const router = TestBed.inject(Router)
+    const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true)
+
+    await service().navigateAfterSignIn(router)
+
+    expect(navigate).toHaveBeenCalledWith('/avent-test?aper%C3%A7u=2', { replaceUrl: true })
+    expect(localStorage.getItem('hatcast.postLoginRedirect')).toBeNull()
+  })
+
   it('routes to /agenda when no stored slug or redirect', async () => {
     const url = await service().resolveAuthenticatedEntryUrl()
     expect(url).toEqual(['/agenda'])

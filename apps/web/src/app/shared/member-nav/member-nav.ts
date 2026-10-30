@@ -1,6 +1,9 @@
 import { Component, computed, effect, inject, OnInit } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { MatIconModule } from '@angular/material/icon'
+import { MatMenuModule } from '@angular/material/menu'
+import { MatSnackBar } from '@angular/material/snack-bar'
+import { MemberTroupeMenuService } from '../../core/navigation/member-troupe-menu.service'
 import { MatListModule } from '@angular/material/list'
 import { MatTabNav, MatTabLink, MatTabNavPanel } from '@angular/material/tabs'
 import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router'
@@ -20,6 +23,7 @@ import { MemberAccountMenuTrigger } from '../member-account-menu/member-account-
   imports: [
     MatIconModule,
     MatListModule,
+    MatMenuModule,
     MatTabNav,
     MatTabLink,
     MatTabNavPanel,
@@ -34,6 +38,8 @@ export class MemberNav implements OnInit {
   private readonly router = inject(Router)
   protected readonly statsShortcut = inject(MemberStatsShortcutService)
   protected readonly troupeShortcut = inject(LastVisitedTroupeShortcutService)
+  protected readonly troupeMenu = inject(MemberTroupeMenuService)
+  private readonly snack = inject(MatSnackBar)
   private readonly inboxBadge = inject(MemberInboxBadgeService)
 
   private readonly currentPath = toSignal(
@@ -49,6 +55,7 @@ export class MemberNav implements OnInit {
     effect(() => {
       this.currentPath()
       this.troupeShortcut.refresh()
+      this.statsShortcut.refresh()
     })
   }
 
@@ -82,7 +89,13 @@ export class MemberNav implements OnInit {
     return 'Accueil'
   })
 
+  protected async openTroupeMenu(): Promise<void> {
+    await this.troupeMenu.refresh()
+    const error = this.troupeMenu.error()
+    if (error) this.snack.open(error, 'OK', { duration: 5000 })
+  }
+
   ngOnInit(): void {
-    void this.statsShortcut.refresh()
+    // The navigation effect refreshes both context-dependent shortcuts.
   }
 }

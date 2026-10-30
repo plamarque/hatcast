@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { AvailabilityApiService } from '../../core/availability/availability-api.service'
 import { ProductAnalyticsService } from '../../core/analytics/product-analytics.service'
 import { ROLE_TEMPLATES } from '../../core/events/event-types'
+import { ChanceBreakdownService } from '../composition/chance-breakdown.service'
 import { AvailabilityPoll } from './availability-poll'
 import { AvailabilityPersistService } from './availability-persist.service'
 
@@ -77,6 +78,7 @@ async function setupPoll(options: {
       chanceSource: 'estimated' as const,
     },
   })
+  const chanceBreakdownOpen = vi.fn()
 
   await TestBed.configureTestingModule({
     imports: [AvailabilityPoll, NoopAnimationsModule],
@@ -90,9 +92,12 @@ async function setupPoll(options: {
         provide: ProductAnalyticsService,
         useValue: {
           captureAvailabilityFirstSubmission: vi.fn(),
-          eventContext: vi.fn().mockReturnValue({}),
+          eventContext: vi.fn().mockImplementation((event_id, season_id, troupe_id) => ({
+            event_id, season_id, troupe_id, is_demo_troupe: false,
+          })),
         },
       },
+      { provide: ChanceBreakdownService, useValue: { open: chanceBreakdownOpen } },
       { provide: MatSnackBar, useValue: { open: vi.fn() } },
     ],
   }).compileComponents()
@@ -120,10 +125,46 @@ async function setupPoll(options: {
   await fixture.whenStable()
   fixture.detectChanges()
 
-  return { fixture, setMyAvailability, setParticipantAvailability, getEventAvailabilitySummary }
+  return { fixture, setMyAvailability, setParticipantAvailability, getEventAvailabilitySummary, chanceBreakdownOpen }
 }
 
 describe('AvailabilityPoll', () => {
+  it('maps a successful Dispos trigger to its bounded analytics entry point', async () => {
+    const { fixture, chanceBreakdownOpen } = await setupPoll()
+    fixture.componentRef.setInput('actorScope', 'event_organizer')
+    fixture.componentRef.setInput('summary', {
+      ...mockSummary,
+      roles: [{
+        ...mockSummary.roles[0],
+        candidates: [{ ...mockSummary.roles[0].candidates[0], chancePercent: 50 }],
+      }, ...mockSummary.roles.slice(1)],
+    })
+    await (fixture.componentInstance as any).onPoolSegmentTap(
+      { participantId: 'p2', chancePercent: 50 },
+      'player',
+    )
+
+    expect(chanceBreakdownOpen).toHaveBeenCalledWith(expect.objectContaining({
+      analyticsContext: {
+        event_id: 'event-1', season_id: 'season-1', troupe_id: 'troupe-1',
+        is_demo_troupe: false, actor_scope: 'event_organizer',
+      },
+      entryPoint: 'dispos_poll',
+    }))
+    expect(chanceBreakdownOpen.mock.calls[0][0]).not.toHaveProperty('formulaId')
+  })
+
+  it('does not open a breakdown when the Dispos candidate has no chance', async () => {
+    const { fixture, chanceBreakdownOpen } = await setupPoll()
+
+    await (fixture.componentInstance as any).onPoolSegmentTap(
+      { participantId: 'p2', chancePercent: 0 },
+      'player',
+    )
+
+    expect(chanceBreakdownOpen).not.toHaveBeenCalled()
+  })
+
   it.each(['vote', 'comment'])('serializes all poll writes while %s is pending', async first => {
     const { fixture, setMyAvailability } = await setupPoll({ initialStatus: 'available', initialRoleKeys: ['player', 'volunteer'] })
     fixture.componentRef.setInput('roleSlots', ROLE_TEMPLATES.match)
@@ -228,6 +269,8 @@ describe('AvailabilityPoll', () => {
 
   it('saves vote immediately when checking a role', async () => {
     const { fixture, setMyAvailability } = await setupPoll()
+    fixture.componentRef.setInput('actorScope', 'event_organizer')
+    fixture.componentRef.setInput('availabilityOpenedAt', '2026-01-01T00:00:00.000Z')
     const comp = fixture.componentInstance as unknown as {
       onRoleToggle: (roleKey: string, checked: boolean) => Promise<void>
     }
@@ -238,6 +281,10 @@ describe('AvailabilityPoll', () => {
       'season-1',
       'event-1',
       expect.objectContaining({ status: 'available', roleKeys: ['player'] }),
+    )
+    expect(TestBed.inject(ProductAnalyticsService).captureAvailabilityFirstSubmission).toHaveBeenCalledWith(
+      expect.objectContaining({ actor_scope: 'event_organizer' }),
+      expect.objectContaining({ is_proxy: false }),
     )
   })
 
@@ -434,6 +481,34 @@ describe('AvailabilityPoll', () => {
     const el = fixture.nativeElement as HTMLElement
     expect(el.querySelector('.poll-row__pool-neutral')).toBeTruthy()
     expect(el.querySelector('app-composition-pool-preview')).toBeFalsy()
+  })
+
+  it('shows unavailable respondents as a neutral pool with explainability enabled', async () => {
+    const { fixture, getEventAvailabilitySummary } = await setupPoll()
+    fixture.componentRef.setInput('summary', {
+      ...mockSummary,
+      participants: [
+        ...mockSummary.participants,
+        {
+          participantId: 'p3',
+          userId: 'user-3',
+          displayName: 'Camille',
+          avatarUrl: null,
+          status: 'unavailable' as const,
+          roleKeys: [],
+          comment: null,
+        },
+      ],
+    })
+    fixture.detectChanges()
+
+    const unavailableRow = fixture.nativeElement.querySelector('app-availability-poll-row') as HTMLElement
+    ;(unavailableRow.querySelector('.poll-row__gauge-trigger') as HTMLButtonElement).click()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    expect(getEventAvailabilitySummary).not.toHaveBeenCalled()
+    expect(unavailableRow.querySelector('.poll-row__pool-neutral')?.textContent).toContain('Camille')
   })
 
   it('saves comment without changing vote scope', async () => {

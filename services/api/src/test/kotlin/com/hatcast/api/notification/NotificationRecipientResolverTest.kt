@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
+import java.time.Instant
 import java.util.Optional
 import java.util.UUID
 
@@ -56,6 +57,16 @@ class NotificationRecipientResolverTest {
             seasonOrganizerRepository = seasonOrganizerRepository,
             troupeMembershipRepository = troupeMembershipRepository,
             eventRepository = eventRepository,
+        )
+
+    private fun eventWithRoleSlots(eventId: UUID, roleSlots: Map<String, Int>) =
+        EventEntity(
+            id = eventId,
+            season = mock(),
+            title = "Event",
+            slug = "event",
+            startsAt = Instant.EPOCH,
+            roleSlots = roleSlots,
         )
 
     @Test
@@ -135,6 +146,7 @@ class NotificationRecipientResolverTest {
                 ),
             ),
         )
+        whenever(eventRepository.findById(eventId)).thenReturn(Optional.of(eventWithRoleSlots(eventId, mapOf("player" to 1))))
         whenever(seasonParticipantRepository.findAllById(listOf(participantId))).thenReturn(
             listOf(
                 SeasonParticipantEntity(
@@ -170,6 +182,7 @@ class NotificationRecipientResolverTest {
                 ),
             ),
         )
+        whenever(eventRepository.findById(eventId)).thenReturn(Optional.of(eventWithRoleSlots(eventId, mapOf("player" to 1))))
         whenever(seasonParticipantRepository.findAllById(listOf(assigneeParticipantId))).thenReturn(
             listOf(
                 SeasonParticipantEntity(
@@ -243,6 +256,7 @@ class NotificationRecipientResolverTest {
                 ),
             ),
         )
+        whenever(eventRepository.findById(eventId)).thenReturn(Optional.of(eventWithRoleSlots(eventId, mapOf("player" to 2))))
         whenever(seasonParticipantRepository.findAllById(listOf(confirmedParticipantId))).thenReturn(
             listOf(
                 SeasonParticipantEntity(
@@ -259,6 +273,28 @@ class NotificationRecipientResolverTest {
 
         assertEquals(1, recipients.size)
         assertEquals(confirmedUserId, recipients.first().userId)
+    }
+
+    @Test
+    fun `resolve validated assignees excludes preserved assignment outside current needs`() {
+        val eventId = UUID.randomUUID()
+        val affectedParticipantId = UUID.randomUUID()
+        whenever(slotRepository.findByEventId(eventId)).thenReturn(
+            listOf(
+                EventCompositionSlotEntity(
+                    eventId = eventId,
+                    roleKey = "player",
+                    slotIndex = 1,
+                    seasonParticipantId = affectedParticipantId,
+                    participationStatus = SlotParticipationStatus.CONFIRMED,
+                ),
+            ),
+        )
+        whenever(eventRepository.findById(eventId)).thenReturn(Optional.of(eventWithRoleSlots(eventId, mapOf("player" to 1))))
+
+        val recipients = resolver.resolveValidatedAssigneeRecipients(eventId)
+
+        assertTrue(recipients.isEmpty())
     }
 
     @Test

@@ -1,6 +1,8 @@
 # Story 17.14: Infos tab — event type and roles (modals)
 
-Status: done
+Status: done — placement partially superseded by Epic 22 (2026-10-14)
+
+> **Correct-course amendment (2026-10-14):** keep this story's extraction of type/roles out of `EventFormDialog`, but supersede its Infos editing surface. Epic 22 makes Équipe the editor for format/template and role slots; Infos is read-only summary. Historical implementation notes below remain evidence of the completed story, not instructions for new implementation.
 
 <!-- Ultimate context engine analysis completed - comprehensive developer guide created -->
 

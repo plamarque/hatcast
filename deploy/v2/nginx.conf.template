@@ -35,6 +35,20 @@ http {
       proxy_set_header X-Forwarded-Proto $scheme;
     }
 
+    # index.html and ngsw.json name the current hashed chunks: always revalidate them.
+    location = /index.html {
+      add_header Cache-Control "no-cache";
+    }
+
+    location = /ngsw.json {
+      add_header Cache-Control "no-cache";
+    }
+
+    # A missing chunk after a deploy must fail as 404, not as index.html (text/html).
+    location ~ ^/[^/]+\.(?:js|mjs|css)$ {
+      try_files $uri =404;
+    }
+
     location / {
       try_files $uri $uri/ /index.html;
     }

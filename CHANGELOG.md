@@ -1,5 +1,180 @@
 # Changelog
 
+## [2.7.0] - 2026-10-23
+
+### ✨ New Features
+- feat(home): Integrate five upcoming spectacles
+- feat(home): Show five upcoming spectacles
+
+### 📝 Other Changes
+- chore(v2): promote v2 to staging-v2
+- chore(release): Add home preview to v2.7.0 notes
+- chore(v2): sync release v2.7.0-rc.1 artifacts to v2
+
+---
+
+## [2.7.0] - 2026-10-23
+
+### ✨ New Features
+- feat(home): Stabilize caught-up feedback
+- feat(nav): Simplify troupe navigation
+- feat(story): merge 11-7-observabilite-des-panneaux-de-chances-posthog
+- feat(analytics): Observe chance breakdown opens
+
+### 🐛 Bug Fixes
+- fix(web): Recover stale composition unlock state
+- fix(pwa): Recover stale lazy-route failures
+
+### 📝 Other Changes
+- chore(v2): promote v2 to staging-v2
+- test(nav): Match the guest season fixture title
+- chore(release): Prepare v2.7.0 notes
+- chore(home): Reconcile local v2 changes
+- docs(issues): Record PostHog promotion guard
+- chore(bmad): Sync sprint status for 11-7-observabilite-des-panneaux-de-chances-posthog
+- docs(planning): Add chance breakdown story
+- docs(issues): Record composition smoke flake
+- chore(v2): sync release v2.6.3-rc.2 artifacts to v2
+
+---
+
+## [2.6.3] - 2026-10-18
+
+### 📝 Other Changes
+- chore(v2): promote v2 to staging-v2
+- test(api): Isolate regression fixtures
+- chore(v2): sync release v2.6.3-rc.1 artifacts to v2
+
+---
+
+## [2.6.3] - 2026-10-18
+
+### ✨ New Features
+- feat(story): Close PWA lifecycle observability
+- feat(pwa): Observe installation and updates
+- feat(story): Close organizer observability
+- feat(analytics): Track organizer journeys
+- feat(story): merge 11-6-adoption-pwa-posthog
+- feat(analytics): Track PWA access mode
+
+### 🐛 Bug Fixes
+- fix(posthog): Encode dashboard filter as array
+- fix(availability): Show organiser comments
+
+### 📝 Other Changes
+- chore(v2): promote v2 to staging-v2
+- chore(release): Prepare v2.6.3 notes
+- chore(pwa): Reconcile analytics and close story
+- docs(posthog): Record dashboard validation
+- ci(posthog): Add dashboard validation
+- merge: Close BUG-034 organizer comments
+- chore(bmad): Sync sprint status for 11-5-observabilite-installation-pwa-posthog
+- docs(analytics): Plan PWA install observability
+- docs(pwa): Add adoption measurement spec
+- test(dispos): Cover organizer role restoration
+- chore(analytics): Update PostHog SDK
+- chore(bmad): Sync sprint status for 11-4-observabilite-parcours-organisateur-posthog
+- docs(posthog): Define smoke contract
+- chore(v2): sync release v2.6.2-rc.1 artifacts to v2
+
+---
+
+## [2.6.2] - 2026-10-16
+
+### ✨ New Features
+- feat(story): merge 22-4-retrait-cn-2-et-decision-de-notification
+- feat(composition): Notify slot removal
+- feat(story): Merge 22.3
+- feat(equipe): Preserve out-of-model slots
+- feat(story): Merge 22.2
+- feat(composition): Streamline publish flow
+- feat(equipe): Add free slot editing
+- feat(equipe): Move format editing to team
+
+### 🐛 Bug Fixes
+- fix(tracker): Support accented story keys
+- fix(equipe): Refine free slot editing
+- fix(membership): Sync season participants
+- fix(equipe): Polish format editing
+- fix(equipe): Preserve mobile member names
+
+### 📝 Other Changes
+- chore(v2): promote v2 to staging-v2
+- docs(release): Add v2.6.2 user changelog cutover
+- docs: Clean up planning records
+- chore(tracker): Complete composition epic
+- chore(tracker): Reconcile sprint status
+- chore(neon): Add MCP server configuration
+- docs(workflow): Define story closure
+- docs(planning): Prepare free slot editing
+- docs(dev): Document worktree smoke startup
+- docs(planning): Add flexible slots epic
+
+---
+
+## [2.6.1] - 2026-10-13
+
+### ✨ New Features
+- feat(composition): Reconcile changed needs
+
+### 🐛 Bug Fixes
+- fix(composition): Prevent cancel role reset
+- fix(worktrees): Share local HTTPS bootstrap
+
+### 📝 Other Changes
+- chore(v2): Promote v2 to staging-v2
+- docs(release): Add v2.6.1 user changelog cutover
+- chore(v2): sync release v2.6.0-rc.2 artifacts to v2
+
+---
+
+## [2.6.0] - 2026-09-29
+
+### 🐛 Bug Fixes
+- fix(troupe-hub): Fix mobile season chart
+- fix(stats): Preserve current troupe context
+
+### 📝 Other Changes
+- chore(v2): promote v2 to staging-v2
+- chore(v2): sync release v2.6.0-rc.1 artifacts to v2
+
+---
+
+## [2.6.0] - 2026-09-29
+
+### ✨ New Features
+- feat(workflow): Add GitHub decision controller (#8)
+- feat(stats): Unify active season statistics (#9)
+- feat(story): merge sprint-status-additive-sync
+- feat(workflow): Add story lifecycle skill
+- feat(story): merge worktree-dependency-cache-integration
+- feat(worktrees): Reuse immutable dependencies
+- feat(story): merge worktree-dependency-cache-feasibility
+
+### 🐛 Bug Fixes
+- fix(dispos): Show unavailable respondents
+- fix(workflow): Preserve clean review checkout (#12)
+- fix(workflow): Allow smoke cold starts (#10)
+- fix(workflow): Sync BMad story status safely
+- fix(workflow): Align BMad runtime pins
+
+### 📝 Other Changes
+- chore(v2): promote v2 to staging-v2
+- test(stats): Accept no-participation state
+- docs(release): Add v2.6.0 cutover
+- test(workflow): Record delivery gate smoke (#11)
+- docs(plan): Add Epic 21 story headings
+- docs(workflow): Define story 21.6
+- docs(workflow): Add GitHub review controller plan
+- chore(bmad): Upgrade BMad Method to 6.12
+- docs(worktrees): Refresh Epic 21 context
+- docs(plan): Add worktree cache change proposal
+- test(worktree): Evaluate immutable symlink cache
+- test(worktree): Measure dependency cache feasibility
+- chore(v2): sync release v2.5.0-rc.1 artifacts to v2
+
+---
+
 ## [2.5.0] - 2026-09-19
 
 ### ✨ New Features

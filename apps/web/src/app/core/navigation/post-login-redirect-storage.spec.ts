@@ -43,6 +43,7 @@ describe('postLoginRedirectStorage', () => {
 
   it('accepts routable member routes', () => {
     expect(isValidInternalRedirectPath('/agenda')).toBe(true)
+    expect(isValidInternalRedirectPath('/avent-test?aper%C3%A7u=2')).toBe(true)
     expect(isValidInternalRedirectPath('/agenda?from=mail#top')).toBe(true)
     expect(isValidInternalRedirectPath('/saison/festibask/event/e1')).toBe(true)
     expect(isValidInternalRedirectPath('/saison/la-malice/festibask/event/e1')).toBe(true)

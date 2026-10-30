@@ -1533,6 +1533,99 @@ afin de mesurer les indicateurs avancés (délai première dispo, délai confirm
 
 ---
 
+#### Story 11.4 : Observabilité parcours organisateur PostHog
+
+En tant qu’**opérateur produit**,
+je veux distinguer les parcours **membre** et **organisateur dans leur contexte de troupe, saison et événement**,
+afin de comprendre l’adoption, les abandons et les issues des outils de gestion sans collecter de données métier ou personnelles inutiles.
+
+**Acceptance Criteria**
+
+- **Given** un événement analytics métier émis depuis un détail d’événement, **when** le contexte de permissions est connu, **then** l’événement porte un `actor_scope` borné et calculé pour cet événement (`member`, `event_organizer`, `season_organizer`, `troupe_admin`, `platform_admin`) ; il ne dépend pas d’un rôle global de personne qui deviendrait faux hors périmètre.
+- **Given** un organisateur utilise les surfaces de composition, **when** il ouvre l’espace, modifie un créneau, lance/consulte un tirage, valide, publie, annonce ou relance les disponibilités, **then** des événements sémantiques permettent de reconstruire les étapes et leur issue sans contenir de nom, email, message libre, commentaire, participant ciblé ou contenu de notification.
+- **Given** une action organisateur échoue ou est refusée, **when** elle est instrumentée, **then** seule une catégorie d’issue bornée est enregistrée ; aucun détail brut d’erreur, payload API ou donnée personnelle n’est envoyé.
+- **Given** PostHog, **when** un opérateur analyse l’usage, **then** il peut filtrer les événements par `actor_scope`, contexte troupe/saison/événement déjà pseudonymisé et `is_demo_troupe`, et comparer un funnel organisateur aux parcours membre pertinents.
+- **Given** les nouveaux événements, **when** ils sont livrés, **then** leurs noms, propriétés autorisées, règles de déduplication et requêtes/funnels opérateur sont documentés ; la création ou modification de dashboards PostHog reste une action explicitement autorisée.
+- **And** les tests protègent le contrat de propriétés et l’absence de PII sur les événements.
+
+**Couverture :** FR47 ; NFR-S2 ; complète les stories 11.1, 11.2 et OPS-9.
+
+---
+
+#### Story 11.5 : Observabilité installation PWA PostHog
+
+En tant qu’**opérateur produit**,
+je veux analyser a posteriori les cas où HatCast affiche des instructions d’installation PWA,
+afin d’identifier les compatibilités et les chemins d’aide qui nécessitent une amélioration sans collecter de données techniques excessives.
+
+**Acceptance Criteria**
+
+- **Given** l’ouverture effective des instructions manuelles d’installation, **when** elle résulte d’un prompt indisponible, échoué ou d’un contexte de développement non fiable, **then** un événement PostHog borné décrit le motif et la variante d’instructions, sans User-Agent brut, modèle matériel, identifiant d’appareil, donnée libre ou propriété People supplémentaire.
+- **Given** un prompt natif ou l’événement navigateur `appinstalled`, **when** son issue est observable, **then** elle est mesurée séparément de l’aide manuelle et d’un usage ultérieur en mode standalone ; l’installation manuelle iOS n’est jamais présentée comme une absence d’installation.
+- **Given** le tableau de bord PostHog des opérateurs, **when** il est consulté, **then** il présente par défaut les 30 derniers jours, permet de changer la période, filtre les cas d’aide par motif/variante et exploite uniquement les métadonnées navigateur, OS et type d’appareil interprétées par PostHog.
+- **Given** une personne concernée, **when** un opérateur autorisé la recherche dans PostHog, **then** l’investigation s’appuie sur le profil People existant sans enrichir son identité ; le tableau de bord n’envoie ni alerte ni digest.
+
+**Couverture :** Epic 11 / FR47 ; FR40 ; NFR-S2. Dépend de 10.1/10.5, OPS-9 et conserve les contrats de 11.1–11.4.
+
+---
+
+#### Story 11.6 : Adoption PWA PostHog
+
+En tant qu’**opérateur produit**,
+je veux distinguer l’usage de HatCast en navigateur et en PWA installée,
+afin de suivre l’adoption PWA et les compatibilités sans enrichir les profils People ni exposer de données personnelles.
+
+**Acceptance Criteria**
+
+- **Given** une session identifiée, **when** le navigateur expose `display-mode: standalone` ou iOS `navigator.standalone === true`, **then** HatCast émet une seule observation `pwa_access_mode_observed` avec `access_mode: standalone` pour cette session ; sinon il émet `access_mode: web`.
+- **Given** PostHog est désactivé, **when** les parcours PWA s’exécutent, **then** aucune capture n’est envoyée et le comportement PWA existant reste inchangé.
+- **Given** les événements sont inspectés, **when** ils sont capturés, **then** l’allow-list se limite à `access_mode`; aucun user agent brut, URL, identifiant appareil, texte libre ni People property n’est ajouté.
+- **Given** un opérateur configure ultérieurement le dashboard PostHog, **when** il applique la recette documentée sur les 30 derniers jours, **then** il peut séparer PWA-used, web-only et mixed-use, avec les métadonnées serveur PostHog pour les compatibilités. La création/modification de ces objets PostHog reste soumise à autorisation explicite.
+
+**Couverture :** SPEC-pwa-adoption-posthog CAP-1 à CAP-5 ; NFR-S2.
+
+---
+
+#### Story 11.7 : Observabilité des panneaux de chances PostHog
+
+En tant qu’**opérateur produit**,
+je veux mesurer l’ouverture effective des explications de chances de tirage
+depuis Dispos et Équipe,
+afin de retrouver dans PostHog les replays réellement concernés sans
+enregistrer la personne consultée ni des données métier inutiles.
+
+**Acceptance Criteria**
+
+- **Given** un point d’entrée approuvé ouvre effectivement une explication de
+  chance après une réponse API valide, **when** la feuille mobile ou le dialogue
+  desktop est affiché, **then** un unique événement
+  `chance_breakdown_opened` est émis avec son point d’entrée fermé et sa
+  présentation.
+- **Given** une requête échoue, qu’aucune chance n’est disponible ou que
+  l’ouverture est refusée par le garde-fou d’overlay, **when** l’utilisateur
+  tente d’ouvrir l’explication, **then** aucun événement n’est émis.
+- **Given** l’utilisateur active explicitement « Comprendre le tirage en
+  général » depuis une explication tracée, **when** l’aide s’ouvre, **then**
+  `chance_breakdown_help_opened` conserve uniquement le point d’entrée borné ;
+  son rendu initial ne produit aucun événement.
+- **Given** les événements sont capturés, **when** un opérateur les inspecte
+  dans PostHog, **then** leurs propriétés restent limitées au contexte sûr
+  existant, à `entry_point` et à `presentation` lorsque pertinent ; aucun nom,
+  email, identifiant de participant, rôle, chance, facteur, URL brute, texte
+  libre ou propriété People supplémentaire n’est ajouté.
+- **Given** un appelant non répertorié utilise le service partagé, **when** il
+  ouvre une explication, **then** il ne reçoit aucune télémétrie implicite.
+- **Given** la story n’ajoute aucune nouvelle surface visuelle, **when** elle
+  réutilise les overlays existants, **then** `MatBottomSheet` et `MatDialog`
+  restent les composants Material employés, sans style ni contrôle custom
+  supplémentaire ; la checklist M3 confirme l’absence de régression visuelle
+  ou tactile.
+
+**Couverture :** SPEC-dispos-chance-breakdown-posthog CAP-1 à CAP-4 ; Epic 11 /
+FR47 ; NFR-S2 ; UX-DR11.
+
+---
+
 ### Epic 12 — Parcours membre & agenda utilisateur
 
 Les membres ont un **agenda personnel** multi-ligues et multi-troupes, un **routage post-connexion** sans écran intermédiaire, et une **navigation claire** depuis le détail événement vers la ligue et la troupe.
@@ -1902,9 +1995,11 @@ afin d’**aligner la navigation** avec l’Epic 17 (ADR 0013).
 
 #### Story 17.14 : Onglet Infos — type de spectacle et rôles (modales)
 
+> **Amended 2026-10-14 — Epic 22:** the completed extraction from `EventFormDialog` remains valid. Its placement decision is superseded: Infos becomes a read-only summary and Équipe owns format/template and role-slot editing.
+
 **Acceptance Criteria**
 
-- **Given** onglet Infos, **when** chargé, **then** type et résumé des rôles visibles ; CTA ouvre modale(s) de personnalisation.
+- **Given** onglet Infos, **when** chargé, **then** type et résumé des rôles visibles en lecture seule ; l'édition est dans Équipe (Epic 22).
 - **Given** `EventFormDialog`, **when** création/édition, **then** type, confirmation changement de modèle et grille rôles **retirés** (noyau : titre, date/heure, lieu, description).
 
 **Story file:** [_bmad-output/implementation-artifacts/17-14-onglet-infos-type-roles-modales.md](../implementation-artifacts/17-14-onglet-infos-type-roles-modales.md)
@@ -3159,3 +3254,354 @@ afin que **l’intégration vers `v2` soit traçable, contrôlée et sûre**.
 4. **Given** une décision courante et valide, **when** l’intégration est explicitement demandée, **then** le contrôleur délègue uniquement à `scripts/v2/story-branch.sh integrate`; cette commande conserve seule les responsabilités de push, vérification distante et suppression locale.
 5. **Given** un état ambigu, stale ou échoué, **when** une opération mutante est demandée, **then** elle est refusée avant toute approbation, label, commentaire, merge, push, déploiement, release ou suppression.
 6. **Couverture :** workflow développeur V2. **Priorité :** P1. **Depends :** contrat `story-branch.sh integrate`. **UI :** N/A.
+
+---
+
+### Epic 22 — Composition flexible pilotée par slots
+
+**Added:** 2026-10-14 — [Sprint Change Proposal — Flexible composition slots](sprint-change-proposal-2026-10-14-flexible-composition-slots.md).
+
+Les organisateur·ices composent entièrement une équipe dans l'onglet **Équipe** : format/template, structure par rôle, affectations et tirage. Le format propose un modèle de départ ; les besoins `roleSlots` restent le contrat métier persistant. L'onglet **Infos** en montre un résumé, sans devenir une seconde surface d'édition.
+
+**FRs couverts :** extension de FR12, FR14, FR19–FR22, FR35.
+**Depends:** sécurité de projections CN-1 ; **CN-2 est superseded**.
+**UX:** Material 3/mobile-first, avec [FRONTEND_UI.md](../../docs/v2/technical/FRONTEND_UI.md) obligatoire.
+
+#### Story 22.1 : Équipe — format et besoins au même endroit
+
+En tant qu'**organisateur·ice**, je veux choisir et appliquer le format d'un spectacle depuis **Équipe**, afin de configurer et composer l'équipe sans quitter son contexte de travail.
+
+**Acceptance Criteria**
+
+1. **Given** `canManageComposition`, **when** Équipe est ouverte, **then** le format courant et son action de changement sont disponibles avec la composition ; Infos affiche le même format et le résumé de besoins sans CTA d'édition.
+2. **Given** un format proposé dont le template diffère de `roleSlots`, **when** l'organisateur le choisit, **then** une confirmation explicite précède toute mutation.
+3. **Given** confirmation, **when** le template est appliqué, **then** les slots requis manquants sont créés, les slots vides devenus inutiles sont retirés, et aucune affectation n'est supprimée silencieusement.
+4. **Given** un utilisateur sans permission de gestion, **when** il consulte Équipe ou Infos, **then** aucune action de structure ou de changement de format n'est exposée.
+5. **Couverture :** FR12, FR14, UX-DR11. **Priorité :** P1. **Depends:** CN-1.
+
+#### Story 22.2 : Équipe — édition libre de la structure des slots
+
+En tant qu'**organisateur·ice**, je veux ajouter, affecter, désaffecter et supprimer explicitement des slots, afin d'adapter librement la composition aux besoins réels du spectacle.
+
+**Acceptance Criteria**
+
+1. **Given** « Ajouter », **when** activé, **then** un slot provisoire vide et sans rôle apparaît immédiatement au-dessus de cette action ; aucun besoin persistant ne change encore.
+2. **Given** le slot provisoire, **when** l'organisateur choisit un rôle, **then** le besoin persistant de ce rôle augmente et le slot rejoint la fin de son groupe de rôle ; il peut rester vide ou recevoir une affectation.
+3. **Given** une personne affectée, **when** l'organisateur utilise la croix dans sa zone d'affectation, **then** la personne est désassignée et le slot requis demeure ; tooltip : « Libérer la place ».
+4. **Given** une poubelle de slot, **when** le slot est vide, **then** il est supprimé et le besoin associé diminue. **Given** le slot est affecté, **when** la poubelle est utilisée, **then** une confirmation explicite précède la suppression du slot et de son affectation.
+5. **Given** plusieurs slots d'un même rôle, **when** la composition est rendue, **then** les groupes de rôle sont stables et leur ordre interne suit la création ; aucun réordonnancement manuel n'est introduit.
+6. **Couverture :** FR14, FR21, UX-DR11. **Priorité :** P1. **Depends:** 22.1.
+
+#### Story 22.3 : Application sûre d'un template et slots Hors modèle
+
+En tant qu'**organisateur·ice**, je veux appliquer un template sans perdre une personne déjà affectée, afin de pouvoir changer de format de façon sûre et explicable.
+
+**Acceptance Criteria**
+
+1. **Given** un template retirant un rôle ou une position qui contient une affectation, **when** il est confirmé, **then** cette affectation est conservée dans son groupe de rôle, rendue avec un état neutre/gris « Hors modèle », et exclue des projections membres, agenda, destinataires et statistiques.
+2. **Given** une même application de template, **when** une position retirée est vide, **then** le slot est supprimé sans créer de Hors modèle.
+3. **Given** un slot Hors modèle affecté, **when** il est désassigné ou structurellement supprimé, **then** il disparaît de la composition et les projections restent cohérentes, sans mutation partielle en cas de conflit.
+4. **Given** une largeur mobile, **when** le rôle d'un slot provisoire est choisi et son picker se ferme, **then** le slot final est amené à l'écran et le focus passe à « Affecter une personne ». Sur desktop, le scroll n'intervient que s'il est hors champ.
+5. **Given** les tests, **when** ils couvrent l'application de template, **then** ils prouvent conservation affectée, suppression vide, redaction membre, concurrence atomique, focus mobile et absence de notification implicite.
+6. **Couverture :** FR19–FR22, FR35, UX-DR11. **Priorité :** P1. **Depends:** 22.1, 22.2, CN-1.
+
+#### Story 22.4 : Retrait CN-2 et décision de notification
+
+En tant que **propriétaire produit**, je veux retirer l'approche CN-2 devenue obsolète et statuer sur les notifications de suppression explicite, afin que la documentation, le code et les communications décrivent une seule expérience cohérente.
+
+**Acceptance Criteria**
+
+1. **Given** l'audit CN-2, **when** Epic 22 est couvert, **then** aucune section ou wording de régularisation autonome ne reste dans l'expérience ou les contrats actifs ; l'historique demeure traçable comme superseded.
+2. **Given** une suppression explicite de slot affecté, **when** la décision produit CN-3 est prise, **then** la règle de notification est définie séparément de la simple conservation Hors modèle et testée après commit.
+3. **Given** une migration des comportements existants, **when** elle est livrée, **then** CN-1 est revalidé comme garde-fou de préservation et les projections ordinaires ne voient jamais de détail organisateur.
+4. **Couverture :** FR35. **Priorité :** P1. **Depends:** 22.3.
+
+### Epic 24 — Livrer les évolutions V2 avec une vérification adaptée
+
+**Statut : découpage validé avec réserves pour préparation ; disponibilité à l'implémentation à vérifier au sprint planning.** Sources : [spec release-delivery](../specs/spec-release-delivery/SPEC.md), ses compagnons et [architecture cible](../specs/spec-release-delivery/ARCHITECTURE-SPINE.md). Cette cible ne modifie pas les mécanismes ni les autorisations de release actuels.
+
+L'opérateur peut évaluer l'ensemble des changements en attente, choisir avec Patrice de livrer ou d'attendre, puis conduire une release autorisée sur un candidat identifiable avec des vérifications adaptées et une reprise sûre.
+
+**Couverture du contrat :** CAP-1 identité et preuves ; CAP-2 candidat final ; CAP-3 réemploi des vérifications ; CAP-4 exécution efficace ; CAP-5 évaluation d'impact ; CAP-6 parcours et couverture ; CAP-8 promotion et reprise ; CAP-9 mesure ; CAP-10 recommandation cumulative. CAP-7 est retirée et son identifiant n'est pas réutilisé.
+
+**Exigences et contraintes transverses :**
+
+- Évaluer le cumul depuis la production effectivement servie ; recommander Targeted seulement si toutes les conditions sont démontrées, sinon Complete. Livrer tout le cumul sélectionné ou attendre ; les merges ultérieurs restent en attente.
+- Présenter chemin, contrôles bloquants et différés, lacunes et risques avant le go release ; approbation des notes et go prod après recette staging restent distincts. Toute nouvelle lacune exige une décision de Patrice.
+- Figer commit final, version et RC ; relier candidat, builds, images, révision staging, preuves et décisions dans une fiche partageable. Les rapports automatiques restent dans Actions ; une preuve manquante ou incompatible ne vaut pas succès.
+- Tracer changements et voisins jusqu'aux risques, scénarios, assertions et fixtures sûres ou recette humaine. Les deux parcours conservent le socle staging et les scénarios changements/voisins ; C2–C5 suivent l'impact en Targeted et sont systématiques en Complete. CI est la référence T1 ; E2E local reste à la demande.
+- Préserver les échecs initiaux, skips et relances ; obtenir les vérifications critiques. Présenter à Patrice un échec inexpliqué suivi d'un succès sur une vérification liée aux changements, sans le transformer en réussite sans réserve.
+- Lancer les éventuels contrôles différés sur staging et le candidat identifié après les contrôles bloquants ; en cas de remplacement autorisé, arrêter les opérations possédées, préserver les résultats partiels et rejeter les preuves tardives ou mixtes. Arbitrage de Patrice requis si deux releases avant production demandent staging.
+- Superposer build et tests sans déploiement spéculatif ; conserver des builds staging et production distincts. Après incident, constater les effets réels et reprendre le même candidat au dernier point sûr ; observations de production en lecture seule.
+- Mesurer exécutions, attentes et incidents sans additionner les travaux parallèles. Aucun engagement de gain chiffré, troisième parcours, livraison isolée, test fonctionnel en production ou rollback automatique n'est introduit.
+
+**À préciser pour l'implémentation :** Q-1 preuve et mécanismes de fiche, Q-2 sélecteurs et fixtures, Q-3 mécanique des résultats, Q-4 lancement et arrêt des différés, Q-5 orchestration, publication et reprise. Les fiches utilisent une branche Git dédiée partagée, un fichier par release ; son nom, son format, les permissions et l'exclusion atomique restent à définir et vérifier. Les décisions AD-1 à AD-7 de l'architecture restent applicables ; leur présence ne signifie pas que les contrôles sont déjà en place. UI Angular : N/A pour ce cadrage opérateur.
+
+**Garde d'activation :** le découpage ne suppose pas qu'une story intermédiaire active isolément la politique cible. Avant toute activation, les exigences applicables de la spec, y compris la reprise sûre de 24.5a, doivent être satisfaites ; les procédures actuelles et autorisations distinctes restent en vigueur entre-temps.
+
+#### Story 24.1 : Recommander une release ou l'attente sur le cumul
+
+En tant qu'**opérateur de release**, je veux évaluer tous les changements intégrés depuis la version réellement servie en production, afin de proposer à Patrice de livrer avec un parcours justifié ou d'attendre.
+
+**Acceptance Criteria**
+
+1. **Given** une clôture de story demandée et son intégration achevée sur `v2`, **when** la clôture se termine, **then** une évaluation identifie la production réellement servie et l'ensemble du delta non livré, y compris les interactions entre changements, et fournit la recommandation ; les contrôles de story et la CI d'intégration restent distincts des contrôles de release.
+2. **Given** ce cumul, **when** les conditions Targeted sont toutes démontrées, **then** la proposition expose ce parcours et sa justification ; si une condition est fausse ou inconnue, elle propose Complete.
+3. **Given** la proposition, **when** elle est présentée, **then** elle distingue la recommandation de livrer ou d'attendre, les contrôles envisagés et les risques ou incertitudes connus. Une story approuvée ou une CI verte ne constitue pas une autorisation de release.
+4. **Given** le choix d'attendre, **when** Patrice refuse la release, **then** aucun travail de préparation de release ne démarre ; tout le delta reste en attente et sera réévalué après le développement suivant. L'E2E local reste disponible et recommandé à la demande.
+5. **Given** l'évaluation, **when** elle est exécutée, **then** elle ne déclenche ni release, ni tag, ni déploiement et n'extrait aucun correctif du cumul. Les mécanismes existants restent applicables tant que la cible de l'Epic 24 n'est pas mise en œuvre.
+6. **Couverture :** CAP-5, CAP-10, sélection CAP-6 ; AD-1, AD-2, AD-5. **UI : N/A.**
+
+#### Story 24.2 : Identifier le candidat et conserver ses preuves
+
+En tant qu'**opérateur de release**, je veux disposer d'une fiche liée au candidat final, afin de retrouver les vérifications et décisions qui lui correspondent et de refuser toute preuve inadéquate.
+
+**Acceptance Criteria**
+
+1. **Given** le go release et l'approbation des notes, **when** le candidat final est préparé, **then** son commit, sa version, son RC et la production servie prise comme base sont identifiés ; un merge ultérieur sur `v2` ne le modifie pas.
+2. **Given** ce candidat, **when** la fiche est consultée, **then** elle est durable et partageable entre sessions, sous forme d'un fichier par release sur une branche Git dédiée partagée, distincte de `v2` et `staging-v2`. Elle relie le périmètre retenu, les décisions humaines et les exécutions GitHub Actions. Les rapports automatisés restent dans Actions ; aucun secret n'est enregistré.
+3. **Given** un contrôle, **when** ses preuves sont consultées, **then** la fiche permet de retrouver le run et sa tentative, la sélection, les assertions exécutées et les résultats, y compris skips et échecs. Une observation humaine conserve la révision, le rôle ou la fixture, les actions et le résultat persistant observé.
+4. **Given** des mises à jour concurrentes, **when** une transition est demandée, **then** le contrôleur, seul responsable des transitions, vérifie la version précédente et ne peut accepter silencieusement des décisions concurrentes.
+5. **Given** une preuve d'un autre candidat ou de portée, d'entrées pertinentes ou de détail insuffisants, **when** elle est évaluée, **then** elle est refusée. Les détails nécessaires sont accessibles pour les runs réussis comme pour les échecs ; sinon la preuve est manquante.
+6. **Given** la conception, **when** le nom de branche, le format de la fiche, les permissions, les mises à jour atomiques, la disponibilité des rapports et les règles de validité sont arrêtés, **then** Q-1 est explicité et vérifié avant activation ; aucun délai uniforme d'expiration n'est supposé et la branche seule n'est ni un verrou ni une porte.
+7. **Given** une preuve staging, **when** son attribution est vérifiée, **then** elle relie explicitement commit testé, build, image et révision servie ; elle établit la révision avant et après le run ainsi que la génération d'occupation staging. Une identité ou continuité non établie rend la preuve inutilisable ; le hash de `version.txt` n'est pas supposé être le SHA du commit RC.
+8. **Given** une preuve à réutiliser, **when** sa validité est vérifiée, **then** elle dépend des conditions attribuables et de l'accessibilité des détails nécessaires, sans expiration uniforme arbitraire ; si la validité ne peut être établie, une nouvelle preuve est obtenue.
+9. **Given** une preuve requise du parcours retenu manquante ou inaccessible, **when** le parcours est réévalué, **then** le repli est Complete et ses preuves requises sont obtenues selon les règles de résultat adoptées ; une preuve absente n'est jamais une réussite.
+10. **Given** les futures preuves de release Actions, **when** leur conservation est configurée, **then** la durée par défaut de 90 jours est retenue après vérification du réglage effectif et des éventuelles exceptions par artefact. La fiche conserve candidat, contrôles, résultats, lacunes et décisions avec les liens, sans copier les rapports complets ; rétention et validité sont distinctes.
+11. **Given** un run lancé par le contrôleur, **when** son identité est obtenue, **then** le contrôleur le corrèle fiablement à la demande et enregistre automatiquement identité et lien après vérification du candidat, workflow, tentative, sélection exécutée et entrées pertinentes. Les runs existants sont recherchés sans choisir arbitrairement parmi des correspondances ambiguës ; le mécanisme de corrélation et les accès sont vérifiés.
+12. **Given** une fiche mise à jour depuis un état lu, **when** une autre session a fait avancer la branche, **then** le push sans force est rejeté, le contrôleur relit l'état et les décisions conflictuelles demandent une nouvelle résolution humaine. Cette protection ne réserve pas staging et n'assure pas les portes de déploiement, qui relèvent de Q-5.
+13. **Couverture :** CAP-1, CAP-3, CAP-9 ; AD-1, AD-3, AD-4. **Depends:** 24.1. **UI : N/A.**
+
+#### Story 24.3 : Définir les vérifications du candidat
+
+En tant qu'**opérateur de release**, je veux relier les changements et leurs effets voisins à des scénarios de vérification explicites, afin de savoir ce qui bloque la livraison et ce qui reste à vérifier par une personne.
+
+**Acceptance Criteria**
+
+1. **Given** le cumul, **when** les scénarios sont définis, **then** chaque changement et voisin retenu est relié par dépendance → risque → scénario, puis aux tests, projets, assertions et fixtures applicables ou au parcours humain nécessaire.
+2. **Given** la proposition, **when** elle est présentée, **then** elle distingue les vérifications bloquantes, différées et omises, les lacunes et risques connus, ce que les assertions automatiques démontrent réellement et ce qui reste à vérifier en recette humaine.
+3. **Given** un candidat, **when** son parcours est défini, **then** les deux parcours comprennent la version staging attendue, la santé API, le chargement PWA, le parcours humain C1 et les scénarios propres aux changements et voisins. Complete comprend systématiquement C2–C5 ; Targeted les comprend lorsque le cumul ou ses voisins les affectent.
+4. **Given** une vérification métier, **when** un résultat persistant est pertinent, **then** il est vérifié ; une assertion ignorée ou limitée à l'affichage ne démontre pas la persistance. Une fixture critique absente empêche de considérer la vérification critique comme obtenue.
+5. **Given** des mutations staging, **when** les scénarios sont exécutés, **then** seules des fixtures réservées, adaptées et sûres sont utilisées. Les sélecteurs et fixtures concrets sont établis à partir des tests existants et des besoins du candidat ; leur définition relève de Q-2.
+6. **Given** la proposition, **when** le go release est demandé, **then** elle est présentée avant ce go. Une lacune découverte hors du périmètre annoncé est soumise à Patrice avant poursuite. L'automatisation complète de tous les scénarios n'est pas un préalable.
+7. **Couverture :** CAP-5, CAP-6 ; AD-2, AD-5. **Depends:** 24.1, 24.2. **UI : N/A.**
+
+#### Story 24.4 : Exécuter les contrôles et interpréter leurs résultats
+
+En tant qu'**opérateur de release**, je veux exécuter les contrôles requis sur le candidat identifié et conserver leurs résultats exacts, afin de ne pas promouvoir une couverture manquante ou présenter une anomalie comme une réussite.
+
+**Acceptance Criteria**
+
+1. **Given** le parcours retenu, **when** les contrôles bloquants sont exécutés, **then** ils ciblent le candidat et la sélection définis dans la fiche. Le build peut se dérouler en parallèle, mais le déploiement staging attend les succès requis du build et des contrôles préalables.
+2. **Given** une preuve T1, **when** elle est évaluée, **then** la CI constitue la référence de release ; une réussite locale ne remplace pas une preuve CI requise manquante. L'E2E local reste disponible à la demande. Une preuve valide peut être réutilisée si candidat, portée et entrées pertinentes correspondent.
+3. **Given** des résultats de contrôle, **when** ils sont enregistrés, **then** les échecs initiaux, relances, skips et vérifications non exécutées restent visibles. Un skip ou une dérogation ne devient jamais une réussite. Les mécanismes précis de relance et de traitement des résultats relèvent de Q-3.
+4. **Given** une vérification manquante liée aux changements du cumul ou à leurs voisins affectés, **when** la livraison est envisagée, **then** elle doit être obtenue avant livraison. Hors de ce périmètre, une lacune peut être non bloquante selon les règles adoptées, avec justification et risque explicites.
+5. **Given** une vérification liée aux changements qui échoue puis réussit à la relance sans cause identifiée, **when** la poursuite est envisagée, **then** les deux résultats, l'analyse et le risque sont présentés à Patrice ; sa décision ne transforme pas le résultat en réussite sans réserve.
+6. **Given** un défaut produit ou un échec inexpliqué, **when** il est diagnostiqué, **then** il ne peut pas être automatiquement qualifié de problème de fixture ou de test. Une nouvelle lacune hors du périmètre annoncé est soumise à Patrice avant poursuite.
+7. **Given** le parcours Complete, **when** son périmètre est exécuté, **then** il comprend la suite CI T1 complète, la suite E1 applicable sur staging et les tests API complets lorsque le périmètre l'exige, ainsi que C1–C5 et les scénarios du cumul. Les skips et fixtures manquantes suivent les dispositions adoptées sans être comptés comme réussites.
+8. **Given** un cache de préparation, **when** il est réutilisé, **then** ses entrées pertinentes, navigateur et version, scénarios, assertions et artefacts restent compatibles ; une incompatibilité invalide l'entrée et ne fournit pas de preuve équivalente.
+9. **Couverture :** CAP-3, CAP-4, CAP-6 ; AD-4, AD-7. **Depends:** 24.2, 24.3. **UI : N/A.**
+
+#### Story 24.5 : Promouvoir le candidat autorisé
+
+En tant qu'**opérateur de release**, je veux promouvoir le candidat vérifié avec l'accord distinct de Patrice, afin de livrer le bon cumul sans inclure de changements ultérieurs.
+
+**Acceptance Criteria**
+
+1. **Given** une proposition, **when** Patrice donne le go release, **then** il autorise la préparation et le parcours annoncé. Après présentation des résultats et acceptation de la recette staging, un go prod distinct est requis pour promouvoir le candidat. L'approbation des notes reste distincte.
+2. **Given** une promotion demandée, **when** elle est envisagée, **then** le contrôleur vérifie juste avant promotion que staging sert toujours le candidat identifié et que les preuves requises restent valides. Il réutilise les preuves valides sans lancer automatiquement une nouvelle campagne complète.
+3. **Given** les chemins de mutation staging et production, y compris les déclenchements manuels et publications Git concernés, **when** ils sont utilisés, **then** ils respectent les mêmes portes et ciblent explicitement le commit ou RC retenu, sans sélectionner implicitement le dernier RC ni le `v2` courant.
+4. **Given** une autre release qui demande staging tandis qu'une première est encore en cours avant production, **when** le remplacement est envisagé, **then** Patrice choisit laquelle poursuivre avant remplacement. Un simple merge sur `v2` ne déclenche ni remplacement ni interruption.
+5. **Given** la livraison, **when** elle est vérifiée, **then** les builds et images staging et production restent distincts ; les observations en production vérifient identité et accessibilité en lecture seule sans parcours métier. Un déploiement réussi et un échec ultérieur d'observabilité sont rapportés séparément.
+6. **Given** la conception, **when** les mécanismes de publication, concurrence et protection des portes sont arrêtés, **then** ils sont définis et vérifiés dans Q-5, notamment face aux protections externes effectives.
+7. **Given** le candidat final contenant code, version et notes approuvées, **when** il est validé, **then** un seul cycle staging le vérifie sans redéploiement supplémentaire uniquement pour ajouter les métadonnées de release.
+8. **Couverture :** CAP-2, CAP-8 ; AD-2, AD-6, AD-7. **Depends:** 24.2, 24.3, 24.4. **UI : N/A.**
+
+#### Story 24.5a : Reprendre une release après incident
+
+En tant qu'**opérateur de release**, je veux constater les effets réels d'un incident et reprendre le candidat retenu au dernier point sûr, afin de ne pas inclure de nouveaux changements ni répéter des opérations déjà réalisées.
+
+**Acceptance Criteria**
+
+1. **Given** un échec de build, publication ou déploiement, **when** la reprise est envisagée, **then** références Git et tags, publication GitHub Release, builds et images, déploiements, version et trafic réellement servis ainsi que l'observabilité sont constatés et rapportés séparément.
+2. **Given** ces effets et une reprise autorisée, **when** l'opération reprend, **then** elle cible le même candidat au dernier point sûr et réutilise les preuves encore valides sans inclure les merges ultérieurs ; une correction de code impose une nouvelle évaluation du candidat et des vérifications affectées.
+3. **Given** un retour arrière envisagé, **when** sa cible est préparée, **then** sa cible connue et ses limites, notamment données, notifications et clients PWA, sont explicites ; aucun tag n'est réécrit et aucun rollback automatique n'est déduit. La production ne reçoit que des observations d'identité et d'accessibilité en lecture seule.
+4. **Given** les mécanismes de reprise, **when** ils sont définis, **then** ils traitent les effets partiels et l'idempotence dans Q-5 et ne créent aucune nouvelle autorité de mutation en production.
+5. **Couverture :** CAP-8, CAP-9 ; AD-3, AD-7. **Depends:** 24.5. **UI : N/A.**
+
+#### Story 24.6 : Exécuter et interrompre les contrôles différés sur staging
+
+En tant qu'**opérateur de release**, je veux lancer les contrôles différés compatibles avec staging et les interrompre proprement lorsqu'un nouveau candidat prend sa place, afin d'obtenir des observations utiles sans bloquer la livraison ni mélanger les preuves.
+
+**Acceptance Criteria**
+
+1. **Given** les contrôles différés déclarés, **when** les contrôles bloquants sont terminés, **then** ils sont lancés automatiquement dans des runs GitHub Actions séparés, liés au candidat et à la révision staging servie, avec des assertions compatibles et des fixtures sûres ; ils ne ciblent jamais la production.
+2. **Given** des contrôles différés, **when** le go prod est attendu ou la mise en production est en cours ou terminée, **then** ils peuvent commencer ou continuer sur staging ; leur achèvement n'est pas nécessaire pour démarrer la promotion.
+3. **Given** un nouveau candidat autorisé à remplacer staging, **when** le changement de cible est préparé, **then** le contrôleur ferme la génération d'occupation précédente, annule les seuls runs différés concernés et confirme l'arrêt de leurs opérations et fixtures possédées avant le changement. Si l'arrêt sûr ne peut être établi, diagnostiquer avant remplacement.
+4. **Given** un run interrompu, **when** son état est enregistré, **then** les observations terminées et échecs connus sont conservés ; les contrôles restants sont marqués annulés ou incomplets. Une preuve tardive, de révision mélangée ou attribuée au mauvais candidat est rejetée ; aucun succès complet n'est hérité et aucun ancien run ne reprend silencieusement sur la nouvelle version.
+5. **Given** un échec différé, **when** il est diagnostiqué, **then** les observations et l'impact probable sont présentés à Patrice. Avant mise en production, les règles de criticité adoptées s'appliquent ; après, Patrice décide de la réponse. Aucun rollback ni affaiblissement des tests n'est automatique.
+6. **Given** deux releases qui demandent staging avant la mise en production de la première, **when** le remplacement est envisagé, **then** l'arbitrage de la story 24.5 s'applique avant remplacement. Un merge sur `v2` seul n'annule pas les contrôles différés.
+7. **Given** la conception des contrôles différés, **when** elle est arrêtée, **then** les scénarios exacts et mécanismes de lancement, annulation, nettoyage et rejet des résultats tardifs sont définis et vérifiés dans Q-4.
+8. **Couverture :** CAP-6, CAP-8 ; AD-6. **Depends:** 24.2, 24.3, 24.4, 24.5. **UI : N/A.**
+
+#### Story 24.7 : Mesurer la livraison et ses compromis
+
+En tant qu'**opérateur de release**, je veux distinguer les temps de travail, les attentes et les incidents de chaque livraison, afin d'évaluer les gains réels sans masquer une réduction de couverture ou additionner des activités parallèles.
+
+**Acceptance Criteria**
+
+1. **Given** une release, **when** la fiche est consultée, **then** elle permet de retrouver les moments et durées disponibles de décision, préparation, contrôles, attente de runner ou humaine, déploiement et vérification de livraison.
+2. **Given** les résultats de la release, **when** ils sont présentés, **then** les relances, skips, annulations, incidents, reprises et éventuels retours arrière restent distingués des succès et de la durée nominale.
+3. **Given** des travaux parallèles, **when** leurs durées sont présentées, **then** elles sont séparées et ne sont pas additionnées pour prétendre représenter la durée totale de livraison. Une mesure indisponible reste indiquée comme telle.
+4. **Given** un bilan, **when** les gains sont présentés, **then** les gains observés sont distingués des estimations et le parcours retenu, la couverture différée ou omise et les risques acceptés sont précisés. Les durées historiques issues d'une chaîne différente ne sont pas présentées comme une preuve des gains du parcours ciblé.
+5. **Given** le dispositif de mesure, **when** il est utilisé, **then** il n'impose ni objectif de délai chiffré ni fréquence de release. La séquence d'évaluation reste définie dans `PLAN.md`.
+6. **Couverture :** CAP-9 ; AD-3. **Depends:** 24.2, 24.5. **UI : N/A.**
+
+#### Validation du découpage — 2026-10-28
+
+- **Couverture :** CAP-1 → 24.2 ; CAP-2 → 24.2, 24.5 ; CAP-3 → 24.2, 24.4, 24.5 ; CAP-4 → 24.4 ; CAP-5 → 24.1, 24.3 ; CAP-6 → 24.1, 24.3, 24.4, 24.6 ; CAP-8 → 24.5, 24.5a, 24.6 ; CAP-9 → 24.2, 24.5a, 24.7 ; CAP-10 → 24.1. CAP-7 reste retirée.
+- **Architecture :** AD-1 à AD-7 sont réparties dans les critères ; les dépendances déclarées pointent vers des stories précédentes. Aucun starter ni nouveau modèle de données imposé par avance ; UI Angular hors périmètre.
+- **Réserves de préparation :** Q-1 à Q-5 et les protections externes doivent être résolues ou cadrées au niveau des stories concernées ; Q-1 adopte depuis une branche dédiée partagée pour les fiches, dont les mécanismes restent à vérifier. Le séquencement d'activation et la faisabilité d'une livraison incrémentale sûre, notamment 24.5/24.5a, ainsi que la taille des stories 24.2, 24.4 et 24.5, sont à vérifier au sprint planning. Ce constat ne valide pas la préparation à l'implémentation ni n'active la politique cible.
+
+The approved Advent requirements inventory and source references are recorded in `_bmad-output/planning-artifacts/hatcast-avent/epics.md`. This Epic 25 section is the canonical story list for tracking.
+
+## Epic 25: Discover La Malice through an Advent calendar
+
+Members discover each other through 24 daily quizzes, delayed reveals and a friendly ranking; Patrice and Toinou validate the journey in isolated development before production opening. The PRD, UX, spec and architecture remain binding. Partial checkpoints identify unfinished features and must never expose protected production data.
+
+### Story 25.1: Open an Advent door in isolated development
+
+As an eligible member testing the calendar, I want to open an available test door so that I can explore the discovery experience.
+
+**Acceptance Criteria:**
+
+1. In isolated development, active members of the configured troupe can open available future cases before their simulated day; the interface visibly identifies test mode. Test statements are fictional; actual names or portraits require consent.
+2. The API enforces active troupe membership, the dedicated test-user allowlist and environment restrictions on each read. Platform administrators outside the troupe are not exempt. Production offers no test mode; future content, revealing portraits and answers are inaccessible through API, bundles, assets or direct URLs.
+3. Opening the full-page decorated door reveals only the selected permitted portrait and quiz content; reduced motion gives equivalent immediate access. Answering is not yet available and is explicitly identified as unfinished in the demonstration.
+4. Before a human demonstration, verify development data, notifications and analytics are isolated from production. Keyboard access, focus, accessible state, responsive layout, HatCast Material 3 tokens and touch targets follow the UX contract.
+
+**References:** FR-1, FR-10, FR-13; AD-1, AD-2; UX-DR1, UX-DR2, UX-DR6, UX-DR9–UX-DR11.
+
+### Story 25.2: Answer the quiz after opening a door
+
+As an eligible member, I want to select and confirm a single statement so that my answer is saved for the next day's reveal.
+
+**Clarification after completion:** Production answers remain final. The isolated test preview additionally allows a tester to erase and replay their own answer under the existing 25.2 safeguards, without changing other answers or rewinding the shared clock.
+
+**Acceptance Criteria:**
+
+1. Display the portrait and three single-choice statements; allow selection changes until explicit confirmation. One immutable answer per member and quiz is enforced in the database under concurrent requests and retries.
+2. At the next Paris midnight, confirmations still waiting for the lock close even if received earlier; result reads wait for an already-running transaction. An uncertain response is resolved by checking stored state, with retry only while admissible.
+3. Persist the selection and stable result data and calculate 10 points for a correct answer or 0 for incorrect, plus 1 participation point and 2 for each non-overlapping group of three consecutive correct responses. A wrong answer resets the sequence; a missed day does not. Concurrent writes cannot corrupt the sequence or duplicate scores.
+4. Before reveal return only a neutral recorded acknowledgment and return-tomorrow message; identify Ranking as unavailable in the partial demonstration until its action becomes operational in 25.4. API responses, errors, metadata, scores and client state must not disclose correctness, answer, points or other clues. No past quiz accepts a catch-up answer.
+5. In isolated test mode, confirming a future case advances the shared simulated server clock to its day; normal scoring applies and the result is revealed the following simulated day. The clock cannot move backward except through the targeted reset. Actual production date boundaries are verified separately.
+6. Verify single-choice semantics, portrait alternatives, keyboard, focus, announcements, contrast, small screens and enlarged text; use HatCast Material 3 and never truncate the content.
+
+**References:** FR-4–FR-7, FR-13; AD-1–AD-3; UX-DR1, UX-DR3, UX-DR9–UX-DR11.
+
+### Story 25.2a: Restart an isolated test session
+
+As an organizer, I want to reset the test game so that I can replay its dates and results safely.
+
+**Acceptance Criteria:**
+
+1. A documented targeted reset in verified isolated development clears test answers, scores, shared per-member journey state and the simulated clock for the intended scope while preserving test content and unrelated data; the clock can then start earlier.
+2. Production and any environment whose isolation cannot be established reject reset and clock control on the server. The procedure cannot affect production data, notifications or analytics.
+3. Replaying after reset computes results and series solely from new answers. Document target, prerequisites, effects and verification; no general administration interface is required.
+
+**References:** FR-13; AD-2–AD-4; UX-DR11.
+
+### Story 25.3: Discover and recover the quiz result
+
+As a member who answered, I want to discover my saved result after its reveal so that I can enjoy it even after interruption or on another device.
+
+**Acceptance Criteria:**
+
+1. Starting at the following 00:00 Paris, show the selected statement, false statement, correctness, response and participation points, earned streak bonus if any, total and optional anecdote; before that instant none is available through API or interface.
+2. On return present the most recent revealable unseen answer first, even when a newer answer is pending. No Calendar action is offered on this priority screen; afterwards offer today's quiz if available, or the relevant missing-content or 25 December path.
+3. Persist seen state by member and answer across devices only after the reveal screen is actually displayed and the client acknowledges it; HTTP delivery alone does not mark it seen. A lost acknowledgment can cause a repeat and simultaneous devices can both show it; acknowledgments are idempotent. Older unseen results remain accessible through their calendar cases without special markers or automatic chaining; verify that calendar access when 25.5 is available.
+4. Celebrate correct answers only on initial reveal, with an equivalent reduced-motion result; revisiting does not replay celebration. A failed or uncertain submission is checked before offering a retry; after closure explain that the quiz is closed.
+5. Verify focus, announcements, accessible error handling, no truncated text and navigation on narrow screens with Material 3 components.
+
+**Visual contract:** Apply the Advent visual foundation to the correct, incorrect and detailed reveal states; keep the reveal priority and secrecy rules. Use the Advent DESIGN and EXPERIENCE contracts and architecture AD-7; test keyboard, accessible states, responsive rendering and isolation from HatCast.
+
+**References:** FR-5–FR-7, FR-9–FR-10; AD-1–AD-3; UX-DR4, UX-DR8–UX-DR10.
+
+### Story 25.4: See the friendly ranking
+
+As a member, I want to see the revealed ranking and my own score so that I can share the fun without learning today's result early.
+
+**Acceptance Criteria:**
+
+1. Include all classable members by name from zero; show the connected member's position and revealed score. Patrice and Toinou see their own scores without rank and are excluded from the list.
+2. Derive scores and ranks using one server reference time and only answers already revealable; no pending correctness, points, subtotal or derived clue is returned. Ties receive the lowest position of the group: 1, 3, 3, 4; all N tied receive rank N.
+3. At 00:00 Paris on 25 December the result of the 24th is revealable and the ranking is final. The ranking is available to all eligible members through 15 January, even without answers; verify calendar availability with 25.5. Member access ends on 16 January; results remain retained. No special membership-change mechanism is added.
+4. Verify ranking against correct, incorrect, missed and third/sixth correct answers, including exclusion, cross-account requests and before/after-midnight snapshots. Test simulated time and actual date boundaries separately.
+5. Names, position and scores remain readable and accessible on small screens and with keyboard, assistive technology and text enlargement; use Material 3.
+
+**Visual contract:** Apply the Advent visual foundation to ranking and personal score states; retain the existing accessible data and pending-score protections. Use the Advent DESIGN and EXPERIENCE contracts and architecture AD-7; test keyboard, accessible states, responsive rendering and isolation from HatCast.
+
+**References:** FR-5, FR-6, FR-8–FR-9; AD-1, AD-3, AD-4; UX-DR1, UX-DR5, UX-DR9–UX-DR10.
+
+### Story 25.5: Browse the calendar and past content
+
+As a member, I want to browse the calendar and revisit permitted content so that I can enjoy the discoveries at my own pace.
+
+**Acceptance Criteria:**
+
+1. Show 24 numbered quiz cases and a 25 December case in a four-column ordered grid. Distinguish played, past unplayed, today, future locked and missing states accessibly, without exposing future content or relying on color alone.
+2. A played case before revelation provides only the neutral pending state. After revelation it provides the choice, false statement and points without allowing another answer or replaying celebration. An unplayed past quiz is read-only after its reveal, with portrait, anecdotes and false statement but no points or answer action.
+3. No past case can be answered. A future production case remains locked at both UI and API. An absent case shows “Il n’y a rien ici. Reviens plus tard !”; content published during its day becomes playable until midnight, and content published later is read-only after reveal.
+4. From 25 December through 15 January, eligible members can consult calendar and final ranking, even without playing. The 25 displays the Christmas message, personal score and decorative Santa and box according to UX; no quiz or automatic quiz opening occurs.
+5. Verify case states and content permissions through direct API, URLs, cache and two accounts; meet keyboard, screen-reader, responsive, reduced-motion and Material 3 requirements.
+
+**Visual contract:** Apply the Advent visual foundation to calendar states, past content, missing content and the 25 December presentation; distinguish states without relying on color. Use the Advent DESIGN and EXPERIENCE contracts and architecture AD-7; test keyboard, accessible states, responsive rendering and isolation from HatCast.
+
+**References:** FR-6, FR-9–FR-11, FR-13; AD-1–AD-4; UX-DR1–UX-DR6, UX-DR9–UX-DR11.
+
+### Story 25.6: Enter the Advent experience from HatCast
+
+As an eligible member, I want to discover and reopen the experience without repeated automatic interruptions.
+
+**Acceptance Criteria:**
+
+1. In production show the Santa icon near My Account from 1 December to 15 January inclusive Paris time; hide it outside that window and enforce the same server access. Its discreet motion lasts less than five seconds, once on opening, and respects reduced motion.
+2. From 1–24 December, automatically open an available unanswered daily quiz on the first eligible visit after any priority reveal. Persist dismissal by member and day across devices; a recorded answer also prevents opening. Visiting without available content does not consume the opening; closing the experience does.
+3. With no quiz, no automatic opening occurs; the icon offers the absence message and Calendar and Ranking after the priority reveal. When content appears later that day, it may auto-open on a later eligible visit unless already closed.
+4. After today's answer, the icon opens Ranking subject to reveal priority. On 25 December show the Christmas journey after any priority reveal; thereafter and through 15 January provide final Ranking and Calendar without new answers or automatic quiz opening.
+5. Test mode is development-only and visibly identified. Verify cross-device state, active membership, focus entry and restoration, keyboard and accessible labels.
+
+**Visual contract:** Apply the Advent visual foundation to Advent entry and missing-content surfaces; keep HatCast navigation chrome and design system unaffected. Use the Advent DESIGN and EXPERIENCE contracts and architecture AD-7; test keyboard, accessible states, responsive rendering and isolation from HatCast.
+
+**References:** FR-1, FR-2, FR-7, FR-9, FR-12, FR-13; AD-1–AD-3; UX-DR1, UX-DR5, UX-DR7–UX-DR11.
+
+### Story 25.7: Invite members to the daily quiz
+
+As an eligible member, I want the usual invitation to the day's quiz so that I can take part when notifications are enabled.
+
+**Acceptance Criteria:**
+
+1. Schedule an attempt with existing Spring reminders at 10:00 Europe/Paris on 1–24 December. At actual execution check the day's available quiz, active troupe membership, no recorded answer and ordinary notification preferences. The link follows the priority reveal before the daily path.
+2. If the quiz is unavailable or the job does not run, no invitation is sent. A late execution may invite a quiz published after 10:00; late or missed delivery is acceptable. No dedicated publication timestamp, recovery, delivery guarantee or fictitious show is added.
+3. Adapt existing notification dispatch and deduplication to a quiz and recipient without a fictitious event; ensure repeated or concurrent processing does not intentionally send duplicate invitations. Respect normal eligibility checks and test both answered and disabled-preference cases.
+4. Test with isolated development data and notifications without production effects; verify Paris time boundaries and real dates separately.
+
+**References:** FR-3, FR-12, FR-13; AD-1, AD-2, AD-5.
+
+### Story 25.9: Measure actual participation
+
+As an organizer, I want to know how many people played and how many answers were recorded without exposing quiz contents.
+
+**Acceptance Criteria:**
+
+1. Measure two global totals: distinct real players with at least one saved answer and the number of real saved answers. No daily breakdown or participation target is required.
+2. Exclude development tests and never transmit anecdotes, statements, choices, pending correctness or points. Repeated submissions must not inflate counts.
+3. Recorded database answers are authoritative for both totals if telemetry is missing or duplicated. This story does not authorize an analysis of existing PostHog data.
+
+**References:** AD-2, AD-6; PRD success signal.
+
+## Final validation
+
+- **Coverage:** FR-1–FR-13, AD-1–AD-6 and UX-DR1–UX-DR11 are covered across stories 25.1–25.7, 25.2a and 25.9; companions retain full contractual detail.
+- **Order:** 25.1 → 25.2 → 25.2a → 25.3 → 25.4 → 25.5 → 25.6 → 25.7; 25.9 follows recorded answers. Development isolation and protections precede human testing; partial features are identified as such.
+- **Validation:** Revised criteria and dependencies reviewed and approved with Patrice on 2026-10-29. Check real date boundaries separately from the simulated clock; verify device, keyboard, contrast and reduced-motion behavior. The Christmas recap, optional animation and graphical treatment of missed cases remain open for story design.

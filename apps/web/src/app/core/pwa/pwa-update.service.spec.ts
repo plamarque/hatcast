@@ -5,6 +5,7 @@ import { Subject } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { SHOW_CHANGELOG_AFTER_RELOAD_KEY } from '../app/changelog-keys';
+import { ProductAnalyticsService } from '../analytics/product-analytics.service';
 import { PwaUpdateService } from './pwa-update.service';
 
 describe('PwaUpdateService', () => {
@@ -13,6 +14,11 @@ describe('PwaUpdateService', () => {
   let isEnabled: boolean;
   let getRegistration: ReturnType<typeof vi.fn>;
   let fetchMock: ReturnType<typeof vi.fn>;
+  let analytics: {
+    capturePwaUpdateAvailable: ReturnType<typeof vi.fn>;
+    capturePwaUpdateDismissed: ReturnType<typeof vi.fn>;
+    capturePwaUpdateApplyRequested: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(() => {
     versionUpdates = new Subject();
@@ -23,6 +29,11 @@ describe('PwaUpdateService', () => {
       ok: true,
       json: async () => ({ timestamp: 1 }),
     });
+    analytics = {
+      capturePwaUpdateAvailable: vi.fn(),
+      capturePwaUpdateDismissed: vi.fn(),
+      capturePwaUpdateApplyRequested: vi.fn(),
+    };
     sessionStorage.clear();
 
     vi.stubGlobal('navigator', {
@@ -33,6 +44,7 @@ describe('PwaUpdateService', () => {
     TestBed.configureTestingModule({
       providers: [
         PwaUpdateService,
+        { provide: ProductAnalyticsService, useValue: analytics },
         { provide: PLATFORM_ID, useValue: 'browser' },
         {
           provide: SwUpdate,
@@ -69,6 +81,7 @@ describe('PwaUpdateService', () => {
 
     expect(service.showBanner()).toBe(true);
     expect(service.refreshing()).toBe(false);
+    expect(analytics.capturePwaUpdateAvailable).toHaveBeenCalledWith('version_ready');
   });
 
   it('does not show banner when service worker is disabled', () => {
@@ -94,9 +107,21 @@ describe('PwaUpdateService', () => {
 
     await service.applyUpdate();
 
+    expect(analytics.capturePwaUpdateApplyRequested).toHaveBeenCalledOnce();
     expect(activateUpdate).toHaveBeenCalledOnce();
     expect(sessionStorage.getItem(SHOW_CHANGELOG_AFTER_RELOAD_KEY)).toBe('1');
     expect(service.refreshing()).toBe(true);
+  });
+
+  it('reloads after activation even when optional storage is denied', async () => {
+    const reload = vi.fn();
+    vi.stubGlobal('document', { location: { reload } });
+    const storage = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('denied'); });
+    try {
+      await createService().applyUpdate();
+      expect(activateUpdate).toHaveBeenCalledOnce();
+      expect(reload).toHaveBeenCalledOnce();
+    } finally { storage.mockRestore(); }
   });
 
   it('dismissBanner hides banner until next VERSION_READY', () => {
@@ -110,6 +135,7 @@ describe('PwaUpdateService', () => {
 
     service.dismissBanner();
     expect(service.showBanner()).toBe(false);
+    expect(analytics.capturePwaUpdateDismissed).toHaveBeenCalledOnce();
 
     versionUpdates.next({
       type: 'VERSION_READY',
@@ -241,6 +267,39 @@ describe('PwaUpdateService', () => {
     await Promise.resolve();
 
     await expect(service.checkForUpdatesManually()).resolves.toBe('available');
+    expect(service.showBanner()).toBe(true);
+    expect(analytics.capturePwaUpdateAvailable).toHaveBeenCalledWith('fallback');
+  });
+
+  it('captures update availability once while the banner remains visible', () => {
+    const service = createService();
+
+    versionUpdates.next({
+      type: 'VERSION_READY',
+      currentVersion: { hash: 'a' },
+      latestVersion: { hash: 'b' },
+    } as VersionReadyEvent);
+    versionUpdates.next({
+      type: 'VERSION_READY',
+      currentVersion: { hash: 'a' },
+      latestVersion: { hash: 'b' },
+    } as VersionReadyEvent);
+
+    expect(analytics.capturePwaUpdateAvailable).toHaveBeenCalledTimes(1);
+  });
+
+  it('continues the update flow when analytics fails', () => {
+    analytics.capturePwaUpdateAvailable.mockImplementation(() => {
+      throw new Error('analytics unavailable');
+    });
+    const service = createService();
+
+    versionUpdates.next({
+      type: 'VERSION_READY',
+      currentVersion: { hash: 'a' },
+      latestVersion: { hash: 'b' },
+    } as VersionReadyEvent);
+
     expect(service.showBanner()).toBe(true);
   });
 

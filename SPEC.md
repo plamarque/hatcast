@@ -12,6 +12,30 @@ HatCast is a web application for organising improvisation shows: managing **seas
 
 ---
 
+## Client navigation recovery (V2)
+
+In browser tabs and installed PWAs, a recognized lazy-route module-load failure offers a modal recovery action instead of requiring the user to discover a manual refresh. The message is generic: **« Mets HatCast à jour pour continuer. »** The user is warned that unsaved changes may be lost. The primary update action appears on the left and “Plus tard” on the right in one horizontal row, including on mobile. Nothing reloads without confirmation. **« Plus tard »** keeps an already displayed screen; if no usable route has rendered, only update/retry remains available, without dismissal. The root auth entry is a loading redirect, not a safe home fallback.
+
+After confirmation, a worker-controlled client checks for an available or already-known application version before a full-document navigation; an uncontrolled client refreshes directly. The intended same-origin address, query and fragment are preserved. Offline or unconfirmed update checks show retry feedback. Healthy navigation and ordinary application errors do not open this recovery dialog. The mechanism cannot help a client whose application shell never starts, and does not force updates in other working tabs.
+
+---
+
+## Compact troupe navigation (V2)
+
+The member navigation control **Ma troupe** opens three dynamic entries: the resolved **troupe name**, the resolved **season title**, and **Statistiques**. They open the troupe page, the season agenda and that season's collective statistics. Resolve the last accessible remembered troupe, otherwise the newest active membership; within it, use the remembered active accessible season, otherwise the active accessible season with the latest start date. These choices remain browser-local.
+
+The home **Accès rapides** section is removed. The troupe page provides direct season and statistics navigation independently of teaser/chart content, keeps season switching and archives, and places the other-troupes link near its title when several active troupes exist. Personal **Mes stats**, access rights and the multi-troupe scope of home/agenda remain unchanged.
+
+The complete intended contract, including short labels, fallback states and acceptance scenarios, is [Member troupe navigation](_bmad-output/specs/spec-member-troupe-navigation/SPEC.md).
+
+---
+
+## Home upcoming shows (V2)
+
+The member home displays a stable preview of at most five upcoming shows in chronological order across accessible troupes and seasons, followed by a **Voir plus** link to `/agenda`. The page scrolls naturally when the preview exceeds the viewport; there is no nested scrolling region and the link may appear below the fold. Cards retain their existing layout, complete title, participation controls and event navigation. Resizing does not change the preview count. Home requests a batch of ten upcoming shows from the existing agenda API. The inbox first show remains available while the agenda loads or if that additional request fails. A successful empty agenda response restores the no-upcoming state. Existing empty and no-participation states remain unchanged.
+
+---
+
 ## Administration — required capabilities (V2 target)
 
 Normative intent for **administration** flows: **visual design is not prescribed** (Angular Material–typical or equivalent is acceptable). The product **must** expose the following capabilities to users with the appropriate roles (exact labels and routes in DOMAIN / permissions):
@@ -23,6 +47,21 @@ Normative intent for **administration** flows: **visual design is not prescribed
 **UX reference (non-pixel):** [_bmad-output/planning-artifacts/ux-design-hatcast-v2.md_ — Admin surfaces (functional scope)](_bmad-output/planning-artifacts/ux-design-hatcast-v2.md#admin-functional-scope).
 
 This section complements the **legacy** admin behaviour described elsewhere in this document (e.g. `/season/:slug/admin`); where they differ, **migration** is handled in PLAN / ARCH for the target stack.
+
+---
+
+## Flexible event composition (V2 target)
+
+An organizer who can manage an event composition configures its structure and fills it in the **Équipe** tab. The tab owns format/template selection, role-slot editing, assignments, and draw. The **Infos** tab is a read-only summary of the resulting format and role counts.
+
+- A format is a starting template. Selecting a different template whose role needs differ requires confirmation before it is applied.
+- Applying a template creates missing slots and removes obsolete empty slots. It never silently removes an assigned person: an affected assignment remains organizer-visible as a neutral **Hors modèle** slot until an organizer explicitly changes it.
+- An organizer can add a provisional empty slot, choose its role, then assign a person or leave it empty. The persisted role need changes only when a role is chosen.
+- Unassigning a person and deleting a structural slot are distinct actions. Deleting an assigned slot requires explicit confirmation.
+- After unlock, an explicit deletion of an assigned slot is silent while the draft is edited. If the draft successfully revalidates, the still-removed linked member receives the established removal notification after commit; Hors modèle retention does not notify.
+- Member projections, agendas, notifications, and statistics include only slots required by the effective `roleSlots`; organizer-only out-of-template details must not leak.
+
+Exact UI placement, focus behavior, and implementation sequencing are defined by Epic 22 and its UX specification.
 
 ---
 
@@ -263,8 +302,8 @@ Slices below describe desired behaviour to be implemented later. Implementation 
   - **Auto-draw cross-role rule:** A weighted draw must **never** assign the same participant to two roles on one event. Pre-existing assignees on the draft composition count toward cross-role exclusion before roles are processed in priority order (see DOMAIN.md and [draw-weight-engine-v1-spec.md](docs/v2/technical/draw-weight-engine-v1-spec.md)).
   - **Gender parity hint (organizer UX, Story 6.21):** A **non-blocking** summary of female/male counts among filled **`player`** slots with known gender (see SPEC § Member gender & team parity). Distinct from consecutive-show warning.
   - **Composition validate & unlock participation (V2, FR23):** **Unlock** clears structural validation only — assignees and each slot's participation status are **preserved**. **Validate** (first or revalidate) sets **non-`confirmed`** assignees to `pending` before notification dispatch; **`confirmed`** slots stay confirmed and are excluded from `CONFIRMATION_REQUEST` / `RECONFIRMATION_REQUEST`. Organizer **proxy** in organizer draft may update status without notification until validate. See DOMAIN.md and [`spec-composition-unlock-preserve-confirmations.md`](_bmad-output/implementation-artifacts/spec-composition-unlock-preserve-confirmations.md).
-  - **Composition organizer draft zone (V2 UX):** While composition is organizer draft, orga/admin see a **violet draft zone** inside the **Équipe** tab (not global event chrome) with chip *Brouillon* and coordination copy; **Partager** is visible in the action grid alongside **Valider** and **Tirer au sort**. See [_ux-design-hatcast-v2.md_ § Pattern: Composition organizer draft zone](_bmad-output/planning-artifacts/ux-design-hatcast-v2.md#pattern-composition-organizer-draft-zone).
-  - **Composition actions** (Tirage, Simuler, Valider, Déverrouiller, Annoncer, Effacer, Remplir, Envoyer, clear slot) are visible and usable only for users who can manage composition (Super Admin, Season Admin, Event Admin, or Caster). **Manual selection** (click on an empty slot to choose a player) is reserved for **administrators only** (Season Admin, Event Admin, Super Admin); casters cannot fill slots manually.
+  - **Composition organizer draft zone (V2 UX):** While composition is organizer draft, orga/admin see a **violet draft zone** inside the **Équipe** tab (not global event chrome) with chip *Brouillon* and coordination copy; **Partager** and **Tirer au sort** remain available, while **Publier** replaces **Valider**. **Publier** validates the composition then opens the existing *Annoncer la compo* dialog; dismissing that dialog keeps the composition validated and leaves **Annoncer la compo** available for later use. See [_ux-design-hatcast-v2.md_ § Pattern: Composition organizer draft zone](_bmad-output/planning-artifacts/ux-design-hatcast-v2.md#pattern-composition-organizer-draft-zone).
+  - **Composition actions** (Tirage, Simuler, Publier, Déverrouiller, Annoncer, Effacer, Remplir, Envoyer, clear slot) are visible and usable only for users who can manage composition (Super Admin, Season Admin, Event Admin, or Caster). **Manual selection** (click on an empty slot to choose a player) is reserved for **administrators only** (Season Admin, Event Admin, Super Admin); casters cannot fill slots manually.
   - Slot click in the Composition tab continues to open the confirmation flow (confirm/decline) for the selected player as today; no change to that behaviour.
   - Entry points that previously opened a composition popup now open or focus **event details with the Composition tab selected**: on the full-screen event view there is no footer "Composition Équipe" button — users open the Composition tab via the **Équipe** tab; TimelineView and similar triggers open event details on the Composition tab; URL `modal=selection` is treated like opening event details with `tab=compo`. No separate modal layer for composition.
   - User experience is a single place (event details) with one tab (Composition) where users see and perform only the actions their permissions allow.
@@ -419,3 +458,15 @@ Dans le formulaire, statut, rôles et commentaire restent un brouillon jusqu'au 
 
 
 Toute réponse disponible enregistrée pour un événement proposant des places `volunteer` inclut ce rôle obligatoire, même sans rôle optionnel. Le formulaire le coche dès Dispo et empêche son retrait ; une aide adjacente activable au toucher et au clavier explique : « Quand tu es disponible, tu es aussi disponible comme bénévole. » Les autres rôles restent facultatifs. Sans bénévole proposé, aucun bénévole n'est ajouté ; sans rôle proposé, la disponibilité générale reste possible. La règle vaut pour soi et en saisie déléguée, même avec le champ historique `applyVolunteerRule=false`. Les statuts indisponible et non renseigné enregistrent une liste vide. Les anciennes réponses disponibles sans rôle gardent leur candidature à tous les rôles jusqu'à un enregistrement explicite ; ouvrir ou annuler ne modifie aucune donnée.
+
+## V2 — Accueil task confirmation
+
+Accueil verifies the inbox on each entry and always displays newly received tasks. An empty cache or failed request is not a fresh confirmation. A first confirmed empty inbox may show “Tout est à jour”; with an upcoming event, it remains readable briefly, fades, then its space collapses. An unchanged empty state does not replay the confirmation or recreate its placeholder across navigation. Observed tasks rearm the confirmation so resolving them can show it again; newly received tasks take precedence over every dismissal timer. Pending verification uses a skeleton with the eventual banner dimensions when that confirmation is still eligible. Without an upcoming event, the useful empty explanation and “Mes troupes” destination remain visible. Confirmation is announced without moving focus; reduced-motion preferences disable animated dismissal. Presentation memory is scoped to the authenticated user and reset on logout or user switch.
+
+### Aperçu de test Avent
+
+En développement isolé, un membre actif de la troupe configurée, dont l’adresse vérifiée figure dans la liste de test, peut ouvrir une porte fictive et confirmer une réponse parmi trois affirmations fictives. Le membre peut explicitement effacer sa propre réponse et rejouer cette case, même passée, sans changer les réponses des autres ni l’horloge partagée. La confirmation reste neutre et ne répète pas la question ; une réponse incertaine est vérifiée avant de proposer un nouvel essai. Une case passée sans réponse préalable reste fermée. Cet aperçu ne constitue pas le calendrier complet et ne propose pas encore de résultat ni de classement.
+
+### Identité visuelle Advent Quiz
+
+Les interfaces Advent Quiz adoptent la direction artistique propre approuvée décrite dans [DESIGN.md](_bmad-output/planning-artifacts/ux-designs/ux-hatcast-avent-2026-10-28/DESIGN.md) et les parcours et états de [EXPERIENCE.md](_bmad-output/planning-artifacts/ux-designs/ux-hatcast-avent-2026-10-28/EXPERIENCE.md). Leur identité est distincte de celle de HatCast ; les autres surfaces conservent leur apparence. Les maquettes sont des références graphiques et ne créent pas de fonctionnalités ni ne modifient les règles de révélation.

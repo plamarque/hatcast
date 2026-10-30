@@ -81,6 +81,7 @@ class TroupeMembershipServiceTest {
 
         assertEquals(TroupeBaselineRole.MEMBER, saved.baselineRole)
         assertEquals(TroupeMembershipStatus.ACTIVE, saved.status)
+        verify(membershipSync).ensureForMembershipAcrossTroupe(saved)
     }
 
     @Test
@@ -103,6 +104,7 @@ class TroupeMembershipServiceTest {
 
         assertEquals(TroupeBaselineRole.MEMBER, saved.baselineRole)
         verify(userAccountService).ensureUserByEmail("target@example.com")
+        verify(membershipSync).ensureForMembershipAcrossTroupe(any())
     }
 
     @Test

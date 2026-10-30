@@ -14,6 +14,8 @@ import { MatInputModule } from '@angular/material/input'
 import { MatSnackBar } from '@angular/material/snack-bar'
 
 import type { CompositionPoolPreviewSegment } from '../../core/composition/composition-api.service'
+import type { ActorScope } from '../../core/analytics/organizer-analytics'
+import { ProductAnalyticsService } from '../../core/analytics/product-analytics.service'
 import {
   AvailabilityApiService,
   type EventAvailabilitySummary,
@@ -78,6 +80,7 @@ export class AvailabilityPoll {
   private readonly api = inject(AvailabilityApiService)
   private readonly persist = inject(AvailabilityPersistService)
   private readonly chanceBreakdown = inject(ChanceBreakdownService)
+  private readonly analytics = inject(ProductAnalyticsService)
   private readonly snack = inject(MatSnackBar)
 
   readonly seasonId = input.required<string>()
@@ -92,6 +95,7 @@ export class AvailabilityPoll {
   readonly explainabilityEnabled = input(false)
   readonly currentUserId = input('')
   readonly availabilityOpenedAt = input<string | null>(null)
+  readonly actorScope = input<ActorScope | undefined>(undefined)
 
   readonly summaryPatch = output<EventAvailabilitySummary>()
   readonly saved = output<AvailabilityPollSavedPayload>()
@@ -280,7 +284,8 @@ export class AvailabilityPoll {
   }
 
   protected unavailablePoolShowNeutral(): boolean {
-    return !this.explainabilityEnabled() && this.unavailableAvatars().length > 0
+    // An unavailable response is not a draw candidate, so it never has chances to preview.
+    return this.unavailableAvatars().length > 0
   }
 
   protected flatAvailablePoolShowNeutral(): boolean {
@@ -384,6 +389,11 @@ export class AvailabilityPoll {
       roleKey,
       participantId: event.participantId,
       viewerParticipantIds: this.viewerParticipantIds(),
+      analyticsContext: {
+        ...this.analytics.eventContext(this.eventId(), this.seasonId(), this.troupeId()),
+        ...(this.actorScope() ? { actor_scope: this.actorScope() } : {}),
+      },
+      entryPoint: 'dispos_poll',
     })
   }
 
@@ -483,6 +493,7 @@ export class AvailabilityPoll {
         savedComment: this.savedComment(),
         initialStatus: this.initialStatus(),
         availabilityOpenedAt: this.availabilityOpenedAt(),
+        actorScope: this.actorScope(),
       })
 
     } catch {

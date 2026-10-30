@@ -59,6 +59,9 @@
       </span>
       <div class="troupe-hub__hero-main">
         <h1 class="troupe-hub__title">{{ t.name }}</h1>
+        @if (showMultiTroupeFooter()) {
+          <a mat-button routerLink="/troupes">Voir les autres troupes</a>
+        }
         @if (t.description; as description) {
           <p class="troupe-hub__description">{{ description }}</p>
         }
@@ -157,6 +160,13 @@
           }
         </div>
 
+        <div class="troupe-hub__season-navigation" aria-label="Navigation de la saison">
+          <a mat-stroked-button [routerLink]="seasonWorkspaceLink(season)" [queryParams]="{ view: 'agenda' }">Voir la saison</a>
+          @if (canOpenSeasonStatistics(season)) {
+            <a mat-stroked-button [routerLink]="seasonWorkspaceLink(season)" [queryParams]="{ view: 'stats' }">Statistiques</a>
+          }
+        </div>
+
         <div class="troupe-hub__season-card">
           <div class="troupe-hub__metrics" aria-label="Indicateurs de la saison">
             <div class="troupe-hub__metric">
@@ -192,34 +202,30 @@
               class="member-profile__chart troupe-hub__season-chart"
               aria-label="Répartition des spectacles passés par mois"
             >
-              @for (month of seasonMonthlyChart()!; track month.monthKey) {
-                <div class="member-profile__chart-month">
-                  <div class="member-profile__chart-blocks">
-                    @for (block of month.blocks; track block.eventId) {
-                      <button
-                        type="button"
-                        [class]="chartBlockModifierClass(block)"
-                        [matTooltip]="chartBlockTooltip(block)"
-                        matTooltipClass="member-profile__chart-tooltip"
-                        matTooltipPosition="above"
-                        [attr.aria-label]="chartBlockAriaLabel(block)"
-                        (click)="openChartEvent(block.eventSlug)"
-                        (keydown)="onChartBlockKeydown($event, block.eventSlug)"
-                      ></button>
-                    }
-                  </div>
-                  <span class="member-profile__chart-month-label">{{ chartMonthLabel(month.monthKey) }}</span>
+              <div class="member-profile__chart-timeline">
+                <div class="member-profile__chart-months">
+                  @for (month of seasonMonthlyChart()!; track month.monthKey) {
+                    <div class="member-profile__chart-month">
+                      <div class="member-profile__chart-blocks">
+                        @for (block of month.blocks; track block.eventId) {
+                          <button
+                            type="button"
+                            [class]="chartBlockModifierClass(block)"
+                            [matTooltip]="chartBlockTooltip(block)"
+                            matTooltipClass="member-profile__chart-tooltip"
+                            matTooltipPosition="above"
+                            [attr.aria-label]="chartBlockAriaLabel(block)"
+                            (click)="openChartEvent(block.eventSlug)"
+                            (keydown)="onChartBlockKeydown($event, block.eventSlug)"
+                          ></button>
+                        }
+                      </div>
+                      <span class="member-profile__chart-month-label">{{ chartMonthLabel(month.monthKey) }}</span>
+                    </div>
+                  }
                 </div>
-              }
+              </div>
             </div>
-            <a
-              mat-stroked-button
-              class="troupe-hub__season-stats-cta"
-              [routerLink]="seasonWorkspaceLink(season)"
-              [queryParams]="{ view: 'stats' }"
-            >
-              Voir toutes les stats
-            </a>
           }
         </div>
 
@@ -316,13 +322,6 @@
                 (availabilityClick)="openTeaserAvailability($event)"
                 (participationClick)="openTeaserParticipation($event)"
               />
-              <a
-                mat-stroked-button
-                class="troupe-hub__section-cta"
-                [routerLink]="seasonWorkspaceLink(season)"
-              >
-                Voir tous les spectacles
-              </a>
             }
           </section>
         </div>
@@ -331,10 +330,5 @@
       }
     </section>
 
-    @if (showMultiTroupeFooter()) {
-      <footer class="troupe-hub__footer">
-        <a mat-button routerLink="/troupes">Voir les autres troupes</a>
-      </footer>
-    }
   }
 </div>

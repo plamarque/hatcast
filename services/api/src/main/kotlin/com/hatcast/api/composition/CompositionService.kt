@@ -14,6 +14,7 @@ import com.hatcast.api.availability.toAvailabilityIndex
 import com.hatcast.api.availability.StoredAvailabilityStatus
 import com.hatcast.api.composition.dto.CompositionDeclineDto
 import com.hatcast.api.composition.dto.CompositionResponseDto
+import com.hatcast.api.composition.dto.CompositionReconciliationItemDto
 import com.hatcast.api.composition.dto.CompositionSlotDto
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
@@ -169,6 +170,17 @@ class CompositionService(
             compositionRepository.save(composition)
             val isRevalidation =
                 auditEventRepository.existsByEventIdAndActionType(eventId, AuditActionType.COMPOSITION_VALIDATED)
+            val pendingRemovalNotifications =
+                if (isRevalidation) {
+                    removalNotificationsSinceLatestUnlock(
+                        eventId = eventId,
+                        seasonId = seasonId,
+                        actorUserId = principal.userId,
+                        currentSlots = slots,
+                    )
+                } else {
+                    emptyList()
+                }
             val assigneesNeedingConfirm =
                 slots
                     .filter { it.hasAssignee() && it.participationStatus != SlotParticipationStatus.CONFIRMED }
@@ -216,10 +228,56 @@ class CompositionService(
                     after = AuditSnapshots.compositionLifecycle(composition),
                 ),
             )
+            pendingRemovalNotifications.forEach(eventPublisher::publishEvent)
         }
 
         lifecycleAuditRecorder.recordIfChanged(event, seasonId, beforeRawLifecycle)
         return buildResponse(event, principal, canManage = true, includeSlotExplainability = false)
+    }
+
+    /**
+     * Structural deletion is silent while an organizer edits an unlocked draft. The
+     * latest unlock audit boundary supplies the persisted diff for revalidation.
+     */
+    private fun removalNotificationsSinceLatestUnlock(
+        eventId: UUID,
+        seasonId: UUID,
+        actorUserId: UUID,
+        currentSlots: List<EventCompositionSlotEntity>,
+    ): List<CompositionAssigneeRemovedEvent> {
+        val audits = auditEventRepository.findByEventIdOrderByOccurredAtDesc(eventId)
+        val latestUnlockIndex = audits.indexOfFirst { it.actionType == AuditActionType.COMPOSITION_UNLOCKED }
+        if (latestUnlockIndex < 0) {
+            return emptyList()
+        }
+
+        val currentAssigneeIds = currentSlots.mapNotNull { it.assignedParticipantId() }.toSet()
+        return audits
+            .take(latestUnlockIndex)
+            .asSequence()
+            .filter {
+                it.actionType == AuditActionType.SLOT_DELETED &&
+                    it.metadataJson?.get("outsideModel") != true
+            }
+            .mapNotNull { audit ->
+                val formerAssigneeId = audit.subjectSeasonParticipantId ?: audit.subjectEventParticipantId
+                    ?: return@mapNotNull null
+                if (formerAssigneeId in currentAssigneeIds) {
+                    return@mapNotNull null
+                }
+                val roleKey = audit.metadataJson?.get("roleKey") as? String ?: return@mapNotNull null
+                val slotIndex = (audit.metadataJson?.get("slotIndex") as? Number)?.toInt() ?: return@mapNotNull null
+                CompositionAssigneeRemovedEvent(
+                    eventId = eventId,
+                    seasonId = seasonId,
+                    actorUserId = actorUserId,
+                    formerAssigneeParticipantId = formerAssigneeId,
+                    roleKey = roleKey,
+                    slotIndex = slotIndex,
+                )
+            }
+            .distinctBy { it.formerAssigneeParticipantId }
+            .toList()
     }
 
     @Transactional
@@ -281,12 +339,19 @@ class CompositionService(
         val resolvedCanManage = canManage ?: organizerAccess.canManageComposition(eventId, event.season, principal)
         val composition = compositionRepository.findById(eventId).orElse(null)
         val normalizedRoleSlots = RoleTemplates.normalize(event.roleSlots)
-        val slots =
-            slotRepository.findByEventId(eventId).filter { slot ->
-                val count = normalizedRoleSlots[slot.roleKey] ?: 0
-                slot.slotIndex in 0 until count
+        val storedSlots = slotRepository.findByEventId(eventId)
+        val slots = storedSlots.filter { it.isRequiredBy(normalizedRoleSlots) }
+        val reconciliationSlots =
+            if (resolvedCanManage) {
+                storedSlots.filter { !it.isRequiredBy(normalizedRoleSlots) && it.hasAssignee() }
+            } else {
+                emptyList()
             }
-        val hasAssignedSlots = slots.any { it.hasAssignee() }
+        // An organizer must still receive presentation data for assigned slots that
+        // no longer belong to the current role model. Otherwise, the reconciliation
+        // UI can only show a generic "Participant" label before its explicit action.
+        val hasAssignedSlots =
+            slots.any { it.hasAssignee() } || reconciliationSlots.any { it.hasAssignee() }
         val compositionValidated = composition?.validatedAt != null
         val visibilityContent = hasAssignedSlots || compositionValidated
         val visibility =
@@ -319,7 +384,7 @@ class CompositionService(
             }
         val participantIdsForPresentation =
             if (canViewSlots) {
-                val fromSlots = slots.mapNotNull { it.assignedParticipantId() }
+                val fromSlots = (slots + reconciliationSlots).mapNotNull { it.assignedParticipantId() }
                 val fromDeclines =
                     declineRows.mapNotNull { row ->
                         row.seasonParticipantId ?: row.eventParticipantId
@@ -381,6 +446,19 @@ class CompositionService(
                 emptyList()
             }
 
+        val reconciliationItems =
+            reconciliationSlots.map { slot ->
+                val participantId = slot.assignedParticipantId()
+                    ?: error("Reconciliation slot must have an assignee")
+                CompositionReconciliationItemDto(
+                    roleKey = slot.roleKey,
+                    slotIndex = slot.slotIndex,
+                    participantId = participantId,
+                    participantDisplayName = displayNames[participantId] ?: "Participant",
+                    participationStatus = slot.participationStatus.name.lowercase(),
+                )
+            }
+
         val viewerParticipantIds =
             CompositionLinkedParticipantResolver.resolveViewerParticipantIds(
                 season = event.season,
@@ -406,6 +484,7 @@ class CompositionService(
             validatedAt = composition?.validatedAt,
             visibility = visibility.toApiValue(),
             slots = slotDtos,
+            reconciliationItems = reconciliationItems,
             declines = declineDtos,
             viewerParticipantIds = viewerParticipantIds.toList(),
         )
@@ -633,3 +712,6 @@ class CompositionService(
         return event
     }
 }
+
+fun EventCompositionSlotEntity.isRequiredBy(roleSlots: Map<String, Int>): Boolean =
+    slotIndex in 0 until (roleSlots[roleKey] ?: 0)

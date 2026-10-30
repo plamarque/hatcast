@@ -7,7 +7,7 @@ import {
   troupeListItemFromAdminSummary,
   troupeListItemFromGuestInvitation,
 } from './platform-admin-troupe-context'
-import type { TroupeListItem } from './troupe-api.service'
+import { TroupeApiService, type TroupeListItem } from './troupe-api.service'
 import { TroupeContextService } from './troupe-context.service'
 
 export type TroupeSeasonResolution =
@@ -20,6 +20,7 @@ export type TroupeSeasonResolution =
 @Injectable({ providedIn: 'root' })
 export class TroupeSeasonResolverService {
   private readonly context = inject(TroupeContextService)
+  private readonly troupeApi = inject(TroupeApiService)
   private readonly seasonsApi = inject(SeasonApiService)
   private readonly auth = inject(AuthApiService)
 
@@ -58,6 +59,38 @@ export class TroupeSeasonResolverService {
   }
 
   async resolveSeasonSlug(slug: string): Promise<TroupeSeasonResolution> {
+    return this.resolveSeasonSlugWithContextSelection(slug, true)
+  }
+
+  /**
+   * Resolves a season for a link without changing the member's active troupe.
+   * Navigation shortcuts use this variant so preparing a URL has no context
+   * side effect.
+   */
+  async resolveSeasonSlugReadOnly(slug: string): Promise<TroupeSeasonResolution> {
+    const listed = await this.troupeApi.listMyTroupes()
+    if (!listed.ok) {
+      return { kind: 'error' }
+    }
+    const troupes = (listed.data ?? []).filter((troupe) => troupe.membership.status === 'ACTIVE')
+    if (troupes.length > 0) {
+      const membershipResult = await this.resolveAmongMemberships(troupes, slug, false)
+      if (membershipResult.kind !== 'not-found') {
+        return membershipResult
+      }
+    }
+
+    const platformAdmin = await this.isPlatformAdmin()
+    if (!platformAdmin) {
+      return troupes.length === 0 ? { kind: 'no-membership' } : { kind: 'not-found' }
+    }
+    return this.resolveAsPlatformAdmin(slug, false)
+  }
+
+  private async resolveSeasonSlugWithContextSelection(
+    slug: string,
+    selectResolvedTroupe: boolean,
+  ): Promise<TroupeSeasonResolution> {
     const loaded = await this.context.load()
     if (!loaded) {
       return { kind: 'error' }
@@ -65,7 +98,11 @@ export class TroupeSeasonResolverService {
 
     const troupes = this.context.activeTroupes()
     if (troupes.length > 0) {
-      const membershipResult = await this.resolveAmongMemberships(troupes, slug)
+      const membershipResult = await this.resolveAmongMemberships(
+        troupes,
+        slug,
+        selectResolvedTroupe,
+      )
       if (membershipResult.kind !== 'not-found') {
         return membershipResult
       }
@@ -76,14 +113,15 @@ export class TroupeSeasonResolverService {
       return troupes.length === 0 ? { kind: 'no-membership' } : { kind: 'not-found' }
     }
 
-    return this.resolveAsPlatformAdmin(slug)
+    return this.resolveAsPlatformAdmin(slug, selectResolvedTroupe)
   }
 
   private async resolveAmongMemberships(
     troupes: TroupeListItem[],
     slug: string,
+    selectResolvedTroupe: boolean,
   ): Promise<TroupeSeasonResolution> {
-    const selected = this.context.selectedTroupe() ?? troupes[0]
+    const selected = troupes.find((troupe) => troupe.id === this.context.selectedTroupe()?.id) ?? troupes[0]
     const selectedResult = await this.tryResolve(selected, slug)
     if (selectedResult.kind === 'resolved') {
       return selectedResult
@@ -107,14 +145,18 @@ export class TroupeSeasonResolverService {
     }
 
     if (matches.length === 1) {
-      this.context.selectTroupe(matches[0].troupe.id)
+      if (selectResolvedTroupe) {
+        this.context.selectTroupe(matches[0].troupe.id)
+      }
       return { kind: 'resolved', troupe: matches[0].troupe, season: matches[0].season }
     }
 
     if (matches.length > 1) {
       const disambiguated = this.disambiguateByLastVisited(matches, slug)
       if (disambiguated) {
-        this.context.selectTroupe(disambiguated.troupe.id)
+        if (selectResolvedTroupe) {
+          this.context.selectTroupe(disambiguated.troupe.id)
+        }
         return disambiguated
       }
       return { kind: 'ambiguous', matches }
@@ -123,7 +165,10 @@ export class TroupeSeasonResolverService {
     return { kind: 'not-found' }
   }
 
-  private async resolveAsPlatformAdmin(slug: string): Promise<TroupeSeasonResolution> {
+  private async resolveAsPlatformAdmin(
+    slug: string,
+    selectResolvedTroupe: boolean,
+  ): Promise<TroupeSeasonResolution> {
     const result = await this.seasonsApi.resolveAdminSeasonBySlug(slug)
     if (!result.ok) {
       if (result.status === 404) {
@@ -143,18 +188,24 @@ export class TroupeSeasonResolverService {
       return { kind: 'not-found' }
     }
 
-    for (const match of matches) {
-      this.context.registerSupplementalTroupe(match.troupe)
+    if (selectResolvedTroupe) {
+      for (const match of matches) {
+        this.context.registerSupplementalTroupe(match.troupe)
+      }
     }
 
     if (matches.length === 1) {
-      this.context.selectTroupe(matches[0].troupe.id)
+      if (selectResolvedTroupe) {
+        this.context.selectTroupe(matches[0].troupe.id)
+      }
       return { kind: 'resolved', troupe: matches[0].troupe, season: matches[0].season }
     }
 
     const disambiguated = this.disambiguateByLastVisited(matches, slug)
     if (disambiguated) {
-      this.context.selectTroupe(disambiguated.troupe.id)
+      if (selectResolvedTroupe) {
+        this.context.selectTroupe(disambiguated.troupe.id)
+      }
       return disambiguated
     }
 

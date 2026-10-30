@@ -1,5 +1,51 @@
 [
   {
+    "version": "2.7.0",
+    "date": "2026-10-23",
+    "changes": [
+      "✨ Ma troupe — accède directement à ta troupe, à ta saison et à ses statistiques depuis le menu.",
+      "✨ Accueil — retrouve jusqu’à cinq spectacles à venir et ouvre l’agenda avec « Voir plus ».",
+      "🔧 Accueil — « Tout est à jour » s’efface après lecture et ne se répète plus à chaque retour.",
+      "🐛 Navigation — si un écran ne charge plus, une fenêtre te propose de mettre HatCast à jour.",
+      "🐛 Composition — si un autre organisateur déverrouille l’équipe, ton écran retrouve les actions disponibles."
+    ]
+  },
+  {
+    "version": "2.6.3",
+    "date": "2026-10-18",
+    "changes": [
+      "🐛 Équipe — les orga voient les commentaires de disponibilité au moment de composer une équipe.",
+      "🐛 Dispos — repère les commentaires disponibles directement dans la liste des participant·es."
+    ]
+  },
+  {
+    "version": "2.6.2",
+    "date": "2026-10-16",
+    "changes": [
+      "✨ Équipe — choisis le format, ajuste les rôles et compose ton équipe au même endroit.",
+      "🐛 Composition — annuler un changement de format ne vide plus ton équipe.",
+      "🔧 Composition — les personnes hors modèle restent visibles aux orgas, au lieu de disparaître.",
+      "🔧 Équipe — libérer une personne et supprimer une place sont désormais deux actions distinctes.",
+      "✨ Composition — une personne retirée d’une équipe déjà visible reçoit une notification."
+    ]
+  },
+  {
+    "version": "2.6.1",
+    "date": "2026-10-13",
+    "changes": [
+      "🐛 Composition — annuler la modification du format ou des besoins ne vide plus ton équipe",
+      "🔧 Composition — les affectations devenues hors besoin restent préservées pour les orgas"
+    ]
+  },
+  {
+    "version": "2.6.0",
+    "date": "2026-09-29",
+    "changes": [
+      "✨ Mes stats — retrouve tes chiffres sur toutes tes saisons actives, dans une vue plus lisible.",
+      "🐛 Dispos — ouvre « Pas disponible » pour voir les personnes concernées."
+    ]
+  },
+  {
     "version": "2.5.0",
     "date": "2026-09-19",
     "changes": [

@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, ViewChild } from '@angular/core'
+import { Component, inject, OnInit } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import {
   MAT_DIALOG_DATA,
@@ -6,7 +6,7 @@ import {
   MatDialogRef,
 } from '@angular/material/dialog'
 import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatSelect, MatSelectModule } from '@angular/material/select'
+import { MatSelectModule } from '@angular/material/select'
 
 import {
   applyTemplate,
@@ -16,18 +16,13 @@ import {
   getEventTypeIcon,
   getEventTypeLabel,
   normalizeRoleSlots,
-  ROLE_COUNT_MAX,
   roleSlotsEqual,
   type RoleSlots,
   TEMPLATE_DISPLAY_ORDER,
 } from '../../core/events/event-types'
-import {
-  RoleSlotChipSet,
-  type RoleSlotCountChange,
-} from '../../shared/event-roles/role-slot-chip-set/role-slot-chip-set'
 
 export const FORMAT_AND_ROLES_HELP =
-  'Format du spectacle et effectifs par rôle nécessaires pour composer l’équipe.'
+  'Le format applique son modèle de besoins à la composition.'
 
 export interface EventTypeRolesDialogData {
   seasonId: string
@@ -47,21 +42,14 @@ export type EventTypeRolesDialogResult =
     MatDialogModule,
     MatFormFieldModule,
     MatSelectModule,
-    RoleSlotChipSet,
   ],
   templateUrl: './event-type-roles-dialog.html',
   styleUrl: './event-type-roles-dialog.scss',
 })
 export class EventTypeRolesDialog implements OnInit {
-  protected readonly roleCountMax = ROLE_COUNT_MAX
   protected readonly helpText = FORMAT_AND_ROLES_HELP
   private readonly ref = inject(MatDialogRef<EventTypeRolesDialog, EventTypeRolesDialogResult>)
   protected readonly data = inject<EventTypeRolesDialogData>(MAT_DIALOG_DATA)
-
-  @ViewChild('formatSelect') private formatSelect?: MatSelect
-
-  protected showTemplateChangeConfirmation = false
-  protected pendingTemplateId: EventTypeId | null = null
 
   protected readonly templateOrder = TEMPLATE_DISPLAY_ORDER
   protected readonly getEventTypeIcon = getEventTypeIcon
@@ -69,6 +57,7 @@ export class EventTypeRolesDialog implements OnInit {
 
   protected selectedTemplateType!: EventTypeId
   protected roleSlots!: RoleSlots
+  private initialTemplateType!: EventTypeId
 
   ngOnInit(): void {
     const normalized = normalizeRoleSlots(this.data.roleSlots)
@@ -76,45 +65,30 @@ export class EventTypeRolesDialog implements OnInit {
     this.selectedTemplateType = EVENT_TYPE_IDS.includes(fromApi)
       ? fromApi
       : detectTemplateFromRoles(normalized)
+    this.initialTemplateType = this.selectedTemplateType
     this.roleSlots = normalized
   }
 
   protected onTemplateSelected(typeId: EventTypeId): void {
-    const templateSlots = applyTemplate(typeId)
-    if (roleSlotsEqual(this.roleSlots, templateSlots)) {
-      this.selectedTemplateType = typeId
-      this.showTemplateChangeConfirmation = false
-      this.pendingTemplateId = null
-      return
-    }
-    this.pendingTemplateId = typeId
-    this.showTemplateChangeConfirmation = true
+    this.selectedTemplateType = typeId
   }
 
-  protected confirmTemplateChange(): void {
-    if (!this.pendingTemplateId) return
-    this.selectedTemplateType = this.pendingTemplateId
-    this.roleSlots = applyTemplate(this.pendingTemplateId)
-    this.showTemplateChangeConfirmation = false
-    this.pendingTemplateId = null
+  protected get hasSelectedTemplateChange(): boolean {
+    return this.selectedTemplateType !== this.initialTemplateType
   }
 
-  protected cancelTemplateChange(): void {
-    this.showTemplateChangeConfirmation = false
-    this.pendingTemplateId = null
-    queueMicrotask(() => {
-      this.formatSelect?.writeValue(this.selectedTemplateType)
-    })
-  }
-
-  protected onSlotCountChange(change: RoleSlotCountChange): void {
-    this.roleSlots = { ...this.roleSlots, [change.key]: change.count }
+  protected get shouldWarnAboutTemplateNeeds(): boolean {
+    return (
+      this.hasSelectedTemplateChange &&
+      !roleSlotsEqual(this.roleSlots, applyTemplate(this.selectedTemplateType))
+    )
   }
 
   protected submit(): void {
+    if (!this.hasSelectedTemplateChange) return
     this.ref.close({
       templateType: this.selectedTemplateType,
-      roleSlots: normalizeRoleSlots(this.roleSlots),
+      roleSlots: normalizeRoleSlots(applyTemplate(this.selectedTemplateType)),
     })
   }
 }

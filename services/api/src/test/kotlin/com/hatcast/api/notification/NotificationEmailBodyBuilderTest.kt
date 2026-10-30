@@ -4,6 +4,7 @@ import com.hatcast.api.event.EventEntity
 import com.hatcast.api.season.SeasonEntity
 import com.hatcast.api.troupe.TroupeEntity
 import com.hatcast.api.user.MemberGender
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -57,6 +58,20 @@ class NotificationEmailBodyBuilderTest {
 
         assertTrue(html.contains("Tu es sélectionnée"))
         assertTrue(html.contains("Confirmer ma participation"))
+    }
+
+    @Test
+    fun `REMOVED_FROM_COMPOSITION email explains the removal and directs to organizers`() {
+        val html = buildForIntent(NotificationIntent.REMOVED_FROM_COMPOSITION)
+
+        assertEquals(
+            "😔 Tu n'es plus dans la compo · Gala",
+            payloadBuilder.buildEmailSubject(NotificationIntent.REMOVED_FROM_COMPOSITION, sampleEvent()),
+        )
+        assertTrue(html.contains("Tu n'es plus dans la compo"))
+        assertTrue(html.contains("La composition de <strong>Gala</strong>"))
+        assertTrue(html.contains("Malheureusement, tu ne fais plus partie de la composition"))
+        assertTrue(html.contains("rapproche-toi des organisateur·ices du spectacle"))
     }
 
     @Test

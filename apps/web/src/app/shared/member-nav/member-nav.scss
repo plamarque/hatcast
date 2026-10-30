@@ -305,3 +305,16 @@
     font-size: 0.625rem;
   }
 }
+
+button.member-nav__rail-link {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: inherit;
+}
+
+.mat-mdc-menu-item.member-nav__menu-item--active {
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+  font-weight: var(--mat-sys-label-large-weight);
+}

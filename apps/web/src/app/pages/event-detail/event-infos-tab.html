@@ -100,47 +100,21 @@
   <section
     class="event-infos__format"
     aria-labelledby="event-infos-format-label"
-    aria-describedby="event-infos-format-help"
   >
     <div class="event-infos__format-header">
       <span id="event-infos-format-label" class="event-infos__label">Format et besoins</span>
-      @if (canManageEvents()) {
-        <button
-          type="button"
-          mat-icon-button
-          class="event-infos__format-edit"
-          aria-label="Modifier format et besoins"
-          [disabled]="savingTypeRoles()"
-          (click)="openTypeRolesDialog()"
-        >
-          <mat-icon aria-hidden="true">edit</mat-icon>
-        </button>
-      }
     </div>
-    <p id="event-infos-format-help" class="event-infos__section-help">{{ formatAndRolesHelp }}</p>
     <div class="event-infos__format-body">
-      @if (savingTypeRoles()) {
-        <div
-          class="event-infos__format-loading"
-          role="status"
-          aria-live="polite"
-          aria-label="Mise à jour du format et des besoins"
-        >
-          <mat-spinner diameter="28" />
-          <span class="event-infos__format-loading-text">Mise à jour…</span>
-        </div>
-      } @else {
-        <div class="event-infos__type-row">
-          <span class="event-infos__type-icon" aria-hidden="true">{{ typeIcon() }}</span>
-          <span>{{ typeLabel() }}</span>
-        </div>
-        <app-role-display-chip-set
-          class="event-infos__roles-summary"
-          ariaLabel="Besoins en rôles"
-          [items]="summaryRoleChipItems()"
-          emptyMessage="Aucun besoin renseigné"
-        />
-      }
+      <div class="event-infos__type-row">
+        <span class="event-infos__type-icon" aria-hidden="true">{{ typeIcon() }}</span>
+        <span>{{ typeLabel() }}</span>
+      </div>
+      <app-role-display-chip-set
+        class="event-infos__roles-summary"
+        ariaLabel="Besoins en rôles"
+        [items]="summaryRoleChipItems()"
+        emptyMessage="Aucun besoin renseigné"
+      />
     </div>
   </section>
 

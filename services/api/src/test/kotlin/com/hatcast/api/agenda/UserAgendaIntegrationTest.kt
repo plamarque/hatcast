@@ -76,8 +76,13 @@ class UserAgendaIntegrationTest {
   @Autowired
   private lateinit var eventParticipantRepository: EventParticipantRepository
 
-  private val seedTroupeId: UUID = UUID.fromString("a0000001-0000-4000-8000-000000000001")
-  private val seedSeasonId: UUID = UUID.fromString("b0000001-0000-4000-8000-000000000001")
+  private lateinit var fixtureTroupe: TroupeEntity
+  private val fixtureTroupeId: UUID get() = fixtureTroupe.id
+
+  @org.junit.jupiter.api.BeforeEach
+  fun isolateTroupe() {
+    fixtureTroupe = TestAuthSupport.isolatedTroupe(troupeRepository)
+  }
   private val mapper = ObjectMapper()
 
   private data class SessionFixture(
@@ -114,7 +119,7 @@ class UserAgendaIntegrationTest {
     return SessionFixture(
       cookie =
         result.response.getCookie("HATCAST_SESSION")!!.also { cookie ->
-          TestAuthSupport.joinSeedTroupe(mockMvc, cookie, seedTroupeId)
+          TestAuthSupport.joinSeedTroupe(mockMvc, cookie, fixtureTroupeId)
         },
       userId = root.path("user").path("id").asText(),
     )
@@ -127,8 +132,8 @@ class UserAgendaIntegrationTest {
   ): SessionFixture =
     signIn(googleSub, email, displayName).also { fixture ->
       val membership =
-        troupeMembershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, UUID.fromString(fixture.userId))
-          ?: error("Missing seed membership")
+        troupeMembershipRepository.findByTroupe_IdAndUser_Id(fixtureTroupeId, UUID.fromString(fixture.userId))
+          ?: error("Missing fixture membership")
       membership.baselineRole = TroupeBaselineRole.TROUPE_ADMIN
       troupeMembershipRepository.save(membership)
     }
@@ -140,7 +145,7 @@ class UserAgendaIntegrationTest {
     val result =
       mockMvc
         .perform(
-          post("/v1/troupes/$seedTroupeId/seasons")
+          post("/v1/troupes/$fixtureTroupeId/seasons")
             .cookie(cookie)
             .contentType(MediaType.APPLICATION_JSON)
             .content("""{"title":"$title"}""")
@@ -198,11 +203,11 @@ class UserAgendaIntegrationTest {
     return eventId
   }
 
-  private fun seedTroupe(): TroupeEntity =
-    troupeRepository.findById(seedTroupeId).orElseThrow { error("Missing seed troupe") }
+  private fun fixtureTroupeEntity(): TroupeEntity =
+    troupeRepository.findById(fixtureTroupeId).orElseThrow { error("Missing fixture troupe") }
 
   private fun createDirectSeason(
-    troupe: TroupeEntity = seedTroupe(),
+    troupe: TroupeEntity = fixtureTroupeEntity(),
     title: String,
   ): SeasonEntity =
     seasonRepository.save(
@@ -360,7 +365,7 @@ class UserAgendaIntegrationTest {
       .andExpect(jsonPath("$.content.length()").value(1))
       .andExpect(jsonPath("$.content[0].eventId").value(eventId.toString()))
       .andExpect(jsonPath("$.content[0].title").value("Agenda match"))
-      .andExpect(jsonPath("$.content[0].troupeId").value(seedTroupeId.toString()))
+      .andExpect(jsonPath("$.content[0].troupeId").value(fixtureTroupeId.toString()))
       .andExpect(jsonPath("$.content[0].seasonId").value(seasonId.toString()))
       .andExpect(jsonPath("$.content[0].myAvailabilityStatus").value("unknown"))
       .andExpect(jsonPath("$.content[0].teamStatusBadge.key").value("collecting"))
@@ -427,7 +432,7 @@ class UserAgendaIntegrationTest {
     linkDirectSeasonParticipant(otherSeason, member)
 
     mockMvc
-      .perform(get("/v1/me/agenda?troupeId=$seedTroupeId").cookie(member.cookie))
+      .perform(get("/v1/me/agenda?troupeId=$fixtureTroupeId").cookie(member.cookie))
       .andExpect(status().isOk)
       .andExpect(jsonPath("$.content.length()").value(1))
       .andExpect(jsonPath("$.filterBarVisible").value(true))
@@ -458,7 +463,7 @@ class UserAgendaIntegrationTest {
       .andExpect(status().isOk)
       .andExpect(jsonPath("$.content.length()").value(2))
       .andExpect(jsonPath("$.content[*].eventId", containsInAnyOrder(homeEvent.id.toString(), awayEvent.id.toString())))
-      .andExpect(jsonPath("$.content[*].troupeId", containsInAnyOrder(seedTroupeId.toString(), otherTroupe.id.toString())))
+      .andExpect(jsonPath("$.content[*].troupeId", containsInAnyOrder(fixtureTroupeId.toString(), otherTroupe.id.toString())))
   }
 
   @Test
@@ -556,7 +561,7 @@ class UserAgendaIntegrationTest {
     createEvent(admin.cookie, seasonId, "Filtered event")
 
     mockMvc
-      .perform(get("/v1/me/agenda?troupeId=$seedTroupeId").cookie(admin.cookie))
+      .perform(get("/v1/me/agenda?troupeId=$fixtureTroupeId").cookie(admin.cookie))
       .andExpect(status().isOk)
       .andExpect(jsonPath("$.content.length()").value(1))
 
@@ -633,11 +638,14 @@ class UserAgendaIntegrationTest {
   }
 
   @Test
-  fun `seed season upcoming events appear for linked season participant`() {
+  fun `upcoming events appear with season and troupe context for linked participant`() {
     val admin = signInAdmin("agenda-admin-seed", "agenda-admin-seed@example.com", "Agenda Admin Seed")
+    val season = createDirectSeason(title = "Representative season")
+    val fixtureSeasonId = season.id
+    val event = createDirectEvent(season, "Upcoming show", Instant.now().plusSeconds(86400))
     mockMvc
       .perform(
-        post("/v1/seasons/$seedSeasonId/participants")
+        post("/v1/seasons/$fixtureSeasonId/participants")
           .cookie(admin.cookie)
           .contentType(MediaType.APPLICATION_JSON)
           .content(
@@ -654,7 +662,9 @@ class UserAgendaIntegrationTest {
       .perform(get("/v1/me/agenda").cookie(admin.cookie))
       .andExpect(status().isOk)
       .andExpect(jsonPath("$.content").isNotEmpty)
-      .andExpect(jsonPath("$.content[0].seasonId").value(seedSeasonId.toString()))
-      .andExpect(jsonPath("$.content[0].troupeSlug").value("les-improbots"))
+      .andExpect(jsonPath("$.content.length()").value(1))
+      .andExpect(jsonPath("$.content[0].eventId").value(event.id.toString()))
+      .andExpect(jsonPath("$.content[0].seasonId").value(fixtureSeasonId.toString()))
+      .andExpect(jsonPath("$.content[0].troupeSlug").value(fixtureTroupe.slug))
   }
 }

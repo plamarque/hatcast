@@ -80,6 +80,12 @@
   opacity: 0.75;
 }
 
+.composition-slot-picker__availability-comment {
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+  overflow-wrap: anywhere;
+}
+
 .composition-slot-picker__odds {
   flex-shrink: 0;
   padding: 0.2rem 0.5rem;

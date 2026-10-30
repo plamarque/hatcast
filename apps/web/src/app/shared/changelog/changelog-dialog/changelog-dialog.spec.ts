@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { ChangelogService, type ChangelogVersion } from '../../../core/app/changelog.service';
 import { ChangelogDialog } from './changelog-dialog';
+import { ProductAnalyticsService } from '../../../core/analytics/product-analytics.service';
 
 describe('ChangelogDialog', () => {
   async function setup(options: {
@@ -14,10 +15,12 @@ describe('ChangelogDialog', () => {
     versions?: ChangelogVersion[];
   } = {}) {
     const loadChangelog = vi.fn().mockResolvedValue(undefined);
+    const analytics = { captureReleaseNotesOpened: vi.fn().mockReturnValue('test-user'), captureReleaseNotesClosed: vi.fn() };
 
     await TestBed.configureTestingModule({
       imports: [ChangelogDialog, NoopAnimationsModule],
       providers: [
+        { provide: ProductAnalyticsService, useValue: analytics },
         { provide: MatDialogRef, useValue: { close: vi.fn() } },
         {
           provide: ChangelogService,
@@ -35,12 +38,27 @@ describe('ChangelogDialog', () => {
     fixture.detectChanges();
     await fixture.whenStable();
 
-    return { fixture, loadChangelog };
+    return { fixture, loadChangelog, analytics };
   }
 
   it('loads changelog on init', async () => {
     const { loadChangelog } = await setup();
     expect(loadChangelog).toHaveBeenCalled();
+  });
+
+  it('records an opening but no reading signal when notes fail to load', async () => {
+    const { fixture, analytics } = await setup({ error: true });
+    fixture.destroy();
+    expect(analytics.captureReleaseNotesOpened).toHaveBeenCalledWith('account');
+    expect(analytics.captureReleaseNotesClosed).not.toHaveBeenCalled();
+  });
+
+  it('records a loaded close with bounded measures', async () => {
+    const { fixture, analytics } = await setup({ versions: [
+      { version: '2.6.3', date: '2026-10-18', changes: [{ id: 'x', emoji: '✨', description: 'Change' }] },
+    ] });
+    fixture.destroy();
+    expect(analytics.captureReleaseNotesClosed).toHaveBeenCalledWith('account', 'under_5s', 'not_scrollable', 'test-user');
   });
 
   it('shows loading state in French', async () => {

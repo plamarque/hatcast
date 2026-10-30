@@ -4,6 +4,7 @@ import { BehaviorSubject } from 'rxjs'
 import { convertToParamMap, provideRouter, Router } from '@angular/router'
 import { ActivatedRoute } from '@angular/router'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
+import { MatSnackBar } from '@angular/material/snack-bar'
 import { describe, expect, it, vi } from 'vitest'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
@@ -44,19 +45,24 @@ describe('MemberSeasonGlance', () => {
     glance?: MemberSeasonGlanceData
     userSlug?: string
     response?: unknown
+    getSeasonGlance?: ReturnType<typeof vi.fn>
     seasonPickerResult?: unknown
+    query?: Record<string, string | string[]>
   }): Promise<{
     fixture: ComponentFixture<MemberSeasonGlance>
     router: Router
     glanceApi: { getSeasonGlance: ReturnType<typeof vi.fn> }
     filterPanel: { openSinglePicker: ReturnType<typeof vi.fn> }
+    snack: { open: ReturnType<typeof vi.fn> }
     paramMap$: BehaviorSubject<ReturnType<typeof convertToParamMap>>
+    queryParamMap$: BehaviorSubject<ReturnType<typeof convertToParamMap>>
   }> {
     const paramMap$ = new BehaviorSubject(
       convertToParamMap({ userSlug: options?.userSlug ?? 'angie' }),
     )
+    const queryParamMap$ = new BehaviorSubject(convertToParamMap(options?.query ?? {}))
     const glanceApi = {
-      getSeasonGlance: vi.fn().mockResolvedValue(
+      getSeasonGlance: options?.getSeasonGlance ?? vi.fn().mockResolvedValue(
         options?.response ?? {
           ok: true,
           status: 200,
@@ -81,6 +87,7 @@ describe('MemberSeasonGlance', () => {
     const filterPanel = {
       openSinglePicker: vi.fn().mockResolvedValue(options?.seasonPickerResult),
     }
+    const snack = { open: vi.fn() }
 
     await TestBed.configureTestingModule({
       imports: [MemberSeasonGlance, NoopAnimationsModule],
@@ -94,15 +101,17 @@ describe('MemberSeasonGlance', () => {
                 return paramMap$.value
               },
               get queryParamMap() {
-                return convertToParamMap({})
+                return queryParamMap$.value
               },
             },
             paramMap: paramMap$.asObservable(),
+            queryParamMap: queryParamMap$.asObservable(),
           },
         },
         { provide: MemberSeasonGlanceApiService, useValue: glanceApi },
         { provide: AuthApiService, useValue: authApi },
         { provide: FilterPanelService, useValue: filterPanel },
+        { provide: MatSnackBar, useValue: snack },
         {
           provide: TroupeSeasonResolverService,
           useValue: { resolveSeasonSlug: vi.fn().mockResolvedValue({ kind: 'not-found' }) },
@@ -126,7 +135,7 @@ describe('MemberSeasonGlance', () => {
       expect(fixture.nativeElement.textContent).toContain('Mes Stats')
     })
     await fixture.whenStable()
-    return { fixture, router: TestBed.inject(Router), glanceApi, filterPanel, paramMap$ }
+    return { fixture, router: TestBed.inject(Router), glanceApi, filterPanel, snack, paramMap$, queryParamMap$ }
   }
 
   it('loads glance and shows Mes Stats page title', async () => {
@@ -267,5 +276,90 @@ describe('MemberSeasonGlance', () => {
         expect.any(Object),
       )
     })
+  })
+
+  it('uses an explicit global-stats scope instead of a stale stored filter', async () => {
+    sessionStorage.setItem(
+      'hatcast.member-glance.filters',
+      JSON.stringify({ troupeIds: ['other-troupe'], seasonIds: ['other-season'] }),
+    )
+    const { glanceApi } = await setup({
+      query: { troupeId: 'malice', seasonId: 'season-malice' },
+    })
+
+    expect(glanceApi.getSeasonGlance).toHaveBeenCalledWith('angie', {
+      troupeIds: ['malice'],
+      seasonIds: ['season-malice'],
+    })
+  })
+
+  it('reloads and retains explicit scope on a query-only navigation', async () => {
+    const { fixture, glanceApi, queryParamMap$ } = await setup({
+      query: { troupeId: 'troupe-1', seasonId: 'season-1' },
+    })
+    queryParamMap$.next(convertToParamMap({ troupeId: 'troupe-2', seasonId: 'season-2' }))
+
+    await vi.waitFor(() => {
+      expect(glanceApi.getSeasonGlance).toHaveBeenLastCalledWith('angie', {
+        troupeIds: ['troupe-2'],
+        seasonIds: ['season-2'],
+      })
+    })
+    expect(fixture.componentInstance['selectedTroupeIds']()).toEqual(['troupe-2'])
+    expect(fixture.componentInstance['selectedSeasonIds']()).toEqual(['season-2'])
+  })
+
+  it('does not clear an explicit scope when filter controls are hidden', async () => {
+    const { fixture } = await setup({
+      query: { troupeId: 'troupe-1', seasonId: 'season-1' },
+      glance: glanceSelf,
+    })
+
+    expect(fixture.componentInstance['selectedTroupeIds']()).toEqual(['troupe-1'])
+    expect(fixture.componentInstance['selectedSeasonIds']()).toEqual(['season-1'])
+  })
+
+  it('ignores a stale stored scope for an unscoped self-profile fallback', async () => {
+    sessionStorage.setItem(
+      'hatcast.member-glance.filters',
+      JSON.stringify({ troupeIds: ['other-troupe'], seasonIds: ['other-season'] }),
+    )
+    const responseForScope = vi.fn((_slug: string, scope: { troupeIds: string[] }) =>
+      Promise.resolve(
+        scope.troupeIds[0] === 'other-troupe'
+          ? { ok: false, status: 404, errorMessage: 'Aucune saison pour cette troupe' }
+          : { ok: true, status: 200, data: glanceSelf },
+      ),
+    )
+    const result = await setup({ getSeasonGlance: responseForScope })
+
+    expect(result.glanceApi.getSeasonGlance).toHaveBeenCalledWith('angie', {
+      troupeIds: [],
+      seasonIds: [],
+    })
+    expect(responseForScope).not.toHaveBeenCalledWith(
+      'angie',
+      expect.objectContaining({ troupeIds: ['other-troupe'] }),
+    )
+    expect(result.router.url).not.toBe('/accueil')
+    expect(result.snack.open).not.toHaveBeenCalled()
+  })
+
+  it('does not let an older query-only response overwrite the latest scope', async () => {
+    const deferred: Array<(value: unknown) => void> = []
+    const { fixture, glanceApi, queryParamMap$ } = await setup()
+    glanceApi.getSeasonGlance.mockImplementation(
+      () => new Promise((resolve) => deferred.push(resolve)),
+    )
+
+    queryParamMap$.next(convertToParamMap({ troupeId: 'troupe-1', seasonId: 'season-1' }))
+    queryParamMap$.next(convertToParamMap({ troupeId: 'troupe-2', seasonId: 'season-2' }))
+    await vi.waitFor(() => expect(deferred).toHaveLength(2))
+    deferred[1]({ ok: true, status: 200, data: { ...glanceSelf, displayName: 'Latest' } })
+    await vi.waitFor(() => expect(fixture.componentInstance['glance']()?.displayName).toBe('Latest'))
+    deferred[0]({ ok: true, status: 200, data: { ...glanceSelf, displayName: 'Stale' } })
+    await Promise.resolve()
+
+    expect(fixture.componentInstance['glance']()?.displayName).toBe('Latest')
   })
 })

@@ -4,6 +4,7 @@ import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.event.isAvailabilityOpen
+import com.hatcast.api.event.RoleTemplates
 import com.hatcast.api.organizer.EventOrganizerRepository
 import com.hatcast.api.organizer.OrganizerAccessRules
 import com.hatcast.api.season.SeasonEntity
@@ -58,7 +59,11 @@ class CompositionLifecycleEnrichmentService(
         val draftVisibleForEvent =
             resolveDraftVisibility(eventIds, canManageByEvent, compositions)
         return events.associate { event ->
-            val slots = slotsByEvent[event.id].orEmpty().map { it.toSnapshot() }
+            val requiredSlots = RoleTemplates.normalize(event.roleSlots)
+            val slots =
+                slotsByEvent[event.id].orEmpty()
+                    .filter { it.isRequiredBy(requiredSlots) }
+                    .map { it.toSnapshot() }
             val composition =
                 compositions[event.id]?.let {
                     CompositionSnapshot(

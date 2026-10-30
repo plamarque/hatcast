@@ -28,6 +28,7 @@ import {
   getLastVisitedSeasonSlugForTroupe,
   rememberLastVisitedSeasonSlug,
 } from '../../core/navigation/last-visited-season-storage'
+import { canOpenSeason, canOpenSeasonStatistics, selectMemberSeason } from '../../core/navigation/member-troupe-selection'
 import { rememberLastVisitedTroupeSlug } from '../../core/navigation/last-visited-troupe-storage'
 import {
   saisonEventPath,
@@ -105,31 +106,7 @@ export function pickDefaultSeason(
   activeSeasons: SeasonResponse[],
   troupeId: string,
 ): SeasonResponse | null {
-  if (activeSeasons.length === 0) {
-    return null
-  }
-  const lastSlug = getLastVisitedSeasonSlugForTroupe(troupeId)
-  if (lastSlug) {
-    const remembered = activeSeasons.find((season) => season.slug === lastSlug)
-    if (remembered) {
-      return remembered
-    }
-  }
-  const sorted = [...activeSeasons].sort(compareSeasonStartDateDesc)
-  return sorted[0] ?? null
-}
-
-function compareSeasonStartDateDesc(a: SeasonResponse, b: SeasonResponse): number {
-  if (!a.startDate && !b.startDate) {
-    return 0
-  }
-  if (!a.startDate) {
-    return 1
-  }
-  if (!b.startDate) {
-    return -1
-  }
-  return b.startDate.localeCompare(a.startDate)
+  return selectMemberSeason(activeSeasons, getLastVisitedSeasonSlugForTroupe(troupeId))
 }
 
 @Component({
@@ -233,7 +210,7 @@ export class TroupeHub implements OnInit, OnDestroy {
   )
 
   protected readonly activeSeasons = computed(() =>
-    this.allSeasons().filter((s) => !s.archived),
+    this.allSeasons().filter(canOpenSeason),
   )
 
   protected readonly archivedSeasons = computed(() =>
@@ -247,6 +224,8 @@ export class TroupeHub implements OnInit, OnDestroy {
     }
     return this.allSeasons().find((season) => season.id === id) ?? null
   })
+
+  protected readonly canOpenSeasonStatistics = canOpenSeasonStatistics
 
   protected readonly showSeasonSwitcher = computed(() => this.activeSeasons().length > 1)
 
@@ -686,18 +665,27 @@ export class TroupeHub implements OnInit, OnDestroy {
   private async loadSeasons(troupeId: string, slugRequestId?: number): Promise<void> {
     this.loadingSeasons.set(true)
     this.seasonsLoadError.set(false)
-    const r = await this.seasonApi.listSeasons(troupeId, 0, SEASONS_PAGE_SIZE)
+    const seasons: SeasonResponse[] = []
+    let failed = false
+    for (let page = 0, pages = 1; page < pages; page++) {
+      const r = await this.seasonApi.listSeasons(troupeId, page, SEASONS_PAGE_SIZE)
+      if (slugRequestId !== undefined && !this.isCurrentSlugRequest(slugRequestId)) return
+      if (!r.ok || !r.data) { failed = true; break }
+      seasons.push(...r.data.content)
+      pages = r.data.totalPages
+    }
     if (slugRequestId !== undefined && !this.isCurrentSlugRequest(slugRequestId)) {
       return
     }
     this.loadingSeasons.set(false)
-    if (!r.ok || !r.data) {
+    if (failed) {
       this.seasonsLoadError.set(true)
       return
     }
-    this.allSeasons.set(r.data.content)
+    this.allSeasons.set(seasons)
     const picked = pickDefaultSeason(this.activeSeasons(), troupeId)
     if (picked) {
+      rememberLastVisitedSeasonSlug(picked.slug, troupeId)
       this.selectedSeasonId.set(picked.id)
       await this.loadSeasonDashboard(picked.id, slugRequestId ?? this.slugRequestId)
     } else {

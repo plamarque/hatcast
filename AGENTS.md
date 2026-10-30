@@ -61,6 +61,18 @@ When adding or editing content, keep this separation. Do not put "Slice 2" or "P
 
 ---
 
+## Clôture d'une story
+
+- « Clôturer cette story », « termine cette story » ou équivalent autorise la clôture **locale** complète : vérifier l'état réel, exécuter les vérifications pertinentes, mettre le tracker de la story à `done` via son contrôleur prévu, committer uniquement les changements de la story, intégrer dans la branche d'intégration locale de HatCast (`v2`), puis vérifier ce checkout.
+- Si la story a été réalisée dans un worktree dédié, arrêter seulement les processus lancés pour lui, puis retirer ce worktree et sa branche locale après intégration vérifiée.
+- Ne jamais pousser, déployer, supprimer une branche distante ou retirer un autre worktree sans instruction explicite.
+- En cas de conflit, de test en échec, de changement non lié, de tracker ambigu ou de processus non identifié, interrompre la clôture et le signaler.
+- Ne jamais retirer le worktree actif du chat : effectuer sa suppression depuis le checkout d'intégration.
+
+Pour une clôture inter-projets, utiliser la skill globale `bmad-close-story` : elle lit la branche d'intégration, le tracker et le cycle de release du dépôt courant ; elle ne suppose jamais que `v2` existe.
+
+---
+
 ## Conflicts and ambiguity
 
 - If docs contradict the code: **stop and report.** List the conflict (file + line or component), then ask for direction. Do not silently "fix" code to match docs or vice versa without approval.
@@ -84,6 +96,22 @@ When adding or editing content, keep this separation. Do not put "Slice 2" or "P
 - For member navigation chrome (app bar, rail, shortcuts): align with [_bmad-output/planning-artifacts/ux-hub-a-faire.md](_bmad-output/planning-artifacts/ux-hub-a-faire.md) when the story does not override.
 - At the end of a UI story: self-check against the checklist; mention any waived items in the handoff summary.
 - When **creating** a story (`bmad-create-story` or manually): start from [_bmad-output/implementation-artifacts/story-template.md](_bmad-output/implementation-artifacts/story-template.md); include **Acceptance Criteria — Material 3 (UI)** or explicit **UI : N/A** for backend-only work.
+
+---
+
+## Advent Quiz — contrat visuel durable
+
+Pour toute évolution de l’interface Advent Quiz, quelle que soit sa story ou son epic, lire et appliquer les contrats [DESIGN.md](_bmad-output/planning-artifacts/ux-designs/ux-hatcast-avent-2026-10-28/DESIGN.md), [EXPERIENCE.md](_bmad-output/planning-artifacts/ux-designs/ux-hatcast-avent-2026-10-28/EXPERIENCE.md) et la décision AD-7 de [l’architecture Avent](_bmad-output/planning-artifacts/architecture/architecture-hatcast-avent-2026-10-29/ARCHITECTURE-SPINE.md). La direction artistique validée est propre à l’Avent : styles, tokens, composants et typographies sont isolés ; le design system HatCast reste inchangé. Chaque story UI Advent référence ces contrats et prévoit des vérifications visuelles, d’accessibilité et d’absence d’effet sur HatCast ; préserver les règles de confidentialité et de révélation. Le modèle de story précise les critères à adapter.
+
+---
+
+## V2 local human smoke
+
+For a requested manual test from a V2 worktree, use the documented full stack in [DEVELOPMENT.md](DEVELOPMENT.md#recette-manuelle-v2-depuis-un-worktree): `./scripts/start-dev.sh --offline` unless the user explicitly needs the configured Neon or production-local path.
+
+- Do **not** hand off a user test from `npm run dev:web:v2` or `ng serve` alone: those commands start only the Angular proxy and assume a compatible API is already listening on port `8080`.
+- Before sharing `https://localhost:4200`, verify both the front and API/proxy are responding. Keep the launched stack running for the user’s test.
+- The startup script safely reuses the `v2` checkout’s local `.env` and TLS certificate when invoked from a worktree; `--offline` instead uses that worktree’s gitignored H2 seed database and requires no `.env`.
 
 ---
 

@@ -8,7 +8,472 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ---
 
-## Open Issues
+## Current follow-up
+
+This index is the active reading surface. Full evidence remains in the
+historical registry below.
+
+### Open defects and limitations
+
+BUG-054 (PWA banner overflows at 200% text size on a narrow screen).
+
+BUG-049 (production scheduled reminder encountered a database connection timeout).
+
+LIMIT-011 (repeated release validation and deployment cycles), and LIMIT-012
+(release evidence is not fully bound to the promoted candidate).
+
+BUG-041 (manual PWA application-version check), and BUG-042 (analytics bootstrap import failure).
+
+BUG-039 (PR #15: denied sessionStorage access escapes chunk recovery handler).
+
+BUG-038 (intermittent composition smoke assertions observed on v2.6.3-rc.2).
+
+BUG-BMAD-001 (accented versus ASCII story keys in sprint controller).
+
+BUG-BMAD-002 (sprint tracker timestamp rejected by BMAD validator).
+
+BUG-031 (format cancellation),
+BUG-028 (mobile season chart), BUG-023 (stale Home badge), LIMIT-009 (Dispos
+view), BUG-018 (staging traffic), LIMIT-008 (Loop policy), LIMIT-007 (web unit
+stability), LIMIT-004 (seed roster), BUG-008 (push preferences), LIMIT-001
+(legacy E2E), LIMIT-003 (development PWA install), and LIMIT-002 (shared API
+integration database).
+
+### Pending verification or operational follow-up
+
+BUG-056 is corrected locally in story 25.2; integration and real-browser isolation verification remain pending.
+
+BUG-POSTHOG-002 is closed locally with its reviewed fix integrated into v2 and regression tests passing; corrected CI execution remains pending.
+
+BUG-033 needs an authorised production data repair. BUG-027, BUG-026, BUG-025,
+BUG-024, and BUG-021 have local fixes but still require their stated review,
+human-smoke, integration, or validation gate.
+
+BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
+
+### BUG-059 — Revisiting an answered Advent test day shows a closed gift
+- **Status**: Corrected locally; awaiting human verification.
+- **Affected area**: V2 isolated Advent test navigation.
+- **Observed behavior**: Navigating back to an answered day redisplayed the unopened gift until it was tapped again.
+- **Expected behavior**: An answered day opens directly to its recorded state without reopening the gift.
+- **Notes/context**: Reported with a mobile recording. Angular tests and a real Tailscale browser navigation check passed. Detailed result reveal remains part of story 25.3.
+
+### BUG-058 — Offline seed accounts cannot access Advent test
+- **Status**: Corrected locally; verified with an offline seed session through the Tailscale proxy.
+- **Affected area**: V2 offline Advent test access.
+- **Observed behavior**: The development seed identity verifier leaves `emailVerified` false, while the Advent test controller requires a verified email session even offline. Thus the documented seed sign-in cannot access the Advent preview.
+- **Expected behavior**: An eligible offline seed account can access the isolated Advent test while verified-email protection remains appropriate for real identities.
+- **Notes/context**: Validated seed credentials now produce a verified synthetic identity; real identities retain the provider verification result. The offline seed sign-in, protected Advent read, and CSRF-protected reconciliation were verified through Tailscale. `DEVELOPMENT.md` documents offline seed access to the preview.
+
+### BUG-057 — Advent test can wait indefinitely on a stalled request
+- **Status**: Fixed locally in the unintegrated story 25.2 implementation; integration and browser network-stall verification remain pending.
+- **Affected area**: V2 isolated Advent test interface.
+- **Observed behavior**: A fetch that never settles leaves the interface loading, checking, or submitting without a timeout or retry; relevant test-day controls remain disabled. The close link remains available.
+- **Expected behavior**: A stalled request can be recovered without an indefinite wait while preserving safe answer reconciliation.
+- **Notes/context**: Requests and response parsing now time out after 10 seconds. A timed-out confirmation is reconciled before retry; a timed-out reconciliation remains uncertain. Component tests cover stalled preview, reconciliation and confirmation. No network-stall browser test has yet been run.
+
+### BUG-056 — Uncertain Advent submission may allow a conflicting retry
+- **Status**: Corrected locally; integration pending.
+- **Affected area**: V2 isolated Advent test answer confirmation.
+- **Observed behavior**: After a failed confirmation response, the state check can return available while the initial confirmation is still being processed. A member may change their choice and retry, while the original selection can still be recorded.
+- **Expected behavior**: An uncertain confirmation must be reconciled without allowing a conflicting choice to be submitted.
+- **Notes/context**: A server-side reservation and reconciliation generation invalidate delayed confirmations and reservations. The targeted H2 integration tests cover both confirmation/reconciliation orders, delayed reservation and member isolation; Angular tests cover a lost response and reopening. Offline API tests check verified-email access. Browser tests use mocked API responses and do not establish real API/CSRF or service-worker cache isolation; PostgreSQL concurrency and integration remain to be verified.
+
+### BUG-055 — Late Advent test answer alters a revealable bonus
+- **Status**: Corrected locally; integration pending.
+- **Severity**: High (result data can change after it is eligible for reveal).
+- **Affected area**: V2 isolated Advent test answer scoring.
+- **Observed behavior**: A quiz response received earlier but persisted after later responses can cause their stored streak bonuses to be recalculated, including after their reveal time.
+- **Expected behavior**: Pending confirmations close at midnight and scoring data remains stable when results become revealable.
+- **Notes/context**: The late-lock and simulated-clock reproductions now pass locally after the 2026-10-30 decision. A transaction paused after its deadline check and before commit remains unverified; the issue stays open pending a complete guarantee. The feature has not been integrated or deployed.
+
+### BUG-054 — PWA banner overflows at increased text size
+- **Status**: Open.
+- **Severity**: Medium (content may require horizontal scrolling at increased text size).
+- **Affected area**: V2 PWA system banner on `/avent-test`.
+- **Observed behavior**: In Chromium at a 320 px viewport with the root text size at 200%, the banner actions extend beyond the viewport and the document scrolls horizontally. The Advent quiz fits after dismissing the banner.
+- **Expected behavior**: The banner and its actions remain within the viewport and readable at increased text size.
+- **Notes/context**: Observed with fictional quiz content and intercepted API responses during story 25.2 browser verification. This is distinct from BUG-050, which concerned a banner covering the test label. Other routes and real devices have not been checked.
+
+### BUG-053 — Development Google sign-in rejected the Cloud Run origin
+- **Status**: OAuth configuration updated; awaiting end-to-end user verification.
+- **Affected area**: V2 development Google sign-in on the Cloud Run `-od.a.run.app` hostname.
+- **Observed behavior**: Google returned HTTP 400 `origin_mismatch` because the development service origin was missing from the OAuth client’s authorized JavaScript origins.
+- **Expected behavior**: The development URL can initiate Google sign-in and return to the requested test page.
+- **Notes**: The missing origin was added on 2026-10-30. Google reports that propagation may take from five minutes to several hours.
+
+### BUG-052 — Unverified identity email can link an existing account
+- **Status**: Mitigated for the two development testers; the general account-linking behavior remains open.
+- **Affected area**: Identity Platform sign-in and email-based account linking.
+- **Observed behavior**: The Identity Platform token payload does not carry email verification state, and a sign-in may link an existing user by email without checking that the email was verified. The proposed Advent test allowlist relies on that session email.
+- **Expected behavior**: Access to the Advent preview must establish possession of the allowed address using the current authenticated identity; an unverified identity must not claim an existing tester account.
+- **Notes**: The actual exploitability depends on Identity Platform account configuration; do not deploy the email-based preview until the boundary is verified and protected.
+
+### BUG-051 — Advent preview diverged from approved design
+- **Status**: Reopened for the approved 2026-10-30 visual direction; alignment in progress.
+- **Affected area**: V2 Advent stories 25.1 and 25.2 test preview.
+- **Observed behavior**: The original preview lacked the festive palette, decorated full-page door, floating ornaments and visible opening with light from the approved UX direction.
+- **Expected behavior**: The preview reflects the approved door and quiz direction, including an equivalent reduced-motion experience.
+- **Notes**: Automatic entry on eligible visits belongs to story 25.6 and is not implemented in this preview. The 2026-10-30 approved design handoff is the current visual reference. A 390 px capture of the current confirmation shows a closer hierarchy but lacks the full festive setting of the reference; remaining work is recorded in the Advent visual foundation spec.
+
+### BUG-050 — PWA banner masked the Advent test label
+- **Status**: Fixed locally in story 25.1; integration and deployment not yet verified.
+- **Severity**: Medium (the test-only label was hidden on mobile).
+- **Affected area**: V2 `/avent-test`, PWA install/update banners.
+- **Observed behavior**: The fixed install banner covered the test label and part of the title at 320–375 px.
+- **Expected behavior**: The test label and page content remain visible below banners, including at increased zoom.
+- **Notes**: The Advent route places the existing banners in normal flow. Local Chromium captures used fictional data and intercepted all network requests; browser checks cover one or two banners and 200% zoom. Other routes were not changed.
+
+### PERF-003 — Accueil shifts when an empty-inbox confirmation appears after revalidation
+- **Status**: Fixed locally — human smoke accepted; real-device and production CLS checks pending
+- **Severity**: Medium (visual stability on mobile)
+- **Affected area**: `apps/web` — `/accueil`, `MemberHomeTodo`
+- **Observed behavior**: PR #14 reports repeated production shifts around 0.140 at 375×766 when the “Tout est à jour” banner is inserted above existing cached content.
+- **Expected behavior**: Reserve the eligible confirmation's space with a visible skeleton. Do not replay unchanged empty feedback. Newly received tasks remain visible and cancel dismissal. The approved transient confirmation intentionally collapses after its fade; this movement must be assessed separately from the initial insertion defect.
+- **Verification**: 62 focused unit tests plus 34 auth/shell tests passed in isolated runs; production build passed; 12 controlled-response Chromium/WebKit mobile/desktop checks passed. Independent review findings addressed. Firefox could not launch locally; real devices and production metrics remain unverified.
+- **Evidence**: [PR #14](https://github.com/plamarque/hatcast/pull/14); local source analysis. Production frequency remains unquantified.
+
+### Historical registry
+
+### BUG-049 — Scheduled reminder failed to acquire a database connection
+- **Status**: Open — observed in production logs; impact and recurrence not established.
+- **Severity**: Undetermined.
+- **Affected area**: V2 API `AssigneePresenceReminderJob`, datasource connection acquisition.
+- **Observed behavior**: On 2026-10-28 at approximately 08:00 Paris time, the scheduled job logged `CannotCreateTransactionException` following a Hikari connection acquisition timeout. Whether any eligible reminder was missed is unknown.
+- **Expected behavior**: Scheduled reminder processing can access its database or recover from a transient failure.
+- **Notes/context**: Observed during a read-only Cloud Run log inspection on 2026-10-29; no production data or infrastructure was changed. Root cause, retry behavior and relation to CPU allocation remain unverified.
+
+### BUG-DOC-002 — ARCH retains a deferred V2 release topology
+- **Status**: Fixed locally — ARCH now distinguishes the existing V2 Cloud Run release topology from the historical V1 Firebase description.
+- **Severity**: Medium (conflicting architecture inputs).
+- **Affected area**: `ARCH.md`, section « Évolution V2 »; V2 release-delivery architecture planning.
+- **Observed behavior**: `ARCH.md` says staging/production Cloud Run are deferred and production remains V1. The V2 deployment runbook, release skill and 2026-10-23 release audit describe the staging/prod chain; `.github/workflows/deploy-v2-cloud-run.yml` configures staging branch and production-tag targets.
+- **Expected behavior**: Normative as-is architecture and release documentation agree on the deployed product line and release topology.
+- **Notes/context**: Found during planning-only `bmad-architecture` activation on 2026-10-23. Corrected on 2026-10-27 with Patrice's approval using the existing workflow and deployment runbook; no runtime change or fresh cloud inspection.
+
+### BUG-048 — Event details fail when a new troupe has unseeded categories
+- **Status**: Open — correction deferred; explicitly accepted as non-blocking for release 2.7.0 by Patrice on 2026-10-23. Reproduced on staging `v2.7.0-rc.2`, revision `hatcast-v2-staging-00129-pr4`. Not fixed.
+- **Severity**: High (opening an event can fail for a newly created troupe).
+- **Affected area**: `EventPageService.loadPageById/loadPageBySlug` → `TroupeCategoryService.ensureDeplacementsSeed`.
+- **Observed behavior**: The isolated E2E troupe `e2e-rc2-accueil-20261023` has six visible agenda events and one active MEMBER_SYNC participant. Clicking event 04 from Accueil navigates to its detail URL then returns to `/agenda`. Authenticated GET of the event itself and `/page?tab=dispos` succeed; `/page?tab=infos` returns HTTP 403. Cloud Run logs show `cannot execute INSERT in a read-only transaction` while inserting into `troupe_categories`, through `ensureDeplacementsSeed` inside the read-only event-page transaction.
+- **Expected behavior**: Opening a visible event in a new troupe loads its information without failing category initialization.
+- **Release disposition (2026-10-23)**: Patrice confirms production currently has a single, already initialized troupe, so the missing-category trigger does not apply to the intended production scope. He explicitly accepts deferring this fix without blocking production validation for 2.7.0. This is a scoped acceptance of the defect, not a passing reproduction or authorization to deploy. Reassess before introducing a new or uninitialized troupe; production initialization was stated by the owner, not independently queried for this disposition.
+- **Evidence and limits**: `/private/tmp/hatcast-2.7.0-rc2-proof/event-detail-error.txt` and RC2 browser report. Five-card display, full-agenda navigation, and persisted availability from card 04 passed. CI/E1 green does not cover this fresh-troupe case. No category seeding workaround, code change, production reproduction or production promotion performed; no regression attribution to the Accueil delta established.
+
+### LIMIT-011 — V2 release repeats full validation and staging deployment
+- **Status**: Open — audited 2026-10-23; no gate changed.
+- **Severity**: Medium (delivery latency and repeated CI work).
+- **Affected area**: V2 staging/release/prod scripts and GitHub Actions.
+- **Observed behavior**: `deploy_staging.sh` runs the full local E2E suite, then pushes staging (full CI E2E, image build/deploy, E1 T2). `release_version.sh` changes release metadata and pushes staging again, triggering another full cycle, then syncs to `v2` and triggers its matching workflows. `deploy_prod.sh` runs the full local E2E suite again. On 23 October, staging runs [39897194431](https://github.com/plamarque/hatcast/actions/runs/39897194431) and [39899222776](https://github.com/plamarque/hatcast/actions/runs/39899222776) took 13:47 and 22:18; their intervening Git diff contains only six version/changelog files. The latter includes 8:01 installing Chromium, not executing tests.
+- **Expected behavior**: Make repeated work and actual coverage explicit; any removal or risk-based selection requires an approved release contract. Existing gates remain applicable.
+- **Evidence**: [Release chain audit](docs/v2/technical/RELEASE_CHAIN_AUDIT_2026-10-23.md). Local and human times were not measured; no one-hour end-to-end timing is claimed from CI alone.
+
+### LIMIT-012 — Release checks do not mechanically attest all candidate evidence
+- **Status**: Open — source audit 2026-10-23; no invalid production promotion established.
+- **Severity**: Medium (confidence and provenance of release validation).
+- **Affected area**: `scripts/v2/promote-tag-to-prod.sh`, `promote-to-staging.sh`, and E1 preprod workflow/specs.
+- **Observed behavior**: Local pre-push E2E runs on the current checkout, without explicitly checking out the promoted RC (prod) or the final merged candidate (staging). The prod script checks tag identity and staging ancestry, but does not itself read CI/T2 results or human smoke disposition; the release skill delegates those checks to the operator. E1 uses a mutable staging URL; its YAML has no explicit expected-SHA assertion. Missing Malice probe results skip Playwright with a warning. E1-MEM-031/032 skip persistence writes on staging, and E1-ORG-001–002 can return after visibility alone when drawing is unavailable.
+- **Expected behavior**: Treat these as distinct, bounded proofs; a green E1 result must not be described as complete persisted C2/C3 validation. Any future fast path must bind required evidence to its exact candidate and record omitted/waived coverage.
+- **Notes/context**: Detailed T2 runs inspected did execute Playwright (34 passed, 2 skipped). The human smoke contract already requires persisted outcomes. External GitHub environment/branch protection was not inspected. No gate bypass, data corruption or deployed regression is inferred from this limitation.
+- **Evidence**: [Release chain audit](docs/v2/technical/RELEASE_CHAIN_AUDIT_2026-10-23.md); [E1 run](https://github.com/plamarque/hatcast/actions/runs/39897194431).
+
+### BUG-047 — Google sign-in reports an unapproved V2 staging origin
+- **Status**: Observed during the 2.7.0-rc.1 browser smoke; Google sign-in itself was not exercised.
+- **Severity**: Low (staging-only console finding; impact on Google sign-in requires verification).
+- **Affected area**: Google Identity Services on `https://hatcast-v2-staging-gz5evlelnq-od.a.run.app/connexion`.
+- **Observed behavior**: The login page emits `[GSI_LOGGER]: The given origin is not allowed for the given client ID.` Browser extensions emit separate unrelated warnings.
+- **Expected behavior**: A supported staging login origin is accepted by the configured Google OAuth web client.
+- **Evidence and limits**: Browser console during the 2026-10-23 RC smoke, revision `hatcast-v2-staging-00127-r66`; email/password login passed for both configured E2E roles. No Google login attempt, client configuration change, or production impact is established.
+
+### BUG-046 — Guest navigation E2E expects an incomplete fixture title
+- **Status**: Fixed locally — complete E2E suite passed (100 passed, 4 skipped); CI verification pending.
+- **Severity**: Low (release verification blocked; no application defect established).
+- **Affected area**: `apps/web/e2e/recette-3-25.spec.ts`, scenario 3.25-E2E-10.
+- **Observed behavior**: CI run [39851377774](https://github.com/plamarque/hatcast/actions/runs/39851377774) fails because the season menu displays `Guest 325 Ruben EVENT` while the assertion expects `Guest 325 Ruben`.
+- **Expected behavior**: Assert the complete season title created by `E2eStory325FixtureService`, preserving the destination URL and navigation checks.
+- **Cause and correction**: The fixture explicitly creates `Guest 325 Ruben EVENT`; the menu correctly uses the season title. Correct only the exact text expectation; no production behavior or fixture changes.
+
+### BUG-045 — Unlock rejected while composition appears validated
+- **Status**: Closed locally on 2026-10-22 — Patrice accepted the phone recipe and authorized local closure. Not deployed.
+- **Severity**: Medium (conditional organizer blockage after concurrent unlock).
+- **Affected area**: Event Équipe tab, composition unlock lifecycle.
+- **Observed behavior**: Patrice's CCAS screen retained “Annoncer la compo” and “Déverrouiller” after the API returned “La composition n'est pas validée”. Repeated clicks could not recover.
+- **Confirmed cause**: The activity-journal screenshot supplied by Patrice shows “Composition déverrouillée” at **15:42:35**, attributed to Nicolas (N), after Patrice loaded Équipe at approximately **15:42:09** and before his first rejected unlock around **15:43:37**. Patrice retained a formerly valid screen while Nicolas changed the server state. The journal also shows Nicolas assigning Antoine at 15:43:13, assigning/releasing Viviane at 15:43:22/26, and assigning Aurélien at 15:45:16. This is a confirmed concurrent-edit case; its production frequency has not been measured.
+- **Fix**: On unlock HTTP 409, reload the authoritative composition, propagate it to the parent, and restore draft actions. Acknowledge an already-unlocked draft only after a successful read. Preserve assignments/statuses, retain other errors, ignore responses after navigation/destruction, and keep interactions blocked through recovery. The backend contract is unchanged.
+- **Verification**: 158 tests passed across the Équipe component and event-detail parent, including 18 new recovery cases; production build passed. Independent review findings addressed. Patrice verified the prepared two-tab scenario on his phone and explicitly accepted closure. Existing Material controls and layout are reused, with no checklist waiver.
+- **Replay evidence**: Patrice's [recording](https://eu.posthog.com/project/193437/replay/home?sessionRecordingId=01a163d8-be3e-7feb-bb5b-4b0c4c7ba97d), release `2.6.3:c93d2c81`, shows Équipe GET 200 around 00:18, then three unlock conflicts at 01:46, 01:50 and 02:12 with no subsequent composition refresh. These refused requests did not perform an unlock. Nicolas's [later recording](https://eu.posthog.com/project/193437/replay/home?sessionRecordingId=01a16416-762e-7413-b635-ade2e3c4d720) starts at 16:49:16 Paris on the same event and shows publication of the spectacle, an already editable draft, then composition validation. The journal screenshot places validation at 16:50:03. The later replay does not contain the earlier unlock; the journal resolves that provenance.
+- **Scope/limits**: Recovery is validated for this incident pattern. This does not add live synchronization or prevent concurrent edits. Production records were inspected through the provided replays and screenshots; no production data was modified.
+
+### LIMIT-010 — Troupe hub navigation links depend on displayed content
+- **Status**: Closed locally on 2026-10-22 under the approved member-troupe-navigation contract; Patrice accepted the mobile recipe. Not deployed.
+- **Severity**: Low (alternative routes exist, but direct page navigation is conditional).
+- **Affected area**: `apps/web/src/app/pages/troupe-hub/troupe-hub.html` and `season-hub-mini-chart.utils.ts`.
+- **Observed behavior**: The selected season's "Voir tous les spectacles" link is rendered only with a nonempty upcoming-event teaser. "Voir toutes les stats" is inside `showSeasonMiniChart()`, whose chart builder returns null with fewer than three past events. Loading/error states can also hide these links. Selecting another season in the hub changes the dashboard rather than opening its workspace.
+- **Implemented behavior**: A compact group directly below the selected season title exposes agenda and permitted statistics links independently of teaser/chart content. Season guest restrictions remain enforced.
+- **Evidence/limits**: Template regression tests cover direct links without the mini-chart or upcoming teaser and during dashboard errors. Patrice confirmed human acceptance on 2026-10-22. Existing seasonal view controls and troupe breadcrumb are preserved.
+
+### BUG-044 — Phone recovery fixture cannot always be restarted with another client open
+- **ID**: BUG-044
+- **Status**: Closed — repeated two-client checks pass; Patrice confirmed phone repeatability 2026-10-21; temporary fixture removed at closure
+- **Severity**: Medium (blocks repeated human verification)
+- **Affected area**: Temporary phone fixture reset dashboard at Tailscale :8443, service-worker cache reset.
+- **Observed behavior**: Patrice reports that the scenario works only once. Three consecutive single-client cycles pass; keeping a second client open on B reproduces a timeout loading the reset A home. The old worker can remain associated with a live client while its caches are cleared.
+- **Expected behavior**: Reset always starts a fresh A screen and permits another complete recovery, including when Chrome and the installed PWA remain open.
+- **Notes/context**: Fix: test reset preserves worker registrations and caches needed by other live clients, restores server A, and bypasses worker navigation only for its initial test Home document. Three consecutive complete cycles pass with another B client left open. Keep this separate from production ChunkRecoveryService. Phone screenshot also requests primary-left / dismiss-right actions in one row; scoped dialog CSS and DOM order corrected. Actual dark-theme Chromium at 320px: primary width151px/height56px, dismiss width81px/height48px, same row, no overflow. Patrice confirmed repeatability on Android. Temporary fixture and phone access removed at closure.
+
+
+### BUG-043 — Optional storage failure can prevent reload after PWA activation
+- **ID**: BUG-043
+- **Status**: Fixed locally — optional changelog storage isolated; post-activation reload regression passes; not deployed
+- **Severity**: Medium (conditional mixed-version runtime after user-confirmed update)
+- **Affected area**: `apps/web/src/app/core/pwa/pwa-update.service.ts`, `applyUpdate()`.
+- **Observed behavior**: The method activates the worker version, writes the optional changelog flag to sessionStorage, then reloads. If the storage getter/setItem throws after successful activation, the catch clears refreshing without reloading, leaving old JavaScript running after the client-version switch.
+- **Expected behavior**: Optional storage bookkeeping must not prevent full navigation after a successful activation; it should be isolated as best effort.
+- **Verification (2026-10-21)**: Executed the exact existing applyUpdate method with activateUpdate resolving true and setItem throwing: activation happened, reload did not, refreshing became false. This is a deterministic method-level test, not a production frequency or browser reproduction.
+- **Context**: See `pr-15-recovery-party-review.md`, R7. The ordinary update path keeps its existing activation policy with only the optional storage flag guarded; recovery uses a separate readiness-check/full-navigation path.
+
+### BUG-040 — Stale client cannot load removed lazy chunks after deployment
+- **ID**: BUG-040
+- **Status**: Fixed locally — recovery verified; phone smoke accepted 2026-10-21; not deployed
+- **Severity**: Medium (navigation can remain blocked until update/reload)
+- **Affected area**: V2 static asset serving, router lazy imports and PWA client lifecycle.
+- **Observed behavior**: [PR #15](https://github.com/plamarque/hatcast/pull/15), reviewed at `8740a147c63397623b5cc7bd3e2cadc1197491cb`, describes an old open client requesting removed hashed chunks and receiving HTML instead. Its one occurrence in 30 days is author-reported, not a fresh analytics measurement. Its blind reload did not establish coherent active-SW recovery. The replacement uses consent-only readiness checks and full navigation; six real-browser fixture cases, including a real active worker, pass locally.
+- **Expected behavior**: Global generic update dialog after detected failure, explicit consent, ready-version check followed by full navigation when controlled, and exact destination restoration in web and installed PWA.
+- **Notes/context**: A healthy SW prefetches old chunks, so controlled-client reproduction must include cache loss. Use this free ID instead of the PR's colliding BUG-038. See `spec-pr-15-stale-client-recovery.md` and supporting investigation/verification artifacts. Bootstrap-before-shell failures are outside modal reach. Accepted rare residual: NO_NEW_VERSION_DETECTED is broadcast to all worker clients; a simultaneous check against a different manifest can make an inconclusive local check appear known. A consented reload may then need another refresh. No cross-tab correlation is added for this low-impact case.
+
+### BUG-041 — Manual PWA check does not request Angular application-version check
+- **ID**: BUG-041
+- **Status**: Open — pre-existing behavior identified during PR #15 investigation; not included as a general manual-check refactor
+- **Severity**: Medium (manual update feedback may miss a deploy with unchanged worker script)
+- **Affected area**: `apps/web/src/app/core/pwa/pwa-update.service.ts`, `checkForUpdatesManually()` and `pollForAppUpdate()`.
+- **Observed behavior**: These methods call registration.update() and await VERSION_READY/waiting worker, but never call SwUpdate.checkForUpdate(). Updating the worker script is distinct from checking the Angular app manifest; deployment may change app chunks without changing the worker script.
+- **Expected behavior**: An explicit application-update check requests Angular's application-version check and distinguishes no update from failure.
+- **Evidence/limits**: Source inspection against baseline `3a0a08482a4e9d1961f9b2469123ffc874a685c5`, installed Angular 21.2.9 and official SwUpdate documentation. A recovery-specific API is planned; no standalone manual-check browser reproduction or fix is claimed.
+
+### BUG-042 — Failed lazy analytics import can prevent application bootstrap
+- **ID**: BUG-042
+- **Status**: Open — pre-existing source-level finding; outside the post-bootstrap recovery scope
+- **Severity**: Medium (conditional failure before recovery UI exists)
+- **Affected area**: `apps/web/src/app/app.config.ts`, `core/analytics/product-analytics.service.ts` and `posthog-browser.client.ts`.
+- **Observed behavior**: The app initializer awaits ProductAnalyticsService.bootstrap(); ensureInitialized() propagates rejection from the lazy posthog-js import when configured. A failed import can reject bootstrap before App and its recovery dialog exist.
+- **Expected behavior**: A failed optional analytics initialization should not prevent the application shell from starting.
+- **Evidence/limits**: Verified promise chain in the integration baseline; conditional on analytics being configured and the import failing. No production frequency or browser reproduction established. Record separately rather than claiming the recovery modal covers a shell that never starts.
+
+### BUG-039 — PR #15 chunk recovery throws when storage access is denied
+- **ID**: BUG-039
+- **Status**: Open — review finding on PR #15 at `8740a147c63397623b5cc7bd3e2cadc1197491cb`; not a confirmed deployed defect
+- **Severity**: Medium (navigation error handling fails under browser storage restrictions)
+- **Affected area**: `apps/web/src/app/core/app/chunk-load-recovery.ts:22` and its registration in `app.config.ts` in [PR #15](https://github.com/plamarque/hatcast/pull/15).
+- **Observed behavior (2026-10-21)**: The default argument `storage = sessionStorage` reads the browser property before the function body and its `try`. If that getter throws `SecurityError`, the router error handler throws instead of returning `false`, including for unrelated navigation errors. The existing unavailable-storage test only makes `getItem()` throw on an explicitly supplied object.
+- **Expected behavior**: Classify the navigation error first, then resolve default browser storage inside the guarded block; denied storage access returns `false` without replacing the original error.
+- **Verification**: Reproduced against the exact PR helper, transpiled with the installed TypeScript compiler: a throwing global `sessionStorage` getter escapes for both chunk and unrelated errors. Direct checks also verified first recovery, suppression inside the guard window, and handling of an injected `getItem()` failure. This is focused helper evidence, not browser or full-suite verification.
+- **Additional PR review finding**: The PR assigns `BUG-038` to stale chunks, but the integration branch already assigns it to composition smoke retries below (commit `c70139a9`). Use a free identifier for the stale-chunk issue before integration; preserve the existing record.
+
+### BUG-POSTHOG-002 — Production promotion capture fails its acceptance guard
+- **ID**: BUG-POSTHOG-002
+- **Status**: Closed locally (2026-10-23) — reviewed correction integrated into local v2; regression tests pass; corrected CI execution pending. Historical deployment workflows remain unchanged.
+- **Recurrence (2026-10-23)**: Production 2.7.0 [workflow 39910450325](https://github.com/plamarque/hatcast/actions/runs/39910450325), commit `37e1bfd27c9107aaca3d44dd796255de1ed70187`: deploy succeeded; revision `hatcast-v2-00026-wn2` serves 100% of traffic. The PostHog job fails with the same acceptance-guard message. Public version 2.7.0 / production channel, health UP and PWA smoke passed in the historical release evidence. This observability failure did not undo deployment. No quota/billing/credential change or retry performed; the message alone does not prove quota exhaustion.
+- **Severity**: Medium (release observability incomplete; deployment remains successful)
+- **Affected area**: `scripts/v2/posthog-lifecycle-dashboard.mjs`, production workflow `posthog-lifecycle` job.
+- **Observed behavior**: [Workflow 39130429450](https://github.com/plamarque/hatcast/actions/runs/39130429450), commit `a5fb7f487d73672a3388e4b32ef200c4f314d1aa`: deployment succeeded, revision `hatcast-v2-00024-5n9` serves 100% of traffic, but lifecycle synchronization failed with `PostHog promotion capture was not accepted without quota limits`. Overall workflow is red despite its successful deployment job. Read-only checks returned version 2.6.3, production channel, and health UP.
+- **Expected behavior**: Promotion capture is accepted without quota limitation and lifecycle dashboard synchronization completes.
+- **Notes/context**: The guard raises for either `status !== 1` or a nonempty `quota_limited` list; the redacted log does not distinguish those cases, so a quota exhaustion diagnosis is not established. Dashboard provisioning is not reached after this error. No retry, quota/billing change, credential change, or production rollback was performed. The prior staging E1 gate was green; user approved production using the existing human recipe and requested no repeat tests.
+- **Established defect**: The guard requires numeric `1`, whereas the EU capture success contract returns the string `"Ok"` ([official response contract](https://posthog.com/docs/api#responses)). The [capture implementation](https://github.com/PostHog/posthog/blob/master/rust/capture/src/api.rs) derives Serde serialization for enum `CaptureResponseCode::Ok`: its Rust discriminant `= 1` does not make its JSON serialization numeric. Thus even an accepted, non-limited response is rejected before dashboard provisioning. HTTP success alone remains insufficient because quota-limited captures also return HTTP 200.
+- **Remote evidence (read-only, 2026-10-23)**: In EU project `193437`, the SQL below returned exactly two rows: `2.7.0:20d972b0`, count `1`, first promotion `2026-10-23T06:20:55Z`; `2.6.3:c93d2c81`, count `1`, first promotion `2026-10-18T13:16:04Z`. The 2.7.0 timestamp equals the successful `deploy` job's completion in the saved `ci-final.json`. Both real promotion events were ingested despite failed observability jobs; no new capture was required. The existing lifecycle dashboard `1032942` also reads 2.7.0 as its latest release reference. GitHub production environment metadata confirms the three expected secrets exist (`HATCAST_POSTHOG_PROJECT_API_KEY`, `HATCAST_POSTHOG_PERSONAL_API_KEY`, `HATCAST_POSTHOG_PROJECT_ID`), with no project-ID variable override. Secret values were neither fetched nor logged; existence alone does not attest current private-key permissions.
+- **Production identity cross-check (2026-10-23)**: A fresh read of `https://hatcast.app/version.txt` returns `2.7.0`, `Production build - 2026-10-23`, `Git: 20d972b0`. `parseRelease` therefore derives exactly the ingested reference `2.7.0:20d972b0`, not an RC version. Local tags `v2.7.0` and `v2.7.0-rc.2` both resolve to promotion commit `37e1bfd27c9107aaca3d44dd796255de1ed70187`; the event identity uses the embedded version-file Git field, not the tag commit SHA. Docker patches the channel line for production without changing this identity. No backfill is necessary for this release reference. This does not attest every client event or execution of the corrected synchronization job.
+- **Correction**: Extract capture acceptance into `capturePromotion`; accept exact `"Ok"` and legacy numeric `1`, only with absent or empty-array quota metadata. Nonempty quota arrays, malformed quota metadata, unknown status, HTTP failure, invalid JSON and transport failure remain errors and stop provisioning. Diagnostics contain only HTTP code, a fixed status classification, and quota absence/invalidity/count; no raw body, status value, resource names, token or authentication headers. Payload identity, promotion date, ownership and deployment gates are unchanged.
+- **Verification**: `node --test scripts/v2/posthog-lifecycle-dashboard.test.mjs` passes all 8 tests, including EU/legacy success, quota rejection, malformed replies, HTTP/JSON/transport errors, sensitive diagnostic redaction, and `--apply` ordering (provision after acceptance; no provisioning after rejection). Existing ownership/idempotent-provisioning and no-ingestion validation tests remain green. Manifest preview and `git diff --check` pass.
+- **Limits / delivery**: The historical response bodies and quota fields were not recorded and cannot be reconstructed; do not claim a captured historical `quota_limited=[]` or a full billing audit. The protocol mismatch is established by the official contract/source and the real ingested release references. No isolated `--validate` run was needed: it would mutate managed dashboard objects and would not exercise capture. No remote mutation, event, workflow rerun, release/promotion script, tag, traffic change, credentials/permissions/billing change, or push was performed for this fix. Local integration into v2 was authorized separately at closure. Current private API access and end-to-end success of the corrected CI job remain unverified. Historical reports under `/private/tmp/hatcast-2.7.0-prod-proof/` were read only and are not evidence that this correction has shipped.
+
+Read-only diagnostic query (no People fields, distinct IDs or raw properties):
+
+```sql
+SELECT properties.release_id AS release_id, count() AS occurrences,
+       min(timestamp) AS first_promoted_at
+FROM events WHERE event = 'hatcast_release_promoted'
+GROUP BY release_id ORDER BY first_promoted_at DESC LIMIT 10
+```
+
+### BUG-038 — Composition smoke tests intermittently require retry
+- **ID**: BUG-038
+- **Status**: Open — observed during v2.6.3-rc.2 validation; cause not established
+- **Severity**: Medium (smoke reliability; no confirmed production defect)
+- **Affected area**: `apps/web/e2e/e1/orga-composition.desktop.spec.ts` and `apps/web/e2e/draw-formula-choice.spec.ts`.
+- **Observed behavior (2026-10-18)**: [RC2 workflow 39105565455](https://github.com/plamarque/hatcast/actions/runs/39105565455), commit `a5fb7f487d73672a3388e4b32ef200c4f314d1aa`: E1-ORG-001–002 first failed waiting for the dialog after publication (15 s); E2E-WD-05 first failed pool preview with HTTP 400 `Rôle inconnu pour cet événement`. Both passed on automatic retry. Final local-profile CI smoke: 92 passed, 2 flaky, 4 skipped; job succeeded. This is not evidence of a clean first-attempt run.
+- **Expected behavior**: Composition smoke journeys pass without retry, with deterministic fixture state and assertions aligned to supported behavior.
+- **Audit follow-up (2026-10-23)**: [RC workflow 39899222776](https://github.com/plamarque/hatcast/actions/runs/39899222776) again reports E1-ORG-001–002 passing only on retry after a missing publication dialog; final T1 result is 99 passed, 1 flaky, 4 skipped. This recurrence does not establish a production defect or the root cause.
+- **Notes/context**: Local preflight passed 94 tests with four skips. The separate deployed-staging E1 gate passed 34 tests with two skips, without reported retries. No tests were disabled or changed for these observations. Investigation and any fix remain separate from the API fixture correction; the production promotion and human staging smoke are not authorized by these green automated jobs.
+
+### BUG-037 — API regression fixtures assume unsynchronized shared memberships
+- **ID**: BUG-037
+- **Status**: Fixed locally — complete regression and independent review verified; integration pending
+- **Severity**: Medium (API regression suite fails; no production behavior change)
+- **Affected area**: Agenda, inbox, member glance/profile, audit, availability, lifecycle integration tests and member statistics unit fixtures.
+- **Observed behavior**: The v2.6.3 lineage full API run reports 1189 tests, 37 failures and five environment-specific skips (GitHub runs 39100395161 and 38815714661; reproduced locally). Nine affected classes report 102 tests and 32 failures when run together; lifecycle passes 7/7 in isolation.
+- **Cause**: Shared seed memberships now synchronize participants after BUG-033, adding projection scopes and duplicate participant setup. Lifecycle conversion payloads omit active seasons created by other classes sharing H2. Three statistics fixtures omit required role counts, so CN-1 correctly excludes their assignments. The remaining performance failure is tracked as BUG-029.
+- **Expected behavior**: Explicit isolated troupe/season fixtures preserve automatic synchronization, exact business assertions, and valid required-slot indices; all enabled tests pass in both targeted and complete runs.
+- **Fix**: Test-owned troupe/season scopes, reuse of synchronized audit participants, explicit legacy unsynchronized summary precondition, and required role-slot needs. Production code, seeds, migrations and CI gates are unchanged; business expectations are preserved and selected response assertions strengthened.
+- **Verification (2026-10-18)**: JDK 21, nine affected classes: 102 tests, zero failures/errors/skips. Each of the nine classes also passed in its own Gradle invocation after review patches. Final complete `./gradlew test --no-daemon`: 1189 tests across 170 classes, zero failures/errors, five unchanged environment-specific skips (two Neon agenda and three Neon composition performance tests), BUILD SUCCESSFUL in 5m 27s. `git diff --check` passes. Three independent review lenses completed; all retained findings resolved, nothing deferred. Integration remains pending.
+
+#### Initial release investigation (before the fixture correction)
+
+- **Status:** Open — qualified during the v2.6.3 staging release on 2026-10-18; release validation blocked pending test remediation or explicit disposition.
+- **Severity:** High for release validation; production impact not established.
+- **Affected area:** `services/api` full Gradle test suite on GitHub Actions.
+- **Observed behavior:** [Run 39100395161](https://github.com/plamarque/hatcast/actions/runs/39100395161), commit `d7dc3c15`, reports 1189 tests completed, 37 failed, 5 skipped. Failures span agenda (including performance), audit, availability summary, inbox, member profile/season glance, composition statistics and membership lifecycle tests. Local Playwright T1 passed separately (94 passed, 4 skipped), as did the staging workflow's E2E step.
+- **Expected behavior:** The API regression suite passes or each failing case has an explicitly qualified disposition before production promotion.
+- **Investigation (2026-10-18):** The same 37 named failures already occur in [run 38815714661](https://github.com/plamarque/hatcast/actions/runs/38815714661), commit `b39ccfc5`, which is an ancestor of `v2.6.2-rc.1`. [Run 38422699386](https://github.com/plamarque/hatcast/actions/runs/38422699386) on 2026-10-13 already reports the three statistics failures plus the agenda performance fixture failure. These are not newly introduced by the v2.6.3 delta.
+- **Reproduction:** Current `v2` full `./gradlew test --no-daemon`: 1189 tests, 37 failures, 5 skipped (5m02s). Running only the nine affected classes: 102 tests, 32 failures; all seven membership lifecycle tests pass in that targeted run. Full-run report: `services/api/build/reports/tests/test/index.html`.
+- **Qualified causes:**
+  - **28 failures — membership fixture assumptions:** `0eaa9238` (BUG-033) synchronizes self-joined/added members across the troupe's seasons. Helpers join the shared seed troupe but expect an empty or narrowly scoped agenda/inbox/profile. The actual responses contain seed and other test seasons. Audit setup attempts to add an already-synchronized participant (409, "Un participant avec ce nom existe déjà dans la saison."). Availability's read-only test fails its setup precondition before the GET because joining has already created the participant. Breakdown: agenda 15, inbox 9, audit 1, availability 1, season glance 1, member profile 1.
+  - **3 failures — statistics fixtures omit required slots:** `b9b0b17c` filters slots with `isRequiredBy(event.roleSlots)` as required by CN-1. The failing unit fixtures construct events with default empty `roleSlots`, then assign slots (index 1) and expect them to count. The resulting null/neutral output follows the required-position rule; the fixtures need explicit matching needs and valid indices.
+  - **1 failure — date-dependent performance fixture:** BUG-029 reproduced: the seed now contains 18 upcoming events while the test requires at least 20. It fails before the latency assertion; no performance regression is established.
+  - **5 failures — shared database / execution-order dependency:** Membership lifecycle tests pass in the targeted run but fail in the full suite with HTTP 400, "Choisissez pour chaque saison active : externe saison ou retrait du roster." Their conversion payload accounts only for the locally created seasons, while synchronized memberships include additional active seasons in the shared `jdbc:h2:mem:hatcast_test` database. This is related to the isolation concern in LIMIT-002, with a distinct observed symptom.
+- **Proposed remediation:** Isolate fixture troupes/seasons and database state, update setup to explicitly create the intended membership/roster scope, provide required-slot needs in the statistics fixtures, and generate a date-independent future-event set for the performance test. Preserve the business rules and assertions; do not waive or disable tests. No test or production implementation changed during this investigation.
+- **Notes/context:** The CI result arrived after `v2.6.3-rc.1` was pushed (`c2a6a4c2`) and its artifacts synchronized to `v2` (`fa1a27b2`). No production promotion was performed. Do not infer runtime regression or waive the failures from green E2E alone.
+- **RC operational evidence:** [Run 39100935125](https://github.com/plamarque/hatcast/actions/runs/39100935125) completed successfully: staging E2E 93 passed / 4 skipped, Cloud Run revision `hatcast-v2-staging-00123-nz4` serving 100% traffic, E1 preprod 33 passed / 2 skipped. The staging `version.txt` reports `2.6.3`. Automated gates do not replace human staging smoke or disposition of the API failures.
+
+### BUG-BMAD-002 — Sprint tracker timestamp rejected by BMAD validator
+
+- **Status:** Open
+- **Severity:** Low
+- **Affected area:** `sprint-status.yaml` and `bmad-sprint-planning` validation.
+- **Observed behavior:** On 2026-10-30, `sprint_plan.py validate` returned `valid: false` because `last_updated` is `2026-10-30T00:31:05+01:00` while the validator expects `%m-%d-%Y %H:%M`.
+- **Expected behavior:** The tracker produced by the supported controller and its validator agree on the timestamp format.
+- **Notes/context:** Validation was read-only. The tracker was not edited or regenerated; the source of the format mismatch has not been investigated.
+
+### BUG-BMAD-001 — Sprint controller disagrees with registered ASCII story keys
+
+- **Status:** Open; explicit PO exception for the targeted 11.5 closure only (2026-10-18).
+- **Severity:** Low (local tracking tooling).
+- **Affected area:** BMad `sprint_plan.py generate --set` and `story-status-sync.py` key compatibility.
+- **Observed behavior:** The registered `11-5-observabilite-installation-pwa-posthog` key is rejected by the sprint generator, which derives `11-5-observabilité-installation-pwa-posthog` from the canonical heading. The additive registration controller cannot change statuses.
+- **Expected behavior:** Registered story keys can be updated without replacing historical entries or regenerating unrelated tracking state.
+- **Notes/context:** The PO explicitly authorized correcting only the existing ASCII 11.5 entry to `done`. The controller itself is unchanged; the exception does not authorize future manual tracker changes.
+
+### BUG-036 — Incomplete organizer analytics at composition boundaries
+
+- **Status:** Fixed in Story 11.4; automated verification and human local smoke passed. Live PostHog delivery remains a post-deployment check.
+- **Severity:** Medium (product observability).
+- **Affected area:** V2 organizer composition and announcement analytics.
+- **Observed behavior:** Direct Équipe bootstrap could omit workspace entry; animated draws could omit a persisted success; closing an announcement after choosing a channel could record an abandonment. Storage denial and cross-account dedupe could also lose or duplicate entries.
+- **Expected behavior:** Count actual workspace entries once per event/session, confirmed mutations independently of animation, and dismissal only without a channel choice.
+- **Fix:** Shared workspace capture boundary, API-success draw capture, explicit bounded announcement choices, storage fallback/session reset, allow-listed payload projection and caller regression tests. Operator funnels exclude refused outcomes and hold event context constant.
+
+Entries below preserve the original evidence. A `Fixed` status means history,
+not active work; items listed in the two sections above remain actionable.
+
+### BUG-POSTHOG-001 — Lifecycle provisioning sends a scalar dashboard filter
+
+- **ID**: BUG-POSTHOG-001
+- **Status**: Fixed — regression passed and real CI validation succeeded on 2026-10-18
+- **Severity**: Medium (lifecycle dashboard provisioning stops before insights are created)
+- **Affected area**: `scripts/v2/posthog-lifecycle-dashboard.mjs`, manual PostHog CI validation.
+- **Observed behavior**: CI run `39099092816`, attempt 2, reached PostHog but `GET /insights/?dashboards=<id>` returned HTTP 500.
+- **Expected behavior**: List the owned dashboard's insights using the API's JSON-encoded array parameter.
+- **Cause**: Official PostHog Insights code JSON-decodes `dashboards` and iterates dashboard IDs; a scalar number is not iterable.
+- **Fix**: Send URL-encoded `[dashboard_id]` and assert that exact decoded array in the provisioning regression.
+- **Notes/context**: No deployment or release-promotion event was sent. The temporary GitHub production branch exception was removed after the failed run. The dashboard itself may have been created before the list failure; the next attempt finds it by its ownership marker.
+- **Verification**: Corrected commit `83bf536b`, CI run `39099343937`: all six owned insights computed successfully; lifecycle dashboard `1032942`. The temporary branch exception was removed after success and the original `v*` tag-only environment policy was verified restored.
+
+### BUG-035 — Organiser view does not restore the selected participant's availability checks
+- **ID**: BUG-035
+- **Status**: Open — reported from replay; not reproduced by the focused regression test on the current checkout
+- **Severity**: Medium (an organiser can mistake an already-recorded response for an unanswered one)
+- **Affected area**: V2 event-detail **Dispos** tab, `EventDisposTab` / `AvailabilityPoll` subject switch.
+- **Observed behavior**: An organiser opens **Dispos**, selects another participant, and their already-recorded availability checks appear unloaded.
+- **Expected behavior**: Switching the subject must immediately render the selected participant's persisted status and every selected role; it must not inherit the previous participant's state or show an empty response.
+- **Code evidence / current hypothesis**: The current path carries `SummaryParticipant.status` and `roleKeys` from the availability summary into `AvailabilityPoll`; `isRoleChecked()` derives each check from that selected subject. The regression now drives the organizer subject selector to a participant with two saved roles and asserts both are checked, an unsaved role remains unchecked, and neither self nor proxy availability API is written. It passes on the current checkout. No root cause is established; the replay may involve production data, a different deployed revision, or another interaction sequence.
+- **Repro to complete**: Repeat the focused scenario against the replay's deployed revision and original event data. Capture the event id, participant id, stored response, and screen/replay timestamp if it fails.
+
+### BUG-034 — Availability comments are persisted but unavailable to organisers outside the selected poll subject
+- **ID**: BUG-034
+- **Status**: Open — code-backed; no production replay reproduction claimed
+- **Severity**: Medium (information entered by a participant cannot inform composition)
+- **Affected area**: V2 availability summary, **Dispos** tab and composition workspace.
+- **Observed behavior**: A participant can save an availability comment, but an organiser cannot see it while composing the team. In **Dispos**, it is only displayed in the editable/read-only comment field for the single participant selected in the subject picker; opening a candidate/name or filtering a member does not surface it.
+- **Expected behavior**: An organiser can consult a participant's saved availability comment from the availability and composition decision paths, without editing that response.
+- **Cause**: The API persists and returns `SummaryParticipant.comment`, and the Dispos subject poll binds it to the selected person's textarea. No candidate list, availability pool, composition slot/picker, or participant filter renders this field.
+- **Verification**: `apps/web` focused `event-dispos-tab` + `availability-poll` tests: 34/34 passed on 2026-10-17. This verifies the existing poll behavior, not the missing organiser presentation.
+
+### BUG-033 — Une adhésion active peut manquer du roster de saison
+
+- **ID**: BUG-033
+- **Status**: Fixed locally — targeted verification passed; production data repair pending explicit approval
+- **Severity**: High (le membre peut ne plus voir les spectacles auxquels son adhésion de troupe lui donne accès)
+- **Affected area**: V2 membership lifecycle and season participant synchronization (`TroupeMembershipService`, CSV member import).
+- **Observed behavior**: Un membre ajouté par l'administration, importé par CSV, ou rejoignant une troupe ouverte pouvait avoir une adhésion `ACTIVE` sans ligne `season_participants`. Les projections Accueil / agenda s'appuient sur cette ligne et pouvaient donc n'afficher que les spectacles d'une autre troupe, par exemple la troupe démo.
+- **Expected behavior**: Toute création ou réactivation d'adhésion membre active synchronise le roster de toutes les saisons de la troupe. Les retraits CSV inactivent aussi ces participations sans écraser un retrait explicite par l'administration de saison.
+- **Cause**: Les chemins de création d'adhésion directe, d'import CSV et de self-join ne déclenchaient pas tous `SeasonParticipantMembershipSync`; seule une partie des réactivations était synchronisée.
+- **Fix**: Le correctif appelle la synchronisation centrale après chaque création/réactivation concernée et couvre les transitions CSV active/inactive ainsi que self-join. Un ré-ajout administratif ou une ligne CSV inchangée guérit aussi une participation manquante, sans réactiver un retrait explicite de saison.
+- **Notes/context**: Le code empêche une nouvelle dérive. Les adhésions créées avant son déploiement nécessitent un diagnostic de production en lecture seule puis une autorisation explicite avant toute réparation des données existantes.
+
+### BUG-032 — Équipe mobile : le rôle masque les noms
+
+- **ID**: BUG-032
+- **Status**: Fixed (2026-10-14)
+- **Severity**: Medium (la composition reste visible, mais les personnes assignées ne sont plus identifiables sur un téléphone étroit)
+- **Affected area**: V2 `apps/web` — onglet Équipe, lignes de créneaux de composition.
+- **Observed behavior**: À largeur mobile, la colonne fixe du rôle et son libellé occupaient assez de place pour tronquer, voire masquer visuellement, le nom de la personne assignée.
+- **Expected behavior**: À `≤ 480 px`, chaque rôle reste identifiable par son emoji, tandis que le nom de la personne conserve l'espace horizontal prioritaire. Les libellés complets restent affichés au-delà de ce breakpoint.
+- **Fix**: La colonne de rôle passe de `7.5rem` à `2.75rem` sur mobile, et le chip Équipe n'affiche que son emoji ; les actions et la grille existantes sont inchangées.
+- **Notes/context**: Signalé avec la capture de l'onglet Équipe sur iPhone. Le contrôle de pool interactif conserve son `aria-label` complet.
+
+### BUG-031 — « Annuler » dans Format et besoins vide les besoins
+
+- **ID**: BUG-031
+- **Status**: Open — cause confirmée le 2026-10-13 ; correctif à cadrer
+- **Severity**: High (une action ponctuelle peut masquer toute une équipe déjà composée)
+- **Affected area**: V2 « Format et besoins » (`EventTypeRolesDialog` / `PATCH events.roleSlots`) et projection Équipe.
+- **Observed behavior**: Sur « Spectacle Long format Microphone », Nicolas a indiqué avoir voulu retirer uniquement le rôle Bénévole. Après avoir ouvert « Format et besoins », le bouton de pied de modale `Annuler` a persisté tous les effectifs à zéro ; l'onglet Équipe ne projette alors plus aucun créneau requis, bien que les affectations stockées existent encore. Un incident analogue a été signalé le 2026-10-12 pour « Apérock café ».
+- **Expected behavior**: `Annuler` doit fermer sans émettre aucun PATCH. Réduire ou retirer un rôle ne doit pas effacer silencieusement les besoins restants ni rendre invisible une équipe constituée.
+- **Cause confirmée**: L'attribut nu `mat-dialog-close` transmet la chaîne vide (`""`) au vrai clic Angular Material, et non `undefined`. `EventInfosTab.openTypeRolesDialog` ignore uniquement `undefined` : il appelle donc `persistTypeRoles("")`. À l'exécution, `result.templateType` et `result.roleSlots` sont alors `undefined`; `normalizeRoleSlots(undefined)` produit une map complète de zéros. `JSON.stringify` omet `templateType` mais envoie `roleSlots` à zéro. Le serveur accepte ce remplacement complet et persiste ces zéros. La re-sélection du format n'est pas nécessaire à l'incident, même si elle fait partie du parcours observé.
+- **Reproduction vérifiée**: Le test temporaire a cliqué le vrai bouton `button[mat-dialog-close]` dans le dialogue Angular : `MatDialogRef.close` a reçu `""` (et non `undefined`). La chaîne client puis serveur ci-dessus a été vérifiée dans le code. Le test était volontairement rouge contre l'attendu fonctionnel et a été retiré après diagnostic pour ne pas laisser la branche en échec.
+- **Notes/context**: Les événements de type sondage / personnalisé peuvent légitimement ne pas nécessiter de rôle : le correctif ne doit donc pas interdire globalement la valeur vide. Il doit distinguer explicitement une fermeture sans résultat d'une sauvegarde. CN-1 conserve désormais les créneaux affectés hors besoins pour les organisateurs, mais ne prévient pas l'écriture vide et ne les réaffiche pas encore dans l'UI. Voir aussi le chat Codex `01a130ec-46cd-7c60-b532-7634e1c5cfd4`.
+
+### BUG-030 — Seed login via MagicDNS is rejected by offline CORS
+
+- **ID**: BUG-030
+- **Status**: Fixed
+- **Severity**: Medium
+- **Affected area**: Offline local development — `SecurityConfig`, `application-offline.yml`
+- **Observed behavior**: A seed member connecting from a phone through `https://<machine>.ts.net:4200` receives the generic 403 message « Ce compte n’est pas autorisé à accéder à HatCast », although the same token succeeds without an `Origin` header.
+- **Cause**: The Angular proxy forwards the MagicDNS `Origin`; the offline CORS configuration allowed only localhost origins, so Spring rejected the request before seed authentication.
+- **Fix**: Offline configuration now permits the scoped MagicDNS development origin pattern `https://*.ts.net:4200`.
+
+### BUG-029 — Agenda performance fixture has too few future events
+- **ID**: BUG-029
+- **Status**: Fixed locally — complete regression and independent review verified; integration pending
+- **Severity**: Low (blocks a complete local API regression run, not runtime behavior)
+- **Affected area**: `UserAgendaPerformanceIntegrationTest` seeded agenda fixture.
+- **Observed behavior**: On 2026-10-12, `./gradlew test` fails before the performance assertion because the fixture exposes 19 upcoming events while the test requires at least 20.
+- **Expected behavior**: The test fixture remains date-independent and supplies the documented minimum of 20 future events.
+- **Repro**: Run `./gradlew test` in `services/api`; `UserAgendaPerformanceIntegrationTest` fails with `content.length=19`.
+- **Notes/context**: Found while verifying CN-1. CN-1 targeted API/domain tests pass; this failure is unrelated to the reconciliation contract.
+- **Follow-up evidence (2026-10-18)**: The fixed calendar exposes only 18 upcoming events. Replaced the shared seed dependency with a dedicated troupe, season, 24 published shows relative to execution time, 24 roster participants, 576 availability rows and 72 required composition slots. The existing >=20 result assertion and p95 <=500 ms threshold remain unchanged and pass in the targeted run and complete 1189-test regression (zero failures, five unchanged skips).
+- **Review follow-up**: Warmup now checks returned fixture IDs, actual available status, composed/pending versus collecting projections. This exposed and corrected the linked member's fixture availability subject (`user_id`, not `season_participant_id`), while guest responses retain participant subjects. Final standalone performance test and complete regression pass with these assertions.
+
+### BUG-028 — Mobile troupe hub season chart stacks month columns vertically
+- **ID**: BUG-028
+- **Status**: Open — BMAD diagnosis and corrective spec ready for approval
+- **Severity**: Medium (collective season overview is not usable on narrow mobile viewports)
+- **Affected area**: V2 `troupe-hub` season mini-chart (`/troupes/:slug`).
+- **Observed behavior**: On a narrow Android viewport, the mini-chart shown for La Malice renders month columns one below another. The chart becomes taller than the viewport and visually continues behind the fixed member navigation.
+- **Expected behavior**: Months form a horizontal timeline inside the season-card chart; event blocks for each month stack vertically, and any extra width scrolls horizontally inside the chart. The final chart CTA must remain reachable above the member navigation.
+- **Cause**: `troupe-hub.html` renders `.member-profile__chart-month` elements directly in the chart container, omitting `.member-profile__chart-timeline` and `.member-profile__chart-months`. The shared chart SCSS applies its horizontal flex layout only to the omitted months wrapper.
+- **Repro**: On staging, sign in to a member account and open `/troupes/la-malice` on a narrow Android viewport with at least three past events in the selected season.
+- **Notes/context**: The fixed bottom navigation is not established as causal: `member-shell.scss` already reserves its height plus safe-area. The corrective mobile E2E will verify CTA reachability before any shell/navigation change is considered. UX spec `ux-design-hub-mini-chart-17-44.md` MC10 requires horizontal in-card scrolling.
+
+### BUG-027 — Review controller dirties its own checkout
+- **ID**: BUG-027
+- **Status**: Fixed locally — regression coverage added; review pending
+- **Severity**: High (blocks recording a delivery decision)
+- **Affected area**: `scripts/v2/github_review_decision_controller.py`.
+- **Observed behavior**: Running the controller can create `scripts/v2/__pycache__/` while it imports its validator. Its own clean-`v2` precondition then fails, and it emits only the generic `review controller unavailable` result before recording any GitHub decision.
+- **Expected behavior**: The controller must leave the checkout unchanged while it snapshots and validates a PR; a clean checkout must remain eligible for a decision.
+- **Cause**: Python bytecode writing was enabled before importing `validate_pr_preflight`.
+- **Repro**: From a clean `v2` checkout, run the controller `record` command for an open eligible PR.
+- **Notes/context**: The regression test copies the controller into its checked Git fixture and asserts both that no `__pycache__` is created and that `git status --porcelain` stays empty.
 
 ### BUG-026 — Human smoke handoff times out while Angular is compiling
 - **ID**: BUG-026
@@ -86,7 +551,7 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ### BUG-019 — Dispos « Pas disponible » : dépliage vide (noms invisibles)
 - **ID**: BUG-019
-- **Status**: Open
+- **Status**: Fixed (2026-09-28, local verification)
 - **Severity**: Medium (orga cannot see who is unavailable; roles still expand)
 - **Affected area**: Onglet Dispos — `availability-poll` / `availability-poll-row` (spectacle publié, explainability on)
 - **Observed behavior**: Tap on the « Pas disponible » gauge, counter, or avatars expands the row but shows no names. Role rows (Arbitre, MC, …) do expand with names.
@@ -94,6 +559,7 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 - **Cause**: Neutral name chips render only when `explainabilityEnabled` is false (`unavailablePoolShowNeutral`). On a published event, explainability is on, and unavailable people have no `chancePercent`, so none of the three pool branches (`chance preview` / `neutral` / `chances unavailable`) match — empty body.
 - **Repro**: Event detail → Dispos → tap avatars/gauge on « Pas disponible » (screenshot orga Impro, 2026-09-16).
 - **Reported by**: Organizer feedback (Nicolas Nasciet) via Patrice.
+- **Verification**: `availability-poll.spec.ts` clicks the unavailable gauge with explainability enabled, confirms the unavailable member is rendered, and confirms no chance-summary request is made; `npm test -- --watch=false --include='src/app/shared/availability/availability-poll.spec.ts'` passes (22 tests).
 
 ### LIMIT-009 — Dispos V2 : plus d’entrée « Tous » ni liste des non-répondants
 - **ID**: LIMIT-009

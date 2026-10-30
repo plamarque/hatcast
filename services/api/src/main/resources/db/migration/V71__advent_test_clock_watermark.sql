@@ -1,0 +1,1 @@
+ALTER TABLE advent_test_clock ADD COLUMN observed_at TIMESTAMP WITH TIME ZONE;

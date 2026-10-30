@@ -2,6 +2,7 @@ import { inject, Injectable } from '@angular/core'
 import { MatSnackBar } from '@angular/material/snack-bar'
 
 import { ProductAnalyticsService } from '../../core/analytics/product-analytics.service'
+import type { ActorScope } from '../../core/analytics/organizer-analytics'
 import { AvailabilityApiService } from '../../core/availability/availability-api.service'
 import type { AvailabilityStatus } from '../../core/availability/availability-status'
 import { normalizeCandidateRoleKeys } from '../../core/availability/availability-role-rules'
@@ -40,6 +41,7 @@ export class AvailabilityPersistService {
     savedComment: string | null
     initialStatus: AvailabilityStatus
     availabilityOpenedAt: string | null
+    actorScope?: ActorScope
   }): Promise<AvailabilityPersistResult> {
     const comment = options.savedComment?.trim() ? options.savedComment.trim() : null
     const body = {
@@ -63,6 +65,7 @@ export class AvailabilityPersistService {
         seasonId: options.seasonId,
         troupeId: options.troupeId,
         proxyMode: options.proxyMode,
+        actorScope: options.actorScope,
       })
     } else {
       this.showSaveError(result.status)
@@ -75,6 +78,7 @@ export class AvailabilityPersistService {
     eventId: string
     subjectParticipantId: string | null
     proxyMode: boolean
+    actorScope?: ActorScope
     status: AvailabilityStatus
     roleKeys: RoleKey[]
     applyVolunteerRule: boolean
@@ -134,13 +138,17 @@ export class AvailabilityPersistService {
     seasonId: string
     troupeId: string
     proxyMode: boolean
+    actorScope?: ActorScope
   }): void {
     const openedAt = options.availabilityOpenedAt?.trim()
     if (!options.wasFirstSubmission || !openedAt) {
       return
     }
     this.analytics.captureAvailabilityFirstSubmission(
-      this.analytics.eventContext(options.eventId, options.seasonId, options.troupeId),
+      {
+        ...this.analytics.eventContext(options.eventId, options.seasonId, options.troupeId),
+        ...(options.actorScope ? { actor_scope: options.actorScope } : {}),
+      },
       {
         is_proxy: options.proxyMode,
         opened_at: openedAt,

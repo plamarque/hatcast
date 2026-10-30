@@ -277,7 +277,7 @@ class NotificationPayloadBuilder {
                 "📅 Rappel · $rolePart pour $eventTitle le $eventDate"
             }
             NotificationIntent.REMOVED_FROM_COMPOSITION ->
-                "😔 Composition mise à jour · $eventTitle"
+                "😔 Tu n'es plus dans la compo · $eventTitle"
             NotificationIntent.RECONFIRMATION_REQUEST ->
                 "🔄 Reconfirmation requise · $eventTitle ($eventDate)"
             NotificationIntent.PROXY_AVAILABILITY_RECORDED ->

@@ -3,17 +3,21 @@ import { MatSnackBar } from '@angular/material/snack-bar'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { Subject } from 'rxjs'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi, type Mock } from 'vitest'
 
 import { MePreferencesApiService } from '../../core/account/me-preferences-api.service'
-import { CompositionApiService } from '../../core/composition/composition-api.service'
+import { CompositionApiService, type CompositionResponse } from '../../core/composition/composition-api.service'
 import {
   DrawPolicyApiService,
   type EffectiveDrawPolicy,
 } from '../../core/draw/draw-policy-api.service'
-import { emptyRoleSlots } from '../../core/events/event-types'
-import type { EventResponse } from '../../core/events/event-api.service'
+import { applyTemplate, emptyRoleSlots } from '../../core/events/event-types'
+import { EventApiService, type EventResponse } from '../../core/events/event-api.service'
+import { ConfirmDialog } from '../seasons-list/confirm-dialog'
+import { EventTypeRolesDialog } from './event-type-roles-dialog'
 import { EventEquipeTab } from './event-equipe-tab'
+import { ProductAnalyticsService } from '../../core/analytics/product-analytics.service'
+import { ChanceBreakdownService } from '../../shared/composition/chance-breakdown.service'
 
 function ev(overrides: Partial<EventResponse> = {}): EventResponse {
   return {
@@ -65,20 +69,17 @@ describe('EventEquipeTab', () => {
   let getCompositionCandidates: ReturnType<typeof vi.fn>
   let getPoolPreview: ReturnType<typeof vi.fn>
   let assignCompositionSlot: ReturnType<typeof vi.fn>
+  let deleteCompositionSlot: ReturnType<typeof vi.fn>
   let validateComposition: ReturnType<typeof vi.fn>
   let unlockComposition: ReturnType<typeof vi.fn>
   let updateSlotParticipation: ReturnType<typeof vi.fn>
   let restoreDeclinedParticipant: ReturnType<typeof vi.fn>
+  let updateEvent: ReturnType<typeof vi.fn>
   let getEffectiveDrawPolicy: ReturnType<typeof vi.fn>
   let dialogOpen: ReturnType<typeof vi.fn>
   let snackOpen: ReturnType<typeof vi.fn>
   let getPreferences: ReturnType<typeof vi.fn>
-  let dialogAfterClosed: Subject<
-    | { participantId: string }
-    | { status: string; note?: string | null }
-    | boolean
-    | undefined
-  >
+  let dialogAfterClosed: Subject<unknown>
 
   beforeEach(async () => {
     getComposition = vi.fn().mockResolvedValue({
@@ -132,10 +133,12 @@ describe('EventEquipeTab', () => {
         ],
       },
     })
+    deleteCompositionSlot = vi.fn().mockResolvedValue({ ok: true, data: ev() })
     validateComposition = vi.fn()
     unlockComposition = vi.fn()
     updateSlotParticipation = vi.fn()
     restoreDeclinedParticipant = vi.fn()
+    updateEvent = vi.fn()
     getEffectiveDrawPolicy = vi.fn().mockResolvedValue({
       ok: true,
       data: {
@@ -151,12 +154,7 @@ describe('EventEquipeTab', () => {
         requiresFormulaIdOnDraw: false,
       },
     })
-    dialogAfterClosed = new Subject<
-      | { participantId: string }
-      | { status: string; note?: string | null }
-      | boolean
-      | undefined
-    >()
+    dialogAfterClosed = new Subject<unknown>()
     dialogOpen = vi.fn().mockReturnValue({
       componentInstance: {
         updateState: vi.fn(),
@@ -187,12 +185,14 @@ describe('EventEquipeTab', () => {
             getCompositionCandidates,
             getPoolPreview,
             assignCompositionSlot,
+            deleteCompositionSlot,
             validateComposition,
             unlockComposition,
             updateSlotParticipation,
             restoreDeclinedParticipant,
           },
         },
+        { provide: EventApiService, useValue: { updateEvent } },
         { provide: MatDialog, useValue: { open: dialogOpen } },
         { provide: MatSnackBar, useValue: { open: snackOpen } },
         {
@@ -223,6 +223,234 @@ describe('EventEquipeTab', () => {
     await vi.waitFor(() => {
       expect(fixture.nativeElement.textContent).toContain('Aucun tirage pour le moment')
     })
+  })
+
+  it('lets an organizer change the format from Équipe and persists the template needs', async () => {
+    const captureMutation = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureCompositionMutation')
+    const updatedEvent = ev({
+      templateType: 'match',
+      roleSlots: applyTemplate('match'),
+    })
+    updateEvent.mockResolvedValue({ ok: true, data: updatedEvent })
+    const updated = vi.fn()
+    fixture.componentInstance.eventUpdated.subscribe(updated)
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Modifier le format')
+    })
+    const button = fixture.nativeElement.querySelector(
+      'button.event-equipe-tab__format-edit--desktop[aria-label="Modifier le format"]',
+    ) as HTMLButtonElement
+    expect(button.querySelector('.event-equipe-tab__format-edit-label')?.textContent).toContain(
+      'Modifier le format',
+    )
+    expect(
+      fixture.nativeElement.querySelector(
+        'button.event-equipe-tab__format-edit--mobile[aria-label="Modifier le format"]',
+      ),
+    ).toBeTruthy()
+    button.click()
+
+    expect(dialogOpen).toHaveBeenCalledWith(
+      EventTypeRolesDialog,
+      expect.objectContaining({
+        data: expect.objectContaining({ templateType: 'custom', roleSlots: ev().roleSlots }),
+      }),
+    )
+
+    dialogAfterClosed.next({ templateType: 'match', roleSlots: applyTemplate('match') })
+
+    await vi.waitFor(() => {
+      expect(updateEvent).toHaveBeenCalledWith('season-1', 'event-1', {
+        templateType: 'match',
+        roleSlots: applyTemplate('match'),
+      })
+      expect(updated).toHaveBeenCalledWith(updatedEvent)
+      expect(captureMutation).toHaveBeenCalledWith(expect.anything(), { action: 'slot', outcome: 'succeeded' })
+    })
+  })
+
+  it('does not show a format action to a member', async () => {
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.querySelector('.event-equipe-tab__format')).toBeNull()
+    })
+  })
+
+  it('lets an organizer add one role through the provisional slot control', async () => {
+    const captureMutation = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureCompositionMutation')
+    const updatedEvent = ev({ roleSlots: { ...emptyRoleSlots(), player: 3 } })
+    updateEvent.mockResolvedValue({ ok: true, data: updatedEvent })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(
+        fixture.nativeElement.querySelector('button.event-equipe-tab__add-slot'),
+      ).toBeTruthy()
+    })
+    const addButton = fixture.nativeElement.querySelector(
+      'button.event-equipe-tab__add-slot',
+    ) as HTMLButtonElement
+    addButton.click()
+    fixture.detectChanges()
+    expect(
+      fixture.nativeElement.querySelector(
+        'button[aria-label="Choisir le rôle de cette place"]',
+      ),
+    ).toBeTruthy()
+    expect(
+      fixture.nativeElement.querySelector(
+        '.event-equipe-tab__row--provisional button.event-equipe-tab__delete-provisional[aria-label="Supprimer cette place"]',
+      ),
+    ).toBeTruthy()
+
+    await (
+      fixture.componentInstance as unknown as {
+        chooseProvisionalRole: (roleKey: 'player') => Promise<void>
+      }
+    ).chooseProvisionalRole('player')
+    expect(captureMutation).toHaveBeenCalledWith(expect.anything(), { action: 'slot', outcome: 'succeeded' })
+
+    expect(updateEvent).toHaveBeenCalledWith(
+      'season-1',
+      'event-1',
+      expect.objectContaining({ roleSlots: expect.objectContaining({ player: 3 }) }),
+    )
+  })
+
+  it('shows distinct release and structural-delete actions to an organizer', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-2',
+            participantDisplayName: 'Bob',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(
+        fixture.nativeElement.querySelector('button[aria-label="Libérer la place"]'),
+      ).toBeTruthy()
+      expect(
+        fixture.nativeElement.querySelector('button[aria-label="Supprimer cette place"]'),
+      ).toBeTruthy()
+    })
+  })
+
+  it('renders an organizer-only out-of-model assignment with explicit actions', async () => {
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [],
+        reconciliationItems: [
+          {
+            roleKey: 'player',
+            slotIndex: 2,
+            participantId: 'p-2',
+            participantDisplayName: 'Bob',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Hors modèle')
+      expect(
+        fixture.nativeElement.querySelector('button[aria-label="Libérer la place hors modèle"]'),
+      ).toBeTruthy()
+      expect(
+        fixture.nativeElement.querySelector('button[aria-label="Supprimer cette place hors modèle"]'),
+      ).toBeTruthy()
+    })
+  })
+
+  it('confirms every structural deletion and explains the reduced need', async () => {
+    const captureMutation = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureCompositionMutation')
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+    const event = new Event('click')
+    const deletion = (
+      fixture.componentInstance as unknown as {
+        deleteSlot: (
+          row: {
+            roleKey: string
+            slotIndex: number
+            roleLabel: string
+            roleEmoji: string
+            slot: null
+          },
+          event: Event,
+        ) => Promise<void>
+      }
+    ).deleteSlot(
+      {
+        roleKey: 'player',
+        slotIndex: 1,
+        roleLabel: 'Comédien·ne',
+        roleEmoji: '🎭',
+        slot: null,
+      },
+      event,
+    )
+
+    expect(dialogOpen).toHaveBeenCalledWith(
+      ConfirmDialog,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          confirmLabel: 'Supprimer la place',
+          message: expect.stringContaining('demandera une personne de moins'),
+        }),
+      }),
+    )
+    expect(deleteCompositionSlot).not.toHaveBeenCalled()
+
+    dialogAfterClosed.next(true)
+    await deletion
+    expect(captureMutation).toHaveBeenCalledWith(expect.anything(), { action: 'slot', outcome: 'succeeded', operation: 'remove_slot' })
+
+    expect(deleteCompositionSlot).toHaveBeenCalledWith('season-1', 'event-1', 'player', 1)
+  })
+
+  it.each(['clear', 'delete'] as const)('captures removal of an out-of-model slot via %s', async (operation) => {
+    const captureMutation = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureCompositionMutation')
+    const api = TestBed.inject(CompositionApiService)
+    const response = { ok: true, data: { publishedAt: null, validatedAt: null, visibility: 'organizerDraft', slots: [] } }
+    api.clearOutOfModelSlot = vi.fn().mockResolvedValue(response)
+    api.deleteOutOfModelSlot = vi.fn().mockResolvedValue(response)
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+    await vi.waitFor(() => expect(getComposition).toHaveBeenCalled())
+    const row = { roleKey: 'player', slotIndex: 2, roleLabel: 'Player', roleEmoji: '', slot: null, outsideModel: true }
+    if (operation === 'clear') {
+      await fixture.componentInstance['assignSlot'](row, null)
+    } else {
+      const deletion = fixture.componentInstance['deleteSlot'](row, new Event('click'))
+      dialogAfterClosed.next(true)
+      await deletion
+    }
+    expect(captureMutation).toHaveBeenCalledWith(expect.anything(), { action: 'slot', outcome: 'succeeded', operation: 'remove_slot' })
   })
 
   it('genres role pill from assignee gender on filled slots', async () => {
@@ -326,8 +554,9 @@ describe('EventEquipeTab', () => {
     expect(draftZone).not.toBeNull()
     expect(draftZone.textContent).toContain('visible uniquement par les organisateur')
     expect(draftZone.querySelector('.event-equipe-tab__grid')).not.toBeNull()
-    expect(fixture.nativeElement.textContent).toContain('Valider')
-    expect(fixture.nativeElement.querySelector('.event-equipe-tab__publish')).toBeNull()
+    expect(fixture.nativeElement.textContent).toContain('Publier')
+    expect(fixture.nativeElement.querySelector('.event-equipe-tab__publish')).not.toBeNull()
+    expect(fixture.nativeElement.textContent).not.toContain('Annoncer la compo')
   })
 
   it('shows draft zone for organizer published draft until validated', async () => {
@@ -357,7 +586,7 @@ describe('EventEquipeTab', () => {
     expect(
       fixture.nativeElement.querySelector('.event-equipe-tab__composition-body--draft'),
     ).not.toBeNull()
-    expect(fixture.nativeElement.querySelector('.event-equipe-tab__publish')).toBeNull()
+    expect(fixture.nativeElement.querySelector('.event-equipe-tab__publish')).not.toBeNull()
   })
 
   it('shows Tirer au sort and dashed placeholders for organizer with empty composition', async () => {
@@ -404,7 +633,9 @@ describe('EventEquipeTab', () => {
       },
     })
     fixture.componentRef.setInput('canManageComposition', true)
+    fixture.componentRef.setInput('actorScope', 'event_organizer')
     fixture.detectChanges()
+    const captureMutation = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureCompositionMutation')
 
     await vi.waitFor(() => {
       expect(fixture.nativeElement.textContent).toContain('Tirer au sort')
@@ -417,11 +648,16 @@ describe('EventEquipeTab', () => {
     await vi.waitFor(() => {
       expect(drawComposition).toHaveBeenCalledWith('season-1', 'event-1', 'full', null)
       expect(fixture.nativeElement.textContent).toContain('Alice')
+      expect(captureMutation).toHaveBeenCalledWith(
+        expect.objectContaining({ actor_scope: 'event_organizer' }),
+        { action: 'draw_execute', outcome: 'succeeded' },
+      )
     })
     vi.unstubAllGlobals()
   })
 
   it('opens picker and assigns on organizer slot click', async () => {
+    const captureMutation = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureCompositionMutation')
     fixture.componentRef.setInput('canManageComposition', true)
     fixture.detectChanges()
 
@@ -457,10 +693,14 @@ describe('EventEquipeTab', () => {
         'p-2',
       )
       expect(fixture.nativeElement.textContent).toContain('Bob')
+      expect(captureMutation).toHaveBeenCalledWith(expect.anything(), {
+        action: 'slot', outcome: 'succeeded', operation: 'assign',
+      })
     })
   })
 
   it('clears slot when organizer clicks clear button', async () => {
+    const captureMutation = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureCompositionMutation')
     getComposition.mockResolvedValue({
       ok: true,
       data: {
@@ -525,6 +765,10 @@ describe('EventEquipeTab', () => {
     const clearBtn = rowsBefore[0].querySelector('.event-equipe-tab__clear') as HTMLButtonElement
     clearBtn.click()
 
+    await vi.waitFor(() => expect(captureMutation).toHaveBeenCalledWith(expect.anything(), {
+      action: 'slot', outcome: 'succeeded', operation: 'unassign',
+    }))
+
     await vi.waitFor(() => {
       expect(assignCompositionSlot).toHaveBeenCalledWith(
         'season-1',
@@ -571,7 +815,7 @@ describe('EventEquipeTab', () => {
     })
     expect(fixture.nativeElement.querySelector('.event-equipe-tab__clear')).toBeNull()
     expect(fixture.nativeElement.textContent).toContain('Déverrouiller')
-    expect(fixture.nativeElement.querySelector('.event-equipe-tab__validate')).toBeNull()
+    expect(fixture.nativeElement.querySelector('.event-equipe-tab__publish')).toBeNull()
     expect(fixture.nativeElement.querySelector('.event-equipe-tab__row-hit')).not.toBeNull()
   })
 
@@ -727,7 +971,7 @@ describe('EventEquipeTab', () => {
     })
   })
 
-  it('shows Valider for organizer draft with assigned slot', async () => {
+  it('shows Publier for organizer draft with assigned slot', async () => {
     getComposition.mockResolvedValue({
       ok: true,
       data: {
@@ -749,7 +993,7 @@ describe('EventEquipeTab', () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(fixture.nativeElement.textContent).toContain('Valider')
+      expect(fixture.nativeElement.textContent).toContain('Publier')
     })
     expect(fixture.nativeElement.querySelector('.event-equipe-tab__unlock')).toBeNull()
     expect(
@@ -757,7 +1001,7 @@ describe('EventEquipeTab', () => {
     ).not.toContain('Proposition automatique selon les dispos')
   })
 
-  it('shows Partager in toolbar grid for organizer draft with validate', async () => {
+  it('shows Partager in toolbar grid for organizer draft with publish', async () => {
     getComposition.mockResolvedValue({
       ok: true,
       data: {
@@ -888,7 +1132,8 @@ describe('EventEquipeTab', () => {
     expect((config as { data?: { intent?: string } }).data?.intent).toBe('draw')
   })
 
-  it('emits compositionPublished after successful validate', async () => {
+  it('publishes then opens the announcement dialog after successful validation', async () => {
+    const captureMutation = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureCompositionMutation')
     getComposition.mockResolvedValue({
       ok: true,
       data: {
@@ -927,19 +1172,89 @@ describe('EventEquipeTab', () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(fixture.nativeElement.textContent).toContain('Valider')
+      expect(fixture.nativeElement.textContent).toContain('Publier')
     })
 
     const emitted = vi.fn()
     fixture.componentInstance.compositionPublished.subscribe(emitted)
 
-    const btn = fixture.nativeElement.querySelector('.event-equipe-tab__validate') as HTMLButtonElement
+    const btn = fixture.nativeElement.querySelector('.event-equipe-tab__publish') as HTMLButtonElement
     btn.click()
     fixture.detectChanges()
 
     await vi.waitFor(() => {
       expect(validateComposition).toHaveBeenCalledWith('season-1', 'event-1')
+      expect(captureMutation).toHaveBeenCalledWith(expect.anything(), { action: 'publish', outcome: 'succeeded' })
       expect(emitted).toHaveBeenCalled()
+      expect(dialogOpen).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            intent: 'composition',
+            compositionValidatedAt: '2026-01-01T00:00:00.000Z',
+          }),
+        }),
+      )
+      expect(fixture.nativeElement.textContent).toContain('Annoncer la compo')
+    })
+
+    dialogAfterClosed.next(undefined)
+    fixture.detectChanges()
+
+    const announce = fixture.nativeElement.querySelector(
+      '[data-testid="composition-action-announce"]',
+    ) as HTMLButtonElement
+    expect(announce).not.toBeNull()
+    announce.click()
+    expect(dialogOpen).toHaveBeenCalledTimes(2)
+  })
+
+  it('keeps the draft and does not open the announcement dialog when publish fails', async () => {
+    const captureMutation = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureCompositionMutation')
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: null,
+        visibility: 'organizerDraft',
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-1',
+            participantDisplayName: 'StillDraft',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    validateComposition.mockResolvedValue({
+      ok: false,
+      status: 409,
+      errorMessage: 'Composition déjà verrouillée.',
+    })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Publier')
+    })
+
+    const publish = fixture.nativeElement.querySelector(
+      '.event-equipe-tab__publish',
+    ) as HTMLButtonElement
+    publish.click()
+
+    await vi.waitFor(() => {
+      expect(validateComposition).toHaveBeenCalledWith('season-1', 'event-1')
+      expect(dialogOpen).not.toHaveBeenCalled()
+      expect(captureMutation).not.toHaveBeenCalled()
+      expect(snackOpen).toHaveBeenCalledWith(
+        'Composition déjà verrouillée.',
+        'OK',
+        expect.objectContaining({ duration: 6000 }),
+      )
+      expect(fixture.nativeElement.textContent).toContain('Publier')
     })
   })
 
@@ -995,6 +1310,206 @@ describe('EventEquipeTab', () => {
     await vi.waitFor(() => {
       expect(unlockComposition).toHaveBeenCalledWith('season-1', 'event-1')
       expect(emitted).toHaveBeenCalled()
+    })
+  })
+
+  describe('unlock conflict recovery', () => {
+    const apiError = "La composition n'est pas validée"
+    let locked: CompositionResponse
+    let draft: CompositionResponse
+    let emitted: Mock<(composition: CompositionResponse) => void>
+
+    beforeEach(() => {
+      locked = {
+        publishedAt: '2026-01-01T00:00:00.000Z',
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        slots: (['confirmed', 'pending', 'declined'] as const).map((status, index) => ({
+          roleKey: 'player',
+          slotIndex: index,
+          participantId: `p-${index}`,
+          participantDisplayName: `Participant ${index}`,
+          participationStatus: status,
+        })),
+      }
+      draft = { ...locked, validatedAt: null, visibility: 'publishedDraft' }
+      // Real event pages provide composition through the parent, without an initial child GET.
+      fixture.componentRef.setInput('event', ev({ roleSlots: { ...emptyRoleSlots(), player: 3 } }))
+      fixture.componentRef.setInput('canManageComposition', true)
+      fixture.componentRef.setInput('compositionLoadManagedByParent', true)
+      fixture.componentRef.setInput('parentCompositionLoaded', true)
+      fixture.componentRef.setInput('parentComposition', locked)
+      emitted = vi.fn((composition: CompositionResponse) => {
+        fixture.componentRef.setInput('parentComposition', composition)
+      })
+      fixture.componentInstance.compositionPublished.subscribe(emitted)
+      unlockComposition.mockResolvedValue({ ok: false, status: 409, errorMessage: apiError })
+      fixture.detectChanges()
+    })
+
+    function clickUnlock(): void {
+      const button = fixture.nativeElement.querySelector('.event-equipe-tab__unlock') as HTMLButtonElement
+      expect(button).not.toBeNull()
+      button.click()
+    }
+
+    it('reconciles the parent and restores draft actions while preserving assignments and statuses', async () => {
+      getComposition.mockResolvedValue({ ok: true, status: 200, data: draft })
+      clickUnlock()
+
+      await vi.waitFor(() => {
+        expect(getComposition).toHaveBeenCalledWith('season-1', 'event-1')
+        expect(emitted).toHaveBeenCalledExactlyOnceWith(draft)
+        expect(snackOpen).toHaveBeenCalledWith('Composition déjà déverrouillée.', 'OK', { duration: 4000 })
+        fixture.detectChanges()
+        expect(fixture.nativeElement.querySelector('.event-equipe-tab__unlock')).toBeNull()
+        expect(fixture.nativeElement.textContent).toContain('Publier')
+        expect(fixture.nativeElement.textContent).not.toContain('Annoncer la compo')
+      })
+      expect(unlockComposition).toHaveBeenCalledTimes(1)
+      expect(dialogOpen).not.toHaveBeenCalled()
+    })
+
+    it('restores an organizer-only draft without publishing it', async () => {
+      const organizerDraft = { ...draft, publishedAt: null, visibility: 'organizerDraft' }
+      getComposition.mockResolvedValue({ ok: true, status: 200, data: organizerDraft })
+      clickUnlock()
+      await vi.waitFor(() => {
+        expect(emitted).toHaveBeenCalledExactlyOnceWith(organizerDraft)
+        expect(snackOpen).toHaveBeenCalledWith('Composition déjà déverrouillée.', 'OK', { duration: 4000 })
+        fixture.detectChanges()
+        expect(fixture.nativeElement.textContent).toContain('Publier')
+        expect(fixture.nativeElement.textContent).not.toContain('Annoncer la compo')
+      })
+      expect(publishComposition).not.toHaveBeenCalled()
+      expect(validateComposition).not.toHaveBeenCalled()
+    })
+
+    it('synchronizes an absent composition without claiming it was already unlocked', async () => {
+      const absent = { validatedAt: null, visibility: 'none', slots: [] }
+      unlockComposition.mockResolvedValue({ ok: false, status: 409, errorMessage: 'Aucune composition à déverrouiller' })
+      getComposition.mockResolvedValue({ ok: true, status: 200, data: absent })
+      clickUnlock()
+      await vi.waitFor(() => {
+        expect(emitted).toHaveBeenCalledExactlyOnceWith(absent)
+        expect(snackOpen).toHaveBeenCalledWith('Aucune composition à déverrouiller', 'OK', { duration: 6000 })
+        fixture.detectChanges()
+        expect(fixture.nativeElement.querySelector('.event-equipe-tab__unlock')).toBeNull()
+      })
+      expect(snackOpen).toHaveBeenCalledTimes(1)
+    })
+
+    it.each(['unlock', 'refresh'])('ignores the pending %s response after destruction', async (pending) => {
+      let finish!: (value: unknown) => void
+      const response = new Promise((resolve) => { finish = resolve })
+      if (pending === 'unlock') {
+        unlockComposition.mockReturnValue(response)
+      } else {
+        getComposition.mockReturnValue(response)
+      }
+      clickUnlock()
+      if (pending === 'refresh') {
+        await vi.waitFor(() => expect(getComposition).toHaveBeenCalledTimes(1))
+      }
+      fixture.destroy()
+      finish(pending === 'unlock'
+        ? { ok: false, status: 409, errorMessage: apiError }
+        : { ok: true, status: 200, data: draft })
+      await response
+      // Flush the operation continuation before checking there are no late side effects.
+      await Promise.resolve()
+      expect(emitted).not.toHaveBeenCalled()
+      expect(snackOpen).not.toHaveBeenCalled()
+      expect(getComposition).toHaveBeenCalledTimes(pending === 'unlock' ? 0 : 1)
+    })
+
+    it('synchronizes a still-locked response and keeps the original conflict visible', async () => {
+      const latest = { ...locked, validatedAt: '2026-02-01T00:00:00.000Z' }
+      getComposition.mockResolvedValue({ ok: true, status: 200, data: latest })
+      clickUnlock()
+
+      await vi.waitFor(() => {
+        expect(emitted).toHaveBeenCalledExactlyOnceWith(latest)
+        expect(snackOpen).toHaveBeenCalledWith(apiError, 'OK', { duration: 6000 })
+        fixture.detectChanges()
+        expect(fixture.nativeElement.querySelector('.event-equipe-tab__unlock')).not.toBeNull()
+      })
+      expect(snackOpen).toHaveBeenCalledTimes(1)
+    })
+
+    it.each([0, 403, 500])('keeps the conflict and local state when refresh fails with %s', async (status) => {
+      getComposition.mockResolvedValue({ ok: false, status })
+      clickUnlock()
+
+      await vi.waitFor(() => {
+        expect(getComposition).toHaveBeenCalledTimes(1)
+        expect(snackOpen).toHaveBeenCalledWith(apiError, 'OK', { duration: 6000 })
+        fixture.detectChanges()
+        expect((fixture.nativeElement.querySelector('.event-equipe-tab__unlock') as HTMLButtonElement).disabled).toBe(false)
+      })
+      expect(emitted).not.toHaveBeenCalled()
+      expect(snackOpen).toHaveBeenCalledTimes(1)
+    })
+
+    it.each([0, 403, 500])('does not refresh or claim success for an unlock error %s', async (status) => {
+      unlockComposition.mockResolvedValue({ ok: false, status, errorMessage: 'Refus' })
+      clickUnlock()
+
+      await vi.waitFor(() => {
+        expect(snackOpen).toHaveBeenCalledWith('Refus', 'OK', { duration: 6000 })
+      })
+      expect(getComposition).not.toHaveBeenCalled()
+      expect(emitted).not.toHaveBeenCalled()
+    })
+
+    it('keeps interactions blocked until reconciliation finishes', async () => {
+      let finishRefresh!: (value: unknown) => void
+      getComposition.mockReturnValue(new Promise((resolve) => { finishRefresh = resolve }))
+      const button = fixture.nativeElement.querySelector('.event-equipe-tab__unlock') as HTMLButtonElement
+      button.click()
+      // A second click before rendering must also be refused by the handler.
+      button.click()
+      await vi.waitFor(() => expect(getComposition).toHaveBeenCalledTimes(1))
+      fixture.detectChanges()
+      expect(fixture.nativeElement.querySelector('.event-equipe-tab__unlock')).toBeNull()
+      expect(fixture.nativeElement.querySelector('.event-equipe-tab__busy-overlay')).not.toBeNull()
+      expect((fixture.nativeElement.querySelector('.event-equipe-tab__format-edit') as HTMLButtonElement).disabled).toBe(true)
+      expect(unlockComposition).toHaveBeenCalledTimes(1)
+      expect(snackOpen).not.toHaveBeenCalled()
+      finishRefresh({ ok: true, status: 200, data: draft })
+      await vi.waitFor(() => expect(emitted).toHaveBeenCalledWith(draft))
+    })
+
+    it.each(['event', 'season'])('ignores a recovery response after navigating to another %s', async (changed) => {
+      let finishRefresh!: (value: unknown) => void
+      getComposition.mockReturnValue(new Promise((resolve) => { finishRefresh = resolve }))
+      clickUnlock()
+      await vi.waitFor(() => expect(getComposition).toHaveBeenCalledTimes(1))
+      fixture.componentRef.setInput(changed === 'event' ? 'event' : 'seasonId', changed === 'event' ? ev({ id: 'event-2' }) : 'season-2')
+      fixture.detectChanges()
+      finishRefresh({ ok: true, status: 200, data: draft })
+      await vi.waitFor(() => {
+        fixture.detectChanges()
+        expect((fixture.nativeElement.querySelector('.event-equipe-tab__unlock') as HTMLButtonElement).disabled).toBe(false)
+      })
+      expect(emitted).not.toHaveBeenCalled()
+      expect(snackOpen).not.toHaveBeenCalled()
+    })
+
+    it.each(['event', 'season'])('does not start recovery if the %s changes before the unlock response', async (changed) => {
+      let finishUnlock!: (value: unknown) => void
+      unlockComposition.mockReturnValue(new Promise((resolve) => { finishUnlock = resolve }))
+      clickUnlock()
+      fixture.componentRef.setInput(changed === 'event' ? 'event' : 'seasonId', changed === 'event' ? ev({ id: 'event-2' }) : 'season-2')
+      fixture.detectChanges()
+      finishUnlock({ ok: false, status: 409, errorMessage: apiError })
+      await vi.waitFor(() => {
+        fixture.detectChanges()
+        expect((fixture.nativeElement.querySelector('.event-equipe-tab__unlock') as HTMLButtonElement).disabled).toBe(false)
+      })
+      expect(getComposition).not.toHaveBeenCalled()
+      expect(emitted).not.toHaveBeenCalled()
+      expect(snackOpen).not.toHaveBeenCalled()
     })
   })
 
@@ -1895,6 +2410,7 @@ describe('EventEquipeTab', () => {
   })
 
   it('shows restore control only for organizer when empty role slot exists', async () => {
+    const captureMutation = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureCompositionMutation')
     getComposition.mockResolvedValue({
       ok: true,
       data: {
@@ -1940,6 +2456,14 @@ describe('EventEquipeTab', () => {
     ).not.toBeNull()
     expect(fixture.nativeElement.textContent).toContain('(ne comptent pas dans la composition)')
 
+    restoreDeclinedParticipant.mockResolvedValue({ ok: true, data: {
+      publishedAt: null, validatedAt: '2026-01-01T00:00:00Z', visibility: 'validated', slots: [],
+    } })
+    await fixture.componentInstance['restoreDecline']('decline-restore')
+    expect(captureMutation).toHaveBeenCalledWith(expect.anything(), {
+      action: 'slot', outcome: 'succeeded', operation: 'restore_slot',
+    })
+
     fixture.componentRef.setInput('canManageComposition', false)
     fixture.detectChanges()
 
@@ -1976,10 +2500,10 @@ describe('EventEquipeTab', () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(fixture.nativeElement.textContent).toContain('Valider')
+      expect(fixture.nativeElement.textContent).toContain('Publier')
     })
 
-    const btn = fixture.nativeElement.querySelector('.event-equipe-tab__validate') as HTMLButtonElement
+    const btn = fixture.nativeElement.querySelector('.event-equipe-tab__publish') as HTMLButtonElement
     btn.click()
     fixture.detectChanges()
 
@@ -2058,7 +2582,7 @@ describe('EventEquipeTab', () => {
     expect(announcePrimary.classList.contains('mat-mdc-unelevated-button')).toBe(true)
   })
 
-  it('uses Material filled button for primary validate on draft', async () => {
+  it('uses Material filled button for primary publish on draft', async () => {
     getComposition.mockResolvedValue({
       ok: true,
       data: {
@@ -2080,13 +2604,13 @@ describe('EventEquipeTab', () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(fixture.nativeElement.textContent).toContain('Valider')
+      expect(fixture.nativeElement.textContent).toContain('Publier')
     })
 
-    const validateBtn = fixture.nativeElement.querySelector(
-      '[data-testid="composition-action-primary"][data-action="validate"]',
+    const publishBtn = fixture.nativeElement.querySelector(
+      '[data-testid="composition-action-primary"][data-action="publish"]',
     ) as HTMLButtonElement
-    expect(validateBtn.classList.contains('mat-mdc-unelevated-button')).toBe(true)
+    expect(publishBtn.classList.contains('mat-mdc-unelevated-button')).toBe(true)
 
     const drawBtn = fixture.nativeElement.querySelector(
       '[data-testid="composition-action-draw"]',
@@ -2135,7 +2659,7 @@ describe('EventEquipeTab', () => {
 
     await vi.waitFor(() => {
       expect(fixture.nativeElement.textContent).toContain(
-        'Prêt ? Validez pour rendre la composition visible',
+        'Prêt ? Publiez pour valider la composition et l’annoncer.',
       )
     })
 
@@ -2299,6 +2823,7 @@ describe('EventEquipeTab', () => {
   })
 
   it('does not refetch composition after draw animation completes', async () => {
+    const captureMutation = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureCompositionMutation')
     drawComposition.mockResolvedValue({
       ok: true,
       data: {
@@ -2344,6 +2869,8 @@ describe('EventEquipeTab', () => {
     })
 
     expect(getComposition).toHaveBeenCalledTimes(1)
+    expect(captureMutation).toHaveBeenCalledWith(expect.anything(), { action: 'draw_execute', outcome: 'succeeded' })
+    expect(captureMutation).toHaveBeenCalledTimes(1)
     getComposition.mockClear()
 
     ;(fixture.componentInstance as unknown as { onDrawStepFinished(): void }).onDrawStepFinished()
@@ -2352,6 +2879,7 @@ describe('EventEquipeTab', () => {
     await vi.waitFor(() => {
       expect(fixture.nativeElement.textContent).toContain('Drawn')
       expect(getComposition).not.toHaveBeenCalled()
+      expect(captureMutation).toHaveBeenCalledTimes(1)
     })
   })
 
@@ -2958,6 +3486,7 @@ describe('EventEquipeTab', () => {
   })
 
   it('opens pool preview on role pill click without opening slot picker', async () => {
+    const captureMutation = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureCompositionMutation')
     getPoolPreview.mockResolvedValue({
       ok: true,
       data: {
@@ -2990,6 +3519,7 @@ describe('EventEquipeTab', () => {
 
     await vi.waitFor(() => {
       expect(getPoolPreview).toHaveBeenCalledWith('season-1', 'event-1', 'player', null)
+      expect(captureMutation).toHaveBeenCalledWith(expect.anything(), { action: 'draw_preview', outcome: 'succeeded' })
       expect(
         fixture.nativeElement.querySelector('[data-testid="composition-pool-preview"]'),
       ).toBeTruthy()
@@ -3005,6 +3535,49 @@ describe('EventEquipeTab', () => {
     await vi.waitFor(() => {
       expect(dialogOpen).toHaveBeenCalled()
     })
+  })
+
+  it('maps every Équipe chance trigger to its literal bounded entry point', async () => {
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.componentRef.setInput('actorScope', 'event_organizer')
+    const open = vi.spyOn(TestBed.inject(ChanceBreakdownService), 'open').mockResolvedValue()
+    const component = fixture.componentInstance as any
+    component.composition.set({
+      publishedAt: null,
+      validatedAt: null,
+      visibility: 'organizerDraft',
+      slots: [{ roleKey: 'player', slotIndex: 0, participantId: 'p-existing' }],
+      viewerParticipantIds: [],
+    })
+    component.poolPreviewRoleKey.set('player')
+    component.drawSteps.set([{
+      roleKey: 'player', slotIndex: 0, candidates: [], selectedParticipantId: null,
+      randomValue: null, totalWeight: 0,
+    }])
+
+    await component.onPoolPreviewSegmentTap({ participantId: 'p-preview', chancePercent: 50 })
+    await component.onDrawSegmentTap({ participantId: 'p-draw', chancePercent: 50 })
+    await component.openSlotChanceBreakdown(new Event('click'), {
+      roleKey: 'player', slotIndex: 0,
+      slot: { participantId: 'p-slot', chancePercent: 50 },
+    })
+
+    expect(open).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      entryPoint: 'equipe_pool_preview',
+      analyticsContext: expect.objectContaining({ actor_scope: 'event_organizer' }),
+    }))
+    expect(open).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      entryPoint: 'equipe_draw_step',
+      analyticsContext: expect.objectContaining({ actor_scope: 'event_organizer' }),
+    }))
+    expect(open).toHaveBeenNthCalledWith(3, expect.objectContaining({
+      entryPoint: 'equipe_slot_chance',
+      analyticsContext: expect.objectContaining({ actor_scope: 'event_organizer' }),
+    }))
+    for (const [request] of open.mock.calls) {
+      expect(request.analyticsContext).not.toHaveProperty('participantId')
+      expect(request.analyticsContext).not.toHaveProperty('formulaId')
+    }
   })
 
   it('hides Compléter and gap slot picker for member without canManageComposition', async () => {

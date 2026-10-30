@@ -1,0 +1,20 @@
+{
+  "version": "2.6.2",
+  "date": "__BUILD_DATE__",
+  "source": "curated-release",
+  "notes": "Epic 22 flexible team composition and lineup safety improvements",
+  "changes": [
+    "✨ Équipe — choisis le format, ajuste les rôles et compose ton équipe au même endroit.",
+    "🐛 Composition — annuler un changement de format ne vide plus ton équipe.",
+    "🔧 Composition — les personnes hors modèle restent visibles aux orgas, au lieu de disparaître.",
+    "🔧 Équipe — libérer une personne et supprimer une place sont désormais deux actions distinctes.",
+    "✨ Composition — une personne retirée d’une équipe déjà visible reçoit une notification."
+  ],
+  "changes_en": [
+    "✨ Team — choose the format, adjust roles, and build your lineup in one place.",
+    "🐛 Lineup — cancelling a format change no longer clears your team.",
+    "🔧 Lineup — organizers keep visibility of assignments that fall outside the template.",
+    "🔧 Team — unassigning a person and deleting a slot are now separate actions.",
+    "✨ Lineup — people receive a notification when they are removed from a published team."
+  ]
+}

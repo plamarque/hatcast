@@ -37,12 +37,19 @@ describe('CompositionSlotPickerDialog', () => {
             eventId: 'event-1',
             explainabilityEnabled: true,
             viewerParticipantIds: [],
+            analyticsContext: {
+              event_id: 'event-1',
+              season_id: 'season-1',
+              troupe_id: 'troupe-1',
+              is_demo_troupe: false,
+            },
             candidates: [
               {
                 participantId: 'p-1',
                 displayName: 'Alice',
                 chancePercent: 60,
                 pastSelectionCount: 0,
+                availabilityComment: 'Je dois partir à 22 h',
               },
             ],
             loading: false,
@@ -59,6 +66,7 @@ describe('CompositionSlotPickerDialog', () => {
   it('lists candidates with percent', () => {
     expect(fixture.nativeElement.textContent).toContain('Alice')
     expect(fixture.nativeElement.textContent).toContain('60')
+    expect(fixture.nativeElement.textContent).toContain('Commentaire : Je dois partir à 22 h')
   })
 
   it('closes with participantId on row click', () => {
@@ -81,6 +89,13 @@ describe('CompositionSlotPickerDialog', () => {
       roleKey: 'player',
       participantId: 'p-1',
       viewerParticipantIds: [],
+      analyticsContext: {
+        event_id: 'event-1',
+        season_id: 'season-1',
+        troupe_id: 'troupe-1',
+        is_demo_troupe: false,
+      },
+      entryPoint: 'equipe_slot_picker',
     })
     expect(close).not.toHaveBeenCalled()
   })

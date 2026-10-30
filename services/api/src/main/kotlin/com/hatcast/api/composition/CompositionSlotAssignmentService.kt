@@ -166,6 +166,7 @@ class CompositionSlotAssignmentService(
                 unfulfilledRoleRequestCountByParticipant = unfulfilledCounts,
             )
         val assignedRoleKeysByParticipant = assignedRoleKeysByParticipant(eventId)
+        val eligibleByParticipantId = eligible.associateBy { it.participantId }
 
         val participantIds = scored.map { it.participantId }.toSet()
         val gendersByParticipantId =
@@ -187,6 +188,14 @@ class CompositionSlotAssignmentService(
                             assignedRoleKeysByParticipant[row.participantId]?.takeIf { it.isNotEmpty() },
                         avatarUrl = avatarUrlsByParticipantId[row.participantId],
                         gender = gendersByParticipantId[row.participantId] ?: "non_specified",
+                        availabilityComment =
+                            availabilityIndex
+                                .forParticipant(
+                                    row.participantId,
+                                    eligibleByParticipantId[row.participantId]?.userId,
+                                )?.comment
+                                ?.trim()
+                                ?.takeIf { it.isNotEmpty() },
                     )
                 }
 
@@ -489,26 +498,6 @@ class CompositionSlotAssignmentService(
             eventRow.user?.id,
             eventRow.displayName,
             CompositionParticipantSource.EVENT,
-        )
-    }
-
-    private fun publishAssigneeRemoved(
-        eventId: UUID,
-        seasonId: UUID,
-        actorUserId: UUID,
-        formerAssigneeParticipantId: UUID,
-        roleKey: String,
-        slotIndex: Int,
-    ) {
-        eventPublisher.publishEvent(
-            CompositionAssigneeRemovedEvent(
-                eventId = eventId,
-                seasonId = seasonId,
-                actorUserId = actorUserId,
-                formerAssigneeParticipantId = formerAssigneeParticipantId,
-                roleKey = roleKey,
-                slotIndex = slotIndex,
-            ),
         )
     }
 

@@ -18,6 +18,8 @@ import { MatSnackBar } from '@angular/material/snack-bar'
 
 import { HatcastDialogDismiss } from '../dialog-chrome/hatcast-dialog-dismiss'
 import { ShareAnnounceApiService } from '../../core/share-announce/share-announce-api.service'
+import { ProductAnalyticsService } from '../../core/analytics/product-analytics.service'
+import { recipientCountBucket, type ActorScope } from '../../core/analytics/organizer-analytics'
 import { AvailabilityReminderConfirmDialog } from './availability-reminder-confirm-dialog'
 import {
   buildDefaultShareMessage,
@@ -39,6 +41,8 @@ export interface ShareAnnounceDialogData {
   roleLines: RoleAssignmentLine[]
   availabilityOpenedAt?: string | null
   compositionValidatedAt?: string | null
+  troupeId?: string
+  actorScope?: ActorScope
 }
 
 interface RecipientChannelStatus {
@@ -83,6 +87,7 @@ export class ShareAnnounceDialog {
   private readonly api = inject(ShareAnnounceApiService)
   private readonly snack = inject(MatSnackBar)
   private readonly dialog = inject(MatDialog)
+  private readonly analytics = inject(ProductAnalyticsService)
   protected readonly data = inject<ShareAnnounceDialogData>(MAT_DIALOG_DATA)
 
   protected readonly dialogTitleId = 'share-announce-dialog-title'
@@ -169,6 +174,8 @@ export class ShareAnnounceDialog {
   })
 
   private loadRecipientsSeq = 0
+  private announcementChannelChosen = false
+  private announcementDismissed = false
 
   constructor() {
     void this.loadRecipients()
@@ -179,6 +186,7 @@ export class ShareAnnounceDialog {
   }
 
   protected async copyMessage(): Promise<void> {
+    this.captureCompositionAnnouncement('succeeded', 'copy')
     try {
       await navigator.clipboard.writeText(this.messageText)
       this.snack.open('Message copié.', 'OK', { duration: 3000 })
@@ -188,6 +196,7 @@ export class ShareAnnounceDialog {
   }
 
   protected openWhatsApp(): void {
+    this.captureCompositionAnnouncement('succeeded', 'whatsapp')
     const url = buildWhatsAppSendUrl(this.messageText)
     if (typeof window !== 'undefined') {
       window.location.href = url
@@ -214,15 +223,57 @@ export class ShareAnnounceDialog {
     try {
       const result = await this.api.sendNotifications(this.data.seasonId, this.data.eventId, 'availability_nudge', this.messageText, this.reminderFingerprint(), recipientParticipantIds)
       if (result.ok) {
+        if (this.data.intent === 'availability_nudge' && this.data.troupeId) {
+          const ctx = this.analytics.eventContext(this.data.eventId, this.data.seasonId, this.data.troupeId)
+          this.analytics.captureAvailabilityReminder({ ...ctx, actor_scope: this.data.actorScope }, {
+            outcome: 'succeeded', recipient_count_bucket: recipientCountBucket(result.data?.acceptedCount ?? 0),
+          })
+        }
         this.snack.open('Demande de rappel prise en compte', 'OK', { duration: 4000 })
         void this.loadRecipients()
       } else if (result.status === 409) {
+        this.captureReminderOutcome('refused')
         this.snack.open('Les destinataires ont changé. Vérifie à nouveau.', 'OK', { duration: 5000 })
         void this.loadRecipients()
-      } else this.snack.open('Envoi impossible. Réessaie plus tard.', 'OK', { duration: 5000 })
+      } else {
+        this.captureReminderOutcome('failed')
+        this.snack.open('Envoi impossible. Réessaie plus tard.', 'OK', { duration: 5000 })
+      }
+    } catch {
+      this.captureReminderOutcome('failed')
+      this.snack.open('Envoi impossible. Réessaie plus tard.', 'OK', { duration: 5000 })
     } finally {
       this.sendingReminder.set(false)
     }
+  }
+
+  private captureReminderOutcome(outcome: 'failed' | 'refused'): void {
+    if (this.data.intent !== 'availability_nudge' || !this.data.troupeId) return
+    const ctx = this.analytics.eventContext(this.data.eventId, this.data.seasonId, this.data.troupeId)
+    this.analytics.captureAvailabilityReminder({ ...ctx, actor_scope: this.data.actorScope }, { outcome })
+  }
+
+  protected dismissCompositionAnnouncement(): void {
+    if (this.announcementChannelChosen || this.announcementDismissed) return
+    this.announcementDismissed = true
+    this.captureCompositionAnnouncement('refused')
+  }
+
+  ngOnDestroy(): void {
+    this.dismissCompositionAnnouncement()
+  }
+
+  private captureCompositionAnnouncement(
+    outcome: 'succeeded' | 'refused',
+    announcementChannel?: 'copy' | 'whatsapp',
+  ): void {
+    if (this.data.intent !== 'composition' || !this.data.troupeId) return
+    if (announcementChannel) this.announcementChannelChosen = true
+    const ctx = this.analytics.eventContext(this.data.eventId, this.data.seasonId, this.data.troupeId)
+    this.analytics.captureCompositionMutation(
+      { ...ctx, actor_scope: this.data.actorScope },
+      { action: 'announce', outcome, ...(announcementChannel ? { announcement_channel: announcementChannel } : {}) },
+    )
   }
 
   protected retryLoadRecipients(): void {

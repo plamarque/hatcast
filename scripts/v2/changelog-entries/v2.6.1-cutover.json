@@ -1,0 +1,14 @@
+{
+  "version": "2.6.1",
+  "date": "__BUILD_DATE__",
+  "source": "curated-release",
+  "notes": "BUG-031 cancellation safeguard and composition reconciliation",
+  "changes": [
+    "🐛 Composition — annuler la modification du format ou des besoins ne vide plus ton équipe",
+    "🔧 Composition — les affectations devenues hors besoin restent préservées pour les orgas"
+  ],
+  "changes_en": [
+    "🐛 Lineup — cancelling format or role edits no longer clears your team",
+    "🔧 Lineup — assignments outside updated needs remain preserved for organizers"
+  ]
+}

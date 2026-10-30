@@ -1,0 +1,268 @@
+import { ComponentFixture, TestBed } from '@angular/core/testing'
+import { provideRouter } from '@angular/router'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { AdventTest } from './advent-test'
+
+describe('AdventTest', () => {
+  let fixture: ComponentFixture<AdventTest>
+  beforeEach(async () => {
+    vi.spyOn(window, 'fetch').mockImplementation(async input => {
+      if (String(input).includes('/answer')) return new Response(JSON.stringify({ status: 'available', generation: 'test-generation' }), { status: 200 })
+      const day = Number(String(input).split('/').pop())
+      return new Response(JSON.stringify({ day, name: day === 12 ? 'Camille' : 'Lutin', portrait: 'data:image/png;base64,aGVsbG8=', statements: ['un', 'deux', 'trois'] }), { status: 200 })
+    })
+    await TestBed.configureTestingModule({ imports: [AdventTest], providers: [provideRouter([])] }).compileComponents()
+    fixture = TestBed.createComponent(AdventTest)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    await new Promise(resolve => setTimeout(resolve, 0))
+    fixture.detectChanges()
+  })
+  afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks() })
+  it('keeps the recorded confirmation neutral and uses the authorized portrait', async () => {
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ status: 'recorded', replayToken: 'token' })))
+    await fixture.componentInstance.openDoor()
+    fixture.detectChanges()
+    const status = fixture.nativeElement.querySelector('.advent__recorded') as HTMLElement
+    expect(status.textContent).toContain('Ta réponse est enregistrée')
+    expect(status.textContent).not.toMatch(/bonne réponse|mauvaise réponse|points|un|deux|trois/i)
+    expect(fixture.nativeElement.querySelector('.advent__portrait img').getAttribute('src')).toBe('data:image/png;base64,aGVsbG8=')
+    const illustration = fixture.nativeElement.querySelector('.advent__portrait img') as HTMLImageElement
+    expect(illustration.getAttribute('src')).toBe('data:image/png;base64,aGVsbG8=')
+    expect(illustration.getAttribute('alt')).toContain('Portrait du lutin')
+    expect(fixture.nativeElement.querySelector('mat-radio-group')).toBeNull()
+  })
+  it('returns directly to the acknowledgement for a previously answered day', async () => {
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url = String(input)
+      if (url.endsWith('/1/answer')) return new Response(JSON.stringify({ status: 'recorded', replayToken: 'token' }))
+      if (url.endsWith('/answer')) return new Response(JSON.stringify({ status: 'available' }))
+      const day = Number(url.split('/').pop())
+      return new Response(JSON.stringify({ day, name: 'Lutin', portrait: '', statements: ['un', 'deux', 'trois'] }))
+    })
+    await fixture.componentInstance.selectDay(2)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.advent__gift')).toBeTruthy()
+    await fixture.componentInstance.selectDay(1)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.advent__gift')).toBeNull()
+    expect(fixture.nativeElement.textContent).toContain('Ta réponse est enregistrée')
+    expect(fixture.nativeElement.querySelector('[aria-label="Effacer ma réponse et rejouer"]')).toBeTruthy()
+  })
+
+  it('announces loading and a closed quiz through request transitions', async () => {
+    let resolvePreview!: (response: Response) => void
+    vi.mocked(window.fetch).mockReturnValueOnce(new Promise(resolve => { resolvePreview = resolve }))
+    const selection = fixture.componentInstance.selectDay(2)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.advent__state[role=status]').textContent).toContain('Le lutin arrive')
+    resolvePreview(new Response(JSON.stringify({ day: 2, name: 'Lutin', portrait: '', statements: ['un', 'deux', 'trois'] })))
+    await selection
+
+    let resolveReconciliation!: (response: Response) => void
+    vi.mocked(window.fetch).mockReturnValueOnce(new Promise(resolve => { resolveReconciliation = resolve }))
+    const opening = fixture.componentInstance.openDoor()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.advent__state[role=status]').textContent).toContain('Vérification en cours')
+    resolveReconciliation(new Response(JSON.stringify({ status: 'closed' })))
+    await opening
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.advent__state[role=status]').textContent).toContain('Ce quiz est fermé')
+    expect(fixture.nativeElement.querySelector('mat-radio-group')).toBeNull()
+  })
+
+  it('opens the selected gift and focuses the fictional quiz', async () => {
+    await fixture.componentInstance.selectDay(12)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.advent__date').textContent.trim()).toBe('12 décembre')
+    expect(fixture.nativeElement.querySelector('h1').textContent.trim()).toBe('Camille a un défi pour toi')
+    expect(fixture.nativeElement.querySelector('h1 .advent__name').textContent).toBe('Camille')
+    expect(fixture.nativeElement.querySelector('.advent__gift').getAttribute('aria-label')).toBe('Ouvrir le cadeau du jour 12')
+    await fixture.componentInstance.openDoor()
+    fixture.detectChanges()
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(fixture.nativeElement.textContent).toContain('Camille')
+    expect(fixture.nativeElement.querySelectorAll('mat-radio-button')).toHaveLength(3)
+    expect(document.activeElement?.id).toBe('quiz-title')
+  })
+
+  it('requires a selection and reconciles an uncertain submission', async () => {
+    await fixture.componentInstance.openDoor()
+    fixture.detectChanges()
+    const component = fixture.componentInstance
+    expect(component.answerState()).toBe('available')
+    expect(fixture.nativeElement.querySelector('button[mat-flat-button]').disabled).toBe(true)
+    component.choice.set(1)
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ status: 'available', generation: 'test-generation' }), { status: 200 }))
+      .mockRejectedValueOnce(new Error('lost response'))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'recorded', replayToken: 'token' }), { status: 200 }))
+    await component.confirm()
+    fixture.detectChanges()
+    expect(component.answerState()).toBe('recorded')
+    expect(fixture.nativeElement.textContent).toContain('Ta réponse est enregistrée')
+    expect(fixture.nativeElement.querySelector('mat-radio-group')).toBeNull()
+  })
+  it('reconciles again when a new instance opens after a lost response', async () => {
+    await fixture.componentInstance.openDoor()
+    fixture.componentInstance.choice.set(1)
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ status: 'available', generation: 'test-generation' }), { status: 200 }))
+      .mockRejectedValueOnce(new Error('lost response'))
+      .mockRejectedValueOnce(new Error('offline'))
+    await fixture.componentInstance.confirm()
+    expect(fixture.componentInstance.answerState()).toBe('uncertain')
+    const replacement = TestBed.createComponent(AdventTest)
+    replacement.detectChanges()
+    await replacement.whenStable()
+    await new Promise(resolve => setTimeout(resolve, 0))
+    await replacement.componentInstance.openDoor()
+    expect(replacement.componentInstance.answerState()).toBe('available')
+    expect(vi.mocked(window.fetch).mock.calls.at(-1)?.[0]).toBe('/v1/advent-test/doors/1/answer/reconcile')
+    replacement.destroy()
+  })
+  it('sends the selected option to the selected quiz', async () => {
+    await fixture.componentInstance.selectDay(12)
+    await fixture.componentInstance.openDoor()
+    fixture.componentInstance.choice.set(2)
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ status: 'available', generation: 'test-generation' }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'recorded', replayToken: 'token' }), { status: 200 }))
+    await fixture.componentInstance.confirm()
+    const [url, options] = vi.mocked(window.fetch).mock.calls.at(-1)!
+    expect(url).toBe('/v1/advent-test/doors/12/answer')
+    expect(options?.method).toBe('POST')
+    expect(JSON.parse(String(options?.body))).toEqual({ choice: 2, attemptId: expect.any(String) })
+  })
+  it('recovers from a stalled reconciliation without enabling retry', async () => {
+    vi.useFakeTimers()
+    vi.mocked(window.fetch).mockReturnValueOnce(new Promise(() => {}))
+    const opening = fixture.componentInstance.openDoor()
+    await vi.advanceTimersByTimeAsync(10_000)
+    await opening
+    expect(fixture.componentInstance.answerState()).toBe('uncertain')
+    fixture.componentInstance.nextDay()
+    expect(fixture.componentInstance.selectedDay()).toBe(2)
+  })
+  it('reconciles a timed-out answer before allowing another confirmation', async () => {
+    await fixture.componentInstance.openDoor()
+    fixture.componentInstance.choice.set(1)
+    vi.useFakeTimers()
+    vi.mocked(window.fetch)
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'available' }), { status: 200 }))
+      .mockReturnValueOnce(new Promise(() => {}))
+      .mockReturnValueOnce(new Promise(() => {}))
+    const confirmation = fixture.componentInstance.confirm()
+    await vi.advanceTimersByTimeAsync(10_000)
+    expect(fixture.componentInstance.submitting()).toBe(true)
+    await vi.advanceTimersByTimeAsync(10_000)
+    await confirmation
+    expect(fixture.componentInstance.submitting()).toBe(false)
+    expect(fixture.componentInstance.answerState()).toBe('uncertain')
+    expect(vi.mocked(window.fetch).mock.calls.at(-1)?.[0]).toBe('/v1/advent-test/doors/1/answer/reconcile')
+    const calls = vi.mocked(window.fetch).mock.calls.length
+    await fixture.componentInstance.confirm()
+    expect(vi.mocked(window.fetch).mock.calls.length).toBe(calls)
+  })
+  it('recovers when the preview never responds', async () => {
+    vi.useFakeTimers()
+    vi.mocked(window.fetch).mockReturnValueOnce(new Promise(() => {}))
+    const selection = fixture.componentInstance.selectDay(10)
+    await vi.advanceTimersByTimeAsync(10_000)
+    await selection
+    expect(fixture.componentInstance.loading()).toBe(false)
+    expect(fixture.componentInstance.error()).toBe(true)
+  })
+  it('advances the test day and returns to the beginning', async () => {
+    fixture.componentInstance.nextDay()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    expect(fixture.componentInstance.selectedDay()).toBe(2)
+    expect(fixture.nativeElement.querySelector('.advent__date').textContent.trim()).toBe('2 décembre')
+    fixture.componentInstance.previousDay()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    expect(fixture.componentInstance.selectedDay()).toBe(1)
+    await fixture.componentInstance.selectDay(12)
+    fixture.componentInstance.resetDay()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    expect(fixture.componentInstance.selectedDay()).toBe(1)
+    expect(fixture.nativeElement.querySelector('.advent__date').textContent.trim()).toBe('1 décembre')
+  })
+  it('locks selection while the selected preview loads', async () => {
+    let resolveFetch!: (response: Response) => void
+    vi.mocked(window.fetch).mockReturnValueOnce(new Promise(resolve => { resolveFetch = resolve }))
+    const request = fixture.componentInstance.selectDay(10)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.advent__test-actions button').disabled).toBe(true)
+    resolveFetch(new Response('', { status: 503 }))
+    await request
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('[role=alert]')).toBeTruthy()
+    expect(fixture.nativeElement.textContent).toContain('Réessayer')
+  })
+  it('offers replay from a neutral acknowledgement and resets the choice', async () => {
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ status: 'recorded', replayToken: 'token' }), { status: 200 }))
+    await fixture.componentInstance.openDoor()
+    fixture.componentInstance.choice.set(1)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).not.toContain('Quelle affirmation est fausse')
+    const button = fixture.nativeElement.querySelector('.advent__test-actions button[aria-label="Effacer ma réponse et rejouer"]') as HTMLButtonElement
+    expect(button).toBeTruthy()
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ status: 'available' }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'available', generation: 'new' }), { status: 200 }))
+    button.click()
+    await fixture.whenStable()
+    expect(fixture.componentInstance.answerState()).toBe('available')
+    expect(fixture.componentInstance.choice()).toBeNull()
+  })
+  it('replays the selected day and confirms a fresh choice through a stateful API', async () => {
+    let recorded = true
+    let token = 'token-before'
+    const calls: Array<{ url: string; body: any }> = []
+    vi.mocked(window.fetch).mockImplementation(async (input, options) => {
+      const url = String(input)
+      const body = options?.body ? JSON.parse(String(options.body)) : null
+      calls.push({ url, body })
+      if (!url.includes('/answer')) return new Response(JSON.stringify({ day: 12, name: 'Camille', portrait: '', statements: ['un', 'deux', 'trois'] }))
+      if (url.endsWith('/replay')) {
+        expect(body.replayToken).toBe(token)
+        recorded = false
+        return new Response(JSON.stringify({ status: 'available' }))
+      }
+      if (url.endsWith('/reconcile')) return new Response(JSON.stringify(recorded ? { status: 'recorded', replayToken: token } : { status: 'available', generation: 'new-generation' }))
+      if (url.endsWith('/reserve')) return new Response(JSON.stringify({ status: 'available' }))
+      if (url.endsWith('/answer') && options?.method !== 'POST') return new Response(JSON.stringify(recorded ? { status: 'recorded', replayToken: token } : { status: 'available' }))
+      recorded = true
+      token = 'token-after'
+      return new Response(JSON.stringify({ status: 'recorded', replayToken: token }))
+    })
+    await fixture.componentInstance.selectDay(12)
+    await fixture.componentInstance.openDoor()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('section').getAttribute('aria-labelledby')).toBe('recorded-title')
+    await fixture.componentInstance.replay()
+    expect(fixture.componentInstance.choice()).toBeNull()
+    fixture.componentInstance.choice.set(2)
+    await fixture.componentInstance.confirm()
+    fixture.detectChanges()
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(document.activeElement).toBe(fixture.nativeElement.querySelector('.advent__recorded'))
+    expect(calls.find(call => call.url.endsWith('/replay'))).toEqual({ url: '/v1/advent-test/doors/12/answer/replay', body: { replayToken: 'token-before' } })
+    expect(calls.find(call => call.url.endsWith('/reserve'))?.body.generation).toBe('new-generation')
+    expect(calls.at(-1)?.body.choice).toBe(2)
+    expect(fixture.componentInstance.answerState()).toBe('recorded')
+  })
+  it('clears the choice when a replay response is lost', async () => {
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ status: 'recorded', replayToken: 'token' })))
+    await fixture.componentInstance.openDoor()
+    fixture.componentInstance.choice.set(1)
+    vi.mocked(window.fetch).mockRejectedValueOnce(new Error('lost'))
+    await fixture.componentInstance.replay()
+    expect(fixture.componentInstance.choice()).toBeNull()
+    expect(fixture.componentInstance.answerState()).toBe('uncertain')
+  })
+  it('does not display a recorded state without a replay token', async () => {
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ status: 'recorded' })))
+    await fixture.componentInstance.openDoor()
+    expect(fixture.componentInstance.answerState()).toBe('uncertain')
+  })
+})

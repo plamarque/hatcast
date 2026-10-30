@@ -9,6 +9,14 @@ name: Deploy V2 (Cloud Run)
 
 on:
   workflow_dispatch:
+    inputs:
+      operation:
+        description: 'Deploy application or validate PostHog only'
+        type: choice
+        default: deploy
+        options:
+          - deploy
+          - posthog-check
   push:
     branches: [v2, staging-v2]
     # Prod tags only (vX.Y.Z). RC tags (*-rc.*) are audit for promote-tag-to-prod — no CI (GitHub forbids tags + tags-ignore together).
@@ -38,6 +46,7 @@ permissions:
 
 jobs:
   classify-ref:
+    if: github.event_name != 'workflow_dispatch' || inputs.operation != 'posthog-check'
     runs-on: ubuntu-latest
     outputs:
       target_env: ${{ steps.classify.outputs.target_env }}
@@ -177,7 +186,9 @@ jobs:
       - name: Build and push image
         env:
           VERSION_CHANNEL: ${{ needs.classify-ref.outputs.target_env }}
+          POSTHOG_KEY: ${{ secrets.HATCAST_POSTHOG_PROJECT_API_KEY }}
         run: |
+          if [ "${VERSION_CHANNEL}" = "development" ]; then POSTHOG_KEY=""; fi
           docker build \
             --build-arg HATCAST_VERSION_CHANNEL="${VERSION_CHANNEL}" \
             --build-arg GOOGLE_OAUTH_WEB_CLIENT_ID="${{ secrets.GOOGLE_OAUTH_WEB_CLIENT_ID }}" \
@@ -185,7 +196,7 @@ jobs:
             --build-arg HATCAST_FIREBASE_AUTH_DOMAIN="${{ secrets.HATCAST_FIREBASE_AUTH_DOMAIN }}" \
             --build-arg HATCAST_FIREBASE_PROJECT_ID="${{ secrets.HATCAST_FIREBASE_PROJECT_ID }}" \
             --build-arg HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY="${{ secrets.HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY }}" \
-            --build-arg HATCAST_POSTHOG_PROJECT_API_KEY="${{ secrets.HATCAST_POSTHOG_PROJECT_API_KEY }}" \
+            --build-arg HATCAST_POSTHOG_PROJECT_API_KEY="${POSTHOG_KEY}" \
             -t "${IMAGE_TAG}" \
             -t "${{ secrets.GCP_ARTIFACT_REGISTRY }}:latest" \
             -f Dockerfile \
@@ -334,6 +345,59 @@ jobs:
             --member="allUsers" \
             --role="roles/run.invoker" \
             || echo "::warning::Public invoker IAM not applied — set manually if users get 403 Forbidden"
+
+  posthog-check:
+    if: github.event_name == 'workflow_dispatch' && inputs.operation == 'posthog-check'
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 10
+    concurrency:
+      group: hatcast-posthog-lifecycle
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Provision and validate lifecycle dashboard without deployment
+        env:
+          HATCAST_POSTHOG_PERSONAL_API_KEY: ${{ secrets.HATCAST_POSTHOG_PERSONAL_API_KEY }}
+          HATCAST_POSTHOG_PROJECT_ID: ${{ vars.HATCAST_POSTHOG_PROJECT_ID || secrets.HATCAST_POSTHOG_PROJECT_ID }}
+        run: node scripts/v2/posthog-lifecycle-dashboard.mjs --validate
+
+  posthog-lifecycle:
+    needs: [classify-ref, deploy]
+    permissions:
+      contents: read
+      actions: read
+    if: |
+      always() &&
+      needs.classify-ref.result == 'success' &&
+      needs.deploy.result == 'success' &&
+      needs.classify-ref.outputs.target_env == 'production'
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: hatcast-posthog-lifecycle
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Synchronize release reference and lifecycle dashboard
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HATCAST_POSTHOG_PROJECT_API_KEY: ${{ secrets.HATCAST_POSTHOG_PROJECT_API_KEY }}
+          HATCAST_POSTHOG_PERSONAL_API_KEY: ${{ secrets.HATCAST_POSTHOG_PERSONAL_API_KEY }}
+          HATCAST_POSTHOG_PROJECT_ID: ${{ vars.HATCAST_POSTHOG_PROJECT_ID || secrets.HATCAST_POSTHOG_PROJECT_ID }}
+        run: |
+          HATCAST_PROMOTED_AT="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs?filter=all&per_page=100" --jq '[.jobs[] | select(.name == "deploy" and .conclusion == "success")] | sort_by(.completed_at) | first | .completed_at')"
+          test -n "${HATCAST_PROMOTED_AT}" && test "${HATCAST_PROMOTED_AT}" != "null"
+          export HATCAST_PROMOTED_AT
+          node scripts/v2/posthog-lifecycle-dashboard.mjs --apply
 
   e1-preprod-gate:
     needs: [classify-ref, deploy]

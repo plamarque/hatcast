@@ -25,7 +25,6 @@ import {
 } from '../../core/events/event-calendar-export'
 import { buildGoogleMapsSearchUrl, buildWazeUrl } from '../../core/events/event-maps'
 import {
-  type EventTypeId,
   getEventTypeIcon,
   getEventTypeLabel,
   normalizeRoleSlots,
@@ -58,12 +57,6 @@ import {
   EventOrganizersDialog,
   type EventOrganizersDialogData,
 } from './event-organizers-dialog'
-import {
-  EventTypeRolesDialog,
-  FORMAT_AND_ROLES_HELP,
-  type EventTypeRolesDialogData,
-  type EventTypeRolesDialogResult,
-} from './event-type-roles-dialog'
 import { ORGANIZERS_HELP } from './event-organizers-dialog'
 
 @Component({
@@ -102,7 +95,6 @@ export class EventInfosTab {
   readonly canManageEvents = input(false)
   readonly canManageTroupe = input(false)
   readonly canManageEventOrganizers = input(false)
-  readonly canManageComposition = input(false)
   /** Incremented by parent when organizers change via admin menu dialog. */
   readonly organizersReloadTrigger = input(0)
   readonly bootstrapOrganizers = input<OrganizerResponse[] | null>(null)
@@ -114,13 +106,10 @@ export class EventInfosTab {
   protected readonly glossaryLoading = signal(true)
   protected readonly organizers = signal<OrganizerResponse[]>([])
   protected readonly saving = signal(false)
-  /** Format et besoins — spinner from dialog close until PATCH + parent refresh. */
-  protected readonly savingTypeRoles = signal(false)
   protected readonly calendarMenuOpen = signal(false)
   protected readonly mapsMenuOpen = signal(false)
 
   protected readonly categoryHelp = CATEGORY_HELP
-  protected readonly formatAndRolesHelp = FORMAT_AND_ROLES_HELP
   protected readonly organizersHelp = ORGANIZERS_HELP
 
   protected readonly showOrganizersSection = computed(
@@ -333,30 +322,6 @@ export class EventInfosTab {
     })
   }
 
-  protected openTypeRolesDialog(): void {
-    const ev = this.event()
-    const ref = this.dialog.open<
-      EventTypeRolesDialog,
-      EventTypeRolesDialogData,
-      EventTypeRolesDialogResult
-    >(EventTypeRolesDialog, {
-      data: {
-        seasonId: this.seasonId(),
-        eventId: ev.id,
-        templateType: ev.templateType,
-        roleSlots: ev.roleSlots,
-      },
-      width: 'min(100vw - 2rem, 32rem)',
-    })
-    ref.afterClosed().subscribe((result) => {
-      if (result === undefined) {
-        return
-      }
-      this.savingTypeRoles.set(true)
-      void this.persistTypeRoles(result)
-    })
-  }
-
   protected onCategorySelect(slug: string | null): void {
     if (!this.canManageEvents() || this.saving()) {
       return
@@ -424,33 +389,6 @@ export class EventInfosTab {
     this.snack.open(CALENDAR_SNACKBAR_MESSAGES.popupBlocked, 'OK', {
       duration: CALENDAR_SNACKBAR_DURATION_MS,
     })
-  }
-
-  private async persistTypeRoles(result: {
-    templateType: EventTypeId
-    roleSlots: Record<string, number>
-  }): Promise<void> {
-    const seasonId = this.seasonId()
-    const ev = this.event()
-    const body = {
-      templateType: result.templateType,
-      roleSlots: normalizeRoleSlots(result.roleSlots),
-    }
-
-    this.saving.set(true)
-    try {
-      const apiResult = await this.eventsApi.updateEvent(seasonId, ev.id, body)
-      if (!apiResult.ok || !apiResult.data) {
-        const message = apiResult.errorMessage ?? 'Enregistrement impossible.'
-        this.snack.open(message, 'OK', { duration: 6000 })
-        return
-      }
-      this.eventUpdated.emit(apiResult.data)
-      this.snack.open('Format et besoins enregistrés.', 'OK', { duration: 4000 })
-    } finally {
-      this.saving.set(false)
-      this.savingTypeRoles.set(false)
-    }
   }
 
   private async persistCategory(slug: string | null): Promise<void> {

@@ -1,0 +1,98 @@
+{
+  "source": "https://api.github.com/repos/plamarque/hatcast/releases?per_page=30",
+  "accessed": "2026-10-23",
+  "publisher": "plamarque/hatcast GitHub Releases",
+  "releases": [
+    {
+      "tag": "v2.7.0",
+      "published_at": "2026-10-23T06:16:01Z",
+      "created_at": "2026-10-23T06:15:56Z",
+      "html_url": "https://github.com/plamarque/hatcast/releases/tag/v2.7.0",
+      "body": "## What's new\n\n- ✨ My team — open your team, season and season statistics directly from the navigation menu.\n- ✨ Home — see up to five upcoming shows and open your schedule with “See more”.\n- 🔧 Home — “You're all caught up” fades after reading and no longer repeats on every visit.\n- 🐛 Navigation — if a screen fails to load, a window offers to update HatCast.\n- 🐛 Lineup — if another organizer unlocks the lineup, your screen restores the available actions.\n\n## Technical changes\n\n\n### ✨ New Features\n- feat(home): Integrate five upcoming spectacles\n- feat(home): Show five upcoming spectacles\n\n### 📝 Other Changes\n- chore(v2): promote v2 to staging-v2\n- chore(release): Add home preview to v2.7.0 notes\n- chore(v2): sync release v2.7.0-rc.1 artifacts to v2\n"
+    },
+    {
+      "tag": "v2.6.3",
+      "published_at": "2026-10-18T13:11:08Z",
+      "created_at": "2026-10-18T13:11:03Z",
+      "html_url": "https://github.com/plamarque/hatcast/releases/tag/v2.6.3",
+      "body": "## What's new\n\n- 🐛 Team — organizers can see availability comments while building a lineup.\n- 🐛 Availability — spot available comments directly in the participant list.\n\n## Technical changes\n\n\n### 📝 Other Changes\n- chore(v2): promote v2 to staging-v2\n- test(api): Isolate regression fixtures\n- chore(v2): sync release v2.6.3-rc.1 artifacts to v2\n"
+    },
+    {
+      "tag": "v2.6.2",
+      "published_at": "2026-10-16T11:34:41Z",
+      "created_at": "2026-10-16T11:34:36Z",
+      "html_url": "https://github.com/plamarque/hatcast/releases/tag/v2.6.2",
+      "body": "## What's new\n\n- ✨ Team — choose the format, adjust roles, and build your lineup in one place.\n- 🐛 Lineup — cancelling a format change no longer clears your team.\n- 🔧 Lineup — organizers keep visibility of assignments that fall outside the template.\n- 🔧 Team — unassigning a person and deleting a slot are now separate actions.\n- ✨ Lineup — people receive a notification when they are removed from a published team.\n\n## Technical changes\n\n\n### ✨ New Features\n- feat(story): merge 22-4-retrait-cn-2-et-decision-de-notification\n- feat(composition): Notify slot removal\n- feat(story): Merge 22.3\n- feat(equipe): Preserve out-of-model slots\n- feat(story): Merge 22.2\n- feat(composition): Streamline publish flow\n- feat(equipe): Add free slot editing\n- feat(equipe): Move format editing to team\n\n### 🐛 Bug Fixes\n- fix(tracker): Support accented story keys\n- fix(equipe): Refine free slot editing\n- fix(membership): Sync season participants\n- fix(equipe): Polish format editing\n- fix(equipe): Preserve mobile member names\n\n### 📝 Other Changes\n- chore(v2): promote v2 to staging-v2\n- docs(release): Add v2.6.2 user changelog cutover\n- docs: Clean up planning records\n- chore(tracker): Complete composition epic\n- chore(tracker): Reconcile sprint status\n- chore(neon): Add MCP server configuration\n- docs(workflow): Define story closure\n- docs(planning): Prepare free slot editing\n- docs(dev): Document worktree smoke startup\n- docs(planning): Add flexible slots epic\n"
+    },
+    {
+      "tag": "v2.6.1",
+      "published_at": "2026-10-14T04:25:48Z",
+      "created_at": "2026-10-14T04:25:43Z",
+      "html_url": "https://github.com/plamarque/hatcast/releases/tag/v2.6.1",
+      "body": "## What's new\n\n- 🐛 Lineup — cancelling format or role edits no longer clears your team\n- 🔧 Lineup — assignments outside updated needs remain preserved for organizers\n\n## Technical changes\n\n\n### ✨ New Features\n- feat(composition): Reconcile changed needs\n\n### 🐛 Bug Fixes\n- fix(composition): Prevent cancel role reset\n- fix(worktrees): Share local HTTPS bootstrap\n\n### 📝 Other Changes\n- chore(v2): Promote v2 to staging-v2\n- docs(release): Add v2.6.1 user changelog cutover\n- chore(v2): sync release v2.6.0-rc.2 artifacts to v2\n"
+    },
+    {
+      "tag": "v2.6.0",
+      "published_at": "2026-09-29T21:52:04Z",
+      "created_at": "2026-09-29T21:51:59Z",
+      "html_url": "https://github.com/plamarque/hatcast/releases/tag/v2.6.0",
+      "body": "## What's new\n\n- ✨ Stats — see your numbers across all active seasons in a clearer view.\n- 🐛 Availability — open “Unavailable” to see the people concerned.\n\n## Technical changes\n\n\n### 🐛 Bug Fixes\n- fix(troupe-hub): Fix mobile season chart\n- fix(stats): Preserve current troupe context\n\n### 📝 Other Changes\n- chore(v2): promote v2 to staging-v2\n- chore(v2): sync release v2.6.0-rc.1 artifacts to v2\n"
+    },
+    {
+      "tag": "v2.5.0",
+      "published_at": "2026-09-19T17:29:58Z",
+      "created_at": "2026-09-19T17:29:53Z",
+      "html_url": "https://github.com/plamarque/hatcast/releases/tag/v2.5.0",
+      "body": "## What's new\n\n- ✨ Availability — orgs can remind members who have not replied yet from the show details.\n- ✨ Availability — when a show offers roles, choose yours before confirming.\n- 🔧 Availability — use the same response and role-selection journey from Home and My schedule.\n- 🔧 Mobile — clearer role choices and content stays visible above the bottom navigation.\n\n## Technical changes\n\n\n### ✨ New Features\n- feat(story): merge availability-reminder-notify\n- feat(reminders): Notify unanswered members\n- feat(story): merge fix-availability-mandatory-volunteer\n- feat(story): merge bug-021-availability-consistency\n\n### 🐛 Bug Fixes\n- fix(availability): Exclude removed participants\n- fix(ci): Route staging to latest revision\n- fix(e2e): Gate mobile organizer reminder\n- fix(navigation): Lift mobile nav content\n- fix(navigation): Add mobile bottom spacing\n- fix(availability): Refine mobile role dialog\n- fix(availability): Require offered volunteer\n- fix(ui): Simplify availability dialog copy\n- fix(ui): Compact availability role selection\n- fix(availability): Clarify role selection\n- fix(event-detail): Show Relance dispos on Infos via BFF flag\n\n### 📝 Other Changes\n- chore(v2): promote v2 to staging-v2\n- chore(v2): promote v2 to staging-v2\n- chore(v2): promote v2 to staging-v2\n- test(e2e): Isolate reminder fixture selection\n- chore(v2): promote v2 to staging-v2\n- test(e2e): Isolate reminder fixtures\n- chore(v2): promote v2 to staging-v2\n- test(e2e): Select events needing reminders\n- chore(v2): promote v2 to staging-v2\n- test(e2e): Stabilize formula preview coverage\n- test(e2e): Cover organizer reminders\n- docs(release): Add v2.5.0 user changelog cutover\n- chore(availability): Renumber volunteer incident\n- test(availability): Record final delivery checks\n- docs: Record reminder email eligibility issue\n- chore(v2): sync release v2.4.6-rc.1 artifacts to v2\n"
+    },
+    {
+      "tag": "v2.4.6",
+      "published_at": "2026-09-15T22:34:50Z",
+      "created_at": "2026-09-15T22:34:45Z",
+      "html_url": "https://github.com/plamarque/hatcast/releases/tag/v2.4.6",
+      "body": "## What's new\n\n- 🐛 Sign-in — you stay signed in after closing the browser if you checked “Remember me”\n- ✨ Draw — avoids picking the same actor twice in a row for Aperocké shows\n\n## Technical changes\n\n\n### ✨ New Features\n- feat(story): merge 19-20-ui-admin-politiques-tirage\n- feat(web): Add category formula assignment on Formulas tab\n- feat(story): merge 21-5-delivery-gates-integration\n- feat(story): merge 21-4-human-smoke-handoff\n- feat(story): merge 21-3-targeted-e2e-evidence\n- feat(e2e): Add targeted evidence gate\n- feat(e2e): Add targeted evidence gate\n- feat(worktree): Add runtime readiness\n- feat(story): merge perf-03-event-detail-tab-gated-load\n- feat(workflow): Automate story integration\n- feat(workflow): Automate story integration\n- feat(workflow): Isolate manual story worktrees\n- feat(workflow): Isolate manual story worktrees\n\n### 🐛 Bug Fixes\n- fix(web): Add status icons and archived toggle on Formulas tab\n- fix(web): Simplify Formulas tab list UX\n- fix(smoke): Stabilize port release\n- fix(smoke): Stop owned process groups\n- fix(smoke): Use declared E2E evidence\n- fix(e2e): Harden targeted evidence gate\n- fix(web): Serialize event tab bootstraps\n- fix(workflow): Harden BMad worktree bootstrap\n- fix(auth): Persist remembered sessions\n\n### 📝 Other Changes\n- chore(v2): promote v2 to staging-v2\n- test(e2e): Fix Formulas tab E2E locators\n- docs(release): Add v2.4.6 user changelog cutover\n- docs(story): Add epic 19 context artifact\n- docs(loop): Authorize 21-6 launch\n- docs(loop): Guide human smoke handoff\n- docs(loop): Specify worktree lifecycle\n- chore(sweep): close resolved deferred-work entries\n- chore(sweep): Scope Epic 21 deferred work\n- chore(sweep): Isolate Epic 21 deferred work\n- chore(sweep): close resolved deferred-work entries\n- chore(sweep): record deferred-work decisions\n- chore(sweep): close resolved deferred-work entries\n- chore(sweep): migrate legacy deferred-work entries to DW format\n- story 21-5-delivery-gates-integration: implemented and reviewed via bmad-loop (awaiting operator)\n- docs: Record shared worktree location\n- docs: Defer smoke runtime preparation\n- story 21-4-human-smoke-handoff: implemented and reviewed via bmad-loop (awaiting operator)\n- story 21-3-targeted-e2e-evidence: implemented and reviewed via bmad-loop\n- chore(bmad): Allow external loop state\n- chore(operator): Confirm runtime readiness\n- story 21-2-worktree-runtime-readiness: implemented and reviewed via bmad-loop (awaiting operator)\n- chore(operator): confirm 21-1-loop-readiness-contract\n- story 21-1-loop-readiness-contract: implemented and reviewed via bmad-loop (awaiting operator)\n- docs(workflow): Serialize readiness stories\n- docs(workflow): Queue delivery readiness\n- docs(workflow): Capture readiness epic\n- docs(test): Record web suite baseline\n- docs(backlog): Archive stale deferred work\n- docs(auth): Add session investigation\n- docs(auth): Record mobile session finding\n- chore(bmad): Upgrade BMad and Loop\n- chore(v2): sync release v2.4.5-rc.1 artifacts to v2\n"
+    },
+    {
+      "tag": "v2.4.5",
+      "published_at": "2026-08-04T13:30:33Z",
+      "created_at": "2026-08-04T13:30:28Z",
+      "html_url": "https://github.com/plamarque/hatcast/releases/tag/v2.4.5",
+      "body": "## Technical changes\n\n\n### ✨ New Features\n- feat(story): merge ops-12-neon-hikari-scale-to-zero\n\n### 📝 Other Changes\n- chore(v2): promote v2 to staging-v2\n- docs(release): Add v2.4.5 user changelog cutover\n- ops(ci): Give hatcast-v2-dev 2Gi memory\n- ops(api): Allow Neon Hikari scale-to-zero\n- chore(v2): sync release v2.4.4-rc.1 artifacts to v2\n"
+    },
+    {
+      "tag": "v2.4.4",
+      "published_at": "2026-07-12T22:04:49Z",
+      "created_at": "2026-07-12T22:04:44Z",
+      "html_url": "https://github.com/plamarque/hatcast/releases/tag/v2.4.4",
+      "body": "## What's new\n\n- ✨ Members — switch a member to guest (externe) from the role chip, choosing status per active season\n- ✨ Members — switch a guest back to member: they rejoin active season rosters\n- ✨ Access — past seasons keep member history; guests only access seasons they're invited to\n\n## Technical changes\n\n\n### ✨ New Features\n- feat(story): merge 2-26-participation-mode-role-lifecycle\n- feat(troupe): Unify member role chip with externe conversion\n- feat(troupe): Add season participation mode lifecycle\n\n### 🐛 Bug Fixes\n- fix(ops): Fix prod migration confirm slug\n\n### 📝 Other Changes\n- chore(v2): promote v2 to staging-v2\n- docs(release): Add v2.4.4 user changelog cutover\n- chore(v2): sync release v2.4.3-rc.2 artifacts to v2\n"
+    },
+    {
+      "tag": "v2.4.3",
+      "published_at": "2026-07-12T09:01:00Z",
+      "created_at": "2026-07-12T09:00:56Z",
+      "html_url": "https://github.com/plamarque/hatcast/releases/tag/v2.4.3",
+      "body": "## What's new\n\n- ✨ Login — three video guides (member, organizer, admin) on the sign-in page\n- 🐛 Draw — your chance breakdown no longer shows internal technical labels\n- ✨ Navigation — My stats before My team in the member menu\n- 🔧 My team — admin button aligned correctly on mobile in the hub\n\n## Technical changes\n\n\n### ✨ New Features\n- feat(story): merge fix-troupe-hub-mobile-gear-alignment\n- feat(story): merge 17-45-nav-stats-before-troupe\n- feat(web): Place Mes stats before Ma troupe in member nav\n\n### 🐛 Bug Fixes\n- fix(web): Align troupe hub admin gear on mobile\n- fix(db): Restore V37 checksum and add V68 demo admin promotion\n\n### 📝 Other Changes\n- merge(v2): Integrate E2E fixes and UI tweaks for v2.4.3-rc.2\n- docs(release): Update v2.4.3 cutover with nav and hub fixes\n- test(e2e): Assert agenda empty state and season history\n- test(e2e): Assert agenda empty state and season history\n- test(e2e): Align E1-MEM-001 with upcoming agenda on staging\n- test(e2e): Align E1-MEM-001 with upcoming agenda on staging\n- merge(v2): Fix Flyway V37 checksum for 2.4.3 redeploy\n- chore(v2): sync release v2.4.3-rc.1 artifacts to v2\n"
+    },
+    {
+      "tag": "v2.4.1",
+      "published_at": "2026-06-22T22:17:51Z",
+      "created_at": "2026-06-22T22:17:46Z",
+      "html_url": "https://github.com/plamarque/hatcast/releases/tag/v2.4.1",
+      "body": "## Technical changes\n\n\n### ✨ New Features\n- feat(analytics): Identify ph_ref at V2 cutover landing\n- feat(analytics): Merge 11.3 V1-V2 cutover funnel PostHog\n- feat(analytics): Add V1-V2 cutover funnel PostHog\n- feat(story): merge 11-2-posthog-identify-person-properties-m4-cutover\n- feat(analytics): Enrich PostHog identify for M4 cutover\n\n### 🐛 Bug Fixes\n- fix(e2e): Force local T1 profile in run_e2e.sh\n- fix(migration): Align Malice post-smoke gates\n\n### 📝 Other Changes\n- Merge branch 'v2' into staging-v2\n- docs(release): Add v2.4.1 user changelog cutover\n- chore(v2): promote v2 to staging-v2\n- test(e2e): Assert aria-selected on member bottom nav\n- chore(v2): promote v2 to staging-v2\n- chore(v2): promote v2 to staging-v2\n- docs(story): Add 11.3 V1-V2 cutover funnel PostHog story\n- docs(ops-10): Record prod password reset recipe\n- docs(ops): Plan M4 V1 cutover announcement banner\n- chore(v2): sync release v2.4.0-rc.1 artifacts to v2\n"
+    },
+    {
+      "tag": "v2.4.0",
+      "published_at": "2026-06-19T19:36:14Z",
+      "created_at": "2026-06-19T19:36:09Z",
+      "html_url": "https://github.com/plamarque/hatcast/releases/tag/v2.4.0",
+      "body": "## What's new\n\n- ✨ Draw — admins create and tune custom draw formulas in troupe Settings\n- ✨ Lineup — when slots stay open, orgs pick which draw formula to fill the team\n- ✨ Draw — immediate replay, role requests, and show categories weighted more fairly\n- ✨ My team — monthly season participation mini-chart in the hub\n- ✨ Account — About tab shows version and build channel so you can confirm your update\n\n## Technical changes\n\n\n### ✨ New Features\n- feat(story): merge 19-21-ui-orga-choix-formule-tirage\n- feat(composition): Add overflow-only draw formula choice\n- feat(story): merge 19-18-api-politiques-tirage-troupe-saison\n- feat(migration): Add Malice post-migrate smoke gate\n- feat(api): Add draw policies API and runtime wiring\n- feat(story): merge 19-19c-ui-admin-editeur-formules\n- feat(web): Add admin draw formula editor UI\n- feat(story): Merge 19-19b-factor-params-runtime-tests\n- feat(api): Wire draw factor params at runtime\n- feat(story): merge 19-19a-spec-factor-params-draw\n- feat(story): merge 19-17-api-crud-formules-tirage\n- feat(api): Add draw formula admin CRUD API\n- feat(story): merge 19-16-persistance-formules-defaut-v1\n- feat(api): Persist draw formulas and system V1 seed\n- feat(story): merge 19-15-spec-formules-politiques-adr\n- feat(story): merge 19-10-facteur-nombre-demandes-role\n- feat(api): Add role request aspiration draw factor\n- feat(story): merge 19-9-facteur-rejouer-immediatement\n- feat(api): Add immediate replay draw factor\n- feat(api): Add category compartment draw factor\n- feat(troupe-hub): Add labeled hero admin trigger\n- feat(story): merge 17-44-hub-troupe-mini-chart-saison\n- feat(hub): Add season mini-chart to troupe hub (17.44)\n- feat(web): Add About build metadata and version channel pipeline\n\n### 🐛 Bug Fixes\n- fix(api): Harmonize REF-P01 unknown param errors\n- fix(api): Make draw formula V65 migration idempotent offline\n- fix(api): Fix JDBC metrics BeanPostProcessor warnings\n- fix(api): Fix draw formula Flyway migrations on Neon\n- fix(web): Restore draft status badge on Équipe tab (#5)\n\n### 📝 Other Changes\n- docs(release): Add v2.4.0 user changelog cutover\n- chore(v2): promote v2 to staging-v2\n- chore(v2): promote v2 to staging-v2\n- ci(staging): Trigger deploy on E1/migration gate changes\n- ci(staging): Skip E1 gate when Malice season missing\n- chore(v2): promote v2 to staging-v2\n- ci(staging): Decouple migration golden gate from deploy\n- chore(v2): promote v2 to staging-v2\n- docs(ux): Add draft draw formula editor design assets\n- docs(planning): Add draw formula factor params SCP\n- docs(test): Sync Wave D test design for 19.19 split\n- docs(draw): Add normative factor params catalogue (19.19a)\n- test(draw): Add Wave D test design scaffolding (19.16-19.22)\n- docs(draw): Add Wave D formulas and policies spec (19.15)\n- test(api): Fix integration suite OOM and tail GC thrash\n- docs(plan): Track Epic 19 Wave D sprint on v2\n- Merge pull request #6 from plamarque/feat/19-8-facteur-equity-tag-history-ex-17-9\n- docs(plan): Mark Ma Troupe wave 17.41–17.44 done\n- chore(bmad): Enforce per-story feature branches from v2\n- test(api): Align slot-clear tests with validated composition\n- docs(release): Enrich v2.3.0 cutover user notes\n- chore(v2): sync release v2.3.0-rc.5 artifacts to v2\n"
+    },
+    {
+      "tag": "v2.3.0",
+      "published_at": "2026-06-14T06:54:25Z",
+      "created_at": "2026-06-14T06:54:20Z",
+      "html_url": "https://github.com/plamarque/hatcast/releases/tag/v2.3.0",
+      "body": "## What's new\n\n- ✨ Availability — unified poll on the Dispos tab: check Unavailable and your roles on one screen, no Moi/Tous toggle\n- ✨ Guest invites — schedule and season workspace scoped to your invite; set availability without full member access\n- ✨ Notifications — clearer prefs, team-complete alert, reminder when your availability is still pending\n- ✨ Event — categories on the Infos tab; admins manage the glossary in troupe Settings\n- ✨ Share — simplified dialog: pick recipients yourself before sending\n\n## Technical changes\n\n\n### 📝 Other Changes\n- chore(v2): promote v2 to staging-v2\n- docs(release): Expand v2.3.0 user changelog cutover\n- chore(v2): sync release v2.3.0-rc.4 artifacts to v2\n"
+    }
+  ]
+}
