@@ -7,6 +7,7 @@ describe('AdventTest', () => {
   let fixture: ComponentFixture<AdventTest>
   beforeEach(async () => {
     vi.spyOn(window, 'fetch').mockImplementation(async input => {
+      if (String(input).endsWith('/session')) return new Response(JSON.stringify({ sessionId: 'test-session' }), { status: 200 })
       if (String(input).includes('/answer')) return new Response(JSON.stringify({ status: 'available', generation: 'test-generation' }), { status: 200 })
       const day = Number(String(input).split('/').pop())
       return new Response(JSON.stringify({ day, name: day === 12 ? 'Camille' : 'Lutin', portrait: 'data:image/png;base64,aGVsbG8=', statements: ['un', 'deux', 'trois'] }), { status: 200 })
@@ -35,6 +36,7 @@ describe('AdventTest', () => {
   it('returns directly to the acknowledgement for a previously answered day', async () => {
     vi.mocked(window.fetch).mockImplementation(async input => {
       const url = String(input)
+      if (url.endsWith('/session')) return new Response(JSON.stringify({ sessionId: 'test-session' }))
       if (url.endsWith('/1/answer')) return new Response(JSON.stringify({ status: 'recorded', replayToken: 'token' }))
       if (url.endsWith('/answer')) return new Response(JSON.stringify({ status: 'available' }))
       const day = Number(url.split('/').pop())
@@ -222,6 +224,7 @@ describe('AdventTest', () => {
       const url = String(input)
       const body = options?.body ? JSON.parse(String(options.body)) : null
       calls.push({ url, body })
+      if (url.endsWith('/session')) return new Response(JSON.stringify({ sessionId: 'test-session' }))
       if (!url.includes('/answer')) return new Response(JSON.stringify({ day: 12, name: 'Camille', portrait: '', statements: ['un', 'deux', 'trois'] }))
       if (url.endsWith('/replay')) {
         expect(body.replayToken).toBe(token)
@@ -264,5 +267,38 @@ describe('AdventTest', () => {
     vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ status: 'recorded' })))
     await fixture.componentInstance.openDoor()
     expect(fixture.componentInstance.answerState()).toBe('uncertain')
+  })
+  it('sends the session fence and leaves a stale session uncertain', async () => {
+    await fixture.componentInstance.openDoor()
+    const options = vi.mocked(window.fetch).mock.calls.at(-1)?.[1]
+    expect(options?.headers).toMatchObject({ 'X-Advent-Test-Session': 'test-session' })
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response('', { status: 409 }))
+    await fixture.componentInstance.reconcile()
+    expect(fixture.componentInstance.answerState()).toBe('uncertain')
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('La partie de test a été réinitialisée')
+    const reload = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>).find(button => button.textContent?.includes('Recharger l’aperçu'))!
+    reload.click()
+    await fixture.whenStable()
+    expect(fixture.componentInstance.sessionChanged()).toBe(false)
+    await fixture.componentInstance.openDoor()
+    expect(fixture.componentInstance.answerState()).toBe('available')
+  })
+
+  it('attaches the session fence to every answer mutation', async () => {
+    await fixture.componentInstance.openDoor()
+    fixture.componentInstance.choice.set(0)
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ status: 'available' })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'recorded', replayToken: 'token' })))
+    await fixture.componentInstance.confirm()
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ status: 'available' })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'available', generation: 'new' })))
+    await fixture.componentInstance.replay()
+    const mutations = vi.mocked(window.fetch).mock.calls.filter(([, options]) => options?.method === 'POST')
+    for (const suffix of ['/answer/reconcile', '/answer/reserve', '/answer', '/answer/replay']) {
+      const call = mutations.find(([url]) => String(url).endsWith(suffix))
+      expect(call, suffix).toBeDefined()
+      expect(call?.[1]?.headers).toMatchObject({ 'X-Advent-Test-Session': 'test-session' })
+    }
   })
 })

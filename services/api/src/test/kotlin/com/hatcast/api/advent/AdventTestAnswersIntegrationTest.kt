@@ -284,4 +284,108 @@ class AdventTestAnswersIntegrationTest {
         assertEquals("available", answers.replay(user, 1, refreshed, now).status)
         assertEquals("available", answers.reconcile(user, 1, now).status)
     }
+    @Test fun `reset clears test state and fences old operations with atomic rollback`() {
+        val now = Instant.parse("2026-12-01T12:00:00Z")
+        val old = answers.session()
+        answers.confirm(user, 3, 2, now)
+        val originalOffset = jdbc.queryForObject("SELECT offset_seconds FROM advent_test_clock WHERE id = 1", Long::class.java)
+        assertThrows(IllegalStateException::class.java) {
+            TransactionTemplate(txManager).executeWithoutResult {
+                answers.reset(old)
+                throw IllegalStateException("rollback")
+            }
+        }
+        assertEquals(old, answers.session())
+        assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM advent_test_answers WHERE user_id = ?", Int::class.java, user))
+        assertEquals(originalOffset, jdbc.queryForObject("SELECT offset_seconds FROM advent_test_clock WHERE id = 1", Long::class.java))
+        answers.reset(old)
+        assertNotEquals(old, answers.session())
+        assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM advent_test_answers", Int::class.java))
+        assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM advent_test_member_state", Int::class.java))
+        assertNull(jdbc.queryForObject("SELECT offset_seconds FROM advent_test_clock WHERE id = 1", Long::class.java))
+        assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM users WHERE id = ?", Int::class.java, user))
+        assertThrows(org.springframework.web.server.ResponseStatusException::class.java) { answers.requireSession(old) }
+        assertEquals("recorded", answers.confirm(user, 1, 0, now).status)
+        assertEquals(0, jdbc.queryForObject("SELECT bonus_points FROM advent_test_answers WHERE user_id = ?", Int::class.java, user))
+    }
+
+    @Test fun `reset orders against a transaction that already holds the session lock`() {
+        val old = answers.session()
+        val locked = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        val pool = Executors.newFixedThreadPool(2)
+        try {
+            val writer = pool.submit {
+                TransactionTemplate(txManager).executeWithoutResult {
+                    answers.requireSession(old)
+                    locked.countDown()
+                    check(release.await(10, TimeUnit.SECONDS))
+                    answers.confirm(user, 1, 0, Instant.parse("2026-12-01T12:00:00Z"))
+                }
+            }
+            assertTrue(locked.await(10, TimeUnit.SECONDS))
+            val reset = pool.submit { answers.reset(old) }
+            assertThrows(java.util.concurrent.TimeoutException::class.java) { reset.get(100, TimeUnit.MILLISECONDS) }
+            release.countDown()
+            writer.get(10, TimeUnit.SECONDS)
+            reset.get(10, TimeUnit.SECONDS)
+            assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM advent_test_answers WHERE user_id = ?", Int::class.java, user))
+            assertThrows(org.springframework.web.server.ResponseStatusException::class.java) { answers.requireSession(old) }
+        } finally { release.countDown(); pool.shutdownNow() }
+    }
+    @Test fun `all reset state rolls back together and reset clears it before fresh play`() {
+        val now = Instant.parse("2026-12-01T12:00:00Z")
+        val id = answers.session()
+        answers.confirm(user, 3, 2, now)
+        val generation = answers.reconcile(user, 4, now).generation!!
+        answers.reserve(user, 4, UUID.randomUUID(), generation, now)
+        jdbc.update("INSERT INTO advent_test_replays (user_id, quiz_day) VALUES (?, ?)", user, 2)
+        val tables = listOf("advent_test_answers", "advent_test_member_state", "advent_test_attempts", "advent_test_generations", "advent_test_replays", "advent_test_clock_advances")
+        val counts = tables.associateWith { jdbc.queryForObject("SELECT COUNT(*) FROM $it", Int::class.java)!! }
+        assertTrue(counts.values.all { it > 0 })
+        val clock = jdbc.queryForMap("SELECT offset_seconds, observed_at, session_id FROM advent_test_clock WHERE id = 1")
+        assertThrows(IllegalStateException::class.java) {
+            TransactionTemplate(txManager).executeWithoutResult { answers.reset(id); throw IllegalStateException("rollback") }
+        }
+        assertEquals(counts, tables.associateWith { jdbc.queryForObject("SELECT COUNT(*) FROM $it", Int::class.java)!! })
+        assertEquals(clock, jdbc.queryForMap("SELECT offset_seconds, observed_at, session_id FROM advent_test_clock WHERE id = 1"))
+        answers.reset(id)
+        tables.forEach { assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM $it", Int::class.java), it) }
+        val resetClock = jdbc.queryForMap("SELECT offset_seconds, observed_at, session_id FROM advent_test_clock WHERE id = 1")
+        assertNull(resetClock["offset_seconds"])
+        assertNull(resetClock["observed_at"])
+        assertNotEquals(id.toString(), resetClock["session_id"].toString())
+        assertEquals("recorded", answers.confirm(user, 1, 0, now).status)
+        assertEquals(1, jdbc.queryForObject("SELECT correct_streak FROM advent_test_member_state WHERE user_id = ?", Int::class.java, user))
+        assertEquals(0, jdbc.queryForObject("SELECT bonus_points FROM advent_test_answers WHERE user_id = ?", Int::class.java, user))
+    }
+
+    @Test fun `reset holding lock first fences waiting old session operation`() {
+        val old = answers.session()
+        val resetHeld = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        val pool = Executors.newFixedThreadPool(2)
+        try {
+            val reset = pool.submit {
+                TransactionTemplate(txManager).executeWithoutResult {
+                    answers.reset(old)
+                    resetHeld.countDown()
+                    check(release.await(10, TimeUnit.SECONDS))
+                }
+            }
+            assertTrue(resetHeld.await(10, TimeUnit.SECONDS))
+            val stale = pool.submit(Callable {
+                TransactionTemplate(txManager).executeWithoutResult {
+                    answers.requireSession(old)
+                    answers.reconcile(user, 1, Instant.parse("2026-12-01T12:00:00Z"))
+                }
+            })
+            assertThrows(java.util.concurrent.TimeoutException::class.java) { stale.get(100, TimeUnit.MILLISECONDS) }
+            release.countDown()
+            reset.get(10, TimeUnit.SECONDS)
+            val ex = assertThrows(java.util.concurrent.ExecutionException::class.java) { stale.get(10, TimeUnit.SECONDS) }
+            assertTrue(ex.cause is org.springframework.web.server.ResponseStatusException)
+            assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM advent_test_generations WHERE user_id = ?", Int::class.java, user))
+        } finally { release.countDown(); pool.shutdownNow() }
+    }
 }

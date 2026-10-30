@@ -10,6 +10,7 @@ import com.hatcast.api.troupe.TroupeMembershipStatus
 import com.hatcast.api.user.UserRepository
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.TestInstance
 import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
@@ -31,7 +32,7 @@ import java.util.Comparator
 import java.util.UUID
 import javax.sql.DataSource
 
-@SpringBootTest(properties = ["hatcast.advent-test.enabled=true", "hatcast.advent-test.troupe-id=a0000001-0000-4000-8000-000000000001", "hatcast.auth.super-admin-emails=advent-admin@example.com", "hatcast.advent-test.allowed-emails=advent-member@example.com,advent-admin@example.com,advent-unverified@example.com"])
+@SpringBootTest(properties = ["hatcast.advent-test.enabled=true", "hatcast.advent-test.operator-email=advent-member@example.com", "hatcast.advent-test.troupe-id=a0000001-0000-4000-8000-000000000001", "hatcast.auth.super-admin-emails=advent-admin@example.com", "hatcast.advent-test.allowed-emails=advent-member@example.com,advent-admin@example.com,advent-unverified@example.com,advent-other@example.com"])
 @AutoConfigureMockMvc
 @ActiveProfiles("offline")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
@@ -50,6 +51,7 @@ class AdventOfflineIntegrationTest {
         Files.walk(testRoot).use { paths -> paths.sorted(Comparator.reverseOrder()).forEach(Files::delete) }
     }
     @Autowired private lateinit var mvc: MockMvc
+    @Autowired private lateinit var jdbc: org.springframework.jdbc.core.JdbcTemplate
     @Autowired private lateinit var users: UserRepository
     @Autowired private lateinit var memberships: TroupeMembershipRepository
     @MockBean private lateinit var google: GoogleIdTokenService
@@ -61,6 +63,8 @@ class AdventOfflineIntegrationTest {
         val cookie = TestAuthSupport.memberSessionCookieFromGoogleSignIn(
             mvc, google, "advent-unverified", email = "advent-unverified@example.com", emailVerified = false,
         )
+        mvc.perform(post("/v1/advent-test/session/reset").cookie(cookie).header("X-Advent-Test-Session", UUID.randomUUID().toString()).with(csrf()))
+            .andExpect(status().isForbidden).andExpect(header().string("Cache-Control", "private, no-store"))
         mvc.perform(post("/v1/advent-test/doors/1/answer/reserve").cookie(cookie).with(csrf())
             .contentType(MediaType.APPLICATION_JSON).content("""{"attemptId":"${UUID.randomUUID()}"}"""))
             .andExpect(status().isForbidden).andExpect(header().string("Cache-Control", "private, no-store"))
@@ -96,31 +100,58 @@ class AdventOfflineIntegrationTest {
             .andExpect(jsonPath("$.answer").doesNotExist())
         mvc.perform(get("/v1/advent-test/doors/25").cookie(cookie)).andExpect(status().isNotFound)
             .andExpect(header().string("Cache-Control", "private, no-store"))
+        val session = com.jayway.jsonpath.JsonPath.read<String>(mvc.perform(get("/v1/advent-test/session").cookie(cookie)).andExpect(status().isOk).andReturn().response.contentAsString, "$.sessionId")
         val attempt = UUID.randomUUID()
-        val generation = com.jayway.jsonpath.JsonPath.read<String>(mvc.perform(post("/v1/advent-test/doors/1/answer/reconcile").cookie(cookie).with(csrf())).andExpect(status().isOk).andReturn().response.contentAsString, "$.generation")
-        mvc.perform(post("/v1/advent-test/doors/1/answer/reserve").cookie(cookie).with(csrf())
+        val generation = com.jayway.jsonpath.JsonPath.read<String>(mvc.perform(post("/v1/advent-test/doors/1/answer/reconcile").cookie(cookie).header("X-Advent-Test-Session", session).with(csrf())).andExpect(status().isOk).andReturn().response.contentAsString, "$.generation")
+        mvc.perform(post("/v1/advent-test/doors/1/answer/reserve").cookie(cookie).header("X-Advent-Test-Session", session).with(csrf())
             .contentType(MediaType.APPLICATION_JSON).content("""{"attemptId":"$attempt","generation":"$generation"}"""))
             .andExpect(status().isOk)
-        mvc.perform(post("/v1/advent-test/doors/1/answer").cookie(cookie).with(csrf())
+        mvc.perform(post("/v1/advent-test/doors/1/answer").cookie(cookie).header("X-Advent-Test-Session", session).with(csrf())
             .contentType(MediaType.APPLICATION_JSON).content("""{"choice":0,"attemptId":"$attempt"}"""))
             .andExpect(status().isOk).andExpect(header().string("Cache-Control", "private, no-store"))
             .andExpect(jsonPath("$.status").value("recorded"))
             .andExpect(jsonPath("$.correct").doesNotExist()).andExpect(jsonPath("$.points").doesNotExist())
-        mvc.perform(get("/v1/advent-test/doors/1/answer").cookie(cookie))
+        mvc.perform(get("/v1/advent-test/doors/1/answer").cookie(cookie).header("X-Advent-Test-Session", session))
             .andExpect(status().isOk).andExpect(jsonPath("$.status").value("recorded"))
-        mvc.perform(post("/v1/advent-test/doors/1/answer").cookie(cookie).with(csrf())
+        mvc.perform(post("/v1/advent-test/doors/1/answer").cookie(cookie).header("X-Advent-Test-Session", session).with(csrf())
             .contentType(MediaType.APPLICATION_JSON).content("""{"choice":2,"attemptId":"$attempt"}"""))
             .andExpect(status().isOk).andExpect(jsonPath("$.status").value("recorded"))
         mvc.perform(post("/v1/advent-test/doors/1/answer/replay").cookie(cookie))
             .andExpect(status().isForbidden).andExpect(header().string("Cache-Control", "private, no-store"))
-        val replayToken = com.jayway.jsonpath.JsonPath.read<String>(mvc.perform(get("/v1/advent-test/doors/1/answer").cookie(cookie)).andReturn().response.contentAsString, "$.replayToken")
-        mvc.perform(post("/v1/advent-test/doors/1/answer/replay").cookie(cookie).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("""{"replayToken":"$replayToken"}"""))
+        val replayToken = com.jayway.jsonpath.JsonPath.read<String>(mvc.perform(get("/v1/advent-test/doors/1/answer").cookie(cookie).header("X-Advent-Test-Session", session)).andReturn().response.contentAsString, "$.replayToken")
+        mvc.perform(post("/v1/advent-test/doors/1/answer/replay").cookie(cookie).header("X-Advent-Test-Session", session).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("""{"replayToken":"$replayToken"}"""))
             .andExpect(status().isOk).andExpect(header().string("Cache-Control", "private, no-store"))
             .andExpect(jsonPath("$.status").value("available"))
             .andExpect(jsonPath("$.choice").doesNotExist()).andExpect(jsonPath("$.points").doesNotExist())
-        mvc.perform(post("/v1/advent-test/doors/1/answer").cookie(cookie).with(csrf())
+        mvc.perform(post("/v1/advent-test/doors/1/answer").cookie(cookie).header("X-Advent-Test-Session", session).with(csrf())
             .contentType(MediaType.APPLICATION_JSON).content("""{"choice":0,"attemptId":"$attempt"}"""))
             .andExpect(status().isOk).andExpect(jsonPath("$.status").value("available"))
+        val other = TestAuthSupport.memberSessionCookieFromGoogleSignIn(mvc, google, "advent-other", email = "advent-other@example.com", emailVerified = true)
+        val beforeReset = jdbc.queryForMap("SELECT offset_seconds, observed_at, session_id FROM advent_test_clock WHERE id = 1")
+        val answerCount = jdbc.queryForObject("SELECT COUNT(*) FROM advent_test_answers", Int::class.java)
+        mvc.perform(post("/v1/advent-test/session/reset").cookie(other).header("X-Advent-Test-Session", session).with(csrf())).andExpect(status().isForbidden)
+        assertEquals(beforeReset, jdbc.queryForMap("SELECT offset_seconds, observed_at, session_id FROM advent_test_clock WHERE id = 1"))
+        assertEquals(answerCount, jdbc.queryForObject("SELECT COUNT(*) FROM advent_test_answers", Int::class.java))
+        mvc.perform(post("/v1/advent-test/session/reset").cookie(cookie).header("X-Advent-Test-Session", session)).andExpect(status().isForbidden)
+        mvc.perform(post("/v1/advent-test/session/reset").cookie(cookie).header("X-Advent-Test-Session", session).with(csrf()))
+            .andExpect(status().isOk).andExpect(header().string("Cache-Control", "private, no-store"))
+        mvc.perform(post("/v1/advent-test/doors/1/answer/reconcile").cookie(cookie).header("X-Advent-Test-Session", session).with(csrf()))
+            .andExpect(status().isConflict)
+        mvc.perform(post("/v1/advent-test/doors/1/answer/reserve").cookie(cookie).header("X-Advent-Test-Session", session).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("""{"attemptId":"${UUID.randomUUID()}","generation":"${UUID.randomUUID()}"}"""))
+            .andExpect(status().isConflict)
+        mvc.perform(post("/v1/advent-test/doors/1/answer").cookie(cookie).header("X-Advent-Test-Session", session).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("""{"choice":0,"attemptId":"$attempt"}"""))
+            .andExpect(status().isConflict)
+        mvc.perform(post("/v1/advent-test/doors/1/answer/replay").cookie(cookie).header("X-Advent-Test-Session", session).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("""{"replayToken":"$replayToken"}"""))
+            .andExpect(status().isConflict)
+        mvc.perform(post("/v1/advent-test/session/reset").cookie(cookie).header("X-Advent-Test-Session", session).with(csrf()))
+            .andExpect(status().isConflict)
+        mvc.perform(get("/v1/advent-test/doors/4").cookie(cookie)).andExpect(status().isOk).andExpect(jsonPath("$.name").value("Camille"))
+        val fresh = com.jayway.jsonpath.JsonPath.read<String>(mvc.perform(get("/v1/advent-test/session").cookie(cookie)).andExpect(status().isOk).andReturn().response.contentAsString, "$.sessionId")
+        val freshGeneration = com.jayway.jsonpath.JsonPath.read<String>(mvc.perform(post("/v1/advent-test/doors/1/answer/reconcile").cookie(cookie).header("X-Advent-Test-Session", fresh).with(csrf())).andExpect(status().isOk).andReturn().response.contentAsString, "$.generation")
+        val freshAttempt = UUID.randomUUID()
+        mvc.perform(post("/v1/advent-test/doors/1/answer/reserve").cookie(cookie).header("X-Advent-Test-Session", fresh).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("""{"attemptId":"$freshAttempt","generation":"$freshGeneration"}""")).andExpect(status().isOk)
+        mvc.perform(post("/v1/advent-test/doors/1/answer").cookie(cookie).header("X-Advent-Test-Session", fresh).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("""{"choice":0,"attemptId":"$freshAttempt"}""")).andExpect(status().isOk).andExpect(jsonPath("$.status").value("recorded"))
+
         val user = users.findByGoogleSub("advent-member")!!
         val member = memberships.findByTroupe_IdAndUser_Id(troupe, user.id)!!
         member.status = TroupeMembershipStatus.INACTIVE

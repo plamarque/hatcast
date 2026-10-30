@@ -151,4 +151,15 @@ class AdventTestControllerTest {
         assertThrows(ResponseStatusException::class.java) { controller.door(1, user, verifiedRequest) }
         verifyNoInteractions(memberships)
     }
+    @Test fun `reset rejects unsafe targets and non operators before changing state`() {
+        isolated()
+        whenever(env.getProperty("hatcast.advent-test.operator-email", "")).thenReturn("other@example.com")
+        assertEquals(HttpStatus.FORBIDDEN, assertThrows(ResponseStatusException::class.java) { controller.reset(user, verifiedRequest) }.statusCode)
+        whenever(env.getProperty("hatcast.advent-test.operator-email", "")).thenReturn("test@example.com")
+        whenever(env.activeProfiles).thenReturn(arrayOf("prod"))
+        assertEquals(HttpStatus.NOT_FOUND, assertThrows(ResponseStatusException::class.java) { controller.reset(user, verifiedRequest) }.statusCode)
+        whenever(env.activeProfiles).thenReturn(arrayOf("dev", "offline"))
+        whenever(metadata.url).thenReturn("jdbc:postgresql://example/production")
+        assertEquals(HttpStatus.NOT_FOUND, assertThrows(ResponseStatusException::class.java) { controller.reset(user, verifiedRequest) }.statusCode)
+    }
 }

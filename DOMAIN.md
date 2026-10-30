@@ -332,3 +332,6 @@ Toute réponse disponible enregistrée pour un événement proposant des places 
 ### Réponses de test Avent
 
 Une réponse fictive confirmée est unique par membre et par jour. En test isolé, le membre peut effacer sa propre réponse et rejouer ce jour, même passé ; les scores et la série de ses réponses suivantes sont recalculés. Une bonne réponse vaut 10 points, une mauvaise 0, avec un point de participation ; chaque groupe de trois réponses correctes consécutives ajoute 2 points. Une mauvaise réponse remet la série à zéro ; un jour manqué ne la modifie pas. Avant minuit à Paris suivant le jour du quiz, seule une confirmation neutre est accessible. Le temps simulé partagé avance lors de la confirmation d’une case future ; les cases passées sans réponse préalable ne sont pas jouables.
+
+
+The isolated Advent test session has a server-issued generation. A reset rotates it atomically with clearing test answers, streaks, replay and reservation state, and the simulated clock. Personal replay remains scoped to one member and day.

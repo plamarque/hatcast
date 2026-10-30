@@ -13,6 +13,7 @@ test('keyboard answers on a narrow enlarged screen with reduced motion', async (
     if (path === '/v1/auth/me') return route.fulfill({ json: { user: { id: 'test-user', slug: 'test', displayName: 'Test', email: 'test@example.test', avatarUrl: null }, platformAdmin: false } })
     if (path === '/v1/troupes') return route.fulfill({ json: [] })
     if (path === '/v1/me/preferences') return route.fulfill({ json: { memberDisplayName: 'Test', preferredRoleKeys: [] } })
+    if (path === '/v1/advent-test/session') return route.fulfill({ json: { sessionId: 'test-session' } })
     if (path.endsWith('/answer/reconcile')) return route.fulfill({ json: { status: 'available', generation: 'test-generation' } })
     if (path.endsWith('/answer/reserve')) {
       const body = route.request().postDataJSON()
@@ -95,4 +96,46 @@ test('keyboard answers on a narrow enlarged screen with reduced motion', async (
     const style = getComputedStyle(el)
     return { font: style.fontFamily, size: style.fontSize, color: style.color }
   })).toEqual(homeHeadingStyles)
+})
+
+
+test('keyboard recovery after the shared test session is reset', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 700 })
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.addInitScript(() => localStorage.setItem('hatcast-pwa-banner-dismissed', String(Date.now())))
+  let session = 'old-session'
+  await page.route('**/v1/**', async route => {
+    const request = route.request()
+    const path = new URL(request.url()).pathname
+    if (path === '/v1/auth/me') return route.fulfill({ json: { user: { id: 'test-user', slug: 'test', displayName: 'Test', email: 'test@example.test', avatarUrl: null }, platformAdmin: false } })
+    if (path === '/v1/troupes') return route.fulfill({ json: [] })
+    if (path === '/v1/me/preferences') return route.fulfill({ json: { memberDisplayName: 'Test', preferredRoleKeys: [] } })
+    if (path === '/v1/advent-test/session') return route.fulfill({ json: { sessionId: session } })
+    if (path === '/v1/advent-test/doors/1') return route.fulfill({ json: { day: 1, name: 'Lutin', portrait: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a2ioAAAAASUVORK5CYII=', genericElf: true, statements: ['Une', 'Deux', 'Trois'] } })
+    if (path.endsWith('/answer/reconcile')) {
+      if (request.headers()['x-advent-test-session'] === 'old-session') {
+        session = 'new-session'
+        return route.fulfill({ status: 409 })
+      }
+      expect(request.headers()['x-advent-test-session']).toBe('new-session')
+      return route.fulfill({ json: { status: 'available', generation: 'new-generation' } })
+    }
+    if (path.endsWith('/answer')) return route.fulfill({ json: { status: 'available' } })
+    return route.fulfill({ json: {} })
+  })
+  await page.goto('/avent-test')
+  const gift = page.getByRole('button', { name: 'Ouvrir le cadeau du jour 1' })
+  await gift.focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('alert')).toContainText('La partie de test a été réinitialisée')
+  const reload = page.getByRole('button', { name: 'Recharger l’aperçu' })
+  await expect(reload).toBeVisible()
+  await reload.focus()
+  await page.keyboard.press('Enter')
+  await expect(gift).toBeVisible()
+  await gift.focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('radio')).toHaveCount(3)
+  await expect(page.locator('#quiz-title')).toBeFocused()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
