@@ -8,6 +8,9 @@ describe('AdventTest', () => {
   beforeEach(async () => {
     vi.spyOn(window, 'fetch').mockImplementation(async input => {
       if (String(input).endsWith('/session')) return new Response(JSON.stringify({ sessionId: 'test-session' }), { status: 200 })
+      if (String(input).endsWith('/clock')) return new Response(JSON.stringify({ date: '2026-12-01' }))
+      if (String(input).endsWith('/results/latest-unseen')) return new Response(JSON.stringify({ result: null }))
+      if (String(input).endsWith('/result')) return new Response('', { status: 404 })
       if (String(input).includes('/answer')) return new Response(JSON.stringify({ status: 'available', generation: 'test-generation' }), { status: 200 })
       const day = Number(String(input).split('/').pop())
       return new Response(JSON.stringify({ day, name: day === 12 ? 'Camille' : 'Lutin', portrait: 'data:image/png;base64,aGVsbG8=', statements: ['un', 'deux', 'trois'] }), { status: 200 })
@@ -37,6 +40,7 @@ describe('AdventTest', () => {
     vi.mocked(window.fetch).mockImplementation(async input => {
       const url = String(input)
       if (url.endsWith('/session')) return new Response(JSON.stringify({ sessionId: 'test-session' }))
+      if (url.endsWith('/result')) return new Response('', { status: 404 })
       if (url.endsWith('/1/answer')) return new Response(JSON.stringify({ status: 'recorded', replayToken: 'token' }))
       if (url.endsWith('/answer')) return new Response(JSON.stringify({ status: 'available' }))
       const day = Number(url.split('/').pop())
@@ -225,6 +229,7 @@ describe('AdventTest', () => {
       const body = options?.body ? JSON.parse(String(options.body)) : null
       calls.push({ url, body })
       if (url.endsWith('/session')) return new Response(JSON.stringify({ sessionId: 'test-session' }))
+      if (url.endsWith('/result')) return new Response('', { status: 404 })
       if (!url.includes('/answer')) return new Response(JSON.stringify({ day: 12, name: 'Camille', portrait: '', statements: ['un', 'deux', 'trois'] }))
       if (url.endsWith('/replay')) {
         expect(body.replayToken).toBe(token)
@@ -301,4 +306,148 @@ describe('AdventTest', () => {
       expect(call?.[1]?.headers).toMatchObject({ 'X-Advent-Test-Session': 'test-session' })
     }
   })
+  it('prioritizes a reveal and acknowledges only after it is rendered', async () => {
+    const frames: FrameRequestCallback[] = []
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation(callback => { frames.push(callback); return frames.length })
+    const result = { answerId: 'answer-one', day: 1, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false }
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url = String(input)
+      if (url.endsWith('/session')) return new Response(JSON.stringify({ sessionId: 'test-session' }))
+      if (url.endsWith('/clock')) return new Response(JSON.stringify({ date: '2026-12-02' }))
+      if (url.endsWith('/latest-unseen') || url.endsWith('/result')) return new Response(JSON.stringify(url.endsWith('/result') ? result : { result }))
+      if (url.endsWith('/answer')) return new Response(JSON.stringify({ status: 'recorded', replayToken: 'token-one' }))
+      if (url.endsWith('/acknowledge')) return new Response(null, { status: 200 })
+      return new Response(JSON.stringify({ day: 1, name: 'Lutin', portrait: '', statements: ['un', 'deux', 'trois'] }))
+    })
+    await fixture.componentInstance.start()
+    expect(vi.mocked(window.fetch).mock.calls.some(([url]) => String(url).endsWith('/acknowledge'))).toBe(false)
+    document.body.appendChild(fixture.nativeElement)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('Bravo, tu as trouvé')
+    expect(fixture.nativeElement.textContent).toContain('Total : 11 points')
+    for (let i = 0; i < 20 && frames.length; i++) frames.shift()!(0)
+    const ack = vi.mocked(window.fetch).mock.calls.find(([url]) => String(url).endsWith('/acknowledge'))!
+    expect(JSON.parse(String(ack[1]?.body))).toEqual({ answerId: 'answer-one' })
+  })
+
+  it('refreshes the shared clock before continuing after a result', async () => {
+    const component = fixture.componentInstance
+    component.result.set({ answerId: 'a', day: 1, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false })
+    component.clockDate.set('2026-12-02')
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ date: '2026-12-25' })))
+    await component.continueAfterResult()
+    fixture.detectChanges()
+    expect(component.clockDate()).toBe('2026-12-25')
+    expect(component.result()).toBeNull()
+    expect(fixture.nativeElement.textContent).toContain('Joyeux Noël')
+  })
+
+  it('keeps the result visible if refreshing the clock fails', async () => {
+    const component = fixture.componentInstance
+    component.result.set({ answerId: 'a', day: 1, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false })
+    vi.mocked(window.fetch).mockRejectedValueOnce(new Error('offline'))
+    await component.continueAfterResult()
+    expect(component.result()?.answerId).toBe('a')
+    expect(component.error()).toBe(true)
+  })
+
+  it('uses the revealed answer day and its replay token', async () => {
+    const component = fixture.componentInstance
+    const result = { answerId: 'a', day: 3, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false }
+    vi.mocked(window.fetch).mockImplementation(async (input, options) => {
+      const url = String(input)
+      if (url.endsWith('/3/answer/replay')) return new Response(JSON.stringify({ status: 'available' }))
+      if (url.endsWith('/reconcile')) return new Response(JSON.stringify({ status: 'available', generation: 'new' }))
+      if (url.endsWith('/3/answer')) return new Response(JSON.stringify({ status: 'recorded', replayToken: 'right-token' }))
+      if (url.endsWith('/3/result')) return new Response(JSON.stringify(result))
+      return new Response(JSON.stringify({ day: 3, name: 'Lutin', portrait: '', statements: ['un', 'deux', 'trois'] }))
+    })
+    await (component as any).showResult(result)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('[aria-label="Effacer ma réponse et rejouer"]')).toBeTruthy()
+    await component.replay()
+    const call = vi.mocked(window.fetch).mock.calls.find(([url]) => String(url).endsWith('/replay'))!
+    expect(String(call[0])).toContain('/doors/3/')
+    expect(JSON.parse(String(call[1]?.body))).toEqual({ replayToken: 'right-token' })
+    expect(component.result()).toBeNull()
+    expect(component.answerState()).toBe('available')
+  })
+
+  it('does not display a result after the session changes during content retrieval', async () => {
+    const component = fixture.componentInstance
+    const result = { answerId: 'a', day: 1, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false }
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ day: 1, name: 'Lutin', portrait: '', statements: ['un', 'deux', 'trois'] })))
+      .mockResolvedValueOnce(new Response('', { status: 409 }))
+    await expect((component as any).showResult(result)).rejects.toThrow()
+    expect(component.result()).toBeNull()
+    expect(component.sessionChanged()).toBe(true)
+  })
+
+  it('waits for a visible tab before acknowledging a displayed reveal', async () => {
+    let visibility: DocumentVisibilityState = 'hidden'
+    vi.spyOn(document, 'visibilityState', 'get').mockImplementation(() => visibility)
+    const frames: FrameRequestCallback[] = []
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation(callback => { frames.push(callback); return frames.length })
+    const result = { answerId: 'a', day: 1, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false }
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ day: 1, name: 'Lutin', portrait: '', statements: ['un', 'deux', 'trois'] })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'recorded', replayToken: 'token' })))
+      .mockResolvedValueOnce(new Response(JSON.stringify(result)))
+      .mockResolvedValueOnce(new Response(null, { status: 200 }))
+    await (fixture.componentInstance as any).showResult(result)
+    document.body.appendChild(fixture.nativeElement)
+    fixture.detectChanges()
+    expect(vi.mocked(window.fetch).mock.calls.some(([url]) => String(url).endsWith('/acknowledge'))).toBe(false)
+    visibility = 'visible'
+    document.dispatchEvent(new Event('visibilitychange'))
+    for (let i = 0; i < 20 && frames.length; i++) frames.shift()!(0)
+    expect(vi.mocked(window.fetch).mock.calls.some(([url]) => String(url).endsWith('/acknowledge'))).toBe(true)
+  })
+
+  it('clears the old quiz on Christmas when advancing without a reveal', async () => {
+    await fixture.componentInstance.openDoor()
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ date: '2026-12-25' })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ result: null })))
+    await fixture.componentInstance.advanceClock()
+    fixture.detectChanges()
+    expect(fixture.componentInstance.quiz()).toBeNull()
+    expect(fixture.nativeElement.textContent).toContain('Joyeux Noël')
+  })
+
+  it('times out a stalled direct result lookup', async () => {
+    vi.useFakeTimers()
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ day: 2, name: 'Lutin', portrait: '', statements: ['un', 'deux', 'trois'] })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ sessionId: 'test-session' })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'recorded', replayToken: 'token' })))
+      .mockReturnValueOnce(new Promise(() => {}))
+    const selection = fixture.componentInstance.selectDay(2)
+    await vi.advanceTimersByTimeAsync(10_000)
+    await selection
+    expect(fixture.componentInstance.loading()).toBe(false)
+    expect(fixture.componentInstance.error()).toBe(true)
+  })
+
+  it('keeps the reveal when its replay token has become stale', async () => {
+    const component = fixture.componentInstance
+    const result = { answerId: 'a', day: 3, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false }
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ day: 3, name: 'Lutin', portrait: '', statements: ['un', 'deux', 'trois'] })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'recorded', replayToken: 'old-token' })))
+      .mockResolvedValueOnce(new Response(JSON.stringify(result)))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'recorded', replayToken: 'new-token' })))
+    await (component as any).showResult(result)
+    await component.replay()
+    expect(component.result()?.answerId).toBe('a')
+    expect(component.error()).toBe(true)
+    expect(vi.mocked(window.fetch).mock.calls.some(([url]) => String(url).endsWith('/reconcile'))).toBe(false)
+  })
+
+  it('opens the current day when the clock advances without a reveal', async () => {
+    await fixture.componentInstance.openDoor()
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ date: '2026-12-02' })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ result: null })))
+    await fixture.componentInstance.advanceClock()
+    expect(fixture.componentInstance.selectedDay()).toBe(2)
+    expect(fixture.componentInstance.quiz()).toBeNull()
+    expect(fixture.componentInstance.preview()?.day).toBe(2)
+  })
+
 })

@@ -124,11 +124,59 @@ class AdventTestAnswers(private val jdbc: JdbcTemplate) {
         }
         val correct = choice == keys[day - 1]
         val reveal = date.plusDays(1).atStartOfDay(paris).toInstant()
-        jdbc.update("INSERT INTO advent_test_answers (user_id, quiz_day, choice, correct_choice, response_points, participation_points, bonus_points, received_at, reveal_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            user, day, choice, keys[day - 1], if (correct) 10 else 0, 1, 0, Timestamp.from(now), Timestamp.from(reveal))
+        jdbc.update("INSERT INTO advent_test_answers (user_id, quiz_day, choice, correct_choice, response_points, participation_points, bonus_points, received_at, reveal_at, answer_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            user, day, choice, keys[day - 1], if (correct) 10 else 0, 1, 0, Timestamp.from(now), Timestamp.from(reveal), UUID.randomUUID())
         jdbc.update("DELETE FROM advent_test_replays WHERE user_id = ? AND quiz_day = ?", user, day)
         recompute(user)
         return stateAt(user, day, now)
+    }
+
+    /** All result reads share the clock lock with confirmations and replay. */
+    @Transactional
+    fun latestUnseen(user: UUID, receipt: Instant): AdventResult? {
+        val now = simulatedInstant(receipt)
+        val day = jdbc.query("SELECT quiz_day FROM advent_test_answers WHERE user_id = ? AND seen_at IS NULL AND reveal_at <= ? ORDER BY quiz_day DESC", { rs, _ -> rs.getInt(1) }, user, Timestamp.from(now)).firstOrNull() ?: return null
+        return resultAt(user, day, now)
+    }
+
+    @Transactional
+    fun result(user: UUID, day: Int, receipt: Instant): AdventResult? {
+        validateDay(day)
+        return resultAt(user, day, simulatedInstant(receipt))
+    }
+
+    private fun resultAt(user: UUID, day: Int, now: Instant): AdventResult? {
+        val eligible = jdbc.query("SELECT answer_id FROM advent_test_answers WHERE user_id = ? AND quiz_day = ? AND reveal_at <= ?", { rs, _ -> rs.getString(1) ?: "" }, user, day, Timestamp.from(now)).singleOrNull() ?: return null
+        val answerId = eligible.ifEmpty {
+            UUID.randomUUID().toString().also { jdbc.update("UPDATE advent_test_answers SET answer_id = ? WHERE user_id = ? AND quiz_day = ?", UUID.fromString(it), user, day) }
+        }
+        val values = jdbc.query("SELECT choice, correct_choice, response_points, participation_points, bonus_points, seen_at FROM advent_test_answers WHERE user_id = ? AND quiz_day = ? AND reveal_at <= ?", { rs, _ ->
+            listOf(rs.getInt(1), rs.getInt(2), rs.getInt(3), rs.getInt(4), rs.getInt(5), if (rs.getTimestamp(6) == null) 0 else 1)
+        }, user, day, Timestamp.from(now)).singleOrNull() ?: return null
+        val total = jdbc.queryForObject("SELECT COALESCE(SUM(response_points + participation_points + bonus_points), 0) FROM advent_test_answers WHERE user_id = ? AND reveal_at <= ?", Int::class.java, user, Timestamp.from(now)) ?: 0
+        return AdventResult(answerId, day, values[0], values[1], values[0] == values[1], values[2], values[3], values[4], total, values[5] == 1)
+    }
+
+    @Transactional
+    fun acknowledge(user: UUID, day: Int, answerId: UUID, receipt: Instant) {
+        validateDay(day)
+        val now = simulatedInstant(receipt)
+        if (jdbc.update("UPDATE advent_test_answers SET seen_at = COALESCE(seen_at, ?) WHERE user_id = ? AND quiz_day = ? AND answer_id = ? AND reveal_at <= ?", Timestamp.from(now), user, day, answerId, Timestamp.from(now)) == 0)
+            throw ResponseStatusException(HttpStatus.NOT_FOUND)
+    }
+
+    @Transactional
+    fun clockDate(receipt: Instant): LocalDate = simulatedInstant(receipt).atZone(paris).toLocalDate()
+
+    @Transactional
+    fun advanceDay(receipt: Instant): LocalDate {
+        val now = simulatedInstant(receipt)
+        val next = now.atZone(paris).toLocalDate().plusDays(1).atStartOfDay(paris).toInstant()
+        val processing = maxOf(receipt, Instant.now())
+        val offset = next.epochSecond - processing.epochSecond
+        jdbc.update("UPDATE advent_test_clock SET offset_seconds = ?, observed_at = ? WHERE id = 1", offset, Timestamp.from(next))
+        jdbc.update("INSERT INTO advent_test_clock_advances (received_at, offset_seconds) VALUES (?, ?)", Timestamp.from(receipt), offset)
+        return next.atZone(paris).toLocalDate()
     }
 
     private fun recompute(user: UUID) {
@@ -177,6 +225,8 @@ class AdventTestAnswers(private val jdbc: JdbcTemplate) {
     }
     private fun validateDay(day: Int) { if (day !in 1..24) throw ResponseStatusException(HttpStatus.NOT_FOUND) }
 }
+
+data class AdventResult(val answerId: String, val day: Int, val selectedChoice: Int, val falseChoice: Int, val correct: Boolean, val responsePoints: Int, val participationPoints: Int, val bonusPoints: Int, val totalPoints: Int, val seen: Boolean)
 
 data class AnswerState(val status: String, val generation: UUID? = null, val replayToken: UUID? = null)
 data class ReplayAnswer(val replayToken: UUID?)

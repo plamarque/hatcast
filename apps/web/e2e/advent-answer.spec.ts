@@ -13,6 +13,8 @@ test('keyboard answers on a narrow enlarged screen with reduced motion', async (
     if (path === '/v1/auth/me') return route.fulfill({ json: { user: { id: 'test-user', slug: 'test', displayName: 'Test', email: 'test@example.test', avatarUrl: null }, platformAdmin: false } })
     if (path === '/v1/troupes') return route.fulfill({ json: [] })
     if (path === '/v1/me/preferences') return route.fulfill({ json: { memberDisplayName: 'Test', preferredRoleKeys: [] } })
+    if (path === '/v1/advent-test/clock') return route.fulfill({ json: { date: '2026-12-01' } })
+    if (path === '/v1/advent-test/results/latest-unseen') return route.fulfill({ json: { result: null } })
     if (path === '/v1/advent-test/session') return route.fulfill({ json: { sessionId: 'test-session' } })
     if (path.endsWith('/answer/reconcile')) return route.fulfill({ json: { status: 'available', generation: 'test-generation' } })
     if (path.endsWith('/answer/reserve')) {
@@ -110,6 +112,8 @@ test('keyboard recovery after the shared test session is reset', async ({ page }
     if (path === '/v1/auth/me') return route.fulfill({ json: { user: { id: 'test-user', slug: 'test', displayName: 'Test', email: 'test@example.test', avatarUrl: null }, platformAdmin: false } })
     if (path === '/v1/troupes') return route.fulfill({ json: [] })
     if (path === '/v1/me/preferences') return route.fulfill({ json: { memberDisplayName: 'Test', preferredRoleKeys: [] } })
+    if (path === '/v1/advent-test/clock') return route.fulfill({ json: { date: '2026-12-01' } })
+    if (path === '/v1/advent-test/results/latest-unseen') return route.fulfill({ json: { result: null } })
     if (path === '/v1/advent-test/session') return route.fulfill({ json: { sessionId: session } })
     if (path === '/v1/advent-test/doors/1') return route.fulfill({ json: { day: 1, name: 'Lutin', portrait: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a2ioAAAAASUVORK5CYII=', genericElf: true, statements: ['Une', 'Deux', 'Trois'] } })
     if (path.endsWith('/answer/reconcile')) {
@@ -138,4 +142,48 @@ test('keyboard recovery after the shared test session is reset', async ({ page }
   await expect(page.getByRole('radio')).toHaveCount(3)
   await expect(page.locator('#quiz-title')).toBeFocused()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+})
+
+
+test('reveals the most recent result accessibly after advancing the shared clock', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 700 })
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.addInitScript(() => localStorage.setItem('hatcast-pwa-banner-dismissed', String(Date.now())))
+  let date = '2026-12-01'
+  let seen = false
+  const result = { answerId: 'answer-one', day: 1, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false }
+  await page.route('**/v1/**', async route => {
+    const path = new URL(route.request().url()).pathname
+    if (path === '/v1/auth/me') return route.fulfill({ json: { user: { id: 'test-user', slug: 'test', displayName: 'Test', email: 'test@example.test', avatarUrl: null }, platformAdmin: false } })
+    if (path === '/v1/troupes') return route.fulfill({ json: [] })
+    if (path === '/v1/me/preferences') return route.fulfill({ json: {} })
+    if (path === '/v1/advent-test/session') return route.fulfill({ json: { sessionId: 'test-session' } })
+    if (path === '/v1/advent-test/clock') return route.fulfill({ json: { date } })
+    if (path === '/v1/advent-test/clock/next-day') { date = '2026-12-02'; return route.fulfill({ json: { date } }) }
+    if (path.endsWith('/latest-unseen')) return route.fulfill({ json: { result: date === '2026-12-02' && !seen ? result : null } })
+    if (path.endsWith('/acknowledge')) { expect(route.request().postDataJSON()).toEqual({ answerId: 'answer-one' }); seen = true; return route.fulfill({ status: 200 }) }
+    if (path.endsWith('/answer')) {
+      if (date === '2026-12-02') {
+        expect(route.request().headers()['x-advent-test-session']).toBe('test-session')
+        return route.fulfill({ json: { status: 'recorded', replayToken: 'test-token' } })
+      }
+      return route.fulfill({ json: { status: 'available' } })
+    }
+    if (path.endsWith('/result')) {
+      expect(route.request().headers()['x-advent-test-session']).toBe('test-session')
+      return route.fulfill({ json: result })
+    }
+    if (path.includes('/doors/')) return route.fulfill({ json: { day: 1, name: 'Lutin', portrait: '', statements: ['Une', 'Deux', 'Trois'], genericElf: true } })
+    return route.fulfill({ json: {} })
+  })
+  await page.goto('/avent-test')
+  await page.getByRole('button', { name: 'Avancer au lendemain' }).click()
+  const title = page.getByRole('heading', { name: 'Bravo, tu as trouvé !' })
+  await expect(title).toBeFocused()
+  await expect(page.getByText('La fausse affirmation : Une')).toBeVisible()
+  await expect(page.getByText('Total : 11 points')).toBeVisible()
+  await expect.poll(() => seen).toBe(true)
+  await expect(page.locator('.advent__confetti')).toHaveCSS('animation-name', 'none')
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  await expect(page.getByRole('button', { name: 'Continuer' })).toBeVisible()
 })

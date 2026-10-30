@@ -26,7 +26,7 @@ Tous les membres de La Malice peuvent jouer, y compris les personnes présentée
 ## Définitions
 
 - **Quiz** : portrait d’un membre et trois anecdotes, dont deux vraies et une fausse à identifier.
-- **Jour de jeu** : date du quiz, de 00 h 00 inclus à 00 h 00 le lendemain exclu, en heure civile de Paris. La réception de la confirmation par l’API fait foi, sous réserve de son enregistrement effectif.
+- **Jour de jeu** : date du quiz, de 00 h 00 inclus à 00 h 00 le lendemain exclu, en heure civile de Paris. La confirmation est acceptée si sa décision intervient après acquisition du verrou pendant ce jour ; une confirmation qui attend encore le verrou à minuit est refusée, même si elle a été reçue avant minuit. Une transaction acceptée avant minuit peut être validée après minuit ; la révélation attend sa fin.
 - **Révélation** : mise à disposition de la justesse, de la fausse anecdote et des points à partir de 00 h 00 le lendemain du jour de jeu, heure de Paris.
 - **Série de bonnes réponses** : succession de réponses correctes enregistrées ; une réponse incorrecte la rompt, une journée sans réponse ne la rompt pas. Un bonus est attribué à chaque groupe de trois bonnes réponses consécutives, sans chevauchement.
 - **Classement final** : classement établi après la révélation des résultats du 24 décembre, dès le 25 à 00 h 00, consultable jusqu’au 15 janvier 2027 inclus.

@@ -465,7 +465,7 @@ Accueil verifies the inbox on each entry and always displays newly received task
 
 ### Aperçu de test Avent
 
-En développement isolé, un membre actif de la troupe configurée, dont l’adresse vérifiée figure dans la liste de test, peut ouvrir une porte fictive et confirmer une réponse parmi trois affirmations fictives. Le membre peut explicitement effacer sa propre réponse et rejouer cette case, même passée, sans changer les réponses des autres ni l’horloge partagée. La confirmation reste neutre et ne répète pas la question ; une réponse incertaine est vérifiée avant de proposer un nouvel essai. Une case passée sans réponse préalable reste fermée. Cet aperçu ne constitue pas le calendrier complet et ne propose pas encore de résultat ni de classement.
+En développement isolé, un membre actif de la troupe configurée, dont l’adresse vérifiée figure dans la liste de test, peut ouvrir une porte fictive et confirmer une réponse parmi trois affirmations fictives. Le membre peut explicitement effacer sa propre réponse et rejouer cette case, même passée, sans changer les réponses des autres ni l’horloge partagée. La confirmation reste neutre et ne répète pas la question ; une réponse incertaine est vérifiée avant de proposer un nouvel essai. Une case passée sans réponse préalable reste fermée. Cet aperçu ne constitue pas le calendrier complet et ne propose pas encore de classement.
 
 ### Identité visuelle Advent Quiz
 
@@ -473,3 +473,5 @@ Les interfaces Advent Quiz adoptent la direction artistique propre approuvée d�
 
 
 In verified isolated Advent development, an authorized operator can restart the shared test session. Reset clears only the test-game state and simulated clock; fictional content and unrelated data remain. Existing clients must refresh their session before further test mutations.
+
+Dans l’aperçu isolé, un membre autorisé découvre son résultat après le début du jour suivant à Paris. Le résultat révélable non vu le plus récent est prioritaire au retour ; son affichage est suivi d’un accusé persistant. Une interruption ou des appareils concurrents peuvent entraîner une nouvelle présentation. La commande de test avance l’horloge partagée au jour suivant ; seul le reset ciblé permet de la redémarrer.

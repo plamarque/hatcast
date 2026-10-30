@@ -6,6 +6,8 @@ import { RouterLink } from '@angular/router'
 
 const REQUEST_TIMEOUT_MS = 10_000
 
+interface AdventResult { answerId: string; day: number; selectedChoice: number; falseChoice: number; correct: boolean; responsePoints: number; participationPoints: number; bonusPoints: number; totalPoints: number; seen: boolean }
+
 interface FictionalQuiz { day: number; name: string; portrait: string; statements: string[]; genericElf: boolean }
 
 @Component({
@@ -16,6 +18,9 @@ interface FictionalQuiz { day: number; name: string; portrait: string; statement
   styleUrl: './advent-test.scss',
 })
 export class AdventTest {
+  readonly result = signal<AdventResult | null>(null)
+  readonly resultContent = signal<FictionalQuiz | null>(null)
+  readonly clockDate = signal<string | null>(null)
   readonly selectedDay = signal(1)
   readonly preview = signal<FictionalQuiz | null>(null)
   readonly loading = signal(false)
@@ -28,6 +33,8 @@ export class AdventTest {
   private sessionId: string | null = null
   private generation: string | null = null
   private replayToken: string | null = null
+  private visibilityListener: (() => void) | null = null
+  @ViewChild('resultHeading') private resultHeading?: ElementRef<HTMLElement>
   @ViewChild('quizHeading') private quizHeading?: ElementRef<HTMLElement>
   @ViewChild('recordedStatus') private recordedStatus?: ElementRef<HTMLElement>
 
@@ -36,7 +43,102 @@ export class AdventTest {
     return /^[aeiouyàâéèêëîïôùûü]/i.test(name) ? `d’${name}` : `de ${name}`
   }
 
-  ngOnInit(): void { void this.selectDay(1) }
+  ngOnInit(): void { void this.start() }
+  ngOnDestroy(): void { this.clearVisibilityListener() }
+  private clearVisibilityListener(): void {
+    if (this.visibilityListener) document.removeEventListener('visibilitychange', this.visibilityListener)
+    this.visibilityListener = null
+  }
+
+  async start(): Promise<void> {
+    this.loading.set(true)
+    this.error.set(false)
+    this.sessionChanged.set(false)
+    try {
+      const session = await this.requestJson<{ sessionId: string }>('/v1/advent-test/session', { credentials: 'include', cache: 'no-store' })
+      this.sessionId = session.sessionId
+      const clock = await this.requestJson<{ date: string }>('/v1/advent-test/clock', { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
+      this.clockDate.set(clock.date)
+      const latest = await this.requestJson<{ result: AdventResult | null }>('/v1/advent-test/results/latest-unseen', { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
+      if (latest.result) await this.showResult(latest.result)
+      else { this.loading.set(false); if (clock.date < '2026-12-25') await this.selectDay(Math.min(24, Math.max(1, Number(clock.date.slice(-2))))) }
+    } catch { this.error.set(true); this.loading.set(false) }
+  }
+
+  private async showResult(result: AdventResult): Promise<void> {
+    const content = await this.requestJson<FictionalQuiz>(`/v1/advent-test/doors/${result.day}`, { credentials: 'include', cache: 'no-store' })
+    // Fence the content fetch and bind the replay token to the same answer.
+    const state = await this.requestJson<{ status: string; replayToken?: string }>(`/v1/advent-test/doors/${result.day}/answer`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
+    const current = await this.requestJson<AdventResult | null>(`/v1/advent-test/doors/${result.day}/result`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() }, true)
+    if (state.status !== 'recorded' || !state.replayToken || current?.answerId !== result.answerId) throw new Error('Result changed')
+    this.clearVisibilityListener()
+    this.selectedDay.set(result.day)
+    this.quiz.set(null)
+    this.replayToken = state.replayToken
+    this.answerState.set('recorded')
+    this.resultContent.set(content)
+    this.result.set(current)
+    this.loading.set(false)
+    const display = () => {
+      if (document.visibilityState !== 'visible') return
+      this.clearVisibilityListener()
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        const heading = this.resultHeading?.nativeElement
+        if (document.visibilityState !== 'visible' || !heading?.isConnected || this.result()?.answerId !== result.answerId) {
+          if (this.result()?.answerId === result.answerId && document.visibilityState !== 'visible') {
+            this.visibilityListener = display
+            document.addEventListener('visibilitychange', display)
+          }
+          return
+        }
+        heading.focus()
+        void fetch(`/v1/advent-test/doors/${result.day}/result/acknowledge`, { method: 'POST', credentials: 'include', cache: 'no-store', headers: { ...this.csrfHeaders(), ...this.sessionHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({ answerId: result.answerId }) }).then(response => { if (response.status === 409) { this.sessionChanged.set(true); this.error.set(true) } }).catch(() => {})
+      }))
+    }
+    if (document.visibilityState === 'visible') display()
+    else { this.visibilityListener = display; document.addEventListener('visibilitychange', display) }
+  }
+
+  async advanceClock(): Promise<void> {
+    if (this.loading() || this.submitting()) return
+    this.loading.set(true)
+    try {
+      const clock = await this.requestJson<{ date: string }>('/v1/advent-test/clock/next-day', { method: 'POST', credentials: 'include', cache: 'no-store', headers: { ...this.csrfHeaders(), ...this.sessionHeaders() } })
+      this.clockDate.set(clock.date)
+      const latest = await this.requestJson<{ result: AdventResult | null }>('/v1/advent-test/results/latest-unseen', { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
+      if (latest.result) await this.showResult(latest.result)
+      else {
+        this.clearVisibilityListener()
+        this.result.set(null); this.resultContent.set(null); this.quiz.set(null); this.preview.set(null)
+        this.replayToken = null
+        this.loading.set(false)
+        if (clock.date < '2026-12-25') await this.selectDay(Math.min(24, Math.max(1, Number(clock.date.slice(-2)))))
+      }
+    } catch { this.error.set(true); this.loading.set(false) }
+  }
+
+  async continueAfterResult(): Promise<void> {
+    if (this.loading()) return
+    this.loading.set(true)
+    this.error.set(false)
+    try {
+      // Another tester may have advanced the shared clock while the result was displayed.
+      const clock = await this.requestJson<{ date: string }>('/v1/advent-test/clock', { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
+      this.clockDate.set(clock.date)
+      this.quiz.set(null)
+      this.preview.set(null)
+      this.clearVisibilityListener()
+      this.result.set(null)
+      this.resultContent.set(null)
+      this.replayToken = null
+      this.loading.set(false)
+      if (clock.date >= '2026-12-25') return
+      await this.selectDay(Math.min(24, Math.max(1, Number(clock.date.slice(-2)))))
+    } catch {
+      this.error.set(true)
+      this.loading.set(false)
+    }
+  }
 
   async selectDay(day: number): Promise<void> {
     if (this.loading() || this.submitting() || (this.quiz() && this.answerState() === 'checking')) return
@@ -58,6 +160,11 @@ export class AdventTest {
       if (state.status === 'recorded' && !state.replayToken) throw new Error('Invalid state')
       this.preview.set(content)
       if (state.status === 'recorded') {
+        const result = await this.requestJson<AdventResult | null>(`/v1/advent-test/doors/${day}/result`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() }, true)
+        if (result) {
+          await this.showResult(result)
+          return
+        }
         this.replayToken = state.replayToken!
         this.answerState.set('recorded')
         this.quiz.set(content)
@@ -106,13 +213,21 @@ export class AdventTest {
     if (this.submitting() || this.answerState() !== 'recorded' || !this.replayToken) return
     this.submitting.set(true)
     this.choice.set(null)
+    const reveal = this.result()
     try {
       const result = await this.requestJson<{ status: string; replayToken?: string }>(`/v1/advent-test/doors/${this.selectedDay()}/answer/replay`, { method: 'POST', credentials: 'include', cache: 'no-store', headers: { ...this.csrfHeaders(), ...this.sessionHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({ replayToken: this.replayToken }) })
       if (result.status === 'recorded' && !result.replayToken) throw new Error('Invalid state')
       if (!['available', 'recorded', 'closed'].includes(result.status)) throw new Error('Invalid state')
+      if (reveal) {
+        if (result.status !== 'available') throw new Error('Result changed')
+        this.clearVisibilityListener()
+        this.quiz.set(this.resultContent())
+        this.result.set(null)
+        this.resultContent.set(null)
+      }
       await this.reconcile()
       setTimeout(() => (this.answerState() === 'recorded' ? this.recordedStatus : this.quizHeading)?.nativeElement.focus())
-    } catch { this.generation = null; this.answerState.set('uncertain') }
+    } catch { this.generation = null; if (reveal) this.error.set(true); else this.answerState.set('uncertain') }
     finally { this.submitting.set(false) }
   }
 
@@ -147,7 +262,7 @@ export class AdventTest {
     }
   }
 
-  private async requestJson<T>(url: string, options: RequestInit): Promise<T> {
+  private async requestJson<T>(url: string, options: RequestInit, notFoundAsNull = false): Promise<T> {
     const controller = new AbortController()
     let timer: ReturnType<typeof setTimeout> | undefined
     const timeout = new Promise<never>((_, reject) => {
@@ -162,6 +277,7 @@ export class AdventTest {
             this.generation = null
             this.replayToken = null
           }
+          if (response.status === 404 && notFoundAsNull) return null as T
           if (!response.ok) throw new Error('Unavailable')
           return await response.json() as T
         })(),
