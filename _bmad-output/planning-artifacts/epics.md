@@ -3467,6 +3467,8 @@ The approved Advent requirements inventory and source references are recorded in
 
 ## Epic 25: Discover La Malice through an Advent calendar
 
+**Content foundation follow-up:** Validated quizzes and statements are prepared directly in the database by queries; only quizzes, never test answers or test state, are transferred from development to production. Portraits remain private. Development and production use separate databases, and test controls exist only in development. Preserve completed stories as historical deliveries; the transfer procedure and safe target identification remain to be designed. Patrice does not change contributions during play and accepts the risk of an inconsistent result if an exceptional change occurs. No versioning or edit lock is imposed for that risk. Stories 25.4–25.7 and 25.9 must use the appropriate environment and content boundary. This is target direction, not evidence of deployment.
+
 Members discover each other through 24 daily quizzes, delayed reveals and a friendly ranking; Patrice and Toinou validate the journey in isolated development before production opening. The PRD, UX, spec and architecture remain binding. Partial checkpoints identify unfinished features and must never expose protected production data.
 
 ### Story 25.1: Open an Advent door in isolated development
@@ -3526,6 +3528,23 @@ As a member who answered, I want to discover my saved result after its reveal so
 **Visual contract:** Apply the Advent visual foundation to the correct, incorrect and detailed reveal states; keep the reveal priority and secrecy rules. Use the Advent DESIGN and EXPERIENCE contracts and architecture AD-7; test keyboard, accessible states, responsive rendering and isolation from HatCast.
 
 **References:** FR-5–FR-7, FR-9–FR-10; AD-1–AD-3; UX-DR4, UX-DR8–UX-DR10.
+
+### Story 25.3a: Prepare and play validated quizzes
+
+As an organizer, I want to prepare validated quizzes in the database and test them in the calendar, so that members can play with the intended contributions.
+
+**Acceptance Criteria:**
+
+1. **Given** a validated quiz prepared in the database, **when** an authorized member opens it, answers and reaches its reveal, **then** the existing journey uses its portrait, three ordered statements and false-answer designation for normal scoring and revelation while its content remains unchanged. [FR-4–FR-7, FR-11; AD-3]
+2. **Given** private or unrevealed content, **when** it is requested before authorization or revelation, **then** membership, date and mode checks, private portrait access, no-store and non-disclosure of future content, false answers and pending points remain effective. [AD-1]
+3. **Given** distinct development and production databases, **when** test simulation, personal replay or reset is requested, **then** these operations are available only in verified isolated development; reset preserves quiz content and unrelated data, and production or an ambiguous environment rejects test controls. [FR-13; AD-2]
+4. **Given** validated development quizzes, **when** an operator prepares their promotion from this workspace by agent or script, **then** a documented procedure identifies and verifies both target environments, selects only quiz content and private portrait references, excludes answers and test state, and checks the result without exposing private content. The mechanism and treatment of existing production quizzes are determined during implementation; this story does not execute a real production transfer. [FR-11]
+5. **Given** a contribution used during play, **when** Patrice follows the operational rule not to change it, **then** the normal quiz and reveal use that unchanged content. Patrice accepts the risk of inconsistency if an exceptional change occurs; no versioning, snapshots, stale-content rejection or edit lock is required solely for that risk. [FR-11; AD-3]
+6. **Given** the implementation, **when** it is verified, **then** meaningful tests cover database-backed quiz, answer and reveal, privacy and authorization, environment isolation, test-control denial in production and reset scope. No deployment or real production data operation is implied. [NFR-1, NFR-2, NFR-5]
+
+**UI:** Preserve the existing interface and accessibility. If a visible UI change is necessary, apply [DESIGN.md](ux-designs/ux-hatcast-avent-2026-10-28/DESIGN.md), [EXPERIENCE.md](ux-designs/ux-hatcast-avent-2026-10-28/EXPERIENCE.md), AD-7 and the Advent visual isolation test strategy; verify Material 3 behavior, responsive and accessible states and no impact on HatCast. If there is no UI change, record **UI: N/A** in the implementation story.
+
+**Dependencies:** 25.1, 25.2, 25.2a and 25.3; precedes 25.4–25.7 and 25.9 where they rely on real quiz content and environment boundaries. Preserve completed story history and existing uncommitted catalogue work as evidence, not as an approved implementation.
 
 ### Story 25.4: See the friendly ranking
 

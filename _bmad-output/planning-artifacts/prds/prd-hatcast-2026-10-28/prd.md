@@ -61,7 +61,7 @@ Tous les membres de La Malice peuvent jouer, y compris les personnes présentée
 
 ### Contenus manquants et préparation
 
-**FR-11.** L’animation peut commencer sans les 24 quiz. Patrice peut ajouter les contenus par une nouvelle release ; un quiz publié pendant son jour devient jouable dès sa disponibilité et jusqu’à minuit. Un contenu publié après son jour n’est pas jouable ; il peut être consulté comme contenu passé après révélation. Patrice vérifie les anecdotes avant publication ; la fausse anecdote ne change pas une fois qu’un membre a répondu.
+**FR-11.** L’animation peut commencer sans les 24 quiz. Après validation, Patrice prépare les quiz et affirmations directement en base par requêtes ; seuls les quiz sont transférés du développement vers la production, jamais les réponses de test ; un quiz publié pendant son jour devient jouable dès sa disponibilité et jusqu’à minuit. Un contenu publié après son jour n’est pas jouable ; il peut être consulté comme contenu passé après révélation. Patrice vérifie les anecdotes avant publication et ne modifie pas les contributions pendant le jeu. Une modification exceptionnelle peut rendre une réponse ou sa révélation incohérente ; ce risque est accepté.
 
 **FR-12.** Un jour de jeu sans quiz disponible, il n’y a ni notification ni ouverture automatique. L’icône mène au message « Il n’y a rien ici. Reviens plus tard ! » et à un accès au classement pour tous, même sans participation, après l’éventuelle révélation prioritaire. Le 25 décembre suit FR-9 et ne comporte pas de quiz.
 
@@ -72,7 +72,7 @@ Tous les membres de La Malice peuvent jouer, y compris les personnes présentée
 - Réserver l’accès aux membres de La Malice, préserver la surprise, les contenus futurs et la justesse des réponses en attente. Les portraits et anecdotes sont recueillis avec l’accord des personnes présentées.
 - Garantir qu’une réponse enregistrée ne soit pas comptée plusieurs fois et que les points et le classement correspondent aux réponses révélées, y compris en cas d’interruption, de concurrence ou d’usage sur plusieurs appareils.
 - Assurer une expérience accessible et cohérente avec les usages et le design HatCast ; étudier les détails d’interaction, de mise en page et d’animation en UX.
-- Patrice intègre les contenus par release ; aucun back-office de saisie n’est demandé.
+- Patrice prépare les contenus en base par requêtes après validation ; les portraits restent dans un bucket privé. Aucun back-office de saisie n’est demandé.
 
 ## Périmètre exclu et pistes
 

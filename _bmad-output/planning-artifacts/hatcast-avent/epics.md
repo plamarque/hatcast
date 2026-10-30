@@ -40,7 +40,7 @@ Updated requirements inventory for the La Malice Advent calendar. The spec and c
 
 - **FR-10:** Le calendrier représente les 24 quiz et le 25 décembre, dont la présentation reste à définir en UX. Il distingue les quiz joués, passés non joués, celui du jour et les futurs bloqués. Une case passée non jouée peut être consultée après sa date de révélation : portrait, anecdotes et fausse anecdote disponibles, sans réponse ni points. Une case jouée montre le choix, la fausse anecdote et les points obtenus uniquement après leur révélation. Une case sans contenu affiche « Il n’y a rien ici. Reviens plus tard ! ». Le calendrier et le classement restent accessibles depuis l’expérience, sauf sur l’écran prioritaire de révélation de FR-7.
 
-- **FR-11:** L’animation peut commencer sans les 24 quiz. Patrice peut ajouter les contenus par une nouvelle release ; un quiz publié pendant son jour devient jouable dès sa disponibilité et jusqu’à minuit. Un contenu publié après son jour n’est pas jouable ; il peut être consulté comme contenu passé après révélation. Patrice vérifie les anecdotes avant publication ; la fausse anecdote ne change pas une fois qu’un membre a répondu.
+- **FR-11:** L’animation peut commencer sans les 24 quiz. Après validation, Patrice prépare les quiz et affirmations directement en base par requêtes ; seuls les quiz sont transférés du développement vers la production, jamais les réponses de test ; un quiz publié pendant son jour devient jouable dès sa disponibilité et jusqu’à minuit. Un contenu publié après son jour n’est pas jouable ; il peut être consulté comme contenu passé après révélation. Patrice vérifie les anecdotes avant publication et ne modifie pas les contributions pendant le jeu. Une modification exceptionnelle peut rendre une réponse ou sa révélation incohérente ; ce risque est accepté.
 
 - **FR-12:** Un jour de jeu sans quiz disponible, il n’y a ni notification ni ouverture automatique. L’icône mène au message « Il n’y a rien ici. Reviens plus tard ! » et à un accès au classement pour tous, même sans participation, après l’éventuelle révélation prioritaire. Le 25 décembre suit FR-9 et ne comporte pas de quiz.
 
@@ -58,12 +58,12 @@ Updated requirements inventory for the La Malice Advent calendar. The spec and c
 ### Additional Requirements
 
 - **AD-1:** Enforce membership, date and mode on all API reads and mutations; keep future content, pending answers and derived correctness or points out of clients, URLs, caches and analytics; sensitive responses are no-store.
-- **AD-2:** Development-only isolated mode, fictional statements, configured troupe, shared simulated clock movable one day in either direction and targeted reset of game and clock; advancing to a future answer uses normal scoring and next-day reveal. Verify real boundaries separately.
+- **AD-2:** Development-only isolated mode, unrestricted test content, configured troupe, shared simulated clock movable one day in either direction and targeted reset of game and clock; advancing to a future answer uses normal scoring and next-day reveal. Verify real boundaries separately.
 - **AD-3:** Persist unique answers, scores, daily dismissal and seen state; confirmations still waiting for the lock close at midnight; result reads wait for an already-running transaction, and acknowledgment follows actual reveal display. Select the most recent revealable unseen result.
 - **AD-4:** Ranking and personal totals include only revealed points, use lowest ranks for ties, include zero scores and exclude designated accounts; retain answers after access ends.
 - **AD-5:** Existing Spring reminder targets 10:00 Paris on days 1–24, checks actual execution availability and eligibility, tolerates late or missed notifications, without dedicated recovery or publication timestamp.
 - **AD-6:** Measure distinct real players and recorded real answers; exclude tests and sensitive information, with the database authoritative.
-- Contents arrive by release without an administration interface; verify reset safeguards, client and shared caches, isolation and operational effects.
+- Validated quiz content is prepared by database queries without an administration interface; only quizzes, never test answers, are transferred to production; verify reset safeguards, client and shared caches, isolation and operational effects.
 
 ### UX Design Requirements
 
@@ -91,7 +91,7 @@ Updated requirements inventory for the La Malice Advent calendar. The spec and c
 - FR-8 → Advent epic: ranking, ties and exclusions.
 - FR-9 → Advent epic: ranking and final consultation.
 - FR-10 → Advent epic: calendar, read-only past discovery and review.
-- FR-11 → Advent epic: content availability and release publication.
+- FR-11 → Advent epic: content availability and database preparation.
 - FR-12 → Advent epic: missing daily content.
 - FR-13 → Advent epic: isolated development testing.
 
@@ -174,6 +174,23 @@ As a member who answered, I want to discover my saved result after its reveal so
 
 **References:** FR-5–FR-7, FR-9–FR-10; AD-1–AD-3; UX-DR4, UX-DR8–UX-DR10.
 
+### Story 25.3a: Prepare and play validated quizzes
+
+As an organizer, I want to prepare validated quizzes in the database and test them in the calendar, so that members can play with the intended contributions.
+
+**Acceptance Criteria:**
+
+1. **Given** a validated quiz prepared in the database, **when** an authorized member opens it, answers and reaches its reveal, **then** the existing journey uses its portrait, three ordered statements and false-answer designation for normal scoring and revelation while its content remains unchanged. [FR-4–FR-7, FR-11; AD-3]
+2. **Given** private or unrevealed content, **when** it is requested before authorization or revelation, **then** membership, date and mode checks, private portrait access, no-store and non-disclosure of future content, false answers and pending points remain effective. [AD-1]
+3. **Given** distinct development and production databases, **when** test simulation, personal replay or reset is requested, **then** these operations are available only in verified isolated development; reset preserves quiz content and unrelated data, and production or an ambiguous environment rejects test controls. [FR-13; AD-2]
+4. **Given** validated development quizzes, **when** an operator prepares their promotion from this workspace by agent or script, **then** a documented procedure identifies and verifies both target environments, selects only quiz content and private portrait references, excludes answers and test state, and checks the result without exposing private content. The mechanism and treatment of existing production quizzes are determined during implementation; this story does not execute a real production transfer. [FR-11]
+5. **Given** a contribution used during play, **when** Patrice follows the operational rule not to change it, **then** the normal quiz and reveal use that unchanged content. Patrice accepts the risk of inconsistency if an exceptional change occurs; no versioning, snapshots, stale-content rejection or edit lock is required solely for that risk. [FR-11; AD-3]
+6. **Given** the implementation, **when** it is verified, **then** meaningful tests cover database-backed quiz, answer and reveal, privacy and authorization, environment isolation, test-control denial in production and reset scope. No deployment or real production data operation is implied. [NFR-1, NFR-2, NFR-5]
+
+**UI:** Preserve the existing interface and accessibility. If a visible UI change is necessary, apply [DESIGN.md](../ux-designs/ux-hatcast-avent-2026-10-28/DESIGN.md), [EXPERIENCE.md](../ux-designs/ux-hatcast-avent-2026-10-28/EXPERIENCE.md), AD-7 and the Advent visual isolation test strategy; verify Material 3 behavior, responsive and accessible states and no impact on HatCast. If there is no UI change, record **UI: N/A** in the implementation story.
+
+**Dependencies:** 25.1, 25.2, 25.2a and 25.3; precedes 25.4–25.7 and 25.9 where they rely on real quiz content and environment boundaries. Preserve completed story history and existing uncommitted catalogue work as evidence, not as an approved implementation.
+
 ### Story 25.4: See the friendly ranking
 
 As a member, I want to see the revealed ranking and my own score so that I can share the fun without learning today's result early.
@@ -248,8 +265,12 @@ As an organizer, I want to know how many people played and how many answers were
 
 **References:** AD-2, AD-6; PRD success signal.
 
+## Content foundation follow-up — approved direction
+
+Add database-backed quiz reads and a documented, verified quiz-only promotion procedure before real content is used. Development and production use separate databases; simulation and reset are development-only. Preserve the protections and delivered history of 25.1, 25.2, 25.2a and 25.3; revalidate normal answer and reveal behavior, privacy, reset scope and production isolation. Patrice does not change contributions during play and accepts the risk of inconsistency if an exceptional change occurs. The transfer mechanism and scope of any migration remain to be designed; this direction does not authorize production writes or prescribe versioning. Stories 25.4–25.7 and 25.9 depend on the appropriate database content and environment boundary.
+
 ## Final validation
 
 - **Coverage:** FR-1–FR-13, AD-1–AD-7 and UX-DR1–UX-DR11 are covered across stories 25.1–25.7, 25.2a and 25.9; companions retain full contractual detail.
-- **Order:** 25.1 → 25.2 → 25.2a → 25.3 → 25.4 → 25.5 → 25.6 → 25.7; 25.9 follows recorded answers. Development isolation and protections precede human testing; partial features are identified as such.
+- **Order:** 25.1 → 25.2 → 25.2a → 25.3 → 25.3a → 25.4 → 25.5 → 25.6 → 25.7; 25.9 follows recorded answers. Development isolation and protections precede human testing; partial features are identified as such.
 - **Validation:** Revised criteria and dependencies reviewed and approved with Patrice on 2026-10-29. Check real date boundaries separately from the simulated clock; verify device, keyboard, contrast and reduced-motion behavior. The Christmas recap, optional animation and graphical treatment of missed cases remain open for story design.
