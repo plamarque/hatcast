@@ -103,6 +103,8 @@ Pour une clôture inter-projets, utiliser la skill globale `bmad-close-story` : 
 
 Pour toute évolution de l’interface Advent Quiz, quelle que soit sa story ou son epic, lire et appliquer les contrats [DESIGN.md](_bmad-output/planning-artifacts/ux-designs/ux-hatcast-avent-2026-10-28/DESIGN.md), [EXPERIENCE.md](_bmad-output/planning-artifacts/ux-designs/ux-hatcast-avent-2026-10-28/EXPERIENCE.md) et la décision AD-7 de [l’architecture Avent](_bmad-output/planning-artifacts/architecture/architecture-hatcast-avent-2026-10-29/ARCHITECTURE-SPINE.md). La direction artistique validée est propre à l’Avent : styles, tokens, composants et typographies sont isolés ; le design system HatCast reste inchangé. Chaque story UI Advent référence ces contrats et prévoit des vérifications visuelles, d’accessibilité et d’absence d’effet sur HatCast ; préserver les règles de confidentialité et de révélation. Le modèle de story précise les critères à adapter.
 
+Pour préparer ou ajouter une contribution au catalogue privé de l’Avent, suivre [la procédure et le format du catalogue](docs/v2/technical/AVENT_CATALOGUE.md). Les contributions réelles et leurs réponses ne doivent pas être ajoutées au dépôt public.
+
 ---
 
 ## V2 local human smoke
