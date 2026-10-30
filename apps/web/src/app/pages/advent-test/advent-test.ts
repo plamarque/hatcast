@@ -6,7 +6,7 @@ import { RouterLink } from '@angular/router'
 
 const REQUEST_TIMEOUT_MS = 10_000
 
-interface AdventResult { answerId: string; day: number; selectedChoice: number; falseChoice: number; correct: boolean; responsePoints: number; participationPoints: number; bonusPoints: number; totalPoints: number; seen: boolean }
+interface AdventResult { answerId: string; day: number; selectedChoice: number; falseChoice: number; correct: boolean; responsePoints: number; participationPoints: number; bonusPoints: number; totalPoints: number; seen: boolean; explanation?: string | null }
 
 interface FictionalQuiz { day: number; name: string; portrait: string; statements: string[]; genericElf: boolean }
 
@@ -25,6 +25,8 @@ export class AdventTest {
   readonly preview = signal<FictionalQuiz | null>(null)
   readonly loading = signal(false)
   readonly error = signal(false)
+  readonly unavailable = signal(false)
+  readonly transitionRequired = signal(false)
   readonly quiz = signal<FictionalQuiz | null>(null)
   readonly choice = signal<number | null>(null)
   readonly answerState = signal<'checking' | 'available' | 'recorded' | 'closed' | 'uncertain'>('checking')
@@ -54,26 +56,33 @@ export class AdventTest {
     this.loading.set(true)
     this.error.set(false)
     this.sessionChanged.set(false)
+    this.transitionRequired.set(false)
+    this.unavailable.set(false)
     try {
-      const session = await this.requestJson<{ sessionId: string }>('/v1/advent-test/session', { credentials: 'include', cache: 'no-store' })
+      const session = await this.requestJson<{ sessionId: string; transitionRequired?: boolean }>('/v1/advent-test/session', { credentials: 'include', cache: 'no-store' })
       this.sessionId = session.sessionId
+      if (session.transitionRequired) { this.transitionRequired.set(true); this.loading.set(false); return }
       const clock = await this.requestJson<{ date: string }>('/v1/advent-test/clock', { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
       await this.enterAt(clock.date)
     } catch { this.error.set(true); this.loading.set(false) }
   }
 
   private async showResult(result: AdventResult): Promise<void> {
-    const content = await this.requestJson<FictionalQuiz>(`/v1/advent-test/doors/${result.day}`, { credentials: 'include', cache: 'no-store' })
+    this.selectedDay.set(result.day)
+    const content = await this.requestJson<FictionalQuiz | null>(`/v1/advent-test/doors/${result.day}`, { credentials: 'include', cache: 'no-store' }, true)
+    if (!content) { this.showUnavailable(); return }
     // Fence the content fetch and bind the replay token to the same answer.
     const state = await this.requestJson<{ status: string; replayToken?: string }>(`/v1/advent-test/doors/${result.day}/answer`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
     const current = await this.requestJson<AdventResult | null>(`/v1/advent-test/doors/${result.day}/result`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() }, true)
-    if (state.status !== 'recorded' || !state.replayToken || current?.answerId !== result.answerId) throw new Error('Result changed')
+    if (state.status === 'unavailable' || !current) { this.showUnavailable(); return }
+    if (state.status !== 'recorded' || !state.replayToken || current.answerId !== result.answerId) throw new Error('Result changed')
     this.clearVisibilityListener()
     this.selectedDay.set(result.day)
     this.quiz.set(null)
     this.replayToken = state.replayToken
     this.answerState.set('recorded')
     this.resultContent.set(content)
+    this.unavailable.set(false)
     this.result.set(current)
     this.loading.set(false)
     const display = () => {
@@ -107,6 +116,7 @@ export class AdventTest {
       this.clearVisibilityListener()
       this.result.set(null); this.resultContent.set(null); this.quiz.set(null); this.preview.set(null)
       this.replayToken = null
+      this.unavailable.set(false)
       this.loading.set(false)
       if (date < '2026-12-25') await this.selectDay(Math.min(24, Math.max(1, Number(date.slice(-2)))))
     }
@@ -136,6 +146,7 @@ export class AdventTest {
       this.result.set(null)
       this.resultContent.set(null)
       this.replayToken = null
+      this.unavailable.set(false)
       this.loading.set(false)
       if (clock.date >= '2026-12-25') return
       await this.selectDay(Math.min(24, Math.max(1, Number(clock.date.slice(-2)))))
@@ -145,9 +156,17 @@ export class AdventTest {
     }
   }
 
+  private showUnavailable(): void {
+    this.clearVisibilityListener()
+    this.result.set(null); this.resultContent.set(null); this.quiz.set(null); this.preview.set(null)
+    this.generation = null; this.replayToken = null; this.choice.set(null)
+    this.unavailable.set(true); this.error.set(false); this.loading.set(false)
+  }
+
   async selectDay(day: number): Promise<void> {
     if (this.loading() || this.submitting() || (this.quiz() && this.answerState() === 'checking')) return
     this.selectedDay.set(day)
+    this.unavailable.set(false)
     this.quiz.set(null)
     this.choice.set(null)
     this.answerState.set('checking')
@@ -156,11 +175,13 @@ export class AdventTest {
     this.error.set(false)
     this.sessionChanged.set(false)
     try {
-      const content = await this.requestJson<FictionalQuiz>(`/v1/advent-test/doors/${day}`, { credentials: 'include', cache: 'no-store' })
+      const content = await this.requestJson<FictionalQuiz | null>(`/v1/advent-test/doors/${day}`, { credentials: 'include', cache: 'no-store' }, true)
+      if (!content) { this.showUnavailable(); return }
       const session = await this.requestJson<{ sessionId: string }>('/v1/advent-test/session', { credentials: 'include', cache: 'no-store' })
       if (!session.sessionId) throw new Error('Invalid session')
       this.sessionId = session.sessionId
-      const state = await this.requestJson<{ status: 'available' | 'recorded' | 'closed'; replayToken?: string }>(`/v1/advent-test/doors/${day}/answer`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
+      const state = await this.requestJson<{ status: 'available' | 'recorded' | 'closed' | 'unavailable'; replayToken?: string }>(`/v1/advent-test/doors/${day}/answer`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
+      if (state.status === 'unavailable') { this.showUnavailable(); return }
       if (!['available', 'recorded', 'closed'].includes(state.status)) throw new Error('Invalid state')
       if (state.status === 'recorded' && !state.replayToken) throw new Error('Invalid state')
       this.preview.set(content)
@@ -212,7 +233,8 @@ export class AdventTest {
   async reconcile(): Promise<void> {
     this.answerState.set('checking')
     try {
-      const data = await this.requestJson<{ status: 'available' | 'recorded' | 'closed'; generation?: string; replayToken?: string }>(`/v1/advent-test/doors/${this.selectedDay()}/answer/reconcile`, { method: 'POST', credentials: 'include', cache: 'no-store', headers: { ...this.csrfHeaders(), ...this.sessionHeaders() } })
+      const data = await this.requestJson<{ status: 'available' | 'recorded' | 'closed' | 'unavailable'; generation?: string; replayToken?: string }>(`/v1/advent-test/doors/${this.selectedDay()}/answer/reconcile`, { method: 'POST', credentials: 'include', cache: 'no-store', headers: { ...this.csrfHeaders(), ...this.sessionHeaders() } })
+      if (data.status === 'unavailable') { this.showUnavailable(); return }
       if (!['available', 'recorded', 'closed'].includes(data.status)) throw new Error('Invalid state')
       if (data.status === 'available' && !data.generation) throw new Error('Invalid state')
       if (data.status === 'recorded' && !data.replayToken) throw new Error('Invalid state')
@@ -229,6 +251,7 @@ export class AdventTest {
     const reveal = this.result()
     try {
       const result = await this.requestJson<{ status: string; replayToken?: string }>(`/v1/advent-test/doors/${this.selectedDay()}/answer/replay`, { method: 'POST', credentials: 'include', cache: 'no-store', headers: { ...this.csrfHeaders(), ...this.sessionHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({ replayToken: this.replayToken }) })
+      if (result.status === 'unavailable') { this.showUnavailable(); return }
       if (result.status === 'recorded' && !result.replayToken) throw new Error('Invalid state')
       if (!['available', 'recorded', 'closed'].includes(result.status)) throw new Error('Invalid state')
       if (reveal) {
@@ -252,15 +275,17 @@ export class AdventTest {
       const attemptId = crypto.randomUUID()
       const url = `/v1/advent-test/doors/${this.selectedDay()}/answer`
       const headers = { ...this.csrfHeaders(), ...this.sessionHeaders(), 'Content-Type': 'application/json' }
-      const reserved = await this.requestJson<{ status: 'available' | 'recorded' | 'closed'; replayToken?: string }>(`${url}/reserve`, {
+      const reserved = await this.requestJson<{ status: 'available' | 'recorded' | 'closed' | 'unavailable'; replayToken?: string }>(`${url}/reserve`, {
         method: 'POST', credentials: 'include', cache: 'no-store', headers, body: JSON.stringify({ attemptId, generation: this.generation }),
       })
+      if (reserved.status === 'unavailable') { this.showUnavailable(); return }
       if (reserved.status === 'recorded') { if (!reserved.replayToken) throw new Error('Invalid state'); this.replayToken = reserved.replayToken; this.answerState.set('recorded'); return }
       if (reserved.status === 'closed') { this.answerState.set('closed'); return }
       if (reserved.status !== 'available') throw new Error('Uncertain')
-      const data = await this.requestJson<{ status: 'recorded' | 'closed'; replayToken?: string }>(url, {
+      const data = await this.requestJson<{ status: 'recorded' | 'closed' | 'unavailable'; replayToken?: string }>(url, {
         method: 'POST', credentials: 'include', cache: 'no-store', headers, body: JSON.stringify({ choice, attemptId }),
       })
+      if (data.status === 'unavailable') { this.showUnavailable(); return }
       if (data.status !== 'recorded' && data.status !== 'closed') throw new Error('Uncertain')
       if (data.status === 'recorded' && !data.replayToken) throw new Error('Invalid state')
       this.replayToken = data.replayToken ?? null

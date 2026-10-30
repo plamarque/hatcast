@@ -26,6 +26,7 @@ class AdventResultIntegrationTest {
     private val now = Instant.parse("2026-12-01T12:00:00Z")
 
     @BeforeEach fun setup() {
+        seedAdventQuizzes(jdbc)
         jdbc.update("INSERT INTO users (id, google_sub, slug, created_at, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", user, "result-$user", "result-$user")
         jdbc.update("UPDATE advent_test_clock SET offset_seconds = 0, observed_at = NULL WHERE id = 1")
     }
@@ -41,6 +42,7 @@ class AdventResultIntegrationTest {
         assertTrue(result.correct)
         assertEquals(11, result.totalPoints)
         assertFalse(result.seen)
+        assertEquals("Explication fictive", result.explanation)
         answers.acknowledge(user, 1, UUID.fromString(result.answerId), now)
         answers.acknowledge(user, 1, UUID.fromString(result.answerId), now)
         assertNull(answers.latestUnseen(user, now))

@@ -37,16 +37,16 @@ class AdventTestController(
     @GetMapping("/doors/{day}")
     fun door(@PathVariable day: Int, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest? = null): FictionalQuiz {
         val cloudPreview = authorize(principal, request)
-        val fixture = fixture(day)
-        val statements = fictionalStatements[day - 1]
-        val (image, isGeneric) = previewImage(fixture.file, cloudPreview)
-        return FictionalQuiz(day, fixture.name, image, statements, isGeneric)
+        answers.requireContentReady()
+        val quiz = answers.quiz(day) ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        val (image, isGeneric) = previewImage(quiz.portraitRef, cloudPreview)
+        return FictionalQuiz(day, quiz.name, image, quiz.statements, isGeneric)
     }
 
     @GetMapping("/session")
-    fun session(@AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): Map<String, UUID> {
+    fun session(@AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): Map<String, Any> {
         authorize(principal, request)
-        return mapOf("sessionId" to answers.session())
+        return mapOf("sessionId" to answers.session(), "transitionRequired" to answers.transitionRequired())
     }
 
     @PostMapping("/session/reset")
@@ -68,6 +68,7 @@ class AdventTestController(
         val received = request.getAttribute("hatcast.advent.received-at") as? Instant ?: Instant.now()
         authorize(principal, request)
         answers.requireSession(sessionHeader(request))
+        answers.requireContentReady()
         return answers.state(principal.userId, day, received)
     }
 
@@ -77,6 +78,7 @@ class AdventTestController(
         val received = request.getAttribute("hatcast.advent.received-at") as? Instant ?: Instant.now()
         authorize(principal, request)
         answers.requireSession(sessionHeader(request))
+        answers.requireContentReady()
         return answers.confirmReserved(principal.userId, day, body.choice ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), body.attemptId ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), received)
     }
 
@@ -86,6 +88,7 @@ class AdventTestController(
         val received = request.getAttribute("hatcast.advent.received-at") as? Instant ?: Instant.now()
         authorize(principal, request)
         answers.requireSession(sessionHeader(request))
+        answers.requireContentReady()
         return answers.reserve(principal.userId, day, body.attemptId ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), body.generation ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), received)
     }
 
@@ -95,6 +98,7 @@ class AdventTestController(
         val received = request.getAttribute("hatcast.advent.received-at") as? Instant ?: Instant.now()
         authorize(principal, request)
         answers.requireSession(sessionHeader(request))
+        answers.requireContentReady()
         return answers.reconcile(principal.userId, day, received)
     }
 
@@ -104,6 +108,7 @@ class AdventTestController(
         val received = request.getAttribute("hatcast.advent.received-at") as? Instant ?: Instant.now()
         authorize(principal, request)
         answers.requireSession(sessionHeader(request))
+        answers.requireContentReady()
         return answers.replay(principal.userId, day, body.replayToken ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), received)
     }
 
@@ -112,6 +117,7 @@ class AdventTestController(
     fun latestUnseen(@AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): Map<String, AdventResult?> {
         authorize(principal, request)
         answers.requireSession(sessionHeader(request))
+        answers.requireContentReady()
         return mapOf("result" to answers.latestUnseen(principal.userId, request.getAttribute("hatcast.advent.received-at") as? Instant ?: Instant.now()))
     }
 
@@ -120,6 +126,7 @@ class AdventTestController(
     fun result(@PathVariable day: Int, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AdventResult {
         authorize(principal, request)
         answers.requireSession(sessionHeader(request))
+        answers.requireContentReady()
         return answers.result(principal.userId, day, request.getAttribute("hatcast.advent.received-at") as? Instant ?: Instant.now()) ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
     }
 
@@ -128,6 +135,7 @@ class AdventTestController(
     fun acknowledge(@PathVariable day: Int, @RequestBody body: AcknowledgeResult, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest) {
         authorize(principal, request)
         answers.requireSession(sessionHeader(request))
+        answers.requireContentReady()
         answers.acknowledge(principal.userId, day, body.answerId ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), request.getAttribute("hatcast.advent.received-at") as? Instant ?: Instant.now())
     }
 
@@ -136,6 +144,7 @@ class AdventTestController(
     fun clock(@AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): Map<String, String> {
         authorize(principal, request)
         answers.requireSession(sessionHeader(request))
+        answers.requireContentReady()
         return mapOf("date" to answers.clockDate(request.getAttribute("hatcast.advent.received-at") as? Instant ?: Instant.now()).toString())
     }
 
@@ -144,6 +153,7 @@ class AdventTestController(
     fun advanceDay(@AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): Map<String, String> {
         authorize(principal, request)
         answers.requireSession(sessionHeader(request))
+        answers.requireContentReady()
         return mapOf("date" to answers.advanceDay(request.getAttribute("hatcast.advent.received-at") as? Instant ?: Instant.now()).toString())
     }
 
@@ -152,6 +162,7 @@ class AdventTestController(
     fun previousDay(@AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): Map<String, String> {
         authorize(principal, request)
         answers.requireSession(sessionHeader(request))
+        answers.requireContentReady()
         return mapOf("date" to answers.previousDay(request.getAttribute("hatcast.advent.received-at") as? Instant ?: Instant.now()).toString())
     }
 
@@ -178,16 +189,7 @@ class AdventTestController(
         return cloudPreview
     }
 
-    private fun fixture(day: Int): TestFixture = when (day) {
-            1 -> TestFixture("Toinou", "toinou-net.png")
-            2 -> TestFixture("Patrice", "patrice-net.png")
-            3 -> TestFixture("Will", "will-net.png")
-            4 -> TestFixture("Camille", "camille-net.png")
-            5 -> TestFixture("Angie", "angie-net.png")
-            in 6..24 -> TestFixture("Lutin de Noël", null)
-            else -> throw ResponseStatusException(HttpStatus.NOT_FOUND)
-        }
-    // The only personalized files are fixed, locally supplied fixtures. Never serve a path from a request.
+    // The validated database reference is a single safe filename; never serve a request path.
     private fun previewImage(file: String?, cloudPreview: Boolean): Pair<String, Boolean> {
         if (cloudPreview && file != null) {
             val image = cloudImages.read(file)
@@ -206,36 +208,6 @@ class AdventTestController(
         }
         return ("data:image/png;base64," + Base64.getEncoder().encodeToString(bytes)) to !hasLocalImage
     }
-
-    // Fictional anecdotes only: no answer, correctness, score or real quiz data.
-    private val fictionalStatements = listOf(
-        listOf("A improvisé une scène dans un phare.", "A appris à jongler avec des chaussettes.", "A donné un prénom à son parapluie."),
-        listOf("A joué un roi dans une cuisine.", "A participé à une course de canards en plastique.", "A oublié son texte au milieu d’un rêve."),
-        listOf("A inventé une chanson pour un cactus.", "A traversé une scène à reculons.", "A préparé une soupe pour un dragon."),
-        listOf("A dansé avec un chapeau géant.", "A raconté une histoire à un arbre.", "A joué une sirène sans savoir nager."),
-        listOf("A trouvé une étoile dans sa poche.", "A perdu un gant pendant une répétition.", "A fabriqué une couronne en papier."),
-        listOf("A appris une réplique en chantant.", "A nommé son vélo Biscotte.", "A construit une cabane avec des coussins."),
-        listOf("A joué un nuage pendant un spectacle.", "A décoré un gâteau avec des étoiles.", "A fait une révérence à un chat."),
-        listOf("A inventé une danse pour les flocons.", "A porté deux chaussettes dépareillées.", "A rencontré un pingouin au marché."),
-        listOf("A caché une blague dans un livre.", "A fait du théâtre dans un jardin.", "A appris à siffler sous la pluie."),
-        listOf("A offert une couronne à une plante.", "A créé un personnage de détective.", "A visité une bibliothèque en pyjama."),
-        listOf("A joué un pirate qui craint l’eau.", "A collectionné des boutons dorés.", "A improvisé avec une cuillère en bois."),
-        listOf("A dessiné un plan au trésor.", "A organisé un concours de grimaces.", "A donné un spectacle pour des peluches."),
-        listOf("A fabriqué une étoile en carton.", "A chanté devant une fenêtre ouverte.", "A découvert un jardin secret."),
-        listOf("A prêté sa voix à une chaussette.", "A cuisiné une tarte en forme de lune.", "A joué un facteur venu de Mars."),
-        listOf("A appris une danse dans un ascenseur.", "A peint un soleil sur une enveloppe.", "A caché un biscuit pour le Père Noël."),
-        listOf("A improvisé une histoire de valise.", "A promené un escargot imaginaire.", "A construit une ville en boîtes."),
-        listOf("A créé une chorale de canards.", "A porté une écharpe de trois mètres.", "A joué une reine allergique aux couronnes."),
-        listOf("A inventé un sport avec des coussins.", "A fait rire une statue.", "A chanté une berceuse à une plante."),
-        listOf("A écrit une lettre à un bonhomme de neige.", "A trouvé une plume dans une chaussure.", "A joué un cuisinier sur la Lune."),
-        listOf("A fait un vœu devant une ampoule.", "A inventé un nom pour chaque nuage.", "A appris une scène en marchant."),
-        listOf("A construit un château de livres.", "A joué un renard végétarien.", "A donné un concert avec des casseroles."),
-        listOf("A caché un trésor dans une théière.", "A fait un chapeau avec une serviette.", "A inventé une fête pour les lutins."),
-        listOf("A dessiné un flocon les yeux fermés.", "A joué une étoile filante timide.", "A partagé un chocolat avec un ours imaginaire."),
-        listOf("A répété une pièce avec des moufles.", "A emballé un cadeau sans ruban.", "A raconté une histoire à la lune."),
-    )
-
-    private data class TestFixture(val name: String, val file: String?)
 
     private fun isDevelopmentDatabase(): Boolean = try {
         val url = dataSource.connection.use { it.metaData.url }

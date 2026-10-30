@@ -151,7 +151,7 @@ test('reveals the most recent result accessibly after advancing the shared clock
   await page.addInitScript(() => localStorage.setItem('hatcast-pwa-banner-dismissed', String(Date.now())))
   let date = '2026-12-01'
   let seen = false
-  const result = { answerId: 'answer-one', day: 1, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false }
+  const result = { answerId: 'answer-one', day: 1, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false, explanation: 'Explication fictive du résultat.' }
   await page.route('**/v1/**', async route => {
     const path = new URL(route.request().url()).pathname
     if (path === '/v1/auth/me') return route.fulfill({ json: { user: { id: 'test-user', slug: 'test', displayName: 'Test', email: 'test@example.test', avatarUrl: null }, platformAdmin: false } })
@@ -177,7 +177,9 @@ test('reveals the most recent result accessibly after advancing the shared clock
     return route.fulfill({ json: {} })
   })
   await page.goto('/avent-test')
+  await expect(page.getByText('Explication fictive du résultat.')).toHaveCount(0)
   await page.getByRole('button', { name: 'Avancer au jour suivant' }).click()
+  await expect(page.getByText('Explication fictive du résultat.')).toBeVisible()
   const title = page.getByRole('heading', { name: 'Bravo, tu as trouvé !' })
   await expect(title).toBeFocused()
   await expect(page.locator('.advent__result-answer--truth')).toContainText('La bonne réponse')

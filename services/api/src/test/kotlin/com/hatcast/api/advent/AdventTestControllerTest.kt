@@ -27,7 +27,8 @@ class AdventTestControllerTest {
     private val user = SessionUserPrincipal(UUID.randomUUID(), "sub", null, "test@example.com")
     private val offlineRoot = mock<AdventOfflineRoot>()
     private val cloudImages = mock<AdventPreviewImages>()
-    private val controller = AdventTestController(env, dataSource, memberships, offlineRoot, cloudImages, mock())
+    private val answers = mock<AdventTestAnswers>()
+    private val controller = AdventTestController(env, dataSource, memberships, offlineRoot, cloudImages, answers)
 
     private val verifiedRequest = org.springframework.mock.web.MockHttpServletRequest().apply { getSession(true)!!.setAttribute("hatcast.auth.verified-email", true) }
     @TempDir lateinit var tempDir: Path
@@ -35,6 +36,10 @@ class AdventTestControllerTest {
         Files.createDirectories(tempDir.resolve(".local/hatcast-offline"))
         Files.createFile(tempDir.resolve(".local/hatcast-offline/hatcast.mv.db"))
         whenever(offlineRoot.worktreeRoot()).thenReturn(tempDir)
+        for (day in 1..24) whenever(answers.quiz(day)).thenReturn(AdventQuiz(
+            listOf("Toinou", "Patrice", "Will", "Camille", "Angie").getOrElse(day - 1) { "Lutin de Noël" },
+            when (day) { 1 -> "toinou-net.png"; 4 -> "camille-net.png"; else -> null },
+            listOf("fiction A $day", "fiction B $day", "fiction C $day"), 0, null))
     }
 
     private fun isolated() {
@@ -158,8 +163,11 @@ class AdventTestControllerTest {
         whenever(env.getProperty("hatcast.advent-test.operator-email", "")).thenReturn("test@example.com")
         whenever(env.activeProfiles).thenReturn(arrayOf("prod"))
         assertEquals(HttpStatus.NOT_FOUND, assertThrows(ResponseStatusException::class.java) { controller.reset(user, verifiedRequest) }.statusCode)
+        assertEquals(HttpStatus.NOT_FOUND, assertThrows(ResponseStatusException::class.java) { controller.advanceDay(user, verifiedRequest) }.statusCode)
+        assertEquals(HttpStatus.NOT_FOUND, assertThrows(ResponseStatusException::class.java) { controller.previousDay(user, verifiedRequest) }.statusCode)
         whenever(env.activeProfiles).thenReturn(arrayOf("dev", "offline"))
         whenever(metadata.url).thenReturn("jdbc:postgresql://example/production")
         assertEquals(HttpStatus.NOT_FOUND, assertThrows(ResponseStatusException::class.java) { controller.reset(user, verifiedRequest) }.statusCode)
+        verifyNoInteractions(answers)
     }
 }
