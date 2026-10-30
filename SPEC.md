@@ -465,4 +465,4 @@ Accueil verifies the inbox on each entry and always displays newly received task
 
 ### Aperçu de test Avent
 
-En développement isolé, un membre actif de la troupe configurée peut ouvrir une porte fictive et voir trois affirmations fictives. Cet aperçu indique que les réponses ne sont pas encore disponibles ; il ne constitue pas le calendrier complet.
+En développement isolé, un membre actif de la troupe configurée, dont l’adresse vérifiée figure dans la liste de test, peut ouvrir une porte fictive et confirmer une réponse parmi trois affirmations fictives. Une réponse confirmée est définitive. Avant sa révélation, seule une confirmation neutre invite à revenir le lendemain ; une réponse incertaine est vérifiée avant de proposer un nouvel essai. Une question passée ne peut plus recevoir de réponse. Cet aperçu ne constitue pas le calendrier complet et ne propose pas encore de résultat ni de classement.

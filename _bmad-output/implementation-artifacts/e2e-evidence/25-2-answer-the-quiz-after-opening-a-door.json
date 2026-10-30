@@ -1,0 +1,16 @@
+{
+  "command": "HATCAST_E2E_NO_BROWSER_INSTALL=1 PLAYWRIGHT_REUSE_SERVERS=0 scripts/run_e2e.sh -- e2e/advent-answer.spec.ts",
+  "discovered": [
+    "spec:apps/web/e2e/advent-answer.spec.ts"
+  ],
+  "disposition": "run",
+  "outcome": "passed",
+  "rationale": "Parcours du quiz Avent",
+  "report_reference": "apps/web/playwright-report/index.html",
+  "schema": "hatcast.story-e2e-evidence.v1",
+  "selection": [
+    "spec:apps/web/e2e/advent-answer.spec.ts"
+  ],
+  "story_key": "25-2-answer-the-quiz-after-opening-a-door",
+  "target": "advent-answer"
+}

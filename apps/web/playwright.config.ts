@@ -24,6 +24,7 @@ export default defineConfig({
     ignoreHTTPSErrors: true,
   },
   projects: [
+    { name: 'chromium-advent-answer', testMatch: /advent-answer\.spec\.ts/, use: { ...devices['Desktop Chrome'] } },
     {
       name: 'chromium-accueil-feedback',
       testMatch: /accueil-feedback\.spec\.ts/,

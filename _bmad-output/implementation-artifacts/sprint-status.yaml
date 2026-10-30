@@ -289,9 +289,9 @@ development_status:
   23-9-adapter-le-vocabulaire-à-son-groupe: backlog
   epic-23-retrospective: optional
 
-  epic-25: backlog
+  epic-25: in-progress
   25-1-open-an-advent-door-in-isolated-development: done
-  25-2-answer-the-quiz-after-opening-a-door: backlog
+  25-2-answer-the-quiz-after-opening-a-door: done
   25-2a-restart-an-isolated-test-session: backlog
   25-3-discover-and-recover-the-quiz-result: backlog
   25-4-see-the-friendly-ranking: backlog

@@ -4,7 +4,7 @@
 
 ## Goal
 
-Let eligible La Malice members discover each other through 24 daily quizzes, delayed reveals and a friendly ranking, while enabling safe isolated development demonstrations before the production opening.
+Give La Malice members a festive way to discover one another through 24 daily quizzes, delayed reveals and a friendly ranking. Patrice and Toinou prepare and test the experience in isolated development before the production opening; partial demonstrations must identify unfinished parts and protect production data and surprises.
 
 ## Stories
 
@@ -20,29 +20,33 @@ Let eligible La Malice members discover each other through 24 daily quizzes, del
 
 ## Requirements & Constraints
 
-- Only active members of the configured troupe can access the experience; platform administrators are not exempt. Require consent from people presented. Content is supplied by release without an administration interface.
-- Server-side Europe/Paris civil time controls access and deadlines. Quizzes run December 1–24, each playable only on its day; the following midnight makes its result revealable. There is no catch-up answer or quiz on December 25. Member access ends January 16, 2027; retain results afterward.
-- A correct answer earns 10 points, an incorrect one zero, and every answer earns one participation point. Each non-overlapping group of three consecutive correct answers earns two bonus points; a wrong answer resets the sequence, while a missed day leaves it intact. Only revealed points contribute to visible totals and rankings.
-- Rankings include classable members from zero; ties receive the lowest position of their group. Exclude Patrice and Toinou from the list while displaying their personal scores separately. Retain and recover unseen revealable results across devices; present the most recent first and acknowledge only after display.
-- Tests use fictional statements and may use consenting real names or portraits. Development test mode is visibly identified, isolated from production data, notifications and analytics, and unavailable in production. A shared server clock advances only; answering a future case advances it to that day, with normal scoring and next-day revelation. Targeted reset is required to move backward. Verify real date boundaries separately.
-- Never expose an incomplete or unprotected production experience. Demonstrations explicitly identify unfinished capabilities and require verified isolation and protections for exposed material.
+- Each quiz presents a portrait and three statements, one false. A member may play their own quiz. A confirmed answer is immutable and unique per member and quiz; no catch-up answers are allowed. Pending confirmations close at the following Paris midnight, including those received earlier; reveal is available immediately.
+- Score 10 points for a correct choice or zero otherwise, plus one participation point for every recorded answer. Add two points for each non-overlapping group of three consecutive correct answers: a wrong answer resets the streak, while a missed day does not. The theoretical maximum is 280 points. Keep results and derived points hidden until the following Paris midnight.
+- Before reveal, acknowledge only that an answer was saved and invite the member to return tomorrow. Resolve uncertain submissions against saved state before allowing retry. After reveal, show the recorded choice, false statement, correctness, response and participation points, earned bonus and optional anecdote. Prioritize the most recent revealable unseen result on return, with no calendar action on that priority screen; older unseen results remain accessible through their cases.
+- The revealed-only ranking includes all classable members from zero. Tied members receive the lowest rank in their group. Patrice and Toinou are excluded from the list and see their personal score without rank. The final ranking and calendar remain accessible through 15 January; member access ends on 16 January and answers remain retained.
+- A case published on its day is playable until midnight; a case published later is read-only after reveal. Missing content does not trigger automatic opening or notification. Content is supplied through releases; no content administration or automated prize tie-breaker is required.
+- Production access is limited to active members of the configured troupe during the allowed dates; no production test mode exists. Test mode requires isolated development, active troupe membership and the dedicated tester allowlist. Use fictional test statements, and obtain consent for real names or portraits. Test data, notifications and analytics must not affect production.
 
 ## Technical Decisions
 
-- Angular presents the journey; the API owns authorization, environment, timing, disclosure and mutations; persistent server data owns answers and shared journey state. All reads and writes enforce configured troupe membership and permitted mode and dates.
-- Keep future content, revealing portraits, correct answers and pending correctness or scores out of public assets, bundles, URLs, caches, notifications and analytics. Protect direct portrait requests and return sensitive responses with no-store; prevent service-worker and cross-account cache leaks.
-- Guarantee one durable immutable answer per member and quiz under retries and concurrency. The API receipt time governs the midnight deadline, with serialized member scoring and consistent server reference time. Seen and dismissal states are persistent and shared across devices.
-- Use the existing Spring scheduler and reminder mechanisms for invitations, checking content and eligibility at execution. A late or missed attempt is acceptable; no additional delivery infrastructure or recovery guarantee is introduced.
-- Measure distinct real players and real recorded answers only. Exclude tests and sensitive quiz data; persisted answers remain authoritative.
+- Angular presents the experience; the API governs eligibility, time, disclosure and mutations; PostgreSQL owns shared state. Verify membership, authorized date and mode on every read and mutation, including portraits; platform administrators are not exempt. Sensitive reads are private and `no-store`.
+- Never place future content, correct answers, pending correctness, scores or revealing derivatives in public assets, bundles, URLs, caches, notifications, analytics, or premature API responses. Protect direct portrait access and check client, service-worker and shared-cache behavior across accounts.
+- Use consistent server-side Europe/Paris civil time. The database enforces one answer per member and quiz; serialize per-member mutations needed for streak scoring, and preserve sufficient stable data for later faithful results. Ranking and totals include only revealable points, using a single reference time.
+- Share dismissal and reveal-seen state across devices. Mark a result seen only after its screen is displayed and the client acknowledges it; acknowledgments are idempotent. Interrupted delivery or simultaneous devices can cause a repeated display, so no distributed exactly-once display is promised.
+- Isolated test mode uses a shared server-side simulated clock that only advances. Confirming a future case advances it to that day, with normal scoring and revelation on the next simulated day. Only a targeted isolated reset can return it backward. Verify real production time boundaries independently.
+- Reuse the existing reminder mechanism for a 10:00 Paris attempt on days 1–24; check quiz availability, eligibility, unanswered state and preferences at execution. Late or missed delivery is acceptable, with no dedicated recovery or fictitious event. Record distinct real players and real answers as global totals; exclude tests and sensitive content, with the database authoritative.
 
 ## UX & Interaction Patterns
 
-- Apply HatCast Angular Material 3, theme tokens, mobile-first responsive layout and French encouraging copy. Use a full-page decorated door with equivalent immediate access under reduced motion.
-- Display portrait and three single-choice statements with explicit confirmation. After submission show a neutral acknowledgment until the next-day reveal; no score or other clue may expose the pending result.
-- Show the most recent unseen reveal before the day's journey, with no calendar action on that priority screen. Calendar and ranking are separate surfaces; the calendar uses a four-column ordered grid for 24 quizzes and December 25, with states distinguishable without color alone.
-- Support keyboard, visible focus, announcements, meaningful portrait alternatives, accessible single-choice semantics and no focus trap. Target 48 px touch targets; document any 40 px exception. Preserve content and actions under zoom and text enlargement.
+- Use HatCast Angular Material 3, typography and design tokens with a festive, French tutoiement tone. The door and quiz show a portrait and three single-choice statements; selection can change until explicit confirmation. Never truncate content to avoid scrolling.
+- Provide an accessible, mobile-first experience: keyboard and visible focus, meaningful portrait alternatives, single-choice semantics, appropriate announcements, contrast, text enlargement and small-screen checks. Aim for 48 × 48 px touch targets; document any allowed 40 px exception. Reduced motion provides equivalent immediate access without necessary animation.
+- Use distinct calendar and ranking surfaces. The calendar contains 24 quiz cases and a 25 December case in a four-column ordered grid; expose states without relying on color alone or revealing future content. Preserve priority reveal, neutral pending state and read-only past content.
+- The 25 December journey follows any priority reveal and provides a Christmas message and personal revealed score; no quiz occurs that day. Graphical treatment of missed cases and the 25 December presentation remain to be refined.
+
+
+**Reveal serialization contract (25.3/25.4):** Future result and ranking reads must acquire the same singleton clock row lock as confirmation, then sample authoritative time after acquiring it and read committed answers before releasing it. This serializes a reveal with in-flight confirmations so its scoring snapshot cannot subsequently change. A stalled transaction can delay the read beyond midnight; immediate wall-clock availability is therefore not guaranteed. Story 25.3 must implement and test this contract, including rollback and concurrent reads, on PostgreSQL.
 
 ## Cross-Story Dependencies
 
-- Build in order 25.1, 25.2, 25.2a, 25.3, 25.4, 25.5, 25.6 and 25.7; 25.9 follows persisted answers. Isolation and applicable protections precede human testing. Partial demonstrations identify unavailable features.
-- Scoring, revelation, ranking, calendar and shared state form one domain; verify boundary dates, concurrency, retries, cross-account and cross-device behavior as the relevant capabilities are introduced.
+- Planned sequence: 25.1 → 25.2 → 25.2a → 25.3 → 25.4 → 25.5 → 25.6 → 25.7; 25.9 follows recorded answers. Protect and isolate each partial human test and explicitly label unfinished functionality.
+- Reveal and ranking rely on durable answer and scoring state; the calendar later verifies access to older results and past unplayed content. Entry and notification journeys must honor priority reveal. Production entry must not expose an incomplete or unprotected experience.

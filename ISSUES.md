@@ -15,6 +15,8 @@ historical registry below.
 
 ### Open defects and limitations
 
+BUG-054 (PWA banner overflows at 200% text size on a narrow screen).
+
 BUG-049 (production scheduled reminder encountered a database connection timeout).
 
 LIMIT-011 (repeated release validation and deployment cycles), and LIMIT-012
@@ -37,6 +39,8 @@ integration database).
 
 ### Pending verification or operational follow-up
 
+BUG-056 is corrected locally in story 25.2; integration and real-browser isolation verification remain pending.
+
 BUG-POSTHOG-002 is closed locally with its reviewed fix integrated into v2 and regression tests passing; corrected CI execution remains pending.
 
 BUG-033 needs an authorised production data repair. BUG-027, BUG-026, BUG-025,
@@ -44,6 +48,36 @@ BUG-024, and BUG-021 have local fixes but still require their stated review,
 human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
+
+### BUG-057 — Advent test can wait indefinitely on a stalled request
+- **Status**: Fixed locally in the unintegrated story 25.2 implementation; integration and browser network-stall verification remain pending.
+- **Affected area**: V2 isolated Advent test interface.
+- **Observed behavior**: A fetch that never settles leaves the interface loading, checking, or submitting without a timeout or retry; relevant test-day controls remain disabled. The close link remains available.
+- **Expected behavior**: A stalled request can be recovered without an indefinite wait while preserving safe answer reconciliation.
+- **Notes/context**: Requests and response parsing now time out after 10 seconds. A timed-out confirmation is reconciled before retry; a timed-out reconciliation remains uncertain. Component tests cover stalled preview, reconciliation and confirmation. No network-stall browser test has yet been run.
+
+### BUG-056 — Uncertain Advent submission may allow a conflicting retry
+- **Status**: Corrected locally; integration pending.
+- **Affected area**: V2 isolated Advent test answer confirmation.
+- **Observed behavior**: After a failed confirmation response, the state check can return available while the initial confirmation is still being processed. A member may change their choice and retry, while the original selection can still be recorded.
+- **Expected behavior**: An uncertain confirmation must be reconciled without allowing a conflicting choice to be submitted.
+- **Notes/context**: A server-side reservation and reconciliation generation invalidate delayed confirmations and reservations. The targeted H2 integration tests cover both confirmation/reconciliation orders, delayed reservation and member isolation; Angular tests cover a lost response and reopening. Offline API tests check verified-email access. Browser tests use mocked API responses and do not establish real API/CSRF or service-worker cache isolation; PostgreSQL concurrency and integration remain to be verified.
+
+### BUG-055 — Late Advent test answer alters a revealable bonus
+- **Status**: Corrected locally; integration pending.
+- **Severity**: High (result data can change after it is eligible for reveal).
+- **Affected area**: V2 isolated Advent test answer scoring.
+- **Observed behavior**: A quiz response received earlier but persisted after later responses can cause their stored streak bonuses to be recalculated, including after their reveal time.
+- **Expected behavior**: Pending confirmations close at midnight and scoring data remains stable when results become revealable.
+- **Notes/context**: The late-lock and simulated-clock reproductions now pass locally after the 2026-10-30 decision. A transaction paused after its deadline check and before commit remains unverified; the issue stays open pending a complete guarantee. The feature has not been integrated or deployed.
+
+### BUG-054 — PWA banner overflows at increased text size
+- **Status**: Open.
+- **Severity**: Medium (content may require horizontal scrolling at increased text size).
+- **Affected area**: V2 PWA system banner on `/avent-test`.
+- **Observed behavior**: In Chromium at a 320 px viewport with the root text size at 200%, the banner actions extend beyond the viewport and the document scrolls horizontally. The Advent quiz fits after dismissing the banner.
+- **Expected behavior**: The banner and its actions remain within the viewport and readable at increased text size.
+- **Notes/context**: Observed with fictional quiz content and intercepted API responses during story 25.2 browser verification. This is distinct from BUG-050, which concerned a banner covering the test label. Other routes and real devices have not been checked.
 
 ### BUG-053 — Development Google sign-in rejected the Cloud Run origin
 - **Status**: OAuth configuration updated; awaiting end-to-end user verification.
