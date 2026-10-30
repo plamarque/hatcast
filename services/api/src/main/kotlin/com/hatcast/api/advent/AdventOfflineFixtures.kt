@@ -26,11 +26,18 @@ class AdventOfflineFixtures(
         for ((index, quiz) in fictionalQuizzes.withIndex()) {
             val day = index + 2
             // Never pair a new fictional quiz with a preexisting answer for that day.
+            val (name, portrait) = when (day) {
+                2 -> "Antoine" to "toinou-net.png"
+                3 -> "Camille" to "camille-net.png"
+                9 -> "Will" to "will-net.png"
+                10 -> "Angie" to "angie-net.png"
+                else -> "Lutin fictif $day" to null
+            }
             jdbc.update("""INSERT INTO advent_quizzes (quiz_day, display_name, portrait_ref, statement_0, statement_1, statement_2, false_choice, explanation)
-                SELECT ?, ?, NULL, ?, ?, ?, ?, NULL
+                SELECT ?, ?, ?, ?, ?, ?, ?, NULL
                 WHERE NOT EXISTS (SELECT 1 FROM advent_quizzes WHERE quiz_day = ?)
                   AND NOT EXISTS (SELECT 1 FROM advent_test_answers WHERE quiz_day = ?)""".trimIndent(),
-                day, "Lutin fictif $day", quiz.statements[0], quiz.statements[1], quiz.statements[2],
+                day, name, portrait, quiz.statements[0], quiz.statements[1], quiz.statements[2],
                 quiz.falseChoice, day, day)
         }
     }

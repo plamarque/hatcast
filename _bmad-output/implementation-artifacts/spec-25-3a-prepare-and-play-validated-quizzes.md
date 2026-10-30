@@ -28,7 +28,7 @@ context:
 
 **Never:** Deploy, mutate production or transfer real content in this story. Do not create an administration UI or adopt the old bucket JSON/snapshot implementation. Patrice does not change contributions during play and accepts inconsistency risk if an exceptional change occurs; no versioning, snapshot, stale-content check or edit lock is required for that risk. Do not implement later ranking, complete calendar, production entry or notifications. Preserve the unfinished catalogue worktree and its backup.
 
-**Additional scope requested by Patrice on 2026-10-31:** Provide a complete 24-day quiz set for local offline acceptance, including Patrice’s already validated private contribution and matching private portrait on day 1, and fictional placeholders for days 2–24. Each day has three statements and one false answer. Make preparation reproducible while preserving existing quizzes and answers. The real contribution and portrait remain private and must never be stored in Git; fictional placeholders are test-only and must not be promoted as validated contributions.
+**Additional scope requested by Patrice on 2026-10-31:** Provide a complete 24-day quiz set for local offline acceptance, including Patrice’s already validated private contribution and matching private portrait on day 1, and fictional placeholders for days 2–24. Each day has three statements and one false answer. Make preparation reproducible while preserving existing quizzes and answers. The real contribution and portrait remain private and must never be stored in Git; fictional placeholders are test-only and must not be promoted as validated contributions. Patrice additionally requests the existing private elves for Antoine, Camille, Will and Angie be linked to fictional quizzes in this test set; preserve all preexisting answers and private portraits outside Git.
 
 ## I/O & Edge-Case Matrix
 
@@ -90,6 +90,8 @@ The catalogue migration creates an empty table; isolated offline startup adds mi
 
 ## Spec Change Log
 
+- Patrice requested the existing private elves for Antoine, Camille, Will and Angie be assigned to fictional test quizzes while preserving previously played cases.
+
 - Patrice requested a full 24-day test game including his validated day-1 quiz and portrait. Add a reproducible isolated offline set without overwriting existing quizzes, storing private content in Git, or exposing fake contributions as real.
 
 - Second review found pending fictional reservations surviving migration, an unavailable-result retry targeting the wrong day, a content-disappearance race and missing individual-result transition coverage. Amend tasks to fence the old session state and exercise these cases. KEEP: prior loop's safe explicit reset, unchanged quiz data, existing privacy, test mode future-case access, and verified transaction and UI behavior.
@@ -130,6 +132,8 @@ The catalogue migration creates an empty table; isolated offline startup adds mi
 - **Medium — bad spec:** Reset test compares only quiz row count, not the retained fields; compare the full prepared quiz.
 
 ## Verification
+
+Private portrait associations: offline fixture tests passed, including mapping and existing-data preservation; actual local portraits are kept outside Git and served after authorization.
 
 Final 24-day extension: complete Advent H2/PostgreSQL 16 suite passed on disposable data; 39 Angular tests, frontend build and 3 Chromium tests passed. The local acceptance database contains 24 quizzes including the privately supplied day 1 and matching portrait, verified by authenticated Playwright. Existing Sass and CSS budget warnings remain; screen-reader inspection was not exhaustive. No production operations performed.
 

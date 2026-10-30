@@ -36,6 +36,9 @@ class AdventOfflineFixturesTest {
         seed.prepare(); seed.prepare()
         assertEquals(24, jdbc.queryForObject("SELECT COUNT(*) FROM advent_quizzes", Int::class.java))
         assertEquals(24, jdbc.queryForObject("SELECT COUNT(DISTINCT quiz_day) FROM advent_quizzes", Int::class.java))
+        val portraits = jdbc.queryForList("SELECT quiz_day, display_name, portrait_ref FROM advent_quizzes WHERE quiz_day IN (2, 3, 9, 10) ORDER BY quiz_day")
+        assertEquals(listOf("Antoine", "Camille", "Will", "Angie"), portraits.map { it["display_name"] })
+        assertEquals(listOf("toinou-net.png", "camille-net.png", "will-net.png", "angie-net.png"), portraits.map { it["portrait_ref"] })
         assertEquals(24, jdbc.queryForObject("SELECT COUNT(*) FROM advent_quizzes WHERE TRIM(statement_0) <> '' AND TRIM(statement_1) <> '' AND TRIM(statement_2) <> '' AND false_choice BETWEEN 0 AND 2", Int::class.java))
         val expectedKeys = listOf(0, 1, 0, 2, 1, 0, 0, 0, 0, 2, 2, 2, 1, 0, 2, 1, 1, 2, 2, 1, 0, 2, 1)
         val expectedFalseStatements = listOf(
