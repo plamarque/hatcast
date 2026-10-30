@@ -297,3 +297,21 @@ Commit messages must follow the [Commit Message Guidelines](docs/shared/technica
 - No shared lint/format script was observed in package.json. Use editor/IDE defaults or add eslint/prettier and wire scripts in a later slice (see PLAN.md). Do not disable or skip tests to satisfy a linter.
 
 Le mode de prévisualisation Avent vérifie également `HATCAST_ADVENT_TEST_ALLOWED_EMAILS`, liste d’adresses de test séparées par des virgules ; une liste absente refuse tout accès. Elle ne confère aucun rôle d’administration.
+
+
+### Restart the isolated Advent test session
+
+Use only an isolated development instance. The cloud development instance permits the designated operator; offline requires `hatcast.advent-test.enabled=true`, an isolated worktree H2 database, an active configured troupe membership, a verified allowlisted email, and `hatcast.advent-test.operator-email` equal to that operator's email. Production and unverified database/profile combinations reject the endpoint. Never point this procedure at production.
+
+Sign in as the operator. With the browser's authenticated session, obtain `sessionId` using `GET /v1/advent-test/session`, then send `POST /v1/advent-test/session/reset` with `X-Advent-Test-Session: <sessionId>` and the usual CSRF cookie/header. For example, from the signed-in preview's browser console:
+
+```js
+const { sessionId } = await (await fetch('/v1/advent-test/session', { cache: 'no-store' })).json()
+const csrf = decodeURIComponent(document.cookie.split('; ').find(x => x.startsWith('XSRF-TOKEN='))?.slice('XSRF-TOKEN='.length) ?? '')
+const result = await fetch('/v1/advent-test/session/reset', { method: 'POST', headers: { 'X-Advent-Test-Session': sessionId, 'X-XSRF-TOKEN': csrf } })
+console.log(result.status)
+```
+
+Only HTTP 200 confirms success. This resets the shared test game for all testers: answers, scores/streaks, replay and attempt/generation records, clock advances and the simulated clock. Fictional fixtures, users and other data are retained. A stale session returns 409; reload clients to acquire the new session. Personal replay and navigating to day 1 do not reset the shared clock.
+
+Verify the response and obtain a new session ID; reload the preview, confirm a new answer and check that the test clock starts again at day 1 and prior answers are absent. Verify real Paris date boundaries separately using the date-rule tests; simulated time is not production time. The reset sends no notifications or analytics. Do not run this operation against production.

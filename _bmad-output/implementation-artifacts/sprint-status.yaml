@@ -292,7 +292,7 @@ development_status:
   epic-25: in-progress
   25-1-open-an-advent-door-in-isolated-development: done
   25-2-answer-the-quiz-after-opening-a-door: done
-  25-2a-restart-an-isolated-test-session: backlog
+  25-2a-restart-an-isolated-test-session: done
   25-3-discover-and-recover-the-quiz-result: backlog
   25-4-see-the-friendly-ranking: backlog
   25-5-browse-the-calendar-and-past-content: backlog

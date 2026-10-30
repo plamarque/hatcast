@@ -14,6 +14,7 @@ import java.time.Instant
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.server.ResponseStatusException
 import java.nio.file.Files
 import java.nio.file.LinkOption
@@ -42,38 +43,67 @@ class AdventTestController(
         return FictionalQuiz(day, fixture.name, image, statements, isGeneric)
     }
 
+    @GetMapping("/session")
+    fun session(@AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): Map<String, UUID> {
+        authorize(principal, request)
+        return mapOf("sessionId" to answers.session())
+    }
+
+    @PostMapping("/session/reset")
+    @Transactional
+    fun reset(@AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest) {
+        val cloud = authorize(principal, request)
+        val operator = if (cloud) "patrice.lamarque@gmail.com" else environment.getProperty("hatcast.advent-test.operator-email", "").trim().lowercase()
+        if (operator.isEmpty() || principal.email?.trim()?.lowercase() != operator) throw ResponseStatusException(HttpStatus.FORBIDDEN)
+        answers.reset(sessionHeader(request))
+    }
+
+    private fun sessionHeader(request: HttpServletRequest): UUID = try {
+        UUID.fromString(request.getHeader("X-Advent-Test-Session") ?: "")
+    } catch (_: IllegalArgumentException) { throw ResponseStatusException(HttpStatus.BAD_REQUEST) }
+
     @GetMapping("/doors/{day}/answer")
+    @Transactional
     fun state(@PathVariable day: Int, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AnswerState {
         val received = request.getAttribute("hatcast.advent.received-at") as? Instant ?: Instant.now()
         authorize(principal, request)
+        answers.requireSession(sessionHeader(request))
         return answers.state(principal.userId, day, received)
     }
 
     @PostMapping("/doors/{day}/answer")
+    @Transactional
     fun confirm(@PathVariable day: Int, @RequestBody body: ConfirmAnswer, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AnswerState {
         val received = request.getAttribute("hatcast.advent.received-at") as? Instant ?: Instant.now()
         authorize(principal, request)
+        answers.requireSession(sessionHeader(request))
         return answers.confirmReserved(principal.userId, day, body.choice ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), body.attemptId ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), received)
     }
 
     @PostMapping("/doors/{day}/answer/reserve")
+    @Transactional
     fun reserve(@PathVariable day: Int, @RequestBody body: AnswerAttempt, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AnswerState {
         val received = request.getAttribute("hatcast.advent.received-at") as? Instant ?: Instant.now()
         authorize(principal, request)
+        answers.requireSession(sessionHeader(request))
         return answers.reserve(principal.userId, day, body.attemptId ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), body.generation ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), received)
     }
 
     @PostMapping("/doors/{day}/answer/reconcile")
+    @Transactional
     fun reconcile(@PathVariable day: Int, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AnswerState {
         val received = request.getAttribute("hatcast.advent.received-at") as? Instant ?: Instant.now()
         authorize(principal, request)
+        answers.requireSession(sessionHeader(request))
         return answers.reconcile(principal.userId, day, received)
     }
 
     @PostMapping("/doors/{day}/answer/replay")
+    @Transactional
     fun replay(@PathVariable day: Int, @RequestBody body: ReplayAnswer, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AnswerState {
         val received = request.getAttribute("hatcast.advent.received-at") as? Instant ?: Instant.now()
         authorize(principal, request)
+        answers.requireSession(sessionHeader(request))
         return answers.replay(principal.userId, day, body.replayToken ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), received)
     }
 

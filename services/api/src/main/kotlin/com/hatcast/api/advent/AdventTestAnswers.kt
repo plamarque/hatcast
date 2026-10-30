@@ -17,6 +17,31 @@ class AdventTestAnswers(private val jdbc: JdbcTemplate) {
     private val paris = ZoneId.of("Europe/Paris")
     private val keys = listOf(0, 1, 2, 1, 0, 2, 0, 1, 2, 0, 1, 2, 1, 0, 2, 0, 1, 2, 0, 1, 2, 1, 0, 2)
 
+    /** The clock row is the serialization point for every test-session operation. */
+    @Transactional
+    fun session(): UUID {
+        val current = jdbc.query("SELECT session_id FROM advent_test_clock WHERE id = 1 FOR UPDATE") { rs, _ -> rs.getString(1) }.single()
+        if (current != null) return UUID.fromString(current)
+        val created = UUID.randomUUID()
+        jdbc.update("UPDATE advent_test_clock SET session_id = ? WHERE id = 1", created)
+        return created
+    }
+
+    @Transactional
+    fun requireSession(expected: UUID) {
+        if (session() != expected) throw ResponseStatusException(HttpStatus.CONFLICT, "Test session changed")
+    }
+
+    @Transactional
+    fun reset(expected: UUID) {
+        requireSession(expected)
+        // These are exclusively the isolated test-game tables, not fixtures or real data.
+        listOf("advent_test_attempts", "advent_test_generations", "advent_test_replays",
+            "advent_test_answers", "advent_test_member_state", "advent_test_clock_advances")
+            .forEach { jdbc.update("DELETE FROM $it") }
+        jdbc.update("UPDATE advent_test_clock SET offset_seconds = NULL, observed_at = NULL, session_id = ? WHERE id = 1", UUID.randomUUID())
+    }
+
     @Transactional
     fun state(user: UUID, day: Int, receipt: Instant): AnswerState {
         validateDay(day)

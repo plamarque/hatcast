@@ -147,3 +147,6 @@ For V1, there is no separate API server; its backend is Firebase (Firestore + Au
 - **Queue-based side effects:** Mail, reminders, push go through Firestore queues + triggers. To add a new kind of notification, add a collection (and rules), a trigger, and client code that writes to the queue.
 - **Routes:** Add new routes in [`legacy/src/main.js`](legacy/src/main.js) (routes array and guards). Admin routes under `/season/:slug/admin` are already guarded; replicate the pattern for other protected areas.
 - **PWA:** Manifest and service worker are configured in `vite.config.js` and `legacy/src/service-worker.js`. Changes to offline behaviour or push subscription touch these and possibly `notifications.js`.
+
+
+Advent test reset uses the singleton clock row as its transactional serialization and session-generation fence. All answer operations carry the current session identifier and fail on a stale generation. The operator endpoint requires the existing isolated-environment, verified-email, allowlist and membership checks, plus the configured operator identity.

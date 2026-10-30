@@ -470,3 +470,6 @@ En développement isolé, un membre actif de la troupe configurée, dont l’adr
 ### Identité visuelle Advent Quiz
 
 Les interfaces Advent Quiz adoptent la direction artistique propre approuvée décrite dans [DESIGN.md](_bmad-output/planning-artifacts/ux-designs/ux-hatcast-avent-2026-10-28/DESIGN.md) et les parcours et états de [EXPERIENCE.md](_bmad-output/planning-artifacts/ux-designs/ux-hatcast-avent-2026-10-28/EXPERIENCE.md). Leur identité est distincte de celle de HatCast ; les autres surfaces conservent leur apparence. Les maquettes sont des références graphiques et ne créent pas de fonctionnalités ni ne modifient les règles de révélation.
+
+
+In verified isolated Advent development, an authorized operator can restart the shared test session. Reset clears only the test-game state and simulated clock; fictional content and unrelated data remain. Existing clients must refresh their session before further test mutations.

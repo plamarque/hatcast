@@ -24,6 +24,8 @@ export class AdventTest {
   readonly choice = signal<number | null>(null)
   readonly answerState = signal<'checking' | 'available' | 'recorded' | 'closed' | 'uncertain'>('checking')
   readonly submitting = signal(false)
+  readonly sessionChanged = signal(false)
+  private sessionId: string | null = null
   private generation: string | null = null
   private replayToken: string | null = null
   @ViewChild('quizHeading') private quizHeading?: ElementRef<HTMLElement>
@@ -45,9 +47,13 @@ export class AdventTest {
     this.preview.set(null)
     this.loading.set(true)
     this.error.set(false)
+    this.sessionChanged.set(false)
     try {
       const content = await this.requestJson<FictionalQuiz>(`/v1/advent-test/doors/${day}`, { credentials: 'include', cache: 'no-store' })
-      const state = await this.requestJson<{ status: 'available' | 'recorded' | 'closed'; replayToken?: string }>(`/v1/advent-test/doors/${day}/answer`, { credentials: 'include', cache: 'no-store' })
+      const session = await this.requestJson<{ sessionId: string }>('/v1/advent-test/session', { credentials: 'include', cache: 'no-store' })
+      if (!session.sessionId) throw new Error('Invalid session')
+      this.sessionId = session.sessionId
+      const state = await this.requestJson<{ status: 'available' | 'recorded' | 'closed'; replayToken?: string }>(`/v1/advent-test/doors/${day}/answer`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
       if (!['available', 'recorded', 'closed'].includes(state.status)) throw new Error('Invalid state')
       if (state.status === 'recorded' && !state.replayToken) throw new Error('Invalid state')
       this.preview.set(content)
@@ -86,7 +92,7 @@ export class AdventTest {
   async reconcile(): Promise<void> {
     this.answerState.set('checking')
     try {
-      const data = await this.requestJson<{ status: 'available' | 'recorded' | 'closed'; generation?: string; replayToken?: string }>(`/v1/advent-test/doors/${this.selectedDay()}/answer/reconcile`, { method: 'POST', credentials: 'include', cache: 'no-store', headers: this.csrfHeaders() })
+      const data = await this.requestJson<{ status: 'available' | 'recorded' | 'closed'; generation?: string; replayToken?: string }>(`/v1/advent-test/doors/${this.selectedDay()}/answer/reconcile`, { method: 'POST', credentials: 'include', cache: 'no-store', headers: { ...this.csrfHeaders(), ...this.sessionHeaders() } })
       if (!['available', 'recorded', 'closed'].includes(data.status)) throw new Error('Invalid state')
       if (data.status === 'available' && !data.generation) throw new Error('Invalid state')
       if (data.status === 'recorded' && !data.replayToken) throw new Error('Invalid state')
@@ -101,7 +107,7 @@ export class AdventTest {
     this.submitting.set(true)
     this.choice.set(null)
     try {
-      const result = await this.requestJson<{ status: string; replayToken?: string }>(`/v1/advent-test/doors/${this.selectedDay()}/answer/replay`, { method: 'POST', credentials: 'include', cache: 'no-store', headers: { ...this.csrfHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({ replayToken: this.replayToken }) })
+      const result = await this.requestJson<{ status: string; replayToken?: string }>(`/v1/advent-test/doors/${this.selectedDay()}/answer/replay`, { method: 'POST', credentials: 'include', cache: 'no-store', headers: { ...this.csrfHeaders(), ...this.sessionHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({ replayToken: this.replayToken }) })
       if (result.status === 'recorded' && !result.replayToken) throw new Error('Invalid state')
       if (!['available', 'recorded', 'closed'].includes(result.status)) throw new Error('Invalid state')
       await this.reconcile()
@@ -117,7 +123,7 @@ export class AdventTest {
     try {
       const attemptId = crypto.randomUUID()
       const url = `/v1/advent-test/doors/${this.selectedDay()}/answer`
-      const headers = { ...this.csrfHeaders(), 'Content-Type': 'application/json' }
+      const headers = { ...this.csrfHeaders(), ...this.sessionHeaders(), 'Content-Type': 'application/json' }
       const reserved = await this.requestJson<{ status: 'available' | 'recorded' | 'closed'; replayToken?: string }>(`${url}/reserve`, {
         method: 'POST', credentials: 'include', cache: 'no-store', headers, body: JSON.stringify({ attemptId, generation: this.generation }),
       })
@@ -131,7 +137,10 @@ export class AdventTest {
       if (data.status === 'recorded' && !data.replayToken) throw new Error('Invalid state')
       this.replayToken = data.replayToken ?? null
       this.answerState.set(data.status)
-    } catch { await this.reconcile() }
+    } catch {
+      if (this.sessionChanged()) this.answerState.set('uncertain')
+      else await this.reconcile()
+    }
     finally {
       this.submitting.set(false)
       if (this.answerState() === 'recorded') setTimeout(() => this.recordedStatus?.nativeElement.focus())
@@ -148,12 +157,21 @@ export class AdventTest {
       return await Promise.race([
         (async () => {
           const response = await fetch(url, { ...options, signal: controller.signal })
+          if (response.status === 409) {
+            this.sessionChanged.set(true)
+            this.generation = null
+            this.replayToken = null
+          }
           if (!response.ok) throw new Error('Unavailable')
           return await response.json() as T
         })(),
         timeout,
       ])
     } finally { clearTimeout(timer) }
+  }
+
+  private sessionHeaders(): Record<string, string> {
+    return this.sessionId ? { 'X-Advent-Test-Session': this.sessionId } : {}
   }
 
   private csrfHeaders(): Record<string, string> {
