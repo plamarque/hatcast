@@ -317,3 +317,9 @@ Only HTTP 200 confirms success. This resets the shared test game for all testers
 Verify the response and obtain a new session ID; reload the preview, confirm a new answer and check that the test clock starts again at day 1 and prior answers are absent. Verify real Paris date boundaries separately using the date-rule tests; simulated time is not production time. The reset sends no notifications or analytics. Do not run this operation against production.
 
 Les quiz de l’aperçu sont lus dans `advent_quizzes` ; la migration ne fournit aucun contenu. Préparation et promotion sélective : [catalogue privé](docs/v2/technical/AVENT_CATALOGUE.md). Le reset conserve ces quiz.
+
+### Données fictives Avent pour la recette hors ligne
+
+Au démarrage avec les seuls profils `offline` ou `dev,offline`, l’API vérifie que la connexion effective est la base H2 fichier du worktree dans `.local/hatcast-offline/hatcast`, sans liens symboliques sur les répertoires et le fichier de base. Elle prépare les jours 2 à 24 manquants avec des quiz clairement fictifs et variés dont les positions de réponse fausse diffèrent ; elle ne modifie ni un quiz existant ni une réponse. Un jour qui a déjà une réponse mais pas de quiz reste absent pour éviter d’associer une ancienne réponse à un nouveau contenu. Ce remplissage est rejoué aux démarrages suivants et n’est pas activé pour les profils cloud ou dev seul. Ces quiz ne sont pas des contributions validées et ne doivent jamais être promus.
+
+Le jour 1 est préparé séparément à partir de la contribution privée validée de Patrice, sans copier son contenu dans Git ou les journaux ; voir [la procédure du catalogue](docs/v2/technical/AVENT_CATALOGUE.md#recette-hors-ligne). Le portrait reste dans `.local/hatcast-avent-test/` et l’API l’autorise avant de le servir. Si un ancien état de jeu est signalé à la migration, seul le reset ciblé autorisé décrit ci-dessus peut libérer la transition.

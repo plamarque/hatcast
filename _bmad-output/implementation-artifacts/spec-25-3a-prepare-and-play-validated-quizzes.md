@@ -28,10 +28,13 @@ context:
 
 **Never:** Deploy, mutate production or transfer real content in this story. Do not create an administration UI or adopt the old bucket JSON/snapshot implementation. Patrice does not change contributions during play and accepts inconsistency risk if an exceptional change occurs; no versioning, snapshot, stale-content check or edit lock is required for that risk. Do not implement later ranking, complete calendar, production entry or notifications. Preserve the unfinished catalogue worktree and its backup.
 
+**Additional scope requested by Patrice on 2026-10-31:** Provide a complete 24-day quiz set for local offline acceptance, including Patrice’s already validated private contribution and matching private portrait on day 1, and fictional placeholders for days 2–24. Each day has three statements and one false answer. Make preparation reproducible while preserving existing quizzes and answers. The real contribution and portrait remain private and must never be stored in Git; fictional placeholders are test-only and must not be promoted as validated contributions.
+
 ## I/O & Edge-Case Matrix
 
 | Scenario | Input / state | Expected behavior |
 |---|---|---|
+| Complete offline calendar | A fresh or partially prepared offline database | All 24 days have playable quizzes after preparation, including the privately supplied validated Patrice quiz and portrait on day 1 and fictional placeholders for days 2–24; existing validated content and answers are not overwritten; production and shared Neon data are unaffected. |
 | Available quiz | Eligible tester opens database quiz and answers | Return only allowed portrait and statements, score using its false-answer designation, then reveal the result after the next simulated Paris midnight. |
 | Missing or invalid quiz | No valid quiz for selected day | Show or report absence safely; do not accept an answer or invent a key, and do not expose other content. |
 | Optional reveal | Quiz has an additional explanation | Keep it server-side before reveal; return and display it only when the result is eligible. |
@@ -77,17 +80,29 @@ context:
 - [x] `services/api/src/main/kotlin/com/hatcast/api/advent/AdventTestAnswers.kt` and tests — safely handle content disappearing between availability and key lookup without recording an answer or advancing the clock; surface unavailability and preserve atomicity.
 - [x] `services/api/src/test/kotlin/com/hatcast/api/advent/AdventOfflineIntegrationTest.kt` — assert individual revealed-result route rejects the legacy transition before reset, with a preexisting answer and newly prepared quiz.
 
+- [x] `services/api/src/main/resources/application-offline.yml` and an offline-only seed or explicitly invoked preparation script — provide a reproducible fictional offline set, insert only absent days and never write to Neon or production; prepare the validated day-1 contribution and private portrait separately outside Git.
+- [x] `services/api/src/test/` — verify a fresh isolated database and an existing quiz plus answers, the 24 unique playable days, correct answer keys and reset preservation; prove cloud/dev profiles do not load the offline-only data.
+- [x] `DEVELOPMENT.md` and `docs/v2/technical/AVENT_CATALOGUE.md` — explain offline-only fictional content and that it must not be promoted as validated contributions.
+
 ## Implementation Notes
 
-Database content is empty until prepared; the existing development-only preview uses it for display and scoring. The promotion test uses two disposable PostgreSQL schemas and does not establish real target identity or permissions. No production transfer or deployment occurred.
+The catalogue migration creates an empty table; isolated offline startup adds missing fictional days 2–24, and day 1 is prepared separately from private sources. The development-only preview uses database content for display and scoring. The promotion test uses two disposable PostgreSQL schemas and does not establish real target identity or permissions. No production transfer or deployment occurred.
 
 ## Spec Change Log
+
+- Patrice requested a full 24-day test game including his validated day-1 quiz and portrait. Add a reproducible isolated offline set without overwriting existing quizzes, storing private content in Git, or exposing fake contributions as real.
 
 - Second review found pending fictional reservations surviving migration, an unavailable-result retry targeting the wrong day, a content-disappearance race and missing individual-result transition coverage. Amend tasks to fence the old session state and exercise these cases. KEEP: prior loop's safe explicit reset, unchanged quiz data, existing privacy, test mode future-case access, and verified transaction and UI behavior.
 
 - Review identified legacy fictional answers that can be paired with new quiz content, unavailable states presented as reconnect errors, and an incomplete destination-conflict procedure. Amend tasks to require a safe explicit transition, usable missing-content states and verified promotion procedure. Avoid mismatched results and trapped previews. KEEP: database content and same-key scoring, isolated gates, next-midnight reveal, no-store, targeted reset preserving quizzes, no versioning, and existing H2/PostgreSQL/UI test coverage.
 
 ## Review Triage Log
+
+- **Low — patch:** Reproducing day 1 requires the private source; the procedure omits its known location. Identify that source without exposing contents and keep local-only preparation.
+- **Medium — patch:** Post-commit recovery may delete a quiz already answered in production; require proof of no answers for each affected day and stop if it cannot be established.
+- **Medium — patch:** Transition guards on replay and reconcile lack HTTP regression coverage; assert 423 and unchanged game state for both.
+- **False, carried:** Authorized development testers may open future cases under FR-13 and AD-2.
+- **Low — rejected:** Concurrent deletion between checking an unseen result and fetching it can delay an older result by one request; this depends on an exceptional content edit, whose inconsistency risk Patrice accepted.
 
 - **False, carried:** Future cases are explicitly accessible in authorized development test mode under FR-13 and AD-2.
 - **Medium — patch:** `unavailable` remains true when entering an eligible reveal or 25 December, masking the destination; the connected-heading guard prevents acknowledgment when the reveal is not displayed.
@@ -115,6 +130,10 @@ Database content is empty until prepared; the existing development-only preview 
 - **Medium — bad spec:** Reset test compares only quiz row count, not the retained fields; compare the full prepared quiz.
 
 ## Verification
+
+Final 24-day extension: complete Advent H2/PostgreSQL 16 suite passed on disposable data; 39 Angular tests, frontend build and 3 Chromium tests passed. The local acceptance database contains 24 quizzes including the privately supplied day 1 and matching portrait, verified by authenticated Playwright. Existing Sass and CSS budget warnings remain; screen-reader inspection was not exhaustive. No production operations performed.
+
+24-day extension: focused offline fixture tests and H2 answer/reset and HTTP tests passed; authenticated local Playwright verified all 24 cases and the privately supplied Patrice portrait. No real content in Git, no production transfer.
 
 Final rerun after review patches: Advent API suite with PostgreSQL 16 disposable passed; 39 Angular tests, production build and 3 Chromium tests passed. Existing Sass deprecation and CSS budget warnings remain. Screen-reader inspection was not exhaustive. No real transfer or deployment.
 
