@@ -27,6 +27,7 @@
 .advent__header-title { flex: 1 1 auto; min-width: 0; white-space: nowrap; font: var(--mat-sys-title-small); }
 .advent__test-actions { display: flex; flex: 0 0 auto; align-items: center; background: var(--hatcast-avent-cream); color: var(--hatcast-avent-green); border-radius: 1.75rem; padding-inline-start: .5rem; }
 .advent__test-label { white-space: nowrap; font: var(--mat-sys-label-small); }
+.advent__simulated-day { min-width: 1.5rem; text-align: center; font: 700 1rem/1 var(--advent-body-font); }
 .advent__header button, .advent__header a { flex: 0 0 48px; width: 48px; height: 48px; color: var(--hatcast-avent-white) !important; }
 .advent__header button:disabled { opacity: .5; }
 .advent__heading { text-align: center; }
@@ -115,6 +116,6 @@
 
 .advent__test-actions { flex-wrap: wrap; max-width: 100%; }
 .advent__header .advent__clock-action { flex: 0 1 auto; width: auto; min-width: 0; padding-inline: .75rem; }
-.advent__test-actions { box-sizing: border-box; min-width: 0; flex: 1 1 100%; }
+.advent__test-actions { box-sizing: border-box; min-width: 0; flex: 1 1 0; }
 .advent__header .advent__clock-action { max-width: 100%; min-height: 48px; height: auto; white-space: normal; }
 .advent__clock-action .mdc-button__label { white-space: normal; }

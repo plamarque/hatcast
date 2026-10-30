@@ -67,7 +67,7 @@ test('keyboard answers on a narrow enlarged screen with reduced motion', async (
   })
   expect(selectedContrast).toBeGreaterThanOrEqual(4.5)
   await page.getByRole('button', { name: 'Confirmer ma réponse' }).click()
-  await expect(page.getByRole('status')).toContainText('Ta réponse est enregistrée')
+  await expect(page.locator('.advent__recorded')).toContainText('Ta réponse est enregistrée')
   await expect(page.locator('.advent__recorded-title')).toBeVisible()
   await expect(page.locator('.advent__recorded-title')).toHaveCSS('font-family', /Fredoka/)
   await page.evaluate(() => document.fonts.ready)
@@ -84,7 +84,7 @@ test('keyboard answers on a narrow enlarged screen with reduced motion', async (
   const replay = page.locator('.advent__test-actions').getByRole('button', { name: 'Effacer ma réponse et rejouer' })
   await expect(replay).toBeVisible()
   await expect(replay.locator('mat-icon')).toHaveText('delete_outline')
-  await expect(page.getByRole('status')).not.toContainText(/bonne réponse|mauvaise réponse|points/i)
+  await expect(page.locator('.advent__recorded')).not.toContainText(/bonne réponse|mauvaise réponse|points/i)
   expect(await page.locator('html').evaluate(el => getComputedStyle(el).getPropertyValue('--hatcast-avent-red').trim())).toBe('')
   expect(reservedAttempt).toBeTruthy()
   expect(confirmed).toEqual({ choice: 0, attemptId: reservedAttempt })
@@ -149,9 +149,9 @@ test('reveals the most recent result accessibly after advancing the shared clock
   await page.setViewportSize({ width: 320, height: 700 })
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.addInitScript(() => localStorage.setItem('hatcast-pwa-banner-dismissed', String(Date.now())))
-  let date = '2026-12-01'
+  let date = '2026-12-08'
   let seen = false
-  const result = { answerId: 'answer-one', day: 1, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false, explanation: 'Explication fictive du résultat.' }
+  const result = { answerId: 'answer-one', day: 8, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false, explanation: 'Explication fictive du résultat.' }
   await page.route('**/v1/**', async route => {
     const path = new URL(route.request().url()).pathname
     if (path === '/v1/auth/me') return route.fulfill({ json: { user: { id: 'test-user', slug: 'test', displayName: 'Test', email: 'test@example.test', avatarUrl: null }, platformAdmin: false } })
@@ -159,11 +159,11 @@ test('reveals the most recent result accessibly after advancing the shared clock
     if (path === '/v1/me/preferences') return route.fulfill({ json: {} })
     if (path === '/v1/advent-test/session') return route.fulfill({ json: { sessionId: 'test-session' } })
     if (path === '/v1/advent-test/clock') return route.fulfill({ json: { date } })
-    if (path === '/v1/advent-test/clock/next-day') { date = '2026-12-02'; return route.fulfill({ json: { date } }) }
-    if (path.endsWith('/latest-unseen')) return route.fulfill({ json: { result: date === '2026-12-02' && !seen ? result : null } })
+    if (path === '/v1/advent-test/clock/next-day') { date = '2026-12-09'; return route.fulfill({ json: { date } }) }
+    if (path.endsWith('/latest-unseen')) return route.fulfill({ json: { result: date === '2026-12-09' && !seen ? result : null } })
     if (path.endsWith('/acknowledge')) { expect(route.request().postDataJSON()).toEqual({ answerId: 'answer-one' }); seen = true; return route.fulfill({ status: 200 }) }
     if (path.endsWith('/answer')) {
-      if (date === '2026-12-02' && path.includes('/doors/1/')) {
+      if (date === '2026-12-09' && path.includes('/doors/8/')) {
         expect(route.request().headers()['x-advent-test-session']).toBe('test-session')
         return route.fulfill({ json: { status: 'recorded', replayToken: 'test-token' } })
       }
@@ -180,6 +180,9 @@ test('reveals the most recent result accessibly after advancing the shared clock
   await expect(page.getByText('Explication fictive du résultat.')).toHaveCount(0)
   await page.getByRole('button', { name: 'Avancer au jour suivant' }).click()
   await expect(page.getByText('Explication fictive du résultat.')).toBeVisible()
+  await expect(page.locator('.advent__simulated-day')).toHaveText('9 déc.')
+  await expect(page.locator('.advent__simulated-day')).toHaveAttribute('aria-label', 'Jour simulé : 9 décembre')
+  await expect(page.locator('.advent__reveal .advent__date')).toContainText('8 décembre')
   const title = page.getByRole('heading', { name: 'Bravo, tu as trouvé !' })
   await expect(title).toBeFocused()
   await expect(page.locator('.advent__result-answer--truth')).toContainText('La bonne réponse')
@@ -189,5 +192,5 @@ test('reveals the most recent result accessibly after advancing the shared clock
   await expect(page.locator('.advent__confetti')).toHaveCSS('animation-name', 'none')
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   await page.getByRole('button', { name: 'Continuer' }).click()
-  await expect(page.getByRole('button', { name: 'Ouvrir le cadeau du jour 2' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Ouvrir le cadeau du jour 9' })).toBeVisible()
 })

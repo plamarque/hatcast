@@ -27,7 +27,7 @@ describe('AdventTest', () => {
     vi.mocked(window.fetch).mockResolvedValueOnce(new Response('', { status: 404 }))
     await fixture.componentInstance.selectDay(2)
     fixture.detectChanges()
-    expect(fixture.nativeElement.querySelector('[role=status]').textContent).toContain('quiz est indisponible')
+    expect(fixture.nativeElement.querySelector('.advent__state[role=status]').textContent).toContain('quiz est indisponible')
     expect(fixture.nativeElement.textContent).not.toContain('déconnecte-toi')
   })
   it('reports removal while reconciling or reserving', async () => {
@@ -458,6 +458,32 @@ describe('AdventTest', () => {
     fixture.detectChanges()
     expect(fixture.nativeElement.querySelector('.advent__result-points').textContent).toContain('+13 points gagnés')
     expect(fixture.nativeElement.querySelectorAll('.advent__result-answer')).toHaveLength(1)
+  })
+
+  it('distinguishes the simulated day from the quiz date and continues without advancing', async () => {
+    const component = fixture.componentInstance
+    component.clockDate.set('2026-12-09')
+    component.resultContent.set({ day: 8, name: 'Lutin', portrait: '', statements: ['un', 'deux', 'trois'], genericElf: true })
+    component.result.set({ answerId: 'a', day: 8, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: true })
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.advent__reveal .advent__date').textContent).toContain('8 décembre')
+    const day = fixture.nativeElement.querySelector('.advent__simulated-day') as HTMLElement
+    expect(day.textContent?.trim()).toBe('9 déc.')
+    expect(day.getAttribute('aria-label')).toBe('Jour simulé : 9 décembre')
+    vi.mocked(window.fetch).mockClear()
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url = String(input)
+      if (url.endsWith('/clock')) return new Response(JSON.stringify({ date: '2026-12-09' }))
+      if (url.endsWith('/session')) return new Response(JSON.stringify({ sessionId: 's' }))
+      if (url.endsWith('/answer')) return new Response(JSON.stringify({ status: 'available' }))
+      return new Response(JSON.stringify({ day: 9, name: 'Lutin du jour', portrait: '', statements: ['un', 'deux', 'trois'], genericElf: true }))
+    })
+    await component.continueAfterResult()
+    fixture.detectChanges()
+    expect(component.clockDate()).toBe('2026-12-09')
+    expect(component.preview()?.day).toBe(9)
+    expect(fixture.nativeElement.querySelector('[aria-label="Ouvrir le cadeau du jour 9"]')).toBeTruthy()
+    expect(vi.mocked(window.fetch).mock.calls.some(([url]) => String(url).includes('/clock/next-day'))).toBe(false)
   })
 
   it('refreshes the shared clock before continuing after a result', async () => {

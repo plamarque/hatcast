@@ -18,3 +18,7 @@ source_spec: `21-2-worktree-runtime-readiness`
 severity: medium
 reason: New HatCast worktrees are currently created beside the repository, which scatters delivery units across `/Users/patrice/GitHub`. Define and enforce `/Users/patrice/GitHub/worktrees` as their common parent for both repository scripts and BMad Loop external-worktree runs; preserve the safety, cleanup, and runtime-provisioning contracts.
 status: open
+
+- source_spec: `spec-25-3a-simulated-date-and-continuation.md`
+  summary: Verify the live announcement of the simulated Advent day with a real screen reader.
+  evidence: Medium, unverified: the number has a polite live region and a full accessible label; actual announcement on day changes varies by assistive technology and needs a device check.

@@ -21,6 +21,7 @@ export class AdventTest {
   readonly result = signal<AdventResult | null>(null)
   readonly resultContent = signal<FictionalQuiz | null>(null)
   readonly clockDate = signal<string | null>(null)
+  simulatedDay(): number | null { const date = this.clockDate(); return date ? Number(date.slice(-2)) : null }
   readonly selectedDay = signal(1)
   readonly preview = signal<FictionalQuiz | null>(null)
   readonly loading = signal(false)

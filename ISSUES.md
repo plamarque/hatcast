@@ -51,6 +51,14 @@ human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
 
+### BUG-060 — Advent test reveal obscures the simulated day
+- **Status**: Corrected locally; awaiting human verification.
+- **Severity**: Low.
+- **Affected area**: V2 isolated Advent test navigation.
+- **Observed behavior**: A reveal shows the quiz date while the shared simulated date is not displayed, making the day and the effect of Continue ambiguous.
+- **Expected behavior**: The simulated day is visible between the test arrows; Continue opens the current day without advancing the clock.
+- **Notes/context**: Reported during story 25.3a human testing. The existing continuation reads the shared clock; no extra clock-advance request was found in the code. Regression coverage verifies the 8-to-9 journey.
+
 ### BUG-059 — Revisiting an answered Advent test day shows a closed gift
 - **Status**: Corrected locally; awaiting human verification.
 - **Affected area**: V2 isolated Advent test navigation.
