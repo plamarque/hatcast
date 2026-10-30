@@ -3,9 +3,9 @@
     <span class="advent__header-title">Quiz de l’Avent</span>
     <div class="advent__test-actions" aria-label="Commandes de test">
       <span class="advent__test-label">Mode test</span>
-      <button mat-icon-button type="button" (click)="previousDay()" [disabled]="loading() || selectedDay() === 1" aria-label="Revenir au jour précédent" title="Jour précédent"><mat-icon aria-hidden="true">arrow_back</mat-icon></button>
-      <button mat-icon-button type="button" (click)="nextDay()" [disabled]="loading() || selectedDay() === 24" aria-label="Avancer au jour suivant" title="Jour suivant"><mat-icon aria-hidden="true">arrow_forward</mat-icon></button>
-      <button mat-icon-button type="button" (click)="resetDay()" [disabled]="loading() || (selectedDay() === 1 && !quiz())" aria-label="Revenir au début" title="Revenir au début"><mat-icon aria-hidden="true">restart_alt</mat-icon></button>
+      <button mat-icon-button type="button" (click)="previousDay()" [disabled]="loading() || submitting() || (quiz() && answerState() === 'checking') || selectedDay() === 1" aria-label="Revenir au jour précédent" title="Jour précédent"><mat-icon aria-hidden="true">arrow_back</mat-icon></button>
+      <button mat-icon-button type="button" (click)="nextDay()" [disabled]="loading() || submitting() || (quiz() && answerState() === 'checking') || selectedDay() === 24" aria-label="Avancer au jour suivant" title="Jour suivant"><mat-icon aria-hidden="true">arrow_forward</mat-icon></button>
+      <button mat-icon-button type="button" (click)="resetDay()" [disabled]="loading() || submitting() || (quiz() && answerState() === 'checking') || (selectedDay() === 1 && !quiz())" aria-label="Revenir au début" title="Revenir au début"><mat-icon aria-hidden="true">restart_alt</mat-icon></button>
     </div>
     <a mat-icon-button routerLink="/accueil" aria-label="Fermer le quiz" title="Fermer"><mat-icon aria-hidden="true">close</mat-icon></a>
   </header>
@@ -38,8 +38,19 @@
         <div class="advent__portrait"><img [src]="content.portrait" [alt]="'Portrait du lutin '+ owner(content.name)"></div>
         <h2 #quizHeading id="quiz-title" tabindex="-1">Une anecdote sur {{ content.name }}</h2>
         <p class="advent__question">Quelle affirmation est fausse ?</p>
-        <ol class="advent__options">@for (statement of content.statements; track $index) { <li><span class="advent__radio" aria-hidden="true"></span>{{ statement }}</li> }</ol>
-        <p class="advent__notice">Les réponses ne sont pas encore disponibles.</p>
+        @if (answerState() === 'available') {
+          <mat-radio-group class="advent__options" aria-label="Quelle affirmation est fausse ?" [value]="choice()" (change)="choice.set($event.value)">
+            @for (statement of content.statements; track $index) { <mat-radio-button [value]="$index" [disabled]="submitting()">{{ statement }}</mat-radio-button> }
+          </mat-radio-group>
+          <button mat-flat-button type="button" [disabled]="choice() === null || submitting()" (click)="confirm()">Confirmer ma réponse</button>
+        } @else if (answerState() === 'recorded') {
+          <p role="status">Ta réponse est enregistrée. Reviens demain pour découvrir le résultat !</p>
+        } @else if (answerState() === 'closed') {
+          <p role="status">Ce quiz est fermé.</p>
+        } @else if (answerState() === 'uncertain') {
+          <p role="alert">Impossible de vérifier ta réponse pour le moment.</p>
+          <button mat-stroked-button type="button" (click)="reconcile()">Vérifier à nouveau</button>
+        } @else { <p role="status">Vérification en cours…</p> }
       </section>
     }
   </div>

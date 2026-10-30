@@ -15,8 +15,9 @@ class AdventNoStoreFilter : OncePerRequestFilter() {
         !request.requestURI.startsWith("/v1/advent-test/")
 
     override fun doFilterInternal(request: HttpServletRequest, response: HttpServletResponse, chain: FilterChain) {
-        response.setHeader("Cache-Control", "no-store")
+        request.setAttribute("hatcast.advent.received-at", java.time.Instant.now())
+        response.setHeader("Cache-Control", "private, no-store")
         chain.doFilter(request, response)
-        response.setHeader("Cache-Control", "no-store")
+        response.setHeader("Cache-Control", "private, no-store")
     }
 }

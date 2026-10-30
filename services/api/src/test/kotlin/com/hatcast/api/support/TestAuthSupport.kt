@@ -39,6 +39,7 @@ object TestAuthSupport {
         googleSub: String,
         email: String = "$googleSub@example.com",
         name: String = "Season Test",
+        emailVerified: Boolean = false,
     ): Cookie {
         val jwt =
             Jwt
@@ -46,6 +47,7 @@ object TestAuthSupport {
                 .header("alg", "RS256")
                 .claim("sub", googleSub)
                 .claim("email", email)
+                .claim("email_verified", emailVerified)
                 .claim("name", name)
                 .issuedAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(3600))
@@ -83,8 +85,9 @@ object TestAuthSupport {
         email: String = "$googleSub@example.com",
         name: String = "Season Test",
         seedTroupeId: UUID = UUID.fromString("a0000001-0000-4000-8000-000000000001"),
+        emailVerified: Boolean = false,
     ): Cookie {
-        val cookie = sessionCookieFromGoogleSignIn(mockMvc, googleIdTokenService, googleSub, email, name)
+        val cookie = sessionCookieFromGoogleSignIn(mockMvc, googleIdTokenService, googleSub, email, name, emailVerified)
         joinSeedTroupe(mockMvc, cookie, seedTroupeId)
         return cookie
     }

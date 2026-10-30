@@ -23,7 +23,7 @@ Give La Malice members a surprise Christmas activity within HatCast: discover on
   - **success:** Access windows, automatic opening, daily dismissal, missing content and the priority of the most recent revealable unseen result follow FR-1, FR-2, FR-7 and FR-12 across devices.
 - **CAP-2**
   - **intent:** A member answers each available daily portrait quiz once and discovers a durable result after the reveal.
-  - **success:** One of three statements is confirmed on the quiz day; server receipt before midnight determines eligibility, including retries and concurrency. The next midnight reveals the choice, false statement, correctness and points under FR-4–FR-7 and AD-3; before then no response, score or derived information reveals correctness or pending points.
+  - **success:** One of three statements is confirmed on the quiz day; confirmations still waiting for the lock close at midnight, including retries and concurrent requests; result reads wait for an already-running transaction. The next midnight reveals the choice, false statement, correctness and points under FR-4–FR-7 and AD-3; before then no response, score or derived information reveals correctness or pending points.
 - **CAP-3**
   - **intent:** Members explore the calendar and revisit played or discover missed content when permitted.
   - **success:** The calendar has 24 quizzes and a 25 December presentation. Past unplayed content is read-only after reveal, future cases stay locked, and available results and missing content follow FR-9–FR-11 without catch-up answers.

@@ -23,11 +23,11 @@ class AdventTestIntegrationTest {
     @Test fun `direct requests cannot disclose content outside offline profile`() {
         val cookie = TestAuthSupport.sessionCookieFromGoogleSignIn(mvc, google, "advent-test-integration")
         mvc.perform(get("/v1/advent-test/doors/1").cookie(cookie))
-            .andExpect(status().isNotFound).andExpect(header().string("Cache-Control", "no-store"))
+            .andExpect(status().isNotFound).andExpect(header().string("Cache-Control", "private, no-store"))
             .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Camille"))))
     }
     @Test fun `anonymous requests are not cached`() {
         mvc.perform(get("/v1/advent-test/doors/1"))
-            .andExpect(status().isUnauthorized).andExpect(header().string("Cache-Control", "no-store"))
+            .andExpect(status().isUnauthorized).andExpect(header().string("Cache-Control", "private, no-store"))
     }
 }

@@ -327,3 +327,8 @@ Product owner definition (2026-06-04):
 ## Disponibilité bénévole obligatoire (V2)
 
 Toute réponse disponible enregistrée pour un événement proposant des places `volunteer` inclut ce rôle obligatoire, même sans rôle optionnel. Le formulaire le coche dès Dispo et empêche son retrait ; une aide adjacente activable au toucher et au clavier explique : « Quand tu es disponible, tu es aussi disponible comme bénévole. » Les autres rôles restent facultatifs. Sans bénévole proposé, aucun bénévole n'est ajouté ; sans rôle proposé, la disponibilité générale reste possible. La règle vaut pour soi et en saisie déléguée, même avec le champ historique `applyVolunteerRule=false`. Les statuts indisponible et non renseigné enregistrent une liste vide. Les anciennes réponses disponibles sans rôle gardent leur candidature à tous les rôles jusqu'à un enregistrement explicite ; ouvrir ou annuler ne modifie aucune donnée.
+
+
+### Réponses de test Avent
+
+Une réponse fictive confirmée est unique par membre et par jour et ne peut être modifiée. Une bonne réponse vaut 10 points, une mauvaise 0, avec un point de participation ; chaque groupe de trois réponses correctes consécutives ajoute 2 points. Une mauvaise réponse remet la série à zéro ; un jour manqué ne la modifie pas. Avant minuit à Paris suivant le jour du quiz, seule une confirmation neutre est accessible. Le temps simulé partagé avance lors de la confirmation d’une case future ; les cases passées ne sont plus jouables.

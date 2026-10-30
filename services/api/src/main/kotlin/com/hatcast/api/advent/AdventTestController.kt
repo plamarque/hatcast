@@ -8,6 +8,9 @@ import org.springframework.http.HttpStatus
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.stereotype.Component
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
+import java.time.Instant
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
@@ -28,9 +31,46 @@ class AdventTestController(
     private val memberships: TroupeMembershipService,
     private val offlineRoot: AdventOfflineRoot,
     private val cloudImages: AdventPreviewImages,
+    private val answers: AdventTestAnswers,
 ) {
     @GetMapping("/doors/{day}")
     fun door(@PathVariable day: Int, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest? = null): FictionalQuiz {
+        val cloudPreview = authorize(principal, request)
+        val fixture = fixture(day)
+        val statements = fictionalStatements[day - 1]
+        val (image, isGeneric) = previewImage(fixture.file, cloudPreview)
+        return FictionalQuiz(day, fixture.name, image, statements, isGeneric)
+    }
+
+    @GetMapping("/doors/{day}/answer")
+    fun state(@PathVariable day: Int, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AnswerState {
+        val received = request.getAttribute("hatcast.advent.received-at") as? Instant ?: Instant.now()
+        authorize(principal, request)
+        return answers.state(principal.userId, day, received)
+    }
+
+    @PostMapping("/doors/{day}/answer")
+    fun confirm(@PathVariable day: Int, @RequestBody body: ConfirmAnswer, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AnswerState {
+        val received = request.getAttribute("hatcast.advent.received-at") as? Instant ?: Instant.now()
+        authorize(principal, request)
+        return answers.confirmReserved(principal.userId, day, body.choice ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), body.attemptId ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), received)
+    }
+
+    @PostMapping("/doors/{day}/answer/reserve")
+    fun reserve(@PathVariable day: Int, @RequestBody body: AnswerAttempt, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AnswerState {
+        val received = request.getAttribute("hatcast.advent.received-at") as? Instant ?: Instant.now()
+        authorize(principal, request)
+        return answers.reserve(principal.userId, day, body.attemptId ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), body.generation ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), received)
+    }
+
+    @PostMapping("/doors/{day}/answer/reconcile")
+    fun reconcile(@PathVariable day: Int, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AnswerState {
+        val received = request.getAttribute("hatcast.advent.received-at") as? Instant ?: Instant.now()
+        authorize(principal, request)
+        return answers.reconcile(principal.userId, day, received)
+    }
+
+    private fun authorize(principal: SessionUserPrincipal, request: HttpServletRequest?): Boolean {
         val profiles = environment.activeProfiles.toSet()
         val cloudPreview = profiles == setOf("cloud") &&
             environment.getProperty("K_SERVICE") == "hatcast-v2-dev" &&
@@ -48,9 +88,12 @@ class AdventTestController(
             environment.getProperty("hatcast.advent-test.allowed-emails", "")
                 .split(',').map { it.trim().lowercase() }.filter { it.isNotEmpty() }.toSet()
         val email = principal.email?.trim()?.lowercase()
-        if (email == null || email !in allowedEmails || (cloudPreview && request?.getSession(false)?.getAttribute("hatcast.auth.verified-email") != true))
+        if (email == null || email !in allowedEmails || (request?.getSession(false)?.getAttribute("hatcast.auth.verified-email") != true))
             throw ResponseStatusException(HttpStatus.FORBIDDEN)
-        val fixture = when (day) {
+        return cloudPreview
+    }
+
+    private fun fixture(day: Int): TestFixture = when (day) {
             1 -> TestFixture("Patrice", "patrice-net.png")
             2 -> TestFixture("Will", "will-net.png")
             3 -> TestFixture("Camille", "camille-net.png")
@@ -58,11 +101,6 @@ class AdventTestController(
             in 5..24 -> TestFixture("Lutin de Noël", null)
             else -> throw ResponseStatusException(HttpStatus.NOT_FOUND)
         }
-        val statements = fictionalStatements[day - 1]
-        val (image, isGeneric) = previewImage(fixture.file, cloudPreview)
-        return FictionalQuiz(day, fixture.name, image, statements, isGeneric)
-    }
-
     // The only personalized files are fixed, locally supplied fixtures. Never serve a path from a request.
     private fun previewImage(file: String?, cloudPreview: Boolean): Pair<String, Boolean> {
         if (cloudPreview && file != null) {
