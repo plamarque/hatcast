@@ -107,6 +107,54 @@ class AdventTestController(
         return answers.replay(principal.userId, day, body.replayToken ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), received)
     }
 
+    @GetMapping("/results/latest-unseen")
+    @Transactional
+    fun latestUnseen(@AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): Map<String, AdventResult?> {
+        authorize(principal, request)
+        answers.requireSession(sessionHeader(request))
+        return mapOf("result" to answers.latestUnseen(principal.userId, request.getAttribute("hatcast.advent.received-at") as? Instant ?: Instant.now()))
+    }
+
+    @GetMapping("/doors/{day}/result")
+    @Transactional
+    fun result(@PathVariable day: Int, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AdventResult {
+        authorize(principal, request)
+        answers.requireSession(sessionHeader(request))
+        return answers.result(principal.userId, day, request.getAttribute("hatcast.advent.received-at") as? Instant ?: Instant.now()) ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
+    }
+
+    @PostMapping("/doors/{day}/result/acknowledge")
+    @Transactional
+    fun acknowledge(@PathVariable day: Int, @RequestBody body: AcknowledgeResult, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest) {
+        authorize(principal, request)
+        answers.requireSession(sessionHeader(request))
+        answers.acknowledge(principal.userId, day, body.answerId ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), request.getAttribute("hatcast.advent.received-at") as? Instant ?: Instant.now())
+    }
+
+    @GetMapping("/clock")
+    @Transactional
+    fun clock(@AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): Map<String, String> {
+        authorize(principal, request)
+        answers.requireSession(sessionHeader(request))
+        return mapOf("date" to answers.clockDate(request.getAttribute("hatcast.advent.received-at") as? Instant ?: Instant.now()).toString())
+    }
+
+    @PostMapping("/clock/next-day")
+    @Transactional
+    fun advanceDay(@AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): Map<String, String> {
+        authorize(principal, request)
+        answers.requireSession(sessionHeader(request))
+        return mapOf("date" to answers.advanceDay(request.getAttribute("hatcast.advent.received-at") as? Instant ?: Instant.now()).toString())
+    }
+
+    @PostMapping("/clock/previous-day")
+    @Transactional
+    fun previousDay(@AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): Map<String, String> {
+        authorize(principal, request)
+        answers.requireSession(sessionHeader(request))
+        return mapOf("date" to answers.previousDay(request.getAttribute("hatcast.advent.received-at") as? Instant ?: Instant.now()).toString())
+    }
+
     private fun authorize(principal: SessionUserPrincipal, request: HttpServletRequest?): Boolean {
         val profiles = environment.activeProfiles.toSet()
         val cloudPreview = profiles == setOf("cloud") &&
@@ -234,3 +282,5 @@ class AdventPreviewImages {
 class AdventOfflineRoot {
     fun worktreeRoot() = Paths.get(System.getProperty("user.dir"), "../..").toAbsolutePath().normalize()
 }
+
+data class AcknowledgeResult(val answerId: UUID?)

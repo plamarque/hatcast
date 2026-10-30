@@ -36,4 +36,18 @@ class AdventTestIntegrationTest {
         mvc.perform(get("/v1/advent-test/doors/1"))
             .andExpect(status().isUnauthorized).andExpect(header().string("Cache-Control", "private, no-store"))
     }
+    @Test fun `result and clock endpoints reject anonymous or nonisolated requests without cache`() {
+        val cookie = TestAuthSupport.sessionCookieFromGoogleSignIn(mvc, google, "advent-result-security")
+        for (path in listOf("/v1/advent-test/results/latest-unseen", "/v1/advent-test/doors/1/result", "/v1/advent-test/clock")) {
+            mvc.perform(get(path)).andExpect(status().isUnauthorized).andExpect(header().string("Cache-Control", "private, no-store"))
+            mvc.perform(get(path).cookie(cookie)).andExpect(status().isNotFound).andExpect(header().string("Cache-Control", "private, no-store"))
+        }
+        mvc.perform(post("/v1/advent-test/clock/previous-day").cookie(cookie).with(csrf()))
+            .andExpect(status().isNotFound).andExpect(header().string("Cache-Control", "private, no-store"))
+        mvc.perform(post("/v1/advent-test/clock/next-day").cookie(cookie).with(csrf()))
+            .andExpect(status().isNotFound).andExpect(header().string("Cache-Control", "private, no-store"))
+        mvc.perform(post("/v1/advent-test/doors/1/result/acknowledge").cookie(cookie).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("""{"answerId":"${UUID.randomUUID()}"}"""))
+            .andExpect(status().isNotFound).andExpect(header().string("Cache-Control", "private, no-store"))
+    }
+
 }

@@ -107,3 +107,14 @@
 .advent__recorded:focus-visible { outline: 3px solid var(--advent-focus); outline-offset: 4px; }
 
 .advent__recorded-panel { @include advent.panel; position: relative; padding: 1rem .5rem; }
+
+.advent__reveal { text-align: center; }
+.advent__confetti { font-size: 2rem; animation: advent-confetti 1.4s ease-out both; }
+@keyframes advent-confetti { from { transform: translateY(1rem) scale(.5); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .advent__confetti { animation: none; } }
+
+.advent__test-actions { flex-wrap: wrap; max-width: 100%; }
+.advent__header .advent__clock-action { flex: 0 1 auto; width: auto; min-width: 0; padding-inline: .75rem; }
+.advent__test-actions { box-sizing: border-box; min-width: 0; flex: 1 1 100%; }
+.advent__header .advent__clock-action { max-width: 100%; min-height: 48px; height: auto; white-space: normal; }
+.advent__clock-action .mdc-button__label { white-space: normal; }
