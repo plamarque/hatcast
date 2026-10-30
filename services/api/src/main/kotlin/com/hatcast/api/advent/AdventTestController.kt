@@ -70,6 +70,13 @@ class AdventTestController(
         return answers.reconcile(principal.userId, day, received)
     }
 
+    @PostMapping("/doors/{day}/answer/replay")
+    fun replay(@PathVariable day: Int, @RequestBody body: ReplayAnswer, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AnswerState {
+        val received = request.getAttribute("hatcast.advent.received-at") as? Instant ?: Instant.now()
+        authorize(principal, request)
+        return answers.replay(principal.userId, day, body.replayToken ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), received)
+    }
+
     private fun authorize(principal: SessionUserPrincipal, request: HttpServletRequest?): Boolean {
         val profiles = environment.activeProfiles.toSet()
         val cloudPreview = profiles == setOf("cloud") &&
@@ -94,11 +101,12 @@ class AdventTestController(
     }
 
     private fun fixture(day: Int): TestFixture = when (day) {
-            1 -> TestFixture("Patrice", "patrice-net.png")
-            2 -> TestFixture("Will", "will-net.png")
-            3 -> TestFixture("Camille", "camille-net.png")
-            4 -> TestFixture("Angie", "angie-net.png")
-            in 5..24 -> TestFixture("Lutin de Noël", null)
+            1 -> TestFixture("Toinou", "toinou-net.png")
+            2 -> TestFixture("Patrice", "patrice-net.png")
+            3 -> TestFixture("Will", "will-net.png")
+            4 -> TestFixture("Camille", "camille-net.png")
+            5 -> TestFixture("Angie", "angie-net.png")
+            in 6..24 -> TestFixture("Lutin de Noël", null)
             else -> throw ResponseStatusException(HttpStatus.NOT_FOUND)
         }
     // The only personalized files are fixed, locally supplied fixtures. Never serve a path from a request.

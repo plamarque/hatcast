@@ -222,4 +222,66 @@ class AdventTestAnswersIntegrationTest {
         answers.confirm(user, 4, 0, Instant.parse("2026-12-04T12:00:00Z"))
         assertEquals(0, jdbc.queryForObject("SELECT correct_streak FROM advent_test_member_state WHERE user_id = ?", Int::class.java, user))
     }
+    @Test fun `personal replay invalidates old attempts and recomputes past scores`() {
+        val now = Instant.parse("2026-12-01T12:00:00Z")
+        val other = UUID.randomUUID()
+        jdbc.update("INSERT INTO users (id, google_sub, slug, created_at, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", other, "advent-$other", "advent-$other")
+        val old = UUID.randomUUID()
+        val generation = answers.reconcile(user, 1, now).generation!!
+        answers.reserve(user, 1, old, generation, now)
+        answers.confirm(user, 1, 0, now)
+        answers.confirm(other, 1, 0, now)
+        answers.confirm(user, 2, 1, now)
+        answers.confirm(user, 3, 2, now)
+        assertEquals(2, jdbc.queryForObject("SELECT bonus_points FROM advent_test_answers WHERE user_id = ? AND quiz_day = 3", Int::class.java, user))
+        val clock = jdbc.queryForObject("SELECT offset_seconds FROM advent_test_clock WHERE id = 1", Long::class.java)
+        val erasedToken = answers.state(user, 1, now).replayToken!!
+        assertEquals("available", answers.replay(user, 1, erasedToken, now).status)
+        assertEquals(clock, jdbc.queryForObject("SELECT offset_seconds FROM advent_test_clock WHERE id = 1", Long::class.java))
+        assertEquals(0, jdbc.queryForObject("SELECT bonus_points FROM advent_test_answers WHERE user_id = ? AND quiz_day = 3", Int::class.java, user))
+        assertEquals("recorded", answers.state(other, 1, now).status)
+        assertEquals("available", answers.confirmReserved(user, 1, 0, old, now).status)
+        val fresh = answers.reconcile(user, 1, now).generation!!
+        val attempt = UUID.randomUUID()
+        answers.reserve(user, 1, attempt, fresh, now)
+        assertEquals("recorded", answers.confirmReserved(user, 1, 0, attempt, now).status)
+        assertEquals(2, jdbc.queryForObject("SELECT bonus_points FROM advent_test_answers WHERE user_id = ? AND quiz_day = 3", Int::class.java, user))
+        assertEquals("recorded", answers.replay(user, 1, erasedToken, now).status)
+        assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM advent_test_answers WHERE user_id = ? AND quiz_day = 1", Int::class.java, user))
+    }
+    @Test fun `replay serializes and cancels a confirmation waiting on the lock`() {
+        val now = Instant.parse("2026-12-01T12:00:00Z")
+        val attempt = UUID.randomUUID()
+        val generation = answers.reconcile(user, 1, now).generation!!
+        answers.reserve(user, 1, attempt, generation, now)
+        answers.confirm(user, 1, 0, now)
+        val erased = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        val pool = Executors.newFixedThreadPool(2)
+        try {
+            val replay = pool.submit {
+                TransactionTemplate(txManager).executeWithoutResult {
+                    answers.replay(user, 1, answers.state(user, 1, now).replayToken!!, now)
+                    erased.countDown()
+                    check(release.await(10, TimeUnit.SECONDS))
+                }
+            }
+            assertTrue(erased.await(10, TimeUnit.SECONDS))
+            val confirmation = pool.submit(Callable { answers.confirmReserved(user, 1, 0, attempt, now) })
+            assertThrows(java.util.concurrent.TimeoutException::class.java) { confirmation.get(100, TimeUnit.MILLISECONDS) }
+            release.countDown()
+            replay.get(10, TimeUnit.SECONDS)
+            assertEquals("available", confirmation.get(10, TimeUnit.SECONDS).status)
+            assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM advent_test_answers WHERE user_id = ?", Int::class.java, user))
+        } finally { release.countDown(); pool.shutdownNow() }
+    }
+    @Test fun `reconcile revokes replay before or after replay executes`() {
+        val now = Instant.parse("2026-12-01T12:00:00Z")
+        val old = answers.confirm(user, 1, 0, now).replayToken!!
+        val refreshed = answers.reconcile(user, 1, now).replayToken!!
+        assertNotEquals(old, refreshed)
+        assertEquals("recorded", answers.replay(user, 1, old, now).status)
+        assertEquals("available", answers.replay(user, 1, refreshed, now).status)
+        assertEquals("available", answers.reconcile(user, 1, now).status)
+    }
 }

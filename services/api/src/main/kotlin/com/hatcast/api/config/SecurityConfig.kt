@@ -68,7 +68,7 @@ class SecurityConfig(
                     .requestMatchers(HttpMethod.POST, "/v1/auth/idp").permitAll()
                     .requestMatchers(HttpMethod.GET, "/v1/auth/me").authenticated()
                     .requestMatchers(HttpMethod.GET, "/v1/advent-test/doors/*", "/v1/advent-test/doors/*/answer").authenticated()
-                    .requestMatchers(HttpMethod.POST, "/v1/advent-test/doors/*/answer", "/v1/advent-test/doors/*/answer/reserve", "/v1/advent-test/doors/*/answer/reconcile").authenticated()
+                    .requestMatchers(HttpMethod.POST, "/v1/advent-test/doors/*/answer", "/v1/advent-test/doors/*/answer/reserve", "/v1/advent-test/doors/*/answer/reconcile", "/v1/advent-test/doors/*/answer/replay").authenticated()
                     .requestMatchers(HttpMethod.GET, "/v1/me/agenda").authenticated()
                     .requestMatchers(HttpMethod.GET, "/v1/me/inbox").authenticated()
                     .requestMatchers(HttpMethod.GET, "/v1/me/preferences").authenticated()

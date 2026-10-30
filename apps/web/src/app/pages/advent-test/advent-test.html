@@ -1,11 +1,14 @@
 <main class="advent">
   <header class="advent__header">
-    <span class="advent__header-title">Quiz de l’Avent</span>
+    <span class="advent__header-title" [class.advent__header-title--replay]="quiz() && answerState() === 'recorded'">Quiz de l’Avent</span>
     <div class="advent__test-actions" aria-label="Commandes de test">
       <span class="advent__test-label">Mode test</span>
       <button mat-icon-button type="button" (click)="previousDay()" [disabled]="loading() || submitting() || (quiz() && answerState() === 'checking') || selectedDay() === 1" aria-label="Revenir au jour précédent" title="Jour précédent"><mat-icon aria-hidden="true">arrow_back</mat-icon></button>
       <button mat-icon-button type="button" (click)="nextDay()" [disabled]="loading() || submitting() || (quiz() && answerState() === 'checking') || selectedDay() === 24" aria-label="Avancer au jour suivant" title="Jour suivant"><mat-icon aria-hidden="true">arrow_forward</mat-icon></button>
       <button mat-icon-button type="button" (click)="resetDay()" [disabled]="loading() || submitting() || (quiz() && answerState() === 'checking') || (selectedDay() === 1 && !quiz())" aria-label="Revenir au début" title="Revenir au début"><mat-icon aria-hidden="true">restart_alt</mat-icon></button>
+      @if (quiz() && answerState() === 'recorded') {
+        <button mat-icon-button type="button" (click)="replay()" [disabled]="submitting()" aria-label="Effacer ma réponse et rejouer" title="Effacer ma réponse et rejouer"><mat-icon aria-hidden="true">delete_outline</mat-icon></button>
+      }
     </div>
     <a mat-icon-button routerLink="/accueil" aria-label="Fermer le quiz" title="Fermer"><mat-icon aria-hidden="true">close</mat-icon></a>
   </header>
@@ -31,24 +34,29 @@
       } @else if (loading()) {
         <p role="status">Le lutin arrive…</p>
       }
-      @if (error()) { <p role="alert">Le lutin est indisponible. Si tu as accès au mode test, déconnecte-toi puis reconnecte-toi avant de réessayer.</p><button mat-stroked-button type="button" (click)="selectDay(selectedDay())">Réessayer</button> }
+      @if (error()) { <p class="advent__feedback" role="alert">Le lutin est indisponible. Si tu as accès au mode test, déconnecte-toi puis reconnecte-toi avant de réessayer.</p><button mat-stroked-button type="button" (click)="selectDay(selectedDay())">Réessayer</button> }
     } @else if (quiz(); as content) {
-      <section class="advent__quiz" aria-labelledby="quiz-title">
+      <section class="advent__quiz" [attr.aria-labelledby]="answerState() === 'recorded' ? 'recorded-title' : 'quiz-title'">
         <p class="advent__date">{{ content.day }} décembre</p>
         <div class="advent__portrait"><img [src]="content.portrait" [alt]="'Portrait du lutin '+ owner(content.name)"></div>
-        <h2 #quizHeading id="quiz-title" tabindex="-1">Une anecdote sur {{ content.name }}</h2>
-        <p class="advent__question">Quelle affirmation est fausse ?</p>
+        <h2 #quizHeading id="quiz-title" tabindex="-1" [hidden]="answerState() === 'recorded'">Une anecdote sur {{ content.name }}</h2>
         @if (answerState() === 'available') {
+          <p class="advent__question" [hidden]="answerState() === 'recorded'">Quelle affirmation est fausse ?</p>
           <mat-radio-group class="advent__options" aria-label="Quelle affirmation est fausse ?" [value]="choice()" (change)="choice.set($event.value)">
             @for (statement of content.statements; track $index) { <mat-radio-button [value]="$index" [disabled]="submitting()">{{ statement }}</mat-radio-button> }
           </mat-radio-group>
           <button mat-flat-button type="button" [disabled]="choice() === null || submitting()" (click)="confirm()">Confirmer ma réponse</button>
         } @else if (answerState() === 'recorded') {
-          <p role="status">Ta réponse est enregistrée. Reviens demain pour découvrir le résultat !</p>
+          <div #recordedStatus class="advent__recorded" role="status" tabindex="-1">
+            <span class="advent__recorded-stars" aria-hidden="true">✦ &nbsp; ✧ &nbsp; ✦</span>
+            <p id="recorded-title" class="advent__recorded-title">Ta réponse <strong>est enregistrée !</strong></p>
+            <p class="advent__recorded-message">Reviens demain pour découvrir le résultat !</p>
+            <span class="advent__recorded-calendar" aria-hidden="true">✦</span>
+          </div>
         } @else if (answerState() === 'closed') {
           <p role="status">Ce quiz est fermé.</p>
         } @else if (answerState() === 'uncertain') {
-          <p role="alert">Impossible de vérifier ta réponse pour le moment.</p>
+          <p class="advent__feedback" role="alert">Impossible de vérifier ta réponse pour le moment.</p>
           <button mat-stroked-button type="button" (click)="reconcile()">Vérifier à nouveau</button>
         } @else { <p role="status">Vérification en cours…</p> }
       </section>

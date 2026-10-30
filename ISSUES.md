@@ -49,6 +49,20 @@ human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
 
+### BUG-059 — Revisiting an answered Advent test day shows a closed gift
+- **Status**: Corrected locally; awaiting human verification.
+- **Affected area**: V2 isolated Advent test navigation.
+- **Observed behavior**: Navigating back to an answered day redisplayed the unopened gift until it was tapped again.
+- **Expected behavior**: An answered day opens directly to its recorded state without reopening the gift.
+- **Notes/context**: Reported with a mobile recording. Angular tests and a real Tailscale browser navigation check passed. Detailed result reveal remains part of story 25.3.
+
+### BUG-058 — Offline seed accounts cannot access Advent test
+- **Status**: Corrected locally; verified with an offline seed session through the Tailscale proxy.
+- **Affected area**: V2 offline Advent test access.
+- **Observed behavior**: The development seed identity verifier leaves `emailVerified` false, while the Advent test controller requires a verified email session even offline. Thus the documented seed sign-in cannot access the Advent preview.
+- **Expected behavior**: An eligible offline seed account can access the isolated Advent test while verified-email protection remains appropriate for real identities.
+- **Notes/context**: Validated seed credentials now produce a verified synthetic identity; real identities retain the provider verification result. The offline seed sign-in, protected Advent read, and CSRF-protected reconciliation were verified through Tailscale. `DEVELOPMENT.md` documents offline seed access to the preview.
+
 ### BUG-057 — Advent test can wait indefinitely on a stalled request
 - **Status**: Fixed locally in the unintegrated story 25.2 implementation; integration and browser network-stall verification remain pending.
 - **Affected area**: V2 isolated Advent test interface.

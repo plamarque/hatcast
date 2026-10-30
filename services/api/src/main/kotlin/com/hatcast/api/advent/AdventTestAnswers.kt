@@ -42,11 +42,30 @@ class AdventTestAnswers(private val jdbc: JdbcTemplate) {
         val now = simulatedInstant(receipt)
         jdbc.update("UPDATE advent_test_attempts SET cancelled = TRUE WHERE user_id = ? AND quiz_day = ? AND cancelled = FALSE", user, day)
         val state = stateAt(user, day, now)
+        if (state.status == "recorded") {
+            val token = UUID.randomUUID()
+            jdbc.update("UPDATE advent_test_answers SET replay_token = ? WHERE user_id = ? AND quiz_day = ?", token, user, day)
+            return AnswerState("recorded", replayToken = token)
+        }
         if (state.status != "available") return state
         val generation = UUID.randomUUID()
         if (jdbc.update("UPDATE advent_test_generations SET generation = ? WHERE user_id = ? AND quiz_day = ?", generation, user, day) == 0)
             jdbc.update("INSERT INTO advent_test_generations (user_id, quiz_day, generation) VALUES (?, ?, ?)", user, day, generation)
         return AnswerState("available", generation)
+    }
+
+    @Transactional
+    fun replay(user: UUID, day: Int, token: UUID, receipt: Instant): AnswerState {
+        validateDay(day)
+        val now = simulatedInstant(receipt)
+        val current = stateAt(user, day, now)
+        if (current.status != "recorded" || current.replayToken != token) return current
+        jdbc.update("UPDATE advent_test_attempts SET cancelled = TRUE WHERE user_id = ? AND quiz_day = ?", user, day)
+        jdbc.update("DELETE FROM advent_test_generations WHERE user_id = ? AND quiz_day = ?", user, day)
+        jdbc.update("DELETE FROM advent_test_answers WHERE user_id = ? AND quiz_day = ?", user, day)
+        jdbc.update("INSERT INTO advent_test_replays (user_id, quiz_day) VALUES (?, ?)", user, day)
+        recompute(user)
+        return AnswerState("available")
     }
 
     @Transactional
@@ -68,7 +87,7 @@ class AdventTestAnswers(private val jdbc: JdbcTemplate) {
         if (existing.status == "recorded") return existing
         val date = LocalDate.of(2026, 12, day)
         val today = now.atZone(paris).toLocalDate()
-        if (AdventParisTime.isClosed(day, now)) return AnswerState("closed")
+        if (existing.status != "available") return existing
         if (today.isBefore(date)) {
             val advanced = now.atZone(paris).withYear(2026).withMonth(12).withDayOfMonth(day).toInstant()
             val offset = advanced.epochSecond - maxOf(receipt, Instant.now()).epochSecond
@@ -82,8 +101,12 @@ class AdventTestAnswers(private val jdbc: JdbcTemplate) {
         val reveal = date.plusDays(1).atStartOfDay(paris).toInstant()
         jdbc.update("INSERT INTO advent_test_answers (user_id, quiz_day, choice, correct_choice, response_points, participation_points, bonus_points, received_at, reveal_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             user, day, choice, keys[day - 1], if (correct) 10 else 0, 1, 0, Timestamp.from(now), Timestamp.from(reveal))
-        // Reconcile a late-locking earlier quiz under the same global lock. Choice and
-        // correctness are immutable; bonus follows quiz order, including missed days.
+        jdbc.update("DELETE FROM advent_test_replays WHERE user_id = ? AND quiz_day = ?", user, day)
+        recompute(user)
+        return stateAt(user, day, now)
+    }
+
+    private fun recompute(user: UUID) {
         val scored = jdbc.query("SELECT quiz_day, choice, correct_choice FROM advent_test_answers WHERE user_id = ? ORDER BY quiz_day", { rs, _ -> Triple(rs.getInt(1), rs.getInt(2), rs.getInt(3)) }, user)
         var streak = 0
         for ((quizDay, selected, correctChoice) in scored) {
@@ -93,7 +116,6 @@ class AdventTestAnswers(private val jdbc: JdbcTemplate) {
         }
         val updated = jdbc.update("UPDATE advent_test_member_state SET correct_streak = ? WHERE user_id = ?", streak, user)
         if (updated == 0) jdbc.update("INSERT INTO advent_test_member_state (user_id, correct_streak) VALUES (?, ?)", user, streak)
-        return AnswerState("recorded")
     }
 
     private fun simulatedInstant(receipt: Instant): Instant {
@@ -117,13 +139,22 @@ class AdventTestAnswers(private val jdbc: JdbcTemplate) {
 
     private fun stateAt(user: UUID, day: Int, now: Instant): AnswerState {
         val count = jdbc.queryForObject("SELECT COUNT(*) FROM advent_test_answers WHERE user_id = ? AND quiz_day = ?", Long::class.java, user, day) ?: 0
-        if (count > 0) return AnswerState("recorded")
-        return AnswerState(if (AdventParisTime.isClosed(day, now)) "closed" else "available")
+        if (count > 0) {
+            var token = jdbc.queryForObject("SELECT replay_token FROM advent_test_answers WHERE user_id = ? AND quiz_day = ?", UUID::class.java, user, day)
+            if (token == null) {
+                token = UUID.randomUUID()
+                jdbc.update("UPDATE advent_test_answers SET replay_token = ? WHERE user_id = ? AND quiz_day = ?", token, user, day)
+            }
+            return AnswerState("recorded", replayToken = token)
+        }
+        val replay = jdbc.queryForObject("SELECT COUNT(*) FROM advent_test_replays WHERE user_id = ? AND quiz_day = ?", Long::class.java, user, day) ?: 0
+        return AnswerState(if (replay == 0L && AdventParisTime.isClosed(day, now)) "closed" else "available")
     }
     private fun validateDay(day: Int) { if (day !in 1..24) throw ResponseStatusException(HttpStatus.NOT_FOUND) }
 }
 
-data class AnswerState(val status: String, val generation: UUID? = null)
+data class AnswerState(val status: String, val generation: UUID? = null, val replayToken: UUID? = null)
+data class ReplayAnswer(val replayToken: UUID?)
 data class ConfirmAnswer(val choice: Int?, val attemptId: UUID?)
 data class AnswerAttempt(val attemptId: UUID?, val generation: UUID?)
 

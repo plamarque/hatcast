@@ -1,3 +1,5 @@
+@use '../../shared/advent/foundation' as advent;
+
 :host { display: block; min-height: 100dvh; }
 .advent { min-height: 100dvh; background: linear-gradient(155deg, var(--hatcast-avent-cream), var(--hatcast-avent-mint)); color: var(--hatcast-avent-ink); }
 .advent__header { display: flex; align-items: center; justify-content: space-between; min-height: 3.5rem; padding: 0 1rem; background: var(--hatcast-avent-red); color: var(--hatcast-avent-white); font: var(--mat-sys-title-medium); }
@@ -63,3 +65,47 @@
 .advent__options { display: flex; flex-direction: column; gap: .5rem; }
 .advent__options mat-radio-button { display: block; min-height: 3rem; text-align: left; }
 .advent__header { flex-wrap: wrap; }
+
+/* The Advent identity is inherited only within this feature's root. */
+.advent {
+  @include advent.foundation;
+  color-scheme: light;
+  font-family: var(--advent-body-font);
+  font-size: 1.125rem;
+  line-height: 1.5;
+}
+.advent__content { overflow-wrap: break-word; }
+.advent__header { font-family: var(--advent-body-font); }
+.advent__date { font: 700 1rem/1.4 var(--advent-body-font); }
+.advent__title, .advent__quiz h2 {
+  font: 700 clamp(1.75rem, 6vw, 2rem)/1.15 var(--advent-heading-font);
+  color: var(--hatcast-avent-green);
+}
+.advent__quiz h2 { background: transparent; margin: .75rem 0; }
+.advent__name { font-family: var(--advent-heading-font); font-style: normal; }
+.advent__question { font: 700 clamp(1.4rem, 5vw, 1.75rem)/1.3 var(--advent-heading-font); }
+.advent__options mat-radio-button {
+  border: 2px solid var(--advent-choice-border);
+  border-radius: 1rem;
+  background: var(--hatcast-avent-white);
+  padding: .25rem .5rem;
+}
+.advent__options mat-radio-button:has(input:checked) {
+  border-color: var(--hatcast-avent-red);
+  background: var(--advent-choice-selected);
+}
+.advent__options mat-radio-button:has(input:disabled) { opacity: .65; }
+.advent__options mat-radio-button:focus-within { outline: 3px solid var(--hatcast-avent-green); outline-offset: 2px; }
+.advent__quiz button[mat-flat-button] { min-height: 3.5rem; width: 100%; font: 700 1.125rem var(--advent-body-font); }
+.advent__feedback { padding: 1rem; border: 2px solid var(--hatcast-avent-red); border-radius: 1rem; background: var(--hatcast-avent-white); }
+.advent__recorded { margin: 1rem 0; padding: 20px 12px; border: 2px solid var(--hatcast-avent-gold); border-radius: 1.5rem; background: var(--hatcast-avent-cream); box-shadow: 0 .3rem .7rem var(--advent-shadow); }
+.advent__recorded-stars { color: var(--advent-gold-ink); font-size: 1.5rem; }
+.advent__recorded-title { margin: .25rem 0; color: var(--hatcast-avent-green); font: 700 clamp(28px, 7vw, 40px)/1.15 var(--advent-heading-font); }
+.advent__recorded-title strong { display: block; color: var(--hatcast-avent-red); }
+.advent__recorded-message { color: var(--hatcast-avent-green); font-weight: 700; font-size: 1.25rem; }
+.advent__recorded-calendar { display: inline-grid; place-items: center; width: 3rem; height: 3rem; border: 2px solid var(--hatcast-avent-gold); border-top: .65rem solid var(--hatcast-avent-red); border-radius: .5rem; color: var(--advent-gold-ink); background: var(--hatcast-avent-white); }
+
+
+@media (max-width: 390px) {
+  .advent__header-title--replay { display: none; }
+}

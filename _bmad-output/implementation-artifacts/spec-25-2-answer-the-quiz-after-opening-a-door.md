@@ -72,7 +72,9 @@ context:
 
 ## Implementation Notes
 
-Patrice accepts a possible delay after midnight while an already-running transaction completes. API Advent and Angular component tests passed; the isolated Chromium check passed with a mocked API and blocked service worker. Real browser/API/CSRF and service-worker isolation remain to be checked before human demonstration.
+Patrice validated the user acceptance test on 2026-10-30, after local adjustments to replay, navigation and the visual preview. Those adjustments were still uncommitted at the time of validation; the test portraits were local ignored files.
+
+Patrice accepts a possible delay after midnight while an already-running transaction completes. API Advent and Angular component tests passed; the isolated Chromium check passed with a mocked API and blocked service worker. A real offline browser/API/CSRF session was checked through Tailscale; the service-worker cross-account isolation check remains outstanding.
 
 On 2026-10-30 Patrice replaced the earlier receipt-time rule: close confirmations still waiting for the lock at midnight; a result may wait briefly for an already-running transaction. BUG-055 must be fixed without disabling its reproducing tests.
 

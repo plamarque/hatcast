@@ -53,15 +53,15 @@ class AdventTestControllerTest {
         val quiz = controller.door(1, user, verifiedRequest)
         verify(memberships).requireActiveMemberMembership(user.userId, troupe)
         assertEquals(3, quiz.statements.size)
-        assertEquals("Camille", controller.door(3, user, verifiedRequest).name)
+        assertEquals("Camille", controller.door(4, user, verifiedRequest).name)
         assertTrue(quiz.portrait.startsWith("data:image/png;base64,"))
         assertThrows(ResponseStatusException::class.java) { controller.door(25, user, verifiedRequest) }
     }
     @Test fun `all 24 test days contain distinct fictional quizzes`() {
         isolated()
         val quizzes = (1..24).map { controller.door(it, user, verifiedRequest) }
-        assertEquals(listOf("Patrice", "Will", "Camille", "Angie"), quizzes.take(4).map { it.name })
-        assertTrue(quizzes.drop(4).all { it.name == "Lutin de Noël" && it.genericElf })
+        assertEquals(listOf("Toinou", "Patrice", "Will", "Camille", "Angie"), quizzes.take(5).map { it.name })
+        assertTrue(quizzes.drop(5).all { it.name == "Lutin de Noël" && it.genericElf })
         assertTrue(quizzes.all { it.statements.size == 3 && it.statements.all(String::isNotBlank) })
         assertEquals(24, quizzes.map { it.statements }.toSet().size)
         assertThrows(ResponseStatusException::class.java) { controller.door(0, user, verifiedRequest) }
@@ -85,7 +85,7 @@ class AdventTestControllerTest {
         val request = org.springframework.mock.web.MockHttpServletRequest()
         request.getSession(true)!!.setAttribute("hatcast.auth.verified-email", true)
         val patrice = SessionUserPrincipal(UUID.randomUUID(), "sub", null, "patrice.lamarque@gmail.com")
-        whenever(cloudImages.read("patrice-net.png")).thenReturn(byteArrayOf(1, 2, 3))
+        whenever(cloudImages.read("toinou-net.png")).thenReturn(byteArrayOf(1, 2, 3))
         val quiz = controller.door(1, patrice, request)
         assertEquals(1, quiz.day)
         assertEquals("data:image/png;base64,AQID", quiz.portrait)

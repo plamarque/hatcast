@@ -11,6 +11,10 @@ import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf
+import org.springframework.http.MediaType
+import java.util.UUID
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 
 @SpringBootTest(properties = ["hatcast.advent-test.enabled=true", "hatcast.advent-test.troupe-id=a0000001-0000-4000-8000-000000000001"])
@@ -22,6 +26,8 @@ class AdventTestIntegrationTest {
     @MockBean private lateinit var idp: IdpIdTokenVerifier
     @Test fun `direct requests cannot disclose content outside offline profile`() {
         val cookie = TestAuthSupport.sessionCookieFromGoogleSignIn(mvc, google, "advent-test-integration")
+        mvc.perform(post("/v1/advent-test/doors/1/answer/replay").cookie(cookie).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("""{"replayToken":"${UUID.randomUUID()}"}"""))
+            .andExpect(status().isNotFound).andExpect(header().string("Cache-Control", "private, no-store"))
         mvc.perform(get("/v1/advent-test/doors/1").cookie(cookie))
             .andExpect(status().isNotFound).andExpect(header().string("Cache-Control", "private, no-store"))
             .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Camille"))))

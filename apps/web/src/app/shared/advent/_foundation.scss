@@ -1,0 +1,31 @@
+// Advent-only semantic roles. Include on an Advent root, never on :root.
+@mixin foundation {
+  --hatcast-avent-red: #b52235;
+  --hatcast-avent-green: #075441;
+  --hatcast-avent-gold: #dea537;
+  --hatcast-avent-cream: #fff6e4;
+  --hatcast-avent-mint: #f1faf2;
+  --hatcast-avent-ink: #173b32;
+  --hatcast-avent-white: #fff;
+  --hatcast-avent-door-light: #a76359;
+  --hatcast-avent-door-dark: #704642;
+  --advent-choice-border: #d9c9a8;
+  --advent-choice-selected: #ffebe4;
+  --advent-gold-ink: #986500;
+  --advent-shadow: #70464233;
+  --advent-heading-font: 'Trebuchet MS', 'Arial Rounded MT Bold', sans-serif;
+  --advent-body-font: 'Trebuchet MS', Arial, sans-serif;
+  --mat-radio-selected-icon-color: var(--hatcast-avent-red);
+  --mat-radio-selected-focus-icon-color: var(--hatcast-avent-red);
+  --mat-radio-selected-hover-icon-color: var(--hatcast-avent-red);
+  --mat-radio-selected-pressed-icon-color: var(--hatcast-avent-red);
+  --mat-radio-unselected-icon-color: var(--hatcast-avent-green);
+  --mat-radio-label-text-color: var(--hatcast-avent-ink);
+  --mat-radio-label-text-font: var(--advent-body-font);
+  --mat-radio-label-text-size: 1.125rem;
+  --mat-radio-label-text-line-height: 1.45;
+  --mat-button-filled-container-color: var(--hatcast-avent-red);
+  --mat-button-filled-label-text-color: var(--hatcast-avent-white);
+  --mat-button-outlined-label-text-color: var(--hatcast-avent-green);
+  --mat-button-outlined-outline-color: var(--hatcast-avent-green);
+}
