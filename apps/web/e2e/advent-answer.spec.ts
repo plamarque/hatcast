@@ -30,6 +30,10 @@ test('keyboard answers on a narrow enlarged screen with reduced motion', async (
     const style = getComputedStyle(el)
     return { font: style.fontFamily, color: style.color, background: style.backgroundColor, advent: style.getPropertyValue('--hatcast-avent-red').trim() }
   })
+  const homeHeadingStyles = await page.locator('h1').first().evaluate(el => {
+    const style = getComputedStyle(el)
+    return { font: style.fontFamily, size: style.fontSize, color: style.color }
+  })
   await page.goto('/avent-test')
   await page.addStyleTag({ content: 'html { font-size: 200% !important; }' })
   const gift = page.getByRole('button', { name: 'Ouvrir le cadeau du jour 1' })
@@ -51,9 +55,28 @@ test('keyboard answers on a narrow enlarged screen with reduced motion', async (
   await page.keyboard.press('Space')
   await expect(choices.first()).toBeChecked()
   await expect(page.locator('.advent__options mat-radio-button').first()).toHaveCSS('border-color', 'rgb(181, 34, 53)')
+  const selectedContrast = await page.locator('.advent__options mat-radio-button').first().evaluate(card => {
+    const label = card.querySelector('label')!
+    const channel = (c: number) => { const v = c / 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4 }
+    const lum = (color: string) => { const values = color.match(/[\d.]+/g)!.slice(0, 3).map(Number).map(channel); return 0.2126 * values[0] + 0.7152 * values[1] + 0.0722 * values[2] }
+    const a = lum(getComputedStyle(label).color), b = lum(getComputedStyle(card).backgroundColor)
+    return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)
+  })
+  expect(selectedContrast).toBeGreaterThanOrEqual(4.5)
   await page.getByRole('button', { name: 'Confirmer ma réponse' }).click()
   await expect(page.getByRole('status')).toContainText('Ta réponse est enregistrée')
   await expect(page.locator('.advent__recorded-title')).toBeVisible()
+  await expect(page.locator('.advent__recorded-title')).toHaveCSS('font-family', /Fredoka/)
+  await page.evaluate(() => document.fonts.ready)
+  expect(await page.evaluate(() => document.fonts.check('700 16px Fredoka'))).toBe(true)
+  await expect(page.locator('.advent__portrait img')).toBeVisible()
+  await expect(page.locator('.advent__portrait img')).toHaveAttribute('src', /^data:image\/png;base64,/)
+  for (const width of [320, 375, 390, 430, 768, 1280]) {
+    await page.setViewportSize({ width, height: 700 })
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    await expect(page.locator('.advent__recorded-title')).toBeVisible()
+  }
+  await page.setViewportSize({ width: 320, height: 700 })
   expect(await page.locator('.advent__portrait').evaluate(el => el.getBoundingClientRect().width)).toBe(portraitWidth)
   const replay = page.locator('.advent__test-actions').getByRole('button', { name: 'Effacer ma réponse et rejouer' })
   await expect(replay).toBeVisible()
@@ -68,4 +91,8 @@ test('keyboard answers on a narrow enlarged screen with reduced motion', async (
     const style = getComputedStyle(el)
     return { font: style.fontFamily, color: style.color, background: style.backgroundColor, advent: style.getPropertyValue('--hatcast-avent-red').trim() }
   })).toEqual(homeStyles)
+  expect(await page.locator('h1').first().evaluate(el => {
+    const style = getComputedStyle(el)
+    return { font: style.fontFamily, size: style.fontSize, color: style.color }
+  })).toEqual(homeHeadingStyles)
 })

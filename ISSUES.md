@@ -30,6 +30,8 @@ BUG-038 (intermittent composition smoke assertions observed on v2.6.3-rc.2).
 
 BUG-BMAD-001 (accented versus ASCII story keys in sprint controller).
 
+BUG-BMAD-002 (sprint tracker timestamp rejected by BMAD validator).
+
 BUG-031 (format cancellation),
 BUG-028 (mobile season chart), BUG-023 (stale Home badge), LIMIT-009 (Dispos
 view), BUG-018 (staging traffic), LIMIT-008 (Loop policy), LIMIT-007 (web unit
@@ -108,11 +110,11 @@ BUG-037 and BUG-029 have fixture-only corrections verified by the complete API s
 - **Notes**: The actual exploitability depends on Identity Platform account configuration; do not deploy the email-based preview until the boundary is verified and protected.
 
 ### BUG-051 — Advent preview diverged from approved design
-- **Status**: Corrected locally; awaiting user review.
-- **Affected area**: V2 Advent story 25.1 test preview.
+- **Status**: Reopened for the approved 2026-10-30 visual direction; alignment in progress.
+- **Affected area**: V2 Advent stories 25.1 and 25.2 test preview.
 - **Observed behavior**: The original preview lacked the festive palette, decorated full-page door, floating ornaments and visible opening with light from the approved UX direction.
 - **Expected behavior**: The preview reflects the approved door and quiz direction, including an equivalent reduced-motion experience.
-- **Notes**: Automatic entry on eligible visits belongs to story 25.6 and is not implemented in this preview. The first badge-removal edits introduced blurry, pixelated translucent halos; replacement local illustrations use a clean transparent background and await user review.
+- **Notes**: Automatic entry on eligible visits belongs to story 25.6 and is not implemented in this preview. The 2026-10-30 approved design handoff is the current visual reference. A 390 px capture of the current confirmation shows a closer hierarchy but lacks the full festive setting of the reference; remaining work is recorded in the Advent visual foundation spec.
 
 ### BUG-050 — PWA banner masked the Advent test label
 - **Status**: Fixed locally in story 25.1; integration and deployment not yet verified.
@@ -330,6 +332,15 @@ GROUP BY release_id ORDER BY first_promoted_at DESC LIMIT 10
 - **Proposed remediation:** Isolate fixture troupes/seasons and database state, update setup to explicitly create the intended membership/roster scope, provide required-slot needs in the statistics fixtures, and generate a date-independent future-event set for the performance test. Preserve the business rules and assertions; do not waive or disable tests. No test or production implementation changed during this investigation.
 - **Notes/context:** The CI result arrived after `v2.6.3-rc.1` was pushed (`c2a6a4c2`) and its artifacts synchronized to `v2` (`fa1a27b2`). No production promotion was performed. Do not infer runtime regression or waive the failures from green E2E alone.
 - **RC operational evidence:** [Run 39100935125](https://github.com/plamarque/hatcast/actions/runs/39100935125) completed successfully: staging E2E 93 passed / 4 skipped, Cloud Run revision `hatcast-v2-staging-00123-nz4` serving 100% traffic, E1 preprod 33 passed / 2 skipped. The staging `version.txt` reports `2.6.3`. Automated gates do not replace human staging smoke or disposition of the API failures.
+
+### BUG-BMAD-002 — Sprint tracker timestamp rejected by BMAD validator
+
+- **Status:** Open
+- **Severity:** Low
+- **Affected area:** `sprint-status.yaml` and `bmad-sprint-planning` validation.
+- **Observed behavior:** On 2026-10-30, `sprint_plan.py validate` returned `valid: false` because `last_updated` is `2026-10-30T00:31:05+01:00` while the validator expects `%m-%d-%Y %H:%M`.
+- **Expected behavior:** The tracker produced by the supported controller and its validator agree on the timestamp format.
+- **Notes/context:** Validation was read-only. The tracker was not edited or regenerated; the source of the format mismatch has not been investigated.
 
 ### BUG-BMAD-001 — Sprint controller disagrees with registered ASCII story keys
 

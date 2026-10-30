@@ -26,7 +26,7 @@ Updated requirements inventory for the La Malice Advent calendar. The spec and c
 
 - **FR-3:** Du 1er au 24 décembre, HatCast tente d’envoyer à 10 h, heure de Paris, une invitation habituelle aux membres qui n’ont pas répondu au quiz du jour. Le traitement vérifie la disponibilité du quiz lorsqu’il s’exécute et respecte les préférences habituelles. Si le quiz manque ou si le traitement ne se déclenche pas, aucune invitation n’est envoyée ; un envoi tardif ou manqué est acceptable, sans reprise particulière. L’invitation mène au parcours du jour en respectant la priorité de révélation de FR-7.
 
-- **FR-4:** Le membre sélectionne l’anecdote qu’il estime fausse parmi trois, puis confirme ; une réponse enregistrée est définitive et unique par quiz. Chaque personne présentée peut jouer à son propre quiz. Le quiz est jouable uniquement pendant son jour de jeu ; aucun rattrapage n’est possible. À minuit, toute confirmation attendant encore le verrou est fermée, même si elle a été reçue avant minuit. La révélation attend la fin d’une transaction déjà en cours.
+- **FR-4:** Le membre sélectionne l’anecdote qu’il estime fausse parmi trois, puis confirme ; en production, une réponse enregistrée est définitive et unique par quiz. Le rejeu personnel est limité au mode test isolé (FR-13). Chaque personne présentée peut jouer à son propre quiz. Le quiz est jouable uniquement pendant son jour de jeu ; aucun rattrapage n’est possible. À minuit, toute confirmation attendant encore le verrou est fermée, même si elle a été reçue avant minuit. La révélation attend la fin d’une transaction déjà en cours.
 
 - **FR-5:** Une bonne réponse rapporte 10 points, une mauvaise 0. Chaque jour répondu rapporte en outre 1 point de participation, dès le premier jour et quelle que soit la justesse ; un jour manqué ne rapporte aucun point. Un bonus de 2 points est attribué pour chaque groupe de trois bonnes réponses consécutives : une mauvaise réponse remet la série à zéro, une journée manquée la laisse intacte. Après un bonus, le décompte repart pour le groupe de trois suivant : les groupes ne se chevauchent pas. Les bonus sont donc attribués aux 3ᵉ, 6ᵉ, 9ᵉ bonnes réponses consécutives, et ainsi de suite. Les points deviennent visibles et comptent dans le classement à la révélation, pas avant. Le maximum théorique est de 280 points : 240 de bonnes réponses, 24 de participation et 16 de bonus.
 
@@ -44,7 +44,7 @@ Updated requirements inventory for the La Malice Advent calendar. The spec and c
 
 - **FR-12:** Un jour de jeu sans quiz disponible, il n’y a ni notification ni ouverture automatique. L’icône mène au message « Il n’y a rien ici. Reviens plus tard ! » et à un accès au classement pour tous, même sans participation, après l’éventuelle révélation prioritaire. Le 25 décembre suit FR-9 et ne comporte pas de quiz.
 
-- **FR-13:** Avant décembre, Patrice et Toinou peuvent tester et présenter le calendrier dans un environnement de développement isolé de la production. Le mode test permet aux membres actifs de la troupe configurée figurant sur la liste dédiée des testeurs d’ouvrir librement les cases disponibles avant leur jour prévu ; il doit permettre de vérifier les nouvelles règles de jeu et de révélation, sans affecter la partie réelle. Les réponses y sont définitives ; une remise à zéro ciblée des données du calendrier permet de recommencer. La troupe peut être choisie par environnement. Aucun mode test n’est disponible en production. Une horloge simulée commune côté serveur avance seulement ; répondre à une case future la fait avancer jusqu’au jour de cette case. Le barème normal s’applique et le résultat est révélé le lendemain simulé. Revenir en arrière exige de réinitialiser la partie de test et son horloge. Les limites réelles sont vérifiées séparément.
+- **FR-13:** Avant décembre, Patrice et Toinou peuvent tester et présenter le calendrier dans un environnement de développement isolé de la production. Le mode test permet aux membres actifs de la troupe configurée figurant sur la liste dédiée des testeurs d’ouvrir librement les cases disponibles avant leur jour prévu ; il doit permettre de vérifier les nouvelles règles de jeu et de révélation, sans affecter la partie réelle. Chaque testeur peut effacer sa propre réponse à une case et la rejouer, même passée, sans reculer l’horloge commune ni modifier les réponses des autres. Une remise à zéro ciblée des données du calendrier permet de recommencer toute la partie. La troupe peut être choisie par environnement. Aucun mode test n’est disponible en production. Une horloge simulée commune côté serveur avance seulement ; répondre à une case future la fait avancer jusqu’au jour de cette case. Le barème normal s’applique et le résultat est révélé le lendemain simulé. Revenir en arrière exige de réinitialiser la partie de test et son horloge. Les limites réelles sont vérifiées séparément.
 
 ### NonFunctional Requirements
 
@@ -67,16 +67,16 @@ Updated requirements inventory for the La Malice Advent calendar. The spec and c
 
 ### UX Design Requirements
 
-- **UX-DR1:** Use HatCast Angular Material 3 components, typography and `--mat-sys-*` tokens; translate the festive visual direction into the theme and verify contrast, without ad hoc component colors.
+- **UX-DR1:** Use accessible Angular Material 3 behaviors with the approved independent Advent identity, scoped Advent tokens, typography and components; preserve HatCast appearance and verify isolation and contrast.
 - **UX-DR2:** Provide a full-page decorated discovery door, short opening and soft light, with immediate equivalent access under reduced motion.
 - **UX-DR3:** Place portrait, three single-choice statements and explicit confirmation on the quiz; selection can change until confirmation. Aim for no scrolling on usual phones but never truncate content or sacrifice accessibility.
 - **UX-DR4:** After a neutral acknowledgment, reveal the result from next midnight on the same surface; show response, participation and earned bonus points and total; celebrate only correct answers briefly and omit motion when requested. Revisited results show choice, correct answer and points without replaying celebration.
-- **UX-DR5:** Provide separate HatCast-style Calendar and Ranking tabs, with the priority reveal, daily quiz and personal ranking summary defined in EXPERIENCE.md.
+- **UX-DR5:** Provide separate accessible Advent-styled Calendar and Ranking tabs, with the priority reveal, daily quiz and personal ranking summary defined in EXPERIENCE.md.
 - **UX-DR6:** Render 24 numbered quiz cases and a 25 December case in a four-column, left-to-right grid; distinguish played, past, today, future locked and missing-content cases without color alone; expose number and state accessibly without revealing future content.
 - **UX-DR7:** Show the Santa icon near account with a discreet movement once at HatCast opening, less than five seconds, and no movement under reduced-motion preference.
 - **UX-DR8:** Use French, tutoiement and encouraging festive tone; preserve the specified missing-content, bonus and Christmas messages and result variations.
 - **UX-DR9:** Support keyboard operation, visible focus, appropriate focus entry/restoration and announcements for door, result and errors without a keyboard trap; use meaningful portrait alternatives and single-choice semantics.
-- **UX-DR10:** Target 48 × 48 px touch targets; document any allowed 40 px exception. Verify small widths, zoom, text enlargement, contrast and no loss of content or action on mobile, tablet and desktop.
+- **UX-DR10:** Target 48 × 48 px touch targets, minimum 44 × 44 px. Verify small widths, zoom, text enlargement, contrast and no loss of content or action on mobile, tablet and desktop.
 - **UX-DR11:** Show clear test-mode indication and preserve the development-only test journey and targeted reset behavior.
 
 ### FR Coverage Map
@@ -101,12 +101,16 @@ Updated requirements inventory for the La Malice Advent calendar. The spec and c
 
 Members of La Malice discover each other through a daily festive quiz, review revealed results and past content, then consult the final friendly ranking; organizers prepare and test the experience safely before opening.
 
-**FRs covered:** FR-1–FR-13. **Architecture:** AD-1–AD-6. **UX:** UX-DR1–UX-DR11.
+**FRs covered:** FR-1–FR-13. **Architecture:** AD-1–AD-7. **UX:** UX-DR1–UX-DR11.
 
 Progressive human checkpoints follow the journey: door, quiz, result, ranking, calendar, Santa icon, then notifications. Show each partial experience to Patrice and Toinou as soon as it is safe and testable; explicitly identify unfinished parts. The first usable test requires development isolation and the protections relevant to what is exposed.
 
 The experience and its security, scoring, ranking and state share one domain and are already designed together. One epic avoids artificial boundaries and repeated work on the same components; independently reviewable stories will be ordered inside it. The production entry must not expose an incomplete or unprotected experience. Epic 25 and its story identifiers remain stable; revised criteria and dependencies were validated with Patrice on 2026-10-29.
 
+
+### Approved visual alignment — 30 October 2026
+
+The approved Advent design system and AD-7 apply to every Advent screen and state. Create a scoped foundation and separately align the already completed 25.1/25.2 discovery, question and neutral confirmation without changing behavior. Later stories apply the same foundation within their existing scope; do not infer sharing, countdown or a 24 December completion journey from the visual board. Preserve completed story history. Acceptance includes responsive and accessibility checks, before/after HatCast visual and computed-style isolation, and existing answer-secrecy and date-boundary regressions. Detailed delivery sequence is recorded in PLAN.md.
 
 ## Epic 25: Discover La Malice through an Advent calendar
 
@@ -121,13 +125,15 @@ As an eligible member testing the calendar, I want to open an available test doo
 1. In isolated development, active members of the configured troupe can open available future cases before their simulated day; the interface visibly identifies test mode. Test statements are fictional; actual names or portraits require consent.
 2. The API enforces active troupe membership, the dedicated test-user allowlist and environment restrictions on each read. Platform administrators outside the troupe are not exempt. Production offers no test mode; future content, revealing portraits and answers are inaccessible through API, bundles, assets or direct URLs.
 3. Opening the full-page decorated door reveals only the selected permitted portrait and quiz content; reduced motion gives equivalent immediate access. Answering is not yet available and is explicitly identified as unfinished in the demonstration.
-4. Before a human demonstration, verify development data, notifications and analytics are isolated from production. Keyboard access, focus, accessible state, responsive layout, HatCast Material 3 tokens and touch targets follow the UX contract.
+4. Before a human demonstration, verify development data, notifications and analytics are isolated from production. Keyboard access, focus, accessible state, responsive layout, scoped Advent styling, Material 3 behavior and touch targets follow the UX contract.
 
 **References:** FR-1, FR-10, FR-13; AD-1, AD-2; UX-DR1, UX-DR2, UX-DR6, UX-DR9–UX-DR11.
 
 ### Story 25.2: Answer the quiz after opening a door
 
 As an eligible member, I want to select and confirm a single statement so that my answer is saved for the next day's reveal.
+
+**Clarification after completion:** Production answers remain final. The isolated test preview additionally allows a tester to erase and replay their own answer under the existing 25.2 safeguards, without changing other answers or rewinding the shared clock.
 
 **Acceptance Criteria:**
 
@@ -164,6 +170,8 @@ As a member who answered, I want to discover my saved result after its reveal so
 4. Celebrate correct answers only on initial reveal, with an equivalent reduced-motion result; revisiting does not replay celebration. A failed or uncertain submission is checked before offering a retry; after closure explain that the quiz is closed.
 5. Verify focus, announcements, accessible error handling, no truncated text and navigation on narrow screens with Material 3 components.
 
+**Visual contract:** Apply the Advent visual foundation to the correct, incorrect and detailed reveal states; keep the reveal priority and secrecy rules. Use the Advent DESIGN and EXPERIENCE contracts and architecture AD-7; test keyboard, accessible states, responsive rendering and isolation from HatCast.
+
 **References:** FR-5–FR-7, FR-9–FR-10; AD-1–AD-3; UX-DR4, UX-DR8–UX-DR10.
 
 ### Story 25.4: See the friendly ranking
@@ -177,6 +185,8 @@ As a member, I want to see the revealed ranking and my own score so that I can s
 3. At 00:00 Paris on 25 December the result of the 24th is revealable and the ranking is final. The ranking is available to all eligible members through 15 January, even without answers; verify calendar availability with 25.5. Member access ends on 16 January; results remain retained. No special membership-change mechanism is added.
 4. Verify ranking against correct, incorrect, missed and third/sixth correct answers, including exclusion, cross-account requests and before/after-midnight snapshots. Test simulated time and actual date boundaries separately.
 5. Names, position and scores remain readable and accessible on small screens and with keyboard, assistive technology and text enlargement; use Material 3.
+
+**Visual contract:** Apply the Advent visual foundation to ranking and personal score states; retain the existing accessible data and pending-score protections. Use the Advent DESIGN and EXPERIENCE contracts and architecture AD-7; test keyboard, accessible states, responsive rendering and isolation from HatCast.
 
 **References:** FR-5, FR-6, FR-8–FR-9; AD-1, AD-3, AD-4; UX-DR1, UX-DR5, UX-DR9–UX-DR10.
 
@@ -192,6 +202,8 @@ As a member, I want to browse the calendar and revisit permitted content so that
 4. From 25 December through 15 January, eligible members can consult calendar and final ranking, even without playing. The 25 displays the Christmas message, personal score and decorative Santa and box according to UX; no quiz or automatic quiz opening occurs.
 5. Verify case states and content permissions through direct API, URLs, cache and two accounts; meet keyboard, screen-reader, responsive, reduced-motion and Material 3 requirements.
 
+**Visual contract:** Apply the Advent visual foundation to calendar states, past content, missing content and the 25 December presentation; distinguish states without relying on color. Use the Advent DESIGN and EXPERIENCE contracts and architecture AD-7; test keyboard, accessible states, responsive rendering and isolation from HatCast.
+
 **References:** FR-6, FR-9–FR-11, FR-13; AD-1–AD-4; UX-DR1–UX-DR6, UX-DR9–UX-DR11.
 
 ### Story 25.6: Enter the Advent experience from HatCast
@@ -205,6 +217,8 @@ As an eligible member, I want to discover and reopen the experience without repe
 3. With no quiz, no automatic opening occurs; the icon offers the absence message and Calendar and Ranking after the priority reveal. When content appears later that day, it may auto-open on a later eligible visit unless already closed.
 4. After today's answer, the icon opens Ranking subject to reveal priority. On 25 December show the Christmas journey after any priority reveal; thereafter and through 15 January provide final Ranking and Calendar without new answers or automatic quiz opening.
 5. Test mode is development-only and visibly identified. Verify cross-device state, active membership, focus entry and restoration, keyboard and accessible labels.
+
+**Visual contract:** Apply the Advent visual foundation to Advent entry and missing-content surfaces; keep HatCast navigation chrome and design system unaffected. Use the Advent DESIGN and EXPERIENCE contracts and architecture AD-7; test keyboard, accessible states, responsive rendering and isolation from HatCast.
 
 **References:** FR-1, FR-2, FR-7, FR-9, FR-12, FR-13; AD-1–AD-3; UX-DR1, UX-DR5, UX-DR7–UX-DR11.
 
@@ -235,6 +249,6 @@ As an organizer, I want to know how many people played and how many answers were
 
 ## Final validation
 
-- **Coverage:** FR-1–FR-13, AD-1–AD-6 and UX-DR1–UX-DR11 are covered across stories 25.1–25.7, 25.2a and 25.9; companions retain full contractual detail.
+- **Coverage:** FR-1–FR-13, AD-1–AD-7 and UX-DR1–UX-DR11 are covered across stories 25.1–25.7, 25.2a and 25.9; companions retain full contractual detail.
 - **Order:** 25.1 → 25.2 → 25.2a → 25.3 → 25.4 → 25.5 → 25.6 → 25.7; 25.9 follows recorded answers. Development isolation and protections precede human testing; partial features are identified as such.
 - **Validation:** Revised criteria and dependencies reviewed and approved with Patrice on 2026-10-29. Check real date boundaries separately from the simulated clock; verify device, keyboard, contrast and reduced-motion behavior. The Christmas recap, optional animation and graphical treatment of missed cases remain open for story design.

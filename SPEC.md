@@ -466,3 +466,7 @@ Accueil verifies the inbox on each entry and always displays newly received task
 ### Aperçu de test Avent
 
 En développement isolé, un membre actif de la troupe configurée, dont l’adresse vérifiée figure dans la liste de test, peut ouvrir une porte fictive et confirmer une réponse parmi trois affirmations fictives. Le membre peut explicitement effacer sa propre réponse et rejouer cette case, même passée, sans changer les réponses des autres ni l’horloge partagée. La confirmation reste neutre et ne répète pas la question ; une réponse incertaine est vérifiée avant de proposer un nouvel essai. Une case passée sans réponse préalable reste fermée. Cet aperçu ne constitue pas le calendrier complet et ne propose pas encore de résultat ni de classement.
+
+### Identité visuelle Advent Quiz
+
+Les interfaces Advent Quiz adoptent la direction artistique propre approuvée décrite dans [DESIGN.md](_bmad-output/planning-artifacts/ux-designs/ux-hatcast-avent-2026-10-28/DESIGN.md) et les parcours et états de [EXPERIENCE.md](_bmad-output/planning-artifacts/ux-designs/ux-hatcast-avent-2026-10-28/EXPERIENCE.md). Leur identité est distincte de celle de HatCast ; les autres surfaces conservent leur apparence. Les maquettes sont des références graphiques et ne créent pas de fonctionnalités ni ne modifient les règles de révélation.

@@ -3486,6 +3486,8 @@ As an eligible member testing the calendar, I want to open an available test doo
 
 As an eligible member, I want to select and confirm a single statement so that my answer is saved for the next day's reveal.
 
+**Clarification after completion:** Production answers remain final. The isolated test preview additionally allows a tester to erase and replay their own answer under the existing 25.2 safeguards, without changing other answers or rewinding the shared clock.
+
 **Acceptance Criteria:**
 
 1. Display the portrait and three single-choice statements; allow selection changes until explicit confirmation. One immutable answer per member and quiz is enforced in the database under concurrent requests and retries.
@@ -3521,6 +3523,8 @@ As a member who answered, I want to discover my saved result after its reveal so
 4. Celebrate correct answers only on initial reveal, with an equivalent reduced-motion result; revisiting does not replay celebration. A failed or uncertain submission is checked before offering a retry; after closure explain that the quiz is closed.
 5. Verify focus, announcements, accessible error handling, no truncated text and navigation on narrow screens with Material 3 components.
 
+**Visual contract:** Apply the Advent visual foundation to the correct, incorrect and detailed reveal states; keep the reveal priority and secrecy rules. Use the Advent DESIGN and EXPERIENCE contracts and architecture AD-7; test keyboard, accessible states, responsive rendering and isolation from HatCast.
+
 **References:** FR-5–FR-7, FR-9–FR-10; AD-1–AD-3; UX-DR4, UX-DR8–UX-DR10.
 
 ### Story 25.4: See the friendly ranking
@@ -3534,6 +3538,8 @@ As a member, I want to see the revealed ranking and my own score so that I can s
 3. At 00:00 Paris on 25 December the result of the 24th is revealable and the ranking is final. The ranking is available to all eligible members through 15 January, even without answers; verify calendar availability with 25.5. Member access ends on 16 January; results remain retained. No special membership-change mechanism is added.
 4. Verify ranking against correct, incorrect, missed and third/sixth correct answers, including exclusion, cross-account requests and before/after-midnight snapshots. Test simulated time and actual date boundaries separately.
 5. Names, position and scores remain readable and accessible on small screens and with keyboard, assistive technology and text enlargement; use Material 3.
+
+**Visual contract:** Apply the Advent visual foundation to ranking and personal score states; retain the existing accessible data and pending-score protections. Use the Advent DESIGN and EXPERIENCE contracts and architecture AD-7; test keyboard, accessible states, responsive rendering and isolation from HatCast.
 
 **References:** FR-5, FR-6, FR-8–FR-9; AD-1, AD-3, AD-4; UX-DR1, UX-DR5, UX-DR9–UX-DR10.
 
@@ -3549,6 +3555,8 @@ As a member, I want to browse the calendar and revisit permitted content so that
 4. From 25 December through 15 January, eligible members can consult calendar and final ranking, even without playing. The 25 displays the Christmas message, personal score and decorative Santa and box according to UX; no quiz or automatic quiz opening occurs.
 5. Verify case states and content permissions through direct API, URLs, cache and two accounts; meet keyboard, screen-reader, responsive, reduced-motion and Material 3 requirements.
 
+**Visual contract:** Apply the Advent visual foundation to calendar states, past content, missing content and the 25 December presentation; distinguish states without relying on color. Use the Advent DESIGN and EXPERIENCE contracts and architecture AD-7; test keyboard, accessible states, responsive rendering and isolation from HatCast.
+
 **References:** FR-6, FR-9–FR-11, FR-13; AD-1–AD-4; UX-DR1–UX-DR6, UX-DR9–UX-DR11.
 
 ### Story 25.6: Enter the Advent experience from HatCast
@@ -3562,6 +3570,8 @@ As an eligible member, I want to discover and reopen the experience without repe
 3. With no quiz, no automatic opening occurs; the icon offers the absence message and Calendar and Ranking after the priority reveal. When content appears later that day, it may auto-open on a later eligible visit unless already closed.
 4. After today's answer, the icon opens Ranking subject to reveal priority. On 25 December show the Christmas journey after any priority reveal; thereafter and through 15 January provide final Ranking and Calendar without new answers or automatic quiz opening.
 5. Test mode is development-only and visibly identified. Verify cross-device state, active membership, focus entry and restoration, keyboard and accessible labels.
+
+**Visual contract:** Apply the Advent visual foundation to Advent entry and missing-content surfaces; keep HatCast navigation chrome and design system unaffected. Use the Advent DESIGN and EXPERIENCE contracts and architecture AD-7; test keyboard, accessible states, responsive rendering and isolation from HatCast.
 
 **References:** FR-1, FR-2, FR-7, FR-9, FR-12, FR-13; AD-1–AD-3; UX-DR1, UX-DR5, UX-DR7–UX-DR11.
 

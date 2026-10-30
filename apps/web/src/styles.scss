@@ -6,6 +6,10 @@
 @use '@angular/material' as mat;
 @use 'styles/hatcast-semantic-colors' as hatcast-colors;
 
+@import '@fontsource/fredoka/700.css';
+@import '@fontsource/nunito/400.css';
+@import '@fontsource/nunito/700.css';
+
 @import 'styles/hatcast-fonts';
 
 html {

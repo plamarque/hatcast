@@ -17,8 +17,7 @@
       @if (preview(); as character) {
         <div class="advent__heading">
           <p class="advent__date">{{ character.day }} décembre</p>
-          <h1 class="advent__title">Une surprise pour toi !</h1>
-          <p class="advent__name">{{ character.name }}</p>
+          <h1 class="advent__title"><span class="advent__name">{{ character.name }}</span> a un défi pour toi</h1>
         </div>
         <div class="advent__scene" [attr.aria-label]="'Lutin ' + owner(character.name)">
           <span class="advent__decoration advent__decoration--one" aria-hidden="true">✦</span>
@@ -27,10 +26,9 @@
           <span class="advent__decoration advent__decoration--four" aria-hidden="true">❄</span>
           <div class="advent__elf" [attr.data-day]="character.day">
             <img [src]="character.portrait" alt="" />
-            <button class="advent__gift" type="button" (click)="openDoor()" [attr.aria-label]="'Ouvrir le cadeau du jour ' + character.day"></button>
           </div>
+          <button class="advent__gift" type="button" (click)="openDoor()" [attr.aria-label]="'Ouvrir le cadeau du jour ' + character.day"><span class="advent__hint" aria-hidden="true">Touche la carte pour découvrir le quiz <span aria-hidden="true">➜</span></span></button>
         </div>
-        <p class="advent__hint">Touche le cadeau pour découvrir le quiz</p>
       } @else if (loading()) {
         <p role="status">Le lutin arrive…</p>
       }
@@ -38,7 +36,7 @@
     } @else if (quiz(); as content) {
       <section class="advent__quiz" [attr.aria-labelledby]="answerState() === 'recorded' ? 'recorded-title' : 'quiz-title'">
         <p class="advent__date">{{ content.day }} décembre</p>
-        <div class="advent__portrait"><img [src]="content.portrait" [alt]="'Portrait du lutin '+ owner(content.name)"></div>
+        <div class="advent__portrait-scene"><span class="advent__portrait-spark advent__portrait-spark--left" aria-hidden="true">✦</span><div class="advent__portrait"><img [src]="content.portrait" [alt]="'Portrait du lutin '+ owner(content.name)"></div><span class="advent__portrait-spark advent__portrait-spark--right" aria-hidden="true">✧</span></div>
         <h2 #quizHeading id="quiz-title" tabindex="-1" [hidden]="answerState() === 'recorded'">Une anecdote sur {{ content.name }}</h2>
         @if (answerState() === 'available') {
           <p class="advent__question" [hidden]="answerState() === 'recorded'">Quelle affirmation est fausse ?</p>
@@ -48,10 +46,11 @@
           <button mat-flat-button type="button" [disabled]="choice() === null || submitting()" (click)="confirm()">Confirmer ma réponse</button>
         } @else if (answerState() === 'recorded') {
           <div #recordedStatus class="advent__recorded" role="status" tabindex="-1">
-            <span class="advent__recorded-stars" aria-hidden="true">✦ &nbsp; ✧ &nbsp; ✦</span>
-            <p id="recorded-title" class="advent__recorded-title">Ta réponse <strong>est enregistrée !</strong></p>
+            <div class="advent__recorded-panel">
+              <span class="advent__recorded-stars" aria-hidden="true">✦ &nbsp; ✧ &nbsp; ✦</span>
+              <p id="recorded-title" class="advent__recorded-title">Ta réponse <strong>est enregistrée !</strong></p>
+            </div>
             <p class="advent__recorded-message">Reviens demain pour découvrir le résultat !</p>
-            <span class="advent__recorded-calendar" aria-hidden="true">✦</span>
           </div>
         } @else if (answerState() === 'closed') {
           <p role="status">Ce quiz est fermé.</p>

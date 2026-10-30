@@ -7,7 +7,8 @@ paradigm: Architecture en couches à domaine gouverné par l’API
 scope: Calendrier de l’Avent 2026 intégré à HatCast
 status: final
 created: 2026-10-29
-updated: 2026-10-29
+updated: 2026-10-30
+visual_amendment: in-progress
 binds: [FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-8, FR-9, FR-10, FR-11, FR-12, FR-13]
 sources:
   - ../../prds/prd-hatcast-2026-10-28/prd.md
@@ -44,7 +45,7 @@ flowchart LR
 
 - **Binds:** FR-13 ; développement, simulation et opérations.
 - **Prevents:** Accès au mode test en production ou contamination de la partie réelle.
-- **Rule:** Le mode test existe exclusivement en développement isolé, jamais en production ; il est visible et accessible aux membres actifs de la troupe configurée figurant sur la liste dédiée des testeurs. Cette liste ne confère aucun rôle d’administration de troupe ou de plateforme. Les cases disponibles peuvent être ouvertes avant leur jour en test ; les réponses restent définitives jusqu’à une remise à zéro ciblée. Utiliser des anecdotes fictives et, avec accord, éventuellement des noms ou portraits réels. Isoler effectivement données, notifications et analytics de production et interdire côté serveur toute commande de simulation ou de reset en production. Une horloge simulée commune côté serveur permet de régler la date et l’heure en avançant uniquement ; revenir en arrière exige une remise à zéro ciblée de la partie de test et de son horloge. Répondre à une case future avance automatiquement l’horloge simulée jusqu’au jour de cette case ; appliquer le barème normal, puis révéler le résultat le lendemain simulé. L’ancien barème et la simulation de 25 quiz ne sont plus applicables. Tester séparément les vraies limites temporelles de production sans autoriser une horloge simulée en production.
+- **Rule:** Le mode test existe exclusivement en développement isolé, jamais en production ; il est visible et accessible aux membres actifs de la troupe configurée figurant sur la liste dédiée des testeurs. Cette liste ne confère aucun rôle d’administration de troupe ou de plateforme. Les cases disponibles peuvent être ouvertes avant leur jour en test ; chaque testeur peut effacer sa propre réponse et rejouer la case, même passée, sans reculer l’horloge commune ni modifier les réponses des autres. Utiliser des anecdotes fictives et, avec accord, éventuellement des noms ou portraits réels. Isoler effectivement données, notifications et analytics de production et interdire côté serveur toute commande de simulation ou de reset en production. Une horloge simulée commune côté serveur permet de régler la date et l’heure en avançant uniquement ; revenir en arrière exige une remise à zéro ciblée de la partie de test et de son horloge. Répondre à une case future avance automatiquement l’horloge simulée jusqu’au jour de cette case ; appliquer le barème normal, puis révéler le résultat le lendemain simulé. L’ancien barème et la simulation de 25 quiz ne sont plus applicables. Tester séparément les vraies limites temporelles de production sans autoriser une horloge simulée en production.
 
 ### AD-3 — Réponses et état partagés [ADOPTED]
 
@@ -71,6 +72,12 @@ La fermeture de l’ouverture automatique est persistée par membre et jour, y c
 - **Binds:** Réussite ; PostHog.
 - **Prevents:** Mélange des essais et du jeu réel, exposition de contenus et confusion entre personnes et réponses.
 - **Rule:** Mesurer deux totaux globaux : personnes distinctes ayant au moins une réponse réelle enregistrée et réponses réelles enregistrées. Exclure les essais et ne transmettre ni anecdotes, affirmations, choix, justesse ou points en attente. La base fait autorité si la télémétrie est manquée ; aucune ventilation par jour n’est requise.
+
+### AD-7 — Identité visuelle Avent isolée [ADOPTED]
+
+- **Binds:** Interface Avent, styles, tokens, composants, polices et ressources graphiques.
+- **Prevents:** Modification ou contamination du design system et des autres écrans HatCast.
+- **Rule:** Définir une racine de thème et un espace de noms explicites propres à l'Avent ; y limiter les variables, familles typographiques, styles, animations et adaptations de composants Material. Les ressources partagées de police peuvent être chargées sans application globale. Ne pas modifier les styles de base, les tokens HatCast ni les sélecteurs globaux pour installer le thème. Les composants Avent sont identifiables et réutilisables dans ce périmètre ; les surfaces rendues hors de la racine, notamment les overlays éventuels, doivent conserver cette frontière. Vérifier les interactions avec les règles globales existantes et prouver l'absence de fuite par tests visuels et styles calculés sur une page HatCast. Les règles de confidentialité et de temps AD-1–AD-6 restent intactes.
 
 ## Conventions et vérifications
 

@@ -1,90 +1,69 @@
 @use '../../shared/advent/foundation' as advent;
 
 :host { display: block; min-height: 100dvh; }
-.advent { min-height: 100dvh; background: linear-gradient(155deg, var(--hatcast-avent-cream), var(--hatcast-avent-mint)); color: var(--hatcast-avent-ink); }
-.advent__header { display: flex; align-items: center; justify-content: space-between; min-height: 3.5rem; padding: 0 1rem; background: var(--hatcast-avent-red); color: var(--hatcast-avent-white); font: var(--mat-sys-title-medium); }
+
+.advent__header { display: flex; align-items: center; justify-content: space-between; min-height: 3.5rem; padding: .25rem .375rem; gap: 0; flex-wrap: wrap; background: var(--hatcast-avent-red); color: var(--hatcast-avent-white); font: var(--mat-sys-title-medium); font-family: var(--advent-body-font); }
 .advent__header a { color: inherit; min-height: 3rem; }
-.advent__content { max-width: 31rem; margin: auto; padding: 1rem 1.25rem 2rem; }
-.advent__eyebrow, .advent__notice, .advent__day, .advent__hint, .advent__question { text-align: center; }
-.advent__eyebrow { font: var(--mat-sys-label-large); color: var(--hatcast-avent-green); }
-.advent__notice { font: var(--mat-sys-body-small); }
+.advent__content { max-width: 31rem; margin: auto; padding: 1.25rem 1.25rem 2.5rem; overflow-wrap: break-word; }
+.advent__hint, .advent__question { text-align: center; }
 .advent__quiz { position: relative; text-align: center; }
-.advent__quiz h2 { position: relative; z-index: 2; background: var(--hatcast-avent-cream); margin: .5rem 0; font: var(--mat-sys-title-large); }
-.advent__portrait { position: relative; width: 7rem; height: 7rem; margin: 0 auto; overflow: hidden; border: .25rem solid var(--hatcast-avent-gold); border-radius: 50%; background: var(--hatcast-avent-mint); }
+.advent__quiz h2 { position: relative; z-index: 2; background: transparent; margin: .75rem 0; }
+.advent__portrait { position: relative; width: 7rem; height: 7rem; margin: 0; box-shadow: 0 .3rem .7rem var(--advent-shadow); overflow: hidden; border: .25rem solid var(--hatcast-avent-gold); border-radius: 50%; background: var(--hatcast-avent-mint); }
 .advent__portrait img { position: absolute; max-width: none; width: 190%; height: auto; left: -45%; top: -10%; }
-.advent__options { padding: 0; margin: 1rem 0; list-style: none; text-align: left; }
-.advent__options li { display: flex; align-items: center; gap: .75rem; min-height: 3.625rem; margin: .5rem 0; padding: .75rem; border: 1px solid var(--hatcast-avent-green); border-radius: .9rem; background: var(--hatcast-avent-white); }
-.advent__radio { width: 1.3rem; height: 1.3rem; flex: none; border: 2px solid var(--hatcast-avent-green); border-radius: 50%; }
+.advent__options { padding: 0; margin: 1rem 0; list-style: none; text-align: left; display: flex; flex-direction: column; gap: .5rem; }
 @keyframes advent-float { from { transform: translateY(-5px) rotate(-8deg); } to { transform: translateY(7px) rotate(8deg); } }
 
-.advent__scene { max-width: 26rem; margin: auto; aspect-ratio: 2 / 3; border-radius: 1.2rem; background: radial-gradient(ellipse, var(--hatcast-avent-cream), var(--hatcast-avent-mint)); overflow: hidden; }
+.advent__scene { @include advent.winter-scenery; max-width: 26rem; margin: auto; aspect-ratio: 2 / 3; border-radius: 1.2rem; background: radial-gradient(ellipse at 50% 40%, var(--hatcast-avent-cream), var(--hatcast-avent-mint)); overflow: hidden; border: 2px solid var(--advent-accent); box-shadow: 0 .5rem 1.25rem var(--advent-shadow), inset 0 0 2rem var(--advent-glow-soft); }
 .advent__elf { position: relative; width: 100%; height: 100%; animation: advent-approach 1.8s ease-out both; }
 .advent__elf img { width: 100%; height: 100%; object-fit: contain; }
-.advent__gift { position: absolute; left: 30%; top: 36%; width: 40%; height: 29%; background: transparent; border: 0; cursor: pointer; }
-.advent__gift:focus-visible { outline: .2rem solid var(--hatcast-avent-green); outline-offset: .2rem; border-radius: .5rem; }
+.advent__gift { z-index: 2; position: absolute; inset: 0; width: 100%; height: 100%; background: transparent; border: 0; cursor: pointer; display: flex; align-items: end; justify-content: center; padding: 1rem; }
+.advent__gift:focus-visible { outline: .25rem solid var(--hatcast-avent-green); outline-offset: -.35rem; border-radius: 1.1rem; }
 
 @keyframes advent-approach { from { transform: scale(.88) translateY(8px); } to { transform: scale(1) translateY(0); } }
-@media (prefers-reduced-motion: reduce) { .advent__elf { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .advent__elf, .advent__decoration { animation: none; } }
 
 
 
-.advent__header { display: flex; align-items: center; min-height: 3.5rem; padding: .25rem .375rem; gap: 0; }
 .advent__header-title { flex: 1 1 auto; min-width: 0; white-space: nowrap; font: var(--mat-sys-title-small); }
-.advent__test-actions { display: flex; flex: 0 0 auto; align-items: center; }
+.advent__test-actions { display: flex; flex: 0 0 auto; align-items: center; background: var(--hatcast-avent-cream); color: var(--hatcast-avent-green); border-radius: 1.75rem; padding-inline-start: .5rem; }
 .advent__test-label { white-space: nowrap; font: var(--mat-sys-label-small); }
 .advent__header button, .advent__header a { flex: 0 0 48px; width: 48px; height: 48px; color: var(--hatcast-avent-white) !important; }
 .advent__header button:disabled { opacity: .5; }
 .advent__heading { text-align: center; }
-.advent__date { margin: .2rem 0; text-align: center; color: var(--hatcast-avent-green); font: var(--mat-sys-label-large); }
-.advent__title { margin: .3rem 0; font: var(--mat-sys-title-medium); }
-.advent__name { margin: .2rem 0 .8rem; color: var(--hatcast-avent-red); font-family: Georgia, 'Times New Roman', serif; font-size: clamp(2rem, 8vw, 3.3rem); font-style: italic; font-weight: 700; line-height: 1.1; }
-.advent__scene { position: relative; background: radial-gradient(ellipse at 50% 40%, var(--hatcast-avent-cream), var(--hatcast-avent-mint)); }
+.advent__date { margin: .2rem 0; text-align: center; font: 700 1rem/1.4 var(--advent-body-font); color: var(--advent-text-muted); text-transform: uppercase; letter-spacing: .07em; }
+.advent__title { margin: .3rem 0; }
+.advent__name { color: var(--hatcast-avent-red); }
 .advent__decoration { position: absolute; z-index: 1; color: var(--hatcast-avent-green); font-size: 1.5rem; pointer-events: none; animation: advent-float 3s ease-in-out infinite alternate; }
 .advent__decoration--one { left: 10%; top: 14%; } .advent__decoration--two { right: 10%; top: 24%; animation-delay: -1s; } .advent__decoration--three { left: 7%; top: 50%; animation-delay: -2s; } .advent__decoration--four { right: 9%; bottom: 16%; animation-delay: -.5s; }
-.advent__gift { z-index: 2; }
-@media (prefers-reduced-motion: reduce) { .advent__decoration { animation: none; } }
 
 @media (max-width: 360px) {
   .advent__header { padding-inline: .125rem; }
   .advent__header-title { font-size: .6875rem; letter-spacing: -.02em; }
   .advent__test-label { font-size: .625rem; }
-}
-
-/* Visually separate development controls from the member-facing app bar. */
-.advent__test-actions {
-  background: var(--hatcast-avent-cream);
-  color: var(--hatcast-avent-green);
-  border-radius: 1.75rem;
-  padding-inline-start: .5rem;
-}
-.advent__test-actions button { color: var(--hatcast-avent-green) !important; }
-@media (max-width: 360px) {
   .advent__test-actions { padding-inline-start: .25rem; }
 }
 
-.advent__options { display: flex; flex-direction: column; gap: .5rem; }
-.advent__options mat-radio-button { display: block; min-height: 3rem; text-align: left; }
-.advent__header { flex-wrap: wrap; }
+/* Visually separate development controls from the member-facing app bar. */
+.advent__test-actions button { color: var(--hatcast-avent-green) !important; }
+
 
 /* The Advent identity is inherited only within this feature's root. */
 .advent {
   @include advent.foundation;
+  min-height: 100dvh; color: var(--hatcast-avent-ink);
+  background: radial-gradient(ellipse at 50% 15%, var(--advent-glow) 0%, var(--advent-surface) 62%, var(--advent-surface-warm) 100%);
   color-scheme: light;
   font-family: var(--advent-body-font);
   font-size: 1.125rem;
   line-height: 1.5;
 }
-.advent__content { overflow-wrap: break-word; }
-.advent__header { font-family: var(--advent-body-font); }
-.advent__date { font: 700 1rem/1.4 var(--advent-body-font); }
 .advent__title, .advent__quiz h2 {
   font: 700 clamp(1.75rem, 6vw, 2rem)/1.15 var(--advent-heading-font);
   color: var(--hatcast-avent-green);
 }
-.advent__quiz h2 { background: transparent; margin: .75rem 0; }
-.advent__name { font-family: var(--advent-heading-font); font-style: normal; }
 .advent__question { font: 700 clamp(1.4rem, 5vw, 1.75rem)/1.3 var(--advent-heading-font); }
 .advent__options mat-radio-button {
+  display: block; min-height: 3rem; text-align: left; box-shadow: 0 .15rem .35rem var(--advent-shadow);
   border: 2px solid var(--advent-choice-border);
   border-radius: 1rem;
   background: var(--hatcast-avent-white);
@@ -93,19 +72,37 @@
 .advent__options mat-radio-button:has(input:checked) {
   border-color: var(--hatcast-avent-red);
   background: var(--advent-choice-selected);
+  box-shadow: inset .3rem 0 var(--advent-primary), 0 .15rem .35rem var(--advent-shadow);
 }
-.advent__options mat-radio-button:has(input:disabled) { opacity: .65; }
 .advent__options mat-radio-button:focus-within { outline: 3px solid var(--hatcast-avent-green); outline-offset: 2px; }
-.advent__quiz button[mat-flat-button] { min-height: 3.5rem; width: 100%; font: 700 1.125rem var(--advent-body-font); }
-.advent__feedback { padding: 1rem; border: 2px solid var(--hatcast-avent-red); border-radius: 1rem; background: var(--hatcast-avent-white); }
-.advent__recorded { margin: 1rem 0; padding: 20px 12px; border: 2px solid var(--hatcast-avent-gold); border-radius: 1.5rem; background: var(--hatcast-avent-cream); box-shadow: 0 .3rem .7rem var(--advent-shadow); }
+.advent__quiz button[mat-flat-button] { min-height: 3.5rem; width: 100%; font: 700 1.125rem var(--advent-body-font); border-radius: 1rem; box-shadow: 0 .25rem .5rem var(--advent-shadow); }
+.advent__feedback { padding: 1rem; border: 2px solid var(--hatcast-avent-red); border-radius: 1rem; background: var(--hatcast-avent-white); color: var(--advent-error); }
+
 .advent__recorded-stars { color: var(--advent-gold-ink); font-size: 1.5rem; }
-.advent__recorded-title { margin: .25rem 0; color: var(--hatcast-avent-green); font: 700 clamp(28px, 7vw, 40px)/1.15 var(--advent-heading-font); }
+.advent__recorded-title { margin: .25rem 0; color: var(--hatcast-avent-green); font: 700 clamp(2rem, 9vw, 2.5rem)/1.15 var(--advent-heading-font); }
 .advent__recorded-title strong { display: block; color: var(--hatcast-avent-red); }
-.advent__recorded-message { color: var(--hatcast-avent-green); font-weight: 700; font-size: 1.25rem; }
-.advent__recorded-calendar { display: inline-grid; place-items: center; width: 3rem; height: 3rem; border: 2px solid var(--hatcast-avent-gold); border-top: .65rem solid var(--hatcast-avent-red); border-radius: .5rem; color: var(--advent-gold-ink); background: var(--hatcast-avent-white); }
+.advent__recorded-message { color: var(--hatcast-avent-green); font-weight: 700; font-size: 1.25rem; line-height: 1.3; margin: 1.5rem 0; }
 
 
 @media (max-width: 390px) {
   .advent__header-title--replay { display: none; }
 }
+
+
+/* Warm, scoped surfaces and decorative details shared by the preview states. */
+.advent__title { font-size: clamp(1.3rem, 5.8vw, 1.8rem); margin: .3rem 0 .8rem; }
+.advent__hint { display: inline-block; padding: .65rem 1rem; border: 2px solid var(--advent-border); border-radius: 1rem; background: var(--advent-surface); color: var(--advent-text-muted); font: 700 1rem/1.3 var(--advent-body-font); box-shadow: 0 .2rem .5rem var(--advent-shadow); }
+.advent__portrait-scene {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(.75rem, 5vw, 2rem);
+  padding: .5rem 0;
+}
+.advent__portrait-spark { color: var(--advent-gold-ink); font-size: 2rem; line-height: 1; }
+.advent__portrait-spark--right { font-size: 1.5rem; }
+.advent__options mat-radio-button:has(input:disabled) { opacity: 1; background: var(--advent-surface-disabled); color: var(--advent-disabled); }
+.advent__recorded { margin: 1rem 0; }
+.advent__recorded:focus-visible { outline: 3px solid var(--advent-focus); outline-offset: 4px; }
+
+.advent__recorded-panel { position: relative; padding: 1rem .5rem; border: 2px solid var(--advent-border); border-radius: 1.5rem; background: linear-gradient(180deg, var(--advent-panel-top), var(--advent-surface)); box-shadow: 0 .4rem .8rem var(--advent-shadow), inset 0 .3rem var(--hatcast-avent-white); }

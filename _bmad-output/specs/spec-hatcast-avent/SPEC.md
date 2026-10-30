@@ -8,7 +8,7 @@ companions:
 sources: []
 ---
 
-> **Canonical contract.** This SPEC and its companions form the contract to build, test and validate. UX documents govern their illustrative mockup; architecture decisions AD-1–AD-6 and the decisions in the updated PRD govern the implementation.
+> **Canonical contract.** This SPEC and its companions form the contract to build, test and validate. UX documents govern their illustrative mockup; architecture decisions AD-1–AD-7 and the decisions in the updated PRD govern the implementation.
 
 # La Malice Advent calendar 2026
 
@@ -42,13 +42,13 @@ Give La Malice members a surprise Christmas activity within HatCast: discover on
 
 ## Constraints
 
-- AD-1–AD-6 are binding: API-enforced active membership, secrecy of future and pending content including derived scores and caches, isolated tests, durable shared state, ranking and retention, reminders and analytics.
+- AD-7 binds visual isolation; AD-1–AD-6 are binding: API-enforced active membership, secrecy of future and pending content including derived scores and caches, isolated tests, durable shared state, ranking and retention, reminders and analytics.
 - Server-side Europe/Paris civil time governs 24 daily quizzes from 1–24 December. At the following midnight results are revealable; on 25 December the last result and final ranking are available, without another quiz. Member access ends at 00:00 on 16 January 2027.
 - A correct answer earns 10 points, an incorrect one 0; each recorded answer earns 1 participation point. Each non-overlapping group of three consecutive correct answers earns 2; an incorrect answer breaks the sequence, a missed day does not. Only revealed points appear in scores and rankings; maximum 280.
-- Development tests use fictional statements and may use consenting members’ names and portraits. A shared server clock only advances; answering a future case advances it to that day, using normal scoring and next-day reveal. A targeted reset clears the test game and clock to go backward; production has no test mode. Verify actual December and January boundaries separately.
+- Development tests use fictional statements and may use consenting members’ names and portraits. A tester can erase and replay their own answer on a selected case, including past cases, without rewinding the shared clock or changing other members’ answers. A shared server clock only advances; answering a future case advances it to that day, using normal scoring and next-day reveal. A targeted reset clears the test game and clock to go backward; production has no test mode. Verify actual December and January boundaries separately.
 - A result is marked seen only after its reveal screen is displayed and acknowledged by the client; simultaneous devices or a lost acknowledgment can cause repeat display (AD-3). Earlier unseen revealed results remain in their calendar cases without markers or automatic chaining.
 - Invitations reuse existing Spring scheduling and HatCast reminders without Advent-specific infrastructure, recovery or delivery guarantees.
-- Adopted DESIGN and EXPERIENCE documents and HatCast Material 3 conventions govern accessibility, interaction and appearance. The mockup is illustrative; UX documents prevail.
+- Adopted DESIGN and EXPERIENCE govern the approved independent Advent visual identity, accessibility and interaction; Material 3 behaviors remain available within the isolated Advent theme. HatCast pages retain their own design system. The supplied boards are artistic references, not functional contracts or static UI; UX documents prevail for behavior.
 - Portraits and anecdotes require the presented person's agreement; a person declining presentation can still participate.
 
 ## Non-goals

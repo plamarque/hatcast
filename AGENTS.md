@@ -99,6 +99,12 @@ Pour une clôture inter-projets, utiliser la skill globale `bmad-close-story` : 
 
 ---
 
+## Advent Quiz — contrat visuel durable
+
+Pour toute évolution de l’interface Advent Quiz, quelle que soit sa story ou son epic, lire et appliquer les contrats [DESIGN.md](_bmad-output/planning-artifacts/ux-designs/ux-hatcast-avent-2026-10-28/DESIGN.md), [EXPERIENCE.md](_bmad-output/planning-artifacts/ux-designs/ux-hatcast-avent-2026-10-28/EXPERIENCE.md) et la décision AD-7 de [l’architecture Avent](_bmad-output/planning-artifacts/architecture/architecture-hatcast-avent-2026-10-29/ARCHITECTURE-SPINE.md). La direction artistique validée est propre à l’Avent : styles, tokens, composants et typographies sont isolés ; le design system HatCast reste inchangé. Chaque story UI Advent référence ces contrats et prévoit des vérifications visuelles, d’accessibilité et d’absence d’effet sur HatCast ; préserver les règles de confidentialité et de révélation. Le modèle de story précise les critères à adapter.
+
+---
+
 ## V2 local human smoke
 
 For a requested manual test from a V2 worktree, use the documented full stack in [DEVELOPMENT.md](DEVELOPMENT.md#recette-manuelle-v2-depuis-un-worktree): `./scripts/start-dev.sh --offline` unless the user explicitly needs the configured Neon or production-local path.

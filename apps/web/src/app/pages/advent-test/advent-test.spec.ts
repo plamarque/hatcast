@@ -19,6 +19,19 @@ describe('AdventTest', () => {
     fixture.detectChanges()
   })
   afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks() })
+  it('keeps the recorded confirmation neutral and uses the authorized portrait', async () => {
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ status: 'recorded', replayToken: 'token' })))
+    await fixture.componentInstance.openDoor()
+    fixture.detectChanges()
+    const status = fixture.nativeElement.querySelector('.advent__recorded') as HTMLElement
+    expect(status.textContent).toContain('Ta réponse est enregistrée')
+    expect(status.textContent).not.toMatch(/bonne réponse|mauvaise réponse|points|un|deux|trois/i)
+    expect(fixture.nativeElement.querySelector('.advent__portrait img').getAttribute('src')).toBe('data:image/png;base64,aGVsbG8=')
+    const illustration = fixture.nativeElement.querySelector('.advent__portrait img') as HTMLImageElement
+    expect(illustration.getAttribute('src')).toBe('data:image/png;base64,aGVsbG8=')
+    expect(illustration.getAttribute('alt')).toContain('Portrait du lutin')
+    expect(fixture.nativeElement.querySelector('mat-radio-group')).toBeNull()
+  })
   it('returns directly to the acknowledgement for a previously answered day', async () => {
     vi.mocked(window.fetch).mockImplementation(async input => {
       const url = String(input)
@@ -41,6 +54,8 @@ describe('AdventTest', () => {
     await fixture.componentInstance.selectDay(12)
     fixture.detectChanges()
     expect(fixture.nativeElement.querySelector('.advent__date').textContent.trim()).toBe('12 décembre')
+    expect(fixture.nativeElement.querySelector('h1').textContent.trim()).toBe('Camille a un défi pour toi')
+    expect(fixture.nativeElement.querySelector('h1 .advent__name').textContent).toBe('Camille')
     expect(fixture.nativeElement.querySelector('.advent__gift').getAttribute('aria-label')).toBe('Ouvrir le cadeau du jour 12')
     await fixture.componentInstance.openDoor()
     fixture.detectChanges()

@@ -1,7 +1,8 @@
 ---
 name: Calendrier de l’Avent La Malice
 status: final
-updated: 2026-10-29
+updated: 2026-10-30
+visual_amendment: in-progress
 sources:
   - ../../prds/prd-hatcast-2026-10-28/prd.md
   - ../../../../docs/v2/technical/FRONTEND_UI.md
@@ -11,7 +12,7 @@ sources:
 
 ## Foundation
 
-Animation intégrée à HatCast, mobile-first et utilisable sur desktop ; Angular Material 3 et usages HatCast. [DESIGN.md](DESIGN.md) porte l’identité visuelle. Le PRD révisé est final ; ce document réconcilie ses règles et conserve explicitement les points en attente. La [maquette du parcours révisé](mockups/parcours-revise.html) est approuvée globalement ; son design sera affiné pendant les stories. Les deux documents UX prévalent sur les maquettes ; les parcours, scores et rangs de [l’ancienne maquette](mockups/ecrans-cles.html) sont obsolètes.
+Animation intégrée à HatCast, mobile-first et utilisable sur desktop ; Angular Material 3 et usages HatCast. [DESIGN.md](DESIGN.md) porte l’identité visuelle. Le PRD révisé est final ; ce document réconcilie ses règles et conserve explicitement les points en attente. La [maquette du parcours révisé](mockups/parcours-revise.html) est approuvée globalement ; sa direction graphique est supplantée par le kit approuvé du 30 octobre. Les deux documents UX prévalent sur les maquettes ; les parcours, scores et rangs de [l’ancienne maquette](mockups/ecrans-cles.html) sont obsolètes.
 
 ## Information Architecture
 
@@ -23,7 +24,7 @@ Animation intégrée à HatCast, mobile-first et utilisable sur desktop ; Angula
 | Classement | Score révélé et position, puis liste ; accès après réponse ou via l’expérience, sous réserve de la révélation prioritaire. |
 | Calendrier | Grille ordonnée des 24 quiz et du 25 ; accès aux contenus passés et au quiz du jour disponible. Cases futures bloquées. |
 | 25 décembre | Après l’éventuelle révélation prioritaire du 24 : message de joyeux Noël, invitation à profiter des fêtes, félicitations, rappel du score personnel et rendez-vous à la rentrée ; accès au classement et au calendrier. Père Noël et boîte au-dessus du message, puis score bien visible. |
-| Mode test | Développement isolé, indication visible ; cases disponibles ouvrables avant leur jour, réponses définitives et remise à zéro ciblée. Horloge simulée serveur commune avançant seulement ; répondre à une case future avance au jour correspondant et le résultat est révélé le lendemain simulé. Un reset ciblé permet de revenir en arrière. |
+| Mode test | Développement isolé, indication visible ; cases disponibles ouvrables avant leur jour, rejeu personnel de sa propre réponse et remise à zéro ciblée. Horloge simulée serveur commune avançant seulement ; répondre à une case future avance au jour correspondant et le résultat est révélé le lendemain simulé. Un reset ciblé permet de revenir en arrière. |
 
 L’icône Père Noël près de Mon compte donne accès du 1er décembre au 15 janvier inclus. Une visite sans quiz disponible ne consomme pas l’ouverture automatique ; la fermeture de l’expérience ce jour-là empêche une ouverture automatique ultérieure. Si le quiz manque, l’icône affiche « Il n’y a rien ici. Reviens plus tard ! » et permet d’accéder au classement ; la révélation prioritaire précède cet état. Après réponse, l’icône ouvre le classement sous la même réserve. Après le 24, aucun quiz ne s’ouvre automatiquement ; classement final et calendrier restent accessibles à tous jusqu’au 15 janvier inclus.
 
@@ -33,10 +34,10 @@ Français, tutoiement, ton festif et encourageant. Après confirmation : accusé
 
 ## Component Patterns
 
-- **Porte et choix** : toucher la grande porte pour découvrir le contenu ; sélectionner une des trois anecdotes supposée fausse, changer librement avant confirmation. Une réponse enregistrée est définitive.
+- **Porte et choix** : toucher la grande porte pour découvrir le contenu ; sélectionner une des trois anecdotes supposée fausse, changer librement avant confirmation. En production, une réponse enregistrée est définitive ; en mode test isolé uniquement, la commande de rejeu personnel permet d’effacer sa propre réponse et rejouer la case selon le contrat existant.
 - **Confirmation** : sur la surface du quiz, confirmer l’enregistrement sans révéler justesse, fausse anecdote ou points ; ne pas exposer d’indice par les scores ou le classement. En cas d’échec, proposer de réessayer tant que le quiz est jouable. Si l’enregistrement est incertain après une coupure, vérifier l’état enregistré avant de proposer un nouveau geste : si la réponse existe, afficher la confirmation ; sinon permettre le réessai avant minuit, ou expliquer la clôture après minuit. La résolution technique et les conflits entre appareils relèvent de l’architecture.
 - **Révélation** : dès minuit le lendemain, heure de Paris, montrer le choix, la fausse anecdote, la justesse et les points : réponse, participation et bonus lorsqu’acquis. Présenter aussi le complément facultatif lorsqu’il existe. Conserver le total en évidence et la célébration validée pour une bonne réponse, avec alternative sans mouvement. La consultation ultérieure ne rejoue pas la célébration.
-- **Onglets** : reprendre les onglets HatCast pour Calendrier et Classement. Ils restent accessibles depuis l’expérience sauf sur la révélation prioritaire ; après celle-ci proposer le quiz du jour lorsqu’il est disponible, ou le parcours du 25 le 25 décembre. Sur la porte et le quiz, fournir les accès au classement et au calendrier ; après confirmation, « Voir le classement » ouvre le classement et l’onglet Calendrier reste accessible. Le message d’absence donne accès aux deux.
+- **Onglets** : utiliser des onglets accessibles adaptés à la DA Avent pour Calendrier et Classement. Ils restent accessibles depuis l’expérience sauf sur la révélation prioritaire ; après celle-ci proposer le quiz du jour lorsqu’il est disponible, ou le parcours du 25 le 25 décembre. Sur la porte et le quiz, fournir les accès au classement et au calendrier ; après confirmation, « Voir le classement » ouvre le classement et l’onglet Calendrier reste accessible. Le message d’absence donne accès aux deux.
 - **Classement** : rappel de la position et du score révélés, puis tous les membres classables nommés, y compris à zéro. Les ex æquo reçoivent le rang le plus bas de leur groupe : 1, 3, 3, 4 ; si tous les N membres sont à égalité, tous sont Nᵉ. Patrice et Toinou voient séparément leur score sans rang et ne figurent pas dans la liste. Les totaux excluent les points non révélés, sans détail permettant de les déduire.
 
 ## State Patterns
@@ -63,11 +64,11 @@ Toucher la porte ou une affirmation ; confirmer explicitement. Ouverture et cél
 
 ## Accessibility Floor
 
-Cibles 48 × 48 px privilégiées, 40 × 40 px minimum seulement avec dérogation documentée. Clavier, focus visible, libellés et états accessibles ; annoncer transitions et erreurs, placer le focus dans la surface automatique puis le restaurer au retour lorsque pertinent, sans piège clavier. Exposer numéro et état des cases sans divulguer leur contenu ; lecture de gauche à droite. Alternatives pertinentes pour les portraits, sémantique de choix unique, contraste et agrandissement sans perte. Avec mouvement réduit, supprimer les animations tout en donnant immédiatement le même contenu. L’objectif de quiz sans défilement ne prime jamais sur l’accessibilité.
+Cibles 48 × 48 px privilégiées, minimum 44 × 44 px. Clavier, focus visible, libellés et états accessibles ; annoncer transitions et erreurs, placer le focus dans la surface automatique puis le restaurer au retour lorsque pertinent, sans piège clavier. Exposer numéro et état des cases sans divulguer leur contenu ; lecture de gauche à droite. Alternatives pertinentes pour les portraits, sémantique de choix unique, contraste et agrandissement sans perte. Avec mouvement réduit, supprimer les animations tout en donnant immédiatement le même contenu. L’objectif de quiz sans défilement ne prime jamais sur l’accessibilité.
 
 ## Responsive & Platform
 
-Grille de quatre colonnes ordonnées, défilement accepté ; téléphone d’abord, puis tablette et desktop. Vérifier petites largeurs, textes réels, zoom et agrandissement ; permettre défilement ou réorganisation sans troncature ni réduction indue des cibles. Palette illustrative à traduire dans les tokens HatCast et à vérifier.
+Grille de quatre colonnes ordonnées, défilement accepté ; téléphone d’abord, puis tablette et desktop. Vérifier petites largeurs, textes réels, zoom et agrandissement ; permettre défilement ou réorganisation sans troncature ni réduction indue des cibles. Palette Avent à traduire en tokens isolés et à vérifier.
 
 ## Key Flows
 
@@ -94,7 +95,7 @@ Grille de quatre colonnes ordonnées, défilement accepté ; téléphone d’abo
 La collecte et la transmission des anecdotes ainsi que l’intégration des contenus se font hors de cette interface ; le parcours ci-dessous couvre le test.
 
 1. En développement isolé, ils ouvrent une case disponible en mode test clairement identifié.
-2. Ils vérifient réponse définitive, attente, révélation et classement en simulant les dates avec l’horloge simulée et le reset définis en architecture.
+2. Ils vérifient réponse unique, rejeu personnel de test, attente, révélation et classement en simulant les dates avec l’horloge simulée et le reset définis en architecture.
 3. Une remise à zéro ciblée permet de recommencer sans toucher aux données réelles.
 
 ## Arbitrages et passage de relais
@@ -104,3 +105,35 @@ La collecte et la transmission des anecdotes ainsi que l’intégration des cont
 - **Architecture** : confidentialité des réponses et points en attente, y compris déduction via classement ; limites de minuit Paris, état vu et fermeture partagés, interruption et concurrence ; séries, notification à 10 h, publication tardive, test isolé et simulation ; rétention et mesure PostHog.
 - **Spec** : réconcilier contrats d’accès, divulgation différée, calcul, historique et cas manqués après arbitrages ; préserver les décisions compatibles.
 - **Epic 25 et stories** : critères et dépendances révisés validés avec Patrice le 29 octobre 2026. Appliquer les règles actuelles et les critères M3 ; vérifier les parcours sur appareils, au clavier, avec contraste et mouvement réduit.
+
+## Direction artistique approuvée et couverture des états — 30 octobre 2026
+
+La [planche](imports/advent-quiz-design-system-reference.png) et la [confirmation](imports/confirmation-reference.png) sont les références artistiques validées ; DESIGN.md fixe leur traduction et les règles d'isolation. Leurs textes et boutons illustratifs ne créent ni parcours ni fonctionnalité. Les règles de cette expérience et du PRD prévalent, notamment la révélation à minuit Paris et la priorité du résultat.
+
+| Surface ou état réel | Référence et portée |
+|---|---|
+| Découverte, cadeau ou porte | Accueil et lutin ; commande accessible et alternative sans mouvement. |
+| Question | Question et choix non sélectionné, sélectionné, désactivé ; erreur et enregistrement incertain selon le comportement réel. |
+| Confirmation | Composition de la référence dédiée ; accusé neutre et aucun choix, résultat ou point en attente. Classement lorsque disponible. |
+| Résultat | Variantes bonne et mauvaise réponse et détails, exclusivement après révélation ; points et contenu selon le contrat. |
+| Calendrier et classement | Planche calendrier ; décliner le classement dans la même identité, même s'il n'y figure pas. |
+| 25 décembre | Bilan et Père Noël selon le parcours établi ; la vignette « 24 décembre » ne modifie pas la date ni le contenu. |
+| Absence, fermeture, chargement, erreur | Déclinaisons cohérentes ; ne pas ajouter de compte à rebours ou d'action de partage sur la seule foi des maquettes. |
+| Commandes de test | Visibles uniquement en mode test autorisé ; leurs limites et disponibilités suivent les stories effectives. |
+
+Vérifier 320, 375, 390 et 430 px, tablette, desktop et texte agrandi. Les illustrations décoratives ne se substituent pas aux textes, aux commandes ni aux annonces accessibles ; préserver le focus, les états non fondés sur la couleur et le mouvement réduit.
+
+### Application aux stories de l’Epic 25
+
+| Story | Surface concernée | Contrat visuel et comportemental |
+|---|---|---|
+| 25.1, livrée | Découverte, cadeau, chargement, indisponibilité | Appliquer la DA Avent et conserver accès, focus et mouvement réduit. |
+| 25.2, livrée | Question, sélection, confirmation, vérification, fermeture et commande de test existante | Appliquer la DA sans modifier les contrôles de confidentialité, de réconciliation ou de focus de l'implémentation livrée. |
+| 25.2a | Remise à zéro ciblée | Appliquer la DA uniquement si une interface est effectivement prévue ; ne pas créer d'écran. |
+| 25.3 | Révélation bonne ou mauvaise, détail et continuation | DA festive ; résultat et points seulement au moment autorisé, priorité et célébration selon les règles existantes. |
+| 25.4 | Classement, score personnel et états accessibles | Décliner le design system même sans maquette dédiée ; aucun indice sur les points en attente. |
+| 25.5 | Calendrier, cases passées, contenu manquant et présentation du 25 | Décliner les composants sans dépendre de la couleur ; respecter la grille ordonnée et le parcours de Noël. |
+| 25.6 | Entrée, ouverture et contenu manquant | Appliquer la DA dans l'expérience Avent et préserver le chrome HatCast hors de cette frontière. |
+| 25.7, 25.9 | Invitations et mesure | Aucun écran supplémentaire déduit du kit. |
+
+Chaque story UI référence DESIGN.md, EXPERIENCE.md, AD-7 et la stratégie de tests Avent ; elle vérifie les états réellement livrés ainsi que l'absence d'effet sur les écrans HatCast.
