@@ -80,7 +80,7 @@ class AdventMemberController(
     @PostMapping("/doors/{day}/answer/replay")
     fun replay(@PathVariable day: Int, @RequestBody body: ReplayAnswer, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AnswerState {
         val session = requireControl(principal, request)
-        return game.replay(principal.userId, day, body.replayToken ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), session, simulated(principal, request))
+        return game.replay(principal.userId, day, body.replayToken ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), session, simulated(principal, request), body.close)
     }
 
     @GetMapping("/clock")
@@ -110,9 +110,9 @@ class AdventMemberController(
     }
 
     @PostMapping("/doors/{day}/answer/reconcile")
-    fun reconcile(@PathVariable day: Int, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AnswerState {
+    fun reconcile(@PathVariable day: Int, @RequestBody(required = false) body: LateAccess?, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AnswerState {
         authorize(principal)
-        return game.reconcile(principal.userId, day, canControl(principal, request), sessionFor(principal, request), simulated(principal, request))
+        return game.reconcile(principal.userId, day, canControl(principal, request), sessionFor(principal, request), simulated(principal, request), body?.late == true)
     }
 
     @PostMapping("/doors/{day}/answer/reserve")
@@ -137,6 +137,23 @@ class AdventMemberController(
     fun acknowledge(@PathVariable day: Int, @RequestBody body: AcknowledgeResult, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest) {
         authorize(principal)
         game.acknowledge(principal.userId, day, body.answerId ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), sessionFor(principal, request), simulated(principal, request))
+    }
+
+    @GetMapping("/calendar")
+    fun calendar(@AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AdventCalendarResponse {
+        authorize(principal)
+        return game.calendar(principal.userId, sessionFor(principal, request), simulated(principal, request))
+    }
+
+    @GetMapping("/doors/{day}/history")
+    fun history(@PathVariable day: Int, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AdventHistoryResponse {
+        authorize(principal)
+        val read = game.history(principal.userId, day, sessionFor(principal, request), simulated(principal, request))
+        if (read.priorityResult != null) return AdventHistoryResponse(priorityResult = read.priorityResult)
+        val history = read.history ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        val quiz = history.quiz
+        val (portrait, generic) = image(quiz.portraitRef)
+        return AdventHistoryResponse(FictionalQuiz(day, quiz.name, portrait, quiz.statements, generic), history.falseChoice, history.result)
     }
 
     @GetMapping("/ranking")
@@ -167,3 +184,7 @@ class AdventMemberController(
     }
 }
 data class MemberAnswer(val choice: Int?, val attemptId: UUID?)
+
+data class AdventHistoryResponse(val quiz: FictionalQuiz? = null, val falseChoice: Int? = null, val result: AdventResult? = null, val priorityResult: AdventResult? = null)
+
+data class LateAccess(val late: Boolean = false)

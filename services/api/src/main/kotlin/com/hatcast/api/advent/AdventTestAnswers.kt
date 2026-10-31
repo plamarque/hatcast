@@ -286,10 +286,10 @@ class AdventTestAnswers(private val jdbc: JdbcTemplate) {
     private fun validateDay(day: Int) { if (day !in 1..24) throw ResponseStatusException(HttpStatus.NOT_FOUND) }
 }
 
-data class AdventResult(val answerId: String, val day: Int, val selectedChoice: Int, val falseChoice: Int, val correct: Boolean, val responsePoints: Int, val participationPoints: Int, val bonusPoints: Int, val totalPoints: Int, val seen: Boolean, val explanation: String? = null)
+data class AdventResult(val answerId: String, val day: Int, val selectedChoice: Int, val falseChoice: Int, val correct: Boolean, val responsePoints: Int, val participationPoints: Int, val bonusPoints: Int, val totalPoints: Int, val seen: Boolean, val explanation: String? = null, val late: Boolean = false)
 
-data class AnswerState(val status: String, val generation: UUID? = null, val replayToken: UUID? = null)
-data class ReplayAnswer(val replayToken: UUID?)
+data class AnswerState(val status: String, val generation: UUID? = null, val replayToken: UUID? = null, val late: Boolean = false, val priorityResult: AdventResult? = null)
+data class ReplayAnswer(val replayToken: UUID?, val close: Boolean = false)
 data class ConfirmAnswer(val choice: Int?, val attemptId: UUID?)
 data class AnswerAttempt(val attemptId: UUID?, val generation: UUID?)
 

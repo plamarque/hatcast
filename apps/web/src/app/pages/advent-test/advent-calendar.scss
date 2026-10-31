@@ -1,0 +1,32 @@
+/* Advent-only navigation and calendar doors. */
+.advent__entry-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem; margin: 1rem 0; }
+.advent__entry-actions button { min-height: 3rem; }
+.advent__tabs { display: flex; gap: .25rem; padding: .25rem; margin: 0 0 1rem; border: 2px solid var(--hatcast-avent-green); border-radius: 2rem; background: var(--hatcast-avent-mint); }
+.advent__tabs button { flex: 1 1 0; min-width: 0; min-height: 3rem; color: var(--hatcast-avent-green); font-weight: 700; }
+.advent__tabs button[aria-selected="true"] { background: var(--hatcast-avent-green); color: var(--hatcast-avent-white); }
+.advent__tabs button:focus-visible, .advent__calendar-door:focus-visible { outline: 3px solid var(--advent-focus); outline-offset: 2px; }
+.advent__calendar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .2rem .45rem; padding: .45rem .15rem; border-block: 2px solid var(--hatcast-avent-gold); background: radial-gradient(circle at 8% 5%, var(--hatcast-avent-gold) 0 2px, transparent 3px), radial-gradient(circle at 90% 15%, var(--hatcast-avent-gold) 0 2px, transparent 3px); }
+.advent__calendar .advent__calendar-door { min-width: 0; min-height: 4.15rem; height: auto; padding: .2rem; color: var(--advent-text); white-space: normal; border-radius: .35rem; }
+.advent__door-frame { display: block; position: relative; width: 3.45rem; height: 3.45rem; margin: 0 auto; box-shadow: 0 3px 0 color-mix(in srgb, var(--hatcast-avent-green) 50%, transparent), 0 5px 8px #59371922; border: 3px solid var(--hatcast-avent-gold); border-radius: .45rem; background: var(--hatcast-avent-green); padding: .15rem; }
+.advent__door-panel { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .1rem; border: 2px solid var(--hatcast-avent-white); border-radius: .2rem; color: var(--hatcast-avent-white); background: var(--hatcast-avent-red); line-height: 1; }
+.advent__door-panel strong { font-size: 1.2rem; }
+.advent__door-panel mat-icon { width: 1rem; height: 1rem; font-size: 1rem; }
+.advent__door-label { display: block; margin-top: .25rem; font: 700 .68rem/1.15 var(--advent-body-font); overflow-wrap: anywhere; }
+.advent__calendar-door[data-state="played"] .advent__door-panel { width: 75%; transform: perspective(80px) rotateY(-20deg); transform-origin: left; background: var(--hatcast-avent-mint); color: var(--hatcast-avent-green); border-color: var(--hatcast-avent-green); }
+.advent__calendar-door[data-today="true"] .advent__door-frame { outline: 3px solid var(--hatcast-avent-green); outline-offset: 2px; }
+.advent__calendar-door[data-today="true"] .advent__door-panel { background: var(--hatcast-avent-green); color: var(--hatcast-avent-white); border-color: var(--hatcast-avent-white); }
+.advent__calendar-door[data-state="past-unplayed"] .advent__door-frame, .advent__calendar-door[data-state="missing"] .advent__door-frame { border-style: solid; }
+.advent__calendar-door[data-state="past-unplayed"] .advent__door-panel, .advent__calendar-door[data-state="missing"] .advent__door-panel { background: var(--hatcast-avent-mint); color: var(--hatcast-avent-green); border-color: var(--hatcast-avent-white); }
+.advent__calendar-door[data-state="christmas"] .advent__door-panel { background: var(--hatcast-avent-green); }
+.advent__calendar .advent__calendar-door:disabled { color: var(--advent-disabled); opacity: 1; }
+.advent__calendar-door[data-state="locked"] .advent__door-panel { background: var(--hatcast-avent-red); color: var(--hatcast-avent-white); border-color: var(--hatcast-avent-white); }
+
+.advent__calendar-garland { text-align: center; color: var(--hatcast-avent-red); font-size: 1.35rem; letter-spacing: .18rem; margin: .1rem 0 .45rem; text-shadow: 0 2px 0 var(--hatcast-avent-gold); }
+
+.advent__visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+
+.advent__calendar-cell { position: relative; min-width: 0; display: flex; align-items: center; }
+.advent__calendar-cell .advent__calendar-door { width: 100%; }
+.advent__calendar-cell .advent__calendar-close { position: absolute; z-index: 1; inset-block-start: 0; inset-inline-end: 0; width: 2.75rem; height: 2.75rem; min-width: 2.75rem; min-height: 2.75rem; padding: 0; display: grid; place-items: start end; color: var(--hatcast-avent-green); }
+.advent__calendar-close mat-icon { width: 1.25rem; height: 1.25rem; font-size: 1rem; display: grid; place-items: center; border: 1px solid var(--hatcast-avent-green); border-radius: 50%; background: var(--hatcast-avent-white); }
+.advent__calendar-cell .advent__calendar-close:focus-visible { outline: 3px solid var(--advent-focus); outline-offset: 2px; }

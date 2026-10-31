@@ -46,6 +46,37 @@ class AdventMemberPostgresTest {
         } finally { root.execute("DROP SCHEMA $schema CASCADE") }
     }
 
+    @Test fun `late answer migration preserves existing data and defaults and stores explicit late writes`() {
+        val url = System.getenv("ADVENT_TEST_POSTGRES_URL")
+        require(url.startsWith("jdbc:postgresql://127.0.0.1:"))
+        val username = System.getenv("ADVENT_TEST_POSTGRES_USER"); val password = System.getenv("ADVENT_TEST_POSTGRES_PASSWORD")
+        val root = JdbcTemplate(DriverManagerDataSource(url, username, password))
+        val schema = "advent_late_migration_" + UUID.randomUUID().toString().replace("-", "")
+        root.execute("CREATE SCHEMA $schema")
+        try {
+            val ds = DriverManagerDataSource(url + (if (url.contains('?')) "&" else "?") + "currentSchema=$schema", username, password)
+            val jdbc = JdbcTemplate(ds)
+            val tables = listOf("advent_member_answers", "advent_member_generations", "advent_member_attempts", "advent_member_replays")
+            for (table in tables) {
+                jdbc.execute("CREATE TABLE $table (id INTEGER PRIMARY KEY, marker TEXT NOT NULL)")
+                jdbc.update("INSERT INTO $table (id, marker) VALUES (1, 'existing fiction')")
+            }
+            ds.connection.use { ScriptUtils.executeSqlScript(it, ClassPathResource("db/migration/V79__advent_late_answers.sql")) }
+            for (table in tables) {
+                assertEquals("existing fiction", jdbc.queryForObject("SELECT marker FROM $table WHERE id = 1", String::class.java))
+                assertFalse(jdbc.queryForObject("SELECT late FROM $table WHERE id = 1", Boolean::class.java)!!)
+                jdbc.update("INSERT INTO $table (id, marker) VALUES (2, 'normal fiction')")
+                assertFalse(jdbc.queryForObject("SELECT late FROM $table WHERE id = 2", Boolean::class.java)!!)
+                jdbc.update("INSERT INTO $table (id, marker, late) VALUES (3, 'late fiction', TRUE)")
+                assertTrue(jdbc.queryForObject("SELECT late FROM $table WHERE id = 3", Boolean::class.java)!!)
+                assertEquals(3, jdbc.queryForObject("SELECT COUNT(*) FROM $table", Int::class.java))
+                assertThrows(org.springframework.dao.DataIntegrityViolationException::class.java) {
+                    jdbc.update("INSERT INTO $table (id, marker, late) VALUES (4, 'invalid fiction', NULL)")
+                }
+            }
+        } finally { root.execute("DROP SCHEMA $schema CASCADE") }
+    }
+
     @Test fun `member ranking observes only committed revealed answers under lock`() {
         val url = System.getenv("ADVENT_TEST_POSTGRES_URL")
         require(url.startsWith("jdbc:postgresql://127.0.0.1:"))
@@ -60,7 +91,7 @@ class AdventMemberPostgresTest {
                 "CREATE TABLE advent_member_lock (id INTEGER PRIMARY KEY, test_offset_seconds BIGINT NOT NULL DEFAULT 0, test_session_id UUID)", "INSERT INTO advent_member_lock (id) VALUES (1)",
                 "CREATE TABLE users (id UUID PRIMARY KEY)",
                 "CREATE TABLE troupe_memberships (troupe_id UUID, user_id UUID, display_name VARCHAR(255), status VARCHAR(32), baseline_role VARCHAR(32))",
-                "CREATE TABLE advent_member_answers (user_id UUID, quiz_day INTEGER, answer_id UUID, choice INTEGER, correct_choice INTEGER, answered_at TIMESTAMPTZ, reveal_at TIMESTAMPTZ, seen_at TIMESTAMPTZ)",
+                "CREATE TABLE advent_member_answers (user_id UUID, quiz_day INTEGER, answer_id UUID, choice INTEGER, correct_choice INTEGER, answered_at TIMESTAMPTZ, reveal_at TIMESTAMPTZ, seen_at TIMESTAMPTZ, late BOOLEAN NOT NULL DEFAULT FALSE)",
                 "CREATE TABLE advent_quizzes (quiz_day INTEGER, display_name TEXT, portrait_ref TEXT, statement_0 TEXT, statement_1 TEXT, statement_2 TEXT, false_choice INTEGER, explanation TEXT)",
                 "INSERT INTO advent_quizzes VALUES (1, 'Fictif', NULL, 'A', 'B', 'C', 0, NULL)"
             ).forEach(jdbc::execute)
@@ -76,7 +107,7 @@ class AdventMemberPostgresTest {
                     val held = CountDownLatch(1); val release = CountDownLatch(1)
                     val writer = pool.submit { tx.executeWithoutResult { status ->
                         jdbc.queryForObject("SELECT id FROM advent_member_lock WHERE id = 1 FOR UPDATE", Int::class.java)
-                        jdbc.update("INSERT INTO advent_member_answers VALUES (?, 1, ?, 0, 0, ?, ?, ?)", member, UUID.randomUUID(), Timestamp.from(Instant.parse("2026-12-01T12:00:00Z")), Timestamp.from(Instant.parse("2026-12-01T23:00:00Z")), Timestamp.from(Instant.parse("2026-12-02T00:00:00Z")))
+                        jdbc.update("INSERT INTO advent_member_answers (user_id, quiz_day, answer_id, choice, correct_choice, answered_at, reveal_at, seen_at) VALUES (?, 1, ?, 0, 0, ?, ?, ?)", member, UUID.randomUUID(), Timestamp.from(Instant.parse("2026-12-01T12:00:00Z")), Timestamp.from(Instant.parse("2026-12-01T23:00:00Z")), Timestamp.from(Instant.parse("2026-12-02T00:00:00Z")))
                         held.countDown(); check(release.await(10, TimeUnit.SECONDS)); if (!commit) status.setRollbackOnly()
                     } }
                     try {

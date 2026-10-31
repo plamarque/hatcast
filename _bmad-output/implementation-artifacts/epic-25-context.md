@@ -4,7 +4,7 @@
 
 ## Goal
 
-Give La Malice members a seasonal activity to discover one another through 24 daily portrait quizzes, delayed results and a friendly ranking. Organizers prepare and test the experience before opening, with development isolated from production. The experience must be ready before December with time for testing.
+Give eligible La Malice members a seasonal way to discover one another through 24 daily portrait quizzes, delayed revelations and a friendly ranking, with an isolated environment for preparation and testing before the event.
 
 ## Stories
 
@@ -13,6 +13,7 @@ Give La Malice members a seasonal activity to discover one another through 24 da
 - Story 25.2a: Restart an isolated test session
 - Story 25.3: Discover and recover the quiz result
 - Story 25.3a: Prepare and play validated quizzes
+- Story 25.3b: Manage and synchronize the private Advent catalogue
 - Story 25.4: See the friendly ranking
 - Story 25.5: Browse the calendar and past content
 - Story 25.6: Enter the Advent experience from HatCast
@@ -21,29 +22,30 @@ Give La Malice members a seasonal activity to discover one another through 24 da
 
 ## Requirements & Constraints
 
-- Members identify the false statement among three and confirm once on its Paris civil day. No production catch-up; each participant may answer their own quiz. Server time governs access and deadlines, not the browser.
-- A correct answer earns 10 points, an incorrect one 0; every answer adds 1 participation point. Each non-overlapping group of three consecutive correct answers adds 2; an incorrect answer breaks the streak, a missed day does not. Only revealed points count in visible totals or ranking.
-- Before the following Paris midnight, an answer yields a neutral acknowledgment, with no correctness, false statement, pending points or derived hint. Once revealable, the result includes choice, false statement, correctness, daily points and optional additional content. Unseen revealable results take priority on return; acknowledgment follows actual display, is persistent and idempotent, and may be repeated after interruption or concurrent device use.
-- Quizzes may be missing at launch or added later. A quiz appearing during its day is playable until midnight; after its day it is read-only once revealable. Future production quizzes remain locked. From 25 December to 15 January members may consult final ranking and past content; no new quiz on the 25th. Answers and results are retained after member access ends.
-- Ranking includes all eligible classable members even at zero. Ties receive the lowest position in their group. Patrice and Toinou see their own score but are excluded from ranking. Invitations use normal preferences and existing scheduling; late or missed invitations are acceptable. Aggregate real participation excludes development and sensitive content.
-- Protect consented personal content and private portraits; no real anecdotes, answer keys or private assets in Git, public bundles, logs, analytics, URLs, shared caches or premature API responses. Sensitive requests and errors are private and no-store. Service worker and client caches must not expose stale or cross-account data.
+- Active members of the configured troupe may play each day's quiz, including their own, by confirming which of three statements is false. A production answer is unique and final; a past unplayed quiz permits one explicitly requested late answer with immediate feedback and zero points. Server-side Paris civil time governs availability, deadlines and revelation.
+- A correct answer earns 10 points, an incorrect answer zero, and every recorded answer one participation point. Each non-overlapping group of three consecutive correct answers earns two bonus points; a wrong answer breaks the streak and a missed day does not. Production ranking and scores expose only revealed points.
+- Before the next Paris midnight, an answer gives a neutral acknowledgment without disclosing its correctness, false statement, points or derived clue. After revelation, the result includes the member's choice, false statement, correctness, daily points and optional content. The most recent unseen revealable result takes priority on return and is marked seen only after actual display and acknowledgment; older results remain available in the calendar.
+- Quizzes can be absent or published late. Content available during its day is playable until midnight; past unplayed content can be answered once for no points after revelation. Future production content stays locked. From 25 December through 15 January eligible members can consult the final ranking and calendar even without playing; no quiz takes place on the 25th. Retain answers and results after member access ends.
+- Rank all classable members including zero scores, with tied members sharing the lowest position of their group. Patrice and Toinou see their own scores but do not appear in the ranking. Invitations respect existing preferences and eligibility; late or missed delivery is acceptable. Measure real participation without sensitive quiz content.
+- Protect consented personal information, portraits, unreleased statements and answers from premature access or inference. Do not place private contributions or answers in public Git, bundles, logs, URLs, notifications, analytics or shared caches. Sensitive responses are private and no-store; service workers and clients must not serve stale or cross-account content.
 
 ## Technical Decisions
 
-- Server-side authorization checks active membership in the configured troupe, permitted mode and date for each Advent read and mutation; platform administration alone is not an exemption. Protect future content, private portrait access, correctness and pending scores from inference as well as direct exposure.
-- Persist one final production answer per member and quiz. Serialize the relevant confirmation and scoring mutations; a confirmation still waiting for its lock at midnight is closed. Reveal and ranking reads acquire the shared clock-row lock, sample server time after acquiring it, and read committed answers before releasing it; an in-flight transaction can delay the read past midnight. Recover uncertain confirmation without duplicating the answer. Shared dismissal and seen state remain durable across devices.
-- Validated quiz content is prepared directly in a database by queries; portraits remain in a private bucket. Only quiz content and relevant portrait references are promoted from development to production, never answers or test state. The transfer procedure and safe identification of targets must be determined and verified; a JSON bucket catalogue is not the adopted source.
-- Development and production use separate databases; production never enables test mode. Development test content is unrestricted, subject to protection of personal data. Authorized test users may replay their own answers, move the shared simulated clock one Paris day in either direction and use a targeted reset. Reset must preserve quiz content and unrelated data, isolate production data and effects, serialize with in-flight work and reject unsafe or ambiguous environments. Verify real production boundaries separately from simulated time.
-- Patrice does not change contributions during play and accepts inconsistency risk if an exceptional change occurs. No version system, snapshot, stale-content rejection or edit lock is mandated solely for that risk. Do not infer that the accepted risk weakens uniqueness, authorization or result secrecy.
-- Use the existing reminder infrastructure and server-side eligibility checks. Measure distinct real participants and recorded real answers without sensitive details; the database is authoritative if telemetry is missing.
+- Authorize every Advent read and mutation by active membership, configured troupe, date and mode; platform administration alone does not bypass membership. Protect private portraits and their access paths using the same rules as their content.
+- Persist one final production answer per member and quiz. Serialize confirmation and scoring; confirmation still waiting for its lock at midnight is closed. Reveal and ranking reads take the shared clock-row lock, sample server time after acquiring it and read committed answers before release. Handle uncertain confirmations without duplication and preserve seen and dismissal state across devices.
+- Prepare validated quiz content privately and maintain its portrait references; development and production databases are separate. Only selected quiz content and portraits may be synchronized, never answers or game state. Target identity, permissions, conflicts and private handling require verification; production writes require separate authorization.
+- Test controls and replay are restricted to verified isolated development and must never affect production data, notifications or analytics. Preserve content and unrelated data on targeted reset, and verify real production boundaries separately from simulated time. Planning documents describe differing test-clock scopes; resolve against the current adopted contract before relying on either description.
+- Exceptional changes to contributions during play may cause inconsistencies; that risk is accepted. Do not introduce versioning, snapshots, stale-content rejection or edit locks solely for it. Preserve authorization, uniqueness and result secrecy.
+- Use existing reminder infrastructure. Database answers remain authoritative when measuring real participation if telemetry is missing.
 
 ## UX & Interaction Patterns
 
-- Advent has its own approved visual identity, scoped tokens, typography and components; preserve the surrounding HatCast design system. Existing artistic references are not additional functional requirements. Apply accessible Material behavior and preserve the approved discovery, question, neutral confirmation, result, calendar and ranking journeys.
-- Support keyboard and visible focus, announcements and focus restoration, meaningful portrait alternatives, single-choice semantics, responsive and enlarged text, adequate contrast, touch targets and reduced-motion equivalents. Do not truncate content or depend on color alone for state. Verify visual and computed-style isolation from HatCast.
-- Test mode is visibly identified. The priority reveal offers no calendar navigation until it has been displayed; return paths and absence states follow the established UX. Earlier unseen results remain available through their calendar cases without a separate marker.
+- Advent has its own approved visual identity, scoped styles, tokens, typography and components; preserve HatCast's appearance. Apply accessible Material behavior and the established discovery, question, neutral confirmation, revelation, calendar and ranking journeys.
+- Make states understandable without color alone. Support keyboard use, visible focus, announcements, meaningful portrait alternatives, single-choice semantics, responsive layout, enlarged text, contrast, touch targets and reduced-motion equivalents. Do not truncate content. Verify visual isolation from HatCast.
+- The priority revelation offers no calendar navigation until displayed. In the calendar, past played cases show revealed results without repeating celebration; past unplayed cases offer the gift and a zero-point answer with immediate feedback. The 25 December presentation includes a festive message, personal score and decorative Santa and box, with access to final ranking and calendar.
+- Test mode is visibly identified. Production pending results and scores remain secret; the approved test ranking may expose current scores in isolated development.
 
 ## Cross-Story Dependencies
 
-- Stories 25.1, 25.2, 25.2a and 25.3 are completed historical deliveries. Database-backed content is the approved 25.3a follow-up, before the later ranking, calendar, entry, notification and participation work relying on the relevant content and environment boundary.
-- The unfinished private catalogue worktree is evidence of the superseded JSON direction, not an approved solution; preserve it and its Git backup. Production writes and deployment require their own authorization and evidence. Partial demonstrations must identify unfinished functionality and demonstrate isolation before exposing content.
+- The existing discovery, answering, isolated reset, revelation, quiz content and ranking deliveries establish the foundations for calendar, entry, invitation and participation work. The private catalogue story is a separate operator workflow; preserve its dedicated worktree and contributions.
+- Calendar and ranking share date, membership, content confidentiality and revealed-score boundaries. Entry follows priority revelation before daily or seasonal destinations; invitations and participation measurement depend on the same production/test separation.

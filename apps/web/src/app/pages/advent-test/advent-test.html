@@ -4,15 +4,21 @@
     @if (!memberMode) {
     <div class="advent__test-actions" aria-label="Commandes de test">
       <span class="advent__test-label"><span class="advent__test-label-full">Mode test</span><span class="advent__test-label-short">Test</span></span>
+      @if (!rankingOpen()) {
       <button mat-icon-button type="button" (click)="previousDay()" [disabled]="transitionRequired() || loading() || submitting() || (quiz() && answerState() === 'checking') || !clockDate() || clockDate()! <= '2026-12-01'" aria-label="Revenir au jour précédent" title="Jour précédent"><mat-icon aria-hidden="true">arrow_back</mat-icon></button>
       <span class="advent__simulated-day" role="status" aria-live="polite" [attr.aria-label]="clockDate() === null ? 'Jour simulé non disponible' : 'Jour simulé : ' + simulatedDateLabel()">{{ clockDate() === null ? '–' : simulatedDateLabel(true) }}</span>
       <button mat-icon-button type="button" (click)="nextDay()" [disabled]="transitionRequired() || loading() || submitting() || (quiz() && answerState() === 'checking') || !clockDate() || clockDate()! >= '2027-01-15'" aria-label="Avancer au jour suivant" title="Jour suivant"><mat-icon aria-hidden="true">arrow_forward</mat-icon></button>
+      }
+      @if (!calendarOpen() && !rankingOpen()) {
       <button mat-icon-button type="button" (click)="resetConfirm.set(true)" [disabled]="loading() || submitting()" aria-label="Réinitialiser la partie de développement" title="Réinitialiser la partie"><mat-icon aria-hidden="true">restart_alt</mat-icon></button>
-      @if ((result() || quiz()) && answerState() === 'recorded') {
+      @if ((result() || quiz() || history()?.result) && answerState() === 'recorded') {
         <button mat-icon-button type="button" (click)="replay()" [disabled]="submitting()" aria-label="Effacer ma réponse et rejouer" title="Effacer ma réponse et rejouer"><mat-icon aria-hidden="true">delete_outline</mat-icon></button>
+      }
       }
     </div>
     }
+    <button mat-icon-button type="button" (click)="historicalResult() ? returnToCalendar() : openCalendar()" [disabled]="loading() || submitting() || (result() !== null && !historicalResult())" [attr.aria-current]="calendarOpen() ? 'page' : null" aria-label="Voir le calendrier" title="Calendrier"><mat-icon aria-hidden="true">calendar_month</mat-icon></button>
+    <button mat-icon-button type="button" (click)="navigateRanking()" [disabled]="loading() || submitting() || (result() !== null && !historicalResult())" [attr.aria-current]="rankingOpen() ? 'page' : null" aria-label="Classement" title="Classement"><mat-icon aria-hidden="true">leaderboard</mat-icon></button>
     <a mat-icon-button routerLink="/accueil" aria-label="Fermer le quiz" title="Fermer"><mat-icon aria-hidden="true">close</mat-icon></a>
   </header>
   <div class="advent__content">
@@ -24,14 +30,45 @@
         <button mat-flat-button type="button" (click)="resetGame()" [disabled]="loading()">Réinitialiser</button>
       </section>
     }
-    @if (error() && (quiz() || result())) { <p class="advent__feedback" role="alert">{{ sessionChanged() ? 'La partie de test a été réinitialisée. Recharge l’aperçu.' : memberMode ? 'Impossible de mettre à jour le quiz. Réessaie.' : 'Impossible de mettre à jour la partie de test. Réessaie.' }}</p> }
+    @if (error() && (quiz() || result() || history())) { <p class="advent__feedback" role="alert">{{ sessionChanged() ? 'La partie de test a été réinitialisée. Recharge l’aperçu.' : memberMode ? 'Impossible de mettre à jour le quiz. Réessaie.' : 'Impossible de mettre à jour la partie de test. Réessaie.' }}</p> }
     @if (rankingError()) { <p role="alert">{{ sessionChanged() ? 'La partie de test a été réinitialisée. Recharge l’aperçu.' : 'Impossible de charger le classement. Réessaie.' }}</p> @if (sessionChanged()) { <button mat-stroked-button type="button" (click)="start()">Recharger l’aperçu</button> } }
-    @if (rankingOpen()) {
+    @if (history(); as past) {
+      <section class="advent__quiz" aria-labelledby="history-title">
+        <p class="advent__date">{{ past.quiz.day }} décembre</p>
+        <div class="advent__portrait-scene"><div class="advent__portrait"><img [src]="past.quiz.portrait" [alt]="'Portrait du lutin ' + owner(past.quiz.name)"></div></div>
+        <h1 #historyHeading id="history-title" tabindex="-1">Les anecdotes {{ owner(past.quiz.name) }}</h1>
+        <ul class="advent__history-list">
+          @for (statement of past.quiz.statements; track $index) {
+            <li>{{ statement }} @if ($index === past.falseChoice) { <strong> — anecdote fausse</strong> } @if (past.result && $index === past.result.selectedChoice) { <strong> — ton choix</strong> }</li>
+          }
+        </ul>
+        @if (past.result; as result) { <p>Tu as gagné {{ result.responsePoints + result.participationPoints + result.bonusPoints }} points pour ce jour.</p> }
+      </section>
+    } @else if (calendarOpen()) {
+      <section id="advent-calendar-panel" aria-labelledby="calendar-title">
+        <h1 #calendarHeading id="calendar-title" class="advent__visually-hidden" tabindex="-1">Calendrier de l’Avent</h1>
+        @if (christmasError()) { <p class="advent__feedback" role="alert">Impossible de charger ton score de Noël.</p><button mat-stroked-button type="button" (click)="openCalendarDay({ day: 25, state: 'christmas' })" [disabled]="loading()">Réessayer</button> }
+        <div class="advent__calendar-garland" aria-hidden="true">✦ &nbsp; ❄ &nbsp; ✧ &nbsp; ❄ &nbsp; ✦</div>
+        <p class="advent__visually-hidden" role="status" aria-live="polite">{{ calendarActionMessage() }}</p>
+        <div class="advent__calendar">
+          @for (day of calendarDays(); track day.day) {
+            <div class="advent__calendar-cell">
+            <button mat-button class="advent__calendar-door" type="button" [attr.data-state]="day.state" [attr.data-today]="isCalendarToday(day)" [disabled]="day.state === 'locked'" (click)="openCalendarDay(day)" [attr.aria-label]="day.day + ' décembre : ' + calendarLabel(day) + (isCalendarToday(day) && day.state !== 'today' ? ', aujourd’hui' : '')">
+              <span class="advent__door-frame" aria-hidden="true"><span class="advent__door-panel"><strong>{{ day.day }}</strong>@if (day.state === 'locked') { <mat-icon>lock</mat-icon> } @else if (day.state === 'played') { <mat-icon>door_open</mat-icon> } @else if (day.state === 'missing') { <mat-icon>help_outline</mat-icon> }</span></span>
+            </button>
+            @if (testControls() && day.state === 'played') {
+              <button mat-icon-button class="advent__calendar-close" type="button" (click)="closeCalendarDay(day)" [disabled]="loading() || closingDay() !== null" [attr.aria-label]="'Refermer la case ' + day.day + ' et effacer ma réponse'" [attr.title]="'Refermer la case ' + day.day"><mat-icon aria-hidden="true">restart_alt</mat-icon></button>
+            }
+            </div>
+          }
+        </div>
+      </section>
+    } @else if (rankingOpen()) {
       @if (ranking(); as board) {
-        <section class="advent__ranking" aria-labelledby="ranking-title">
+        <section class="advent__ranking" id="advent-ranking-panel" aria-labelledby="ranking-title">
           <div class="advent__ranking-banner"><span aria-hidden="true">✦</span><h1 #rankingHeading id="ranking-title" tabindex="-1">Classement des lutins</h1><span aria-hidden="true">✦</span></div>
           <p class="advent__ranking-summary">Ton score actuel : <strong>{{ board.score }} {{ board.score === 1 ? 'point' : 'points' }}</strong>@if (board.rank !== null) { · {{ board.rank }}@if (isTied(board, board.rank)) { ex æquo } } @else { · hors classement }</p>
-          @if (!memberMode) { <p class="advent__ranking-note">Mode test : tous les points enregistrés sont comptés, même avant la révélation.</p> } @else { <p class="advent__ranking-note">Les points apparaissent après la révélation, le lendemain.</p> }
+          @if (memberMode) { <p class="advent__ranking-note">Les points apparaissent après la révélation, le lendemain.</p> }
           <ol class="advent__ranking-list">
             @for (entry of board.entries; track $index) {
               <li [class.advent__ranking-me]="entry.mine"><span class="advent__ranking-position" [attr.aria-label]="'Position '+ entry.rank">{{ entry.rank }}</span><span class="advent__ranking-person"><strong>{{ entry.name }}@if (entry.mine) { <span class="advent__ranking-you">(toi)</span> }</strong>@if (isTied(board, entry.rank)) { <span class="advent__ranking-tie">ex æquo</span> }</span><span class="advent__ranking-score"><strong>{{ entry.score }}</strong><span>{{ entry.score === 1 ? 'point' : 'points' }}</span></span></li>
@@ -45,8 +82,11 @@
     } @else if (transitionRequired()) {
       <p class="advent__state" role="alert">Les anciennes réponses de test doivent être réinitialisées par l’opérateur avant d’utiliser les quiz préparés.</p>
     } @else if (unavailable()) {
-      <p class="advent__state" role="status">Ce quiz est indisponible pour le moment.</p>
-      <button mat-stroked-button type="button" (click)="selectDay(selectedDay())">Réessayer</button>
+      <p class="advent__state" role="status">Il n’y a rien ici. Reviens plus tard !</p>
+      <div class="advent__entry-actions">
+        @if (!selectedDayIsPast()) { <button mat-stroked-button type="button" (click)="selectDay(selectedDay())">Réessayer</button> }
+        <button mat-flat-button type="button" (click)="openRanking()">Voir le classement</button>
+      </div>
     } @else if (result(); as reveal) {
       @if (resultContent(); as content) {
         <section class="advent__quiz advent__reveal" [class.advent__reveal--correct]="reveal.correct" aria-labelledby="advent-result-title">
@@ -56,14 +96,14 @@
             <div class="advent__portrait advent__reveal-portrait"><img [src]="content.portrait" [alt]="'Portrait du lutin ' + owner(content.name)"></div>
             <span class="advent__reveal-star advent__reveal-star--right" aria-hidden="true">✧</span>
           </div>
-          @if (reveal.correct && !reveal.seen) {
+          @if (reveal.correct && !reveal.seen && !historicalResult()) {
             <div class="advent__confetti" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
           }
           <div class="advent__result-banner">
             <span class="advent__banner-star" aria-hidden="true">✦</span>
             <div>
               <h1 #resultHeading id="advent-result-title" tabindex="-1">{{ reveal.correct ? 'Bravo, tu as trouvé !' : 'Bien tenté !' }}</h1>
-              <p class="advent__result-points"><strong>+{{ reveal.responsePoints + reveal.participationPoints + reveal.bonusPoints }}</strong> {{ reveal.responsePoints + reveal.participationPoints + reveal.bonusPoints === 1 ? 'point gagné' : 'points gagnés' }}</p>
+              <p class="advent__result-points"><strong>+{{ reveal.responsePoints + reveal.participationPoints + reveal.bonusPoints }}</strong> {{ reveal.responsePoints + reveal.participationPoints + reveal.bonusPoints === 1 ? 'point gagné' : 'points gagnés' }} @if (reveal.late) { <span> · réponse après le jour du quiz</span> }</p>
             </div>
             <span class="advent__banner-star" aria-hidden="true">✦</span>
           </div>
@@ -74,16 +114,24 @@
             <div class="advent__result-answer advent__result-answer--truth"><span class="advent__answer-label">L’anecdote qui était fausse</span><p>{{ content.statements[reveal.falseChoice] }}</p></div>
             @if (reveal.explanation) { <p>{{ reveal.explanation }}</p> }
           </div>
-          <button mat-flat-button type="button" (click)="continueAfterResult()" [disabled]="loading()">Continuer <mat-icon aria-hidden="true">arrow_forward</mat-icon></button>
+          @if (!historicalResult()) { <button mat-flat-button type="button" (click)="continueAfterResult()" [disabled]="loading()">Continuer <mat-icon aria-hidden="true">arrow_forward</mat-icon></button> }
         </section>
       }
     } @else if (error() && !quiz() && !result()) {
       <p class="advent__feedback" role="alert">{{ sessionChanged() ? 'La partie de test a été réinitialisée. Recharge l’aperçu pour reprendre.' : 'Le lutin est indisponible. Réessaie.' }}</p>
       <button mat-stroked-button type="button" (click)="retryEntry()">{{ sessionChanged() ? 'Recharger l’aperçu' : 'Réessayer' }}</button>
     } @else if ((clockDate() ?? '') >= '2026-12-25' && !preview() && !quiz()) {
-      <p class="advent__state" role="status">Joyeux Noël ! Les quiz sont terminés.</p>
+      <section class="advent__christmas" aria-labelledby="christmas-title">
+        <div class="advent__santa-scene" aria-hidden="true">
+          <img class="advent__santa" src="/advent/pere-noel-cadeau.png" alt="">
+          <img class="advent__santa-logo" src="/advent/logo-la-malice.png" alt="">
+        </div>
+        <h1 id="christmas-title">Joyeux Noël !</h1>
+        <p>Bravo pour ta participation ! Profite bien des fêtes et rendez-vous à la rentrée.</p>
+        @if (christmasScore() !== null) { <p>Ton score : <strong>{{ christmasScore() }} {{ christmasScore() === 1 ? 'point' : 'points' }}</strong></p> }
+      </section>
       @if (!loading() && finalRankingAvailable()) {
-        <button #rankingButton mat-flat-button type="button" (click)="openRanking()" [disabled]="submitting()">Voir le classement <mat-icon aria-hidden="true">arrow_forward</mat-icon></button>
+        <div class="advent__entry-actions"><button #rankingButton mat-flat-button type="button" (click)="openRanking()" [disabled]="submitting()">Voir le classement <mat-icon aria-hidden="true">arrow_forward</mat-icon></button></div>
       }
     } @else if (!quiz()) {
       @if (preview(); as character) {
@@ -111,6 +159,7 @@
         <h2 #quizHeading id="quiz-title" tabindex="-1" [hidden]="answerState() === 'recorded'">Une anecdote sur {{ content.name }}</h2>
         @if (answerState() === 'available') {
           <p class="advent__question" [hidden]="answerState() === 'recorded'">Quelle affirmation est fausse ?</p>
+          @if (lateDiscovery()) { <p>Cette case est passée : tu peux jouer pour le plaisir, sans gagner de points.</p> }
           <mat-radio-group class="advent__options" aria-label="Quelle affirmation est fausse ?" [value]="choice()" (change)="choice.set($event.value)">
             @for (statement of content.statements; track $index) { <mat-radio-button [value]="$index" [disabled]="submitting()">{{ statement }}</mat-radio-button> }
           </mat-radio-group>
@@ -127,7 +176,7 @@
             <button #rankingButton mat-flat-button type="button" (click)="openRanking()" [disabled]="loading() || submitting()">Voir le classement <mat-icon aria-hidden="true">arrow_forward</mat-icon></button>
           }
         } @else if (answerState() === 'closed') {
-          <p class="advent__state" role="status">Ce quiz est fermé.</p>
+          <p class="advent__state" role="status">Ce quiz est fermé.</p><button mat-stroked-button type="button" (click)="openRanking()">Voir le classement</button>
         } @else if (answerState() === 'uncertain') {
           @if (sessionChanged()) {
             <p class="advent__feedback" role="alert">La partie de test a été réinitialisée. Recharge l’aperçu pour reprendre.</p>
