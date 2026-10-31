@@ -54,7 +54,7 @@
           @for (day of calendarDays(); track day.day) {
             <div class="advent__calendar-cell">
             <button mat-button class="advent__calendar-door" type="button" [attr.data-state]="day.state" [attr.data-outcome]="day.outcome || null" [attr.data-today]="isCalendarToday(day)" [disabled]="day.state === 'locked'" (click)="openCalendarDay(day)" [attr.aria-label]="day.day + ' décembre : ' + calendarLabel(day) + (isCalendarToday(day) && day.state !== 'today' ? ', aujourd’hui' : '')">
-              <span class="advent__gift-box" aria-hidden="true"><span class="advent__gift-lid"><span class="advent__gift-snow"></span></span><span class="advent__gift-body"><strong>{{ day.day }}</strong>@if (day.state === 'locked') { <mat-icon>lock</mat-icon> } @else if (day.outcome === 'correct') { <mat-icon>check</mat-icon> } @else if (day.outcome === 'incorrect') { <mat-icon>close</mat-icon> } @else if (day.state === 'played') { <mat-icon>hourglass_empty</mat-icon> } @else if (day.state === 'missing') { <mat-icon>help_outline</mat-icon> } @else if (day.state === 'christmas') { <mat-icon>star</mat-icon> }</span></span>
+              <span class="advent__gift-box" aria-hidden="true"><img class="advent__gift-art" [src]="day.state === 'played' ? '/advent/gifts/gift-open-v1.png' : '/advent/gifts/gift-closed-v1.png'" alt="" (error)="$any($event.target).hidden = true" (load)="$any($event.target).hidden = false"><span class="advent__gift-lid"><span class="advent__gift-snow"></span></span><span class="advent__gift-body"><strong>{{ day.day }}</strong>@if (day.state === 'locked') { <mat-icon>lock</mat-icon> } @else if (day.outcome === 'correct') { <mat-icon>check</mat-icon> } @else if (day.outcome === 'incorrect') { <mat-icon>close</mat-icon> } @else if (day.state === 'played') { <mat-icon>hourglass_empty</mat-icon> } @else if (day.state === 'missing') { <mat-icon>help_outline</mat-icon> } @else if (day.state === 'christmas') { <mat-icon>star</mat-icon> }</span></span>
             </button>
             @if (testControls() && day.state === 'played') {
               <button mat-icon-button class="advent__calendar-close" type="button" (click)="closeCalendarDay(day)" [disabled]="loading() || closingDay() !== null" [attr.aria-label]="'Refermer la case ' + day.day + ' et effacer ma réponse'" [attr.title]="'Refermer la case ' + day.day"><mat-icon aria-hidden="true">restart_alt</mat-icon></button>
@@ -124,7 +124,7 @@
       <section class="advent__christmas" aria-labelledby="christmas-title">
         <div class="advent__santa-scene" aria-hidden="true">
           <img class="advent__santa" src="/advent/pere-noel-cadeau.png" alt="">
-          <img class="advent__santa-logo" src="/advent/logo-la-malice.png" alt="">
+          <span class="advent__santa-label"><img class="advent__santa-logo" src="/advent/logo-la-malice.png" alt=""></span>
         </div>
         <h1 id="christmas-title">Joyeux Noël !</h1>
         <p>Bravo pour ta participation ! Profite bien des fêtes et rendez-vous à la rentrée.</p>

@@ -9,15 +9,15 @@
 .advent__calendar .advent__calendar-door { min-width: 0; min-height: 4.15rem; height: auto; padding: .2rem; color: var(--advent-text); white-space: normal; border-radius: .35rem; }
 /* Decorative artwork stays inside the numbered Material button. */
 .advent__gift-box {
-  --gift-ink: color-mix(in srgb, var(--hatcast-avent-red) 65%, black);
+  --gift-ink: var(--hatcast-avent-green);
   --gift-paper: var(--hatcast-avent-red);
   --gift-paper-light: color-mix(in srgb, var(--hatcast-avent-red) 72%, white);
   --gift-ribbon: var(--hatcast-avent-gold);
-  position: relative; display: block; width: 3.25rem; height: 4.05rem; margin: .4rem auto 0;
-  color: var(--gift-ink); filter: drop-shadow(0 .16rem .1rem var(--advent-shadow));
+  position: relative; display: block; width: 3.85rem; height: 4.8rem; margin: .4rem auto 0;
+  color: var(--gift-ink);
 }
 .advent__gift-lid {
-  position: absolute; z-index: 3; top: .75rem; left: -.05rem; width: 3.35rem; height: .72rem;
+  position: absolute; z-index: 3; top: .75rem; left: 0; width: 100%; height: .72rem;
   border: 1px solid var(--gift-ink); border-radius: .2rem;
   background: linear-gradient(90deg, var(--gift-paper) 0 38%, var(--gift-ribbon) 38% 62%, var(--gift-paper-light) 62%);
   box-shadow: inset 0 .12rem color-mix(in srgb, white 35%, transparent), 0 .12rem .12rem var(--advent-shadow);
@@ -57,16 +57,16 @@
   border: 1px solid var(--gift-ink); border-radius: 50%; background: var(--hatcast-avent-cream);
 }
 .advent__calendar-door[data-outcome="pending"] .advent__gift-box {
-  --gift-ink: var(--hatcast-avent-green); --gift-paper: var(--advent-surface-warm); --gift-paper-light: var(--hatcast-avent-white);
+  --gift-paper: var(--advent-surface-warm); --gift-paper-light: var(--hatcast-avent-white);
 }
 .advent__calendar-door[data-outcome="correct"] .advent__gift-box {
   --gift-ink: var(--hatcast-avent-green); --gift-paper: var(--hatcast-avent-green); --gift-paper-light: color-mix(in srgb, var(--hatcast-avent-green) 70%, white);
 }
+.advent__calendar-door[data-outcome="incorrect"] .advent__gift-box {
+  --gift-ink: color-mix(in srgb, var(--hatcast-avent-red) 65%, black); --gift-paper: var(--hatcast-avent-red); --gift-paper-light: color-mix(in srgb, var(--hatcast-avent-red) 72%, white);
+}
 .advent__calendar-door[data-outcome="incorrect"] .advent__gift-body mat-icon { color: var(--hatcast-avent-red); }
 .advent__calendar-door[data-today="true"] .advent__gift-box { outline: 2px solid var(--advent-focus); outline-offset: 3px; }
-.advent__calendar-door[data-state="missing"] .advent__gift-box {
-  --gift-ink: var(--hatcast-avent-green); --gift-paper: var(--advent-surface-warm); --gift-paper-light: var(--hatcast-avent-white);
-}
 .advent__calendar-door[data-state="christmas"] .advent__gift-box {
   --gift-ink: var(--advent-gold-ink); --gift-paper: var(--hatcast-avent-gold); --gift-paper-light: var(--hatcast-avent-cream); --gift-ribbon: var(--hatcast-avent-white);
 }
@@ -80,8 +80,19 @@
 
 .advent__visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 
-.advent__calendar-cell { position: relative; min-width: 0; display: flex; align-items: center; }
+.advent__calendar-cell { position: relative; min-width: 0; display: flex; flex-direction: column; align-items: center; }
 .advent__calendar-cell .advent__calendar-door { width: 100%; }
-.advent__calendar-cell .advent__calendar-close { position: absolute; z-index: 1; inset-block-start: 0; inset-inline-end: 0; width: 2.75rem; height: 2.75rem; min-width: 2.75rem; min-height: 2.75rem; padding: 0; display: grid; place-items: start end; color: var(--hatcast-avent-green); }
+.advent__calendar-cell .advent__calendar-close { align-self: end; width: 2.75rem; height: 2.75rem; min-width: 2.75rem; min-height: 2.75rem; padding: 0; display: grid; place-items: center; color: var(--hatcast-avent-green); }
 .advent__calendar-close mat-icon { width: 1.25rem; height: 1.25rem; font-size: 1rem; display: grid; place-items: center; border: 1px solid var(--hatcast-avent-green); border-radius: 50%; background: var(--hatcast-avent-white); }
 .advent__calendar-cell .advent__calendar-close:focus-visible { outline: 3px solid var(--advent-focus); outline-offset: 2px; }
+
+/* The CSS gift remains visible if the decorative image fails to load. */
+.advent__gift-art { position: absolute; z-index: 3; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.advent__gift-art[hidden] { display: none; }
+.advent__gift-box:has(.advent__gift-art:not([hidden])) .advent__gift-lid { visibility: hidden; }
+.advent__gift-box:has(.advent__gift-art:not([hidden])) .advent__gift-body { z-index: 4; border: 0; background: none; box-shadow: none; }
+.advent__gift-box:has(.advent__gift-art:not([hidden])) .advent__gift-body::before { display: none; }
+.advent__calendar-door[data-outcome="pending"] .advent__gift-art { filter: grayscale(1) sepia(.35); }
+.advent__calendar-door[data-outcome="correct"] .advent__gift-art { filter: hue-rotate(120deg); }
+.advent__calendar-door[data-state="locked"] .advent__gift-art { filter: grayscale(.7) brightness(.45); }
+.advent__calendar-door[data-state="christmas"] .advent__gift-art { filter: sepia(.8) saturate(1.5); }

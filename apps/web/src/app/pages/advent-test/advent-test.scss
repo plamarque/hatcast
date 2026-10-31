@@ -128,7 +128,13 @@
 .advent__christmas { text-align: center; }
 .advent__santa-scene { position: relative; width: min(15rem, 100%); margin: auto; }
 .advent__santa { display: block; width: 100%; height: auto; }
-.advent__santa-logo { position: absolute; left: 30%; top: 61%; width: 20%; height: auto; }
+.advent__santa-label {
+  position: absolute; left: 50%; top: 61%; width: 27%; aspect-ratio: 1;
+  transform: translate(-50%, -50%) rotate(-3deg); display: grid; place-items: center;
+  overflow: hidden; box-sizing: border-box; border: 1px solid #a87942; border-radius: 50%;
+  background: linear-gradient(135deg, #f7e6be, #dfbd83); box-shadow: 0 2px 4px #43220b66;
+}
+.advent__santa-logo { position: absolute; width: 125%; height: 125%; bottom: -10%; object-fit: contain; }
 
 /* Keep the test clock and navigation usable on calendar screens. */
 .advent__test-actions:has(.advent__simulated-day) { flex: 0 1 auto; }

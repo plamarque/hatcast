@@ -241,6 +241,26 @@ describe('AdventTest', () => {
     expect(component.result()?.responsePoints).toBe(0)
   })
 
+  it('uses open artwork only for recorded answers and keeps a fallback on image failure', () => {
+    const component = fixture.componentInstance
+    component.calendarOpen.set(true)
+    component.calendarDays.set([{ day: 1, state: 'past-unplayed' }, { day: 2, state: 'played', outcome: 'pending' }, { day: 3, state: 'locked' }])
+    fixture.detectChanges()
+    const images = fixture.nativeElement.querySelectorAll('.advent__gift-art') as NodeListOf<HTMLImageElement>
+    expect(images[0].getAttribute('src')).toContain('gift-closed')
+    expect(images[1].getAttribute('src')).toContain('gift-open')
+    expect(images[2].getAttribute('src')).toContain('gift-closed')
+    images[1].dispatchEvent(new Event('error'))
+    expect(images[1].hidden).toBe(true)
+    expect(images[1].parentElement?.querySelector('.advent__gift-lid')).toBeTruthy()
+    expect(images[1].closest('button')?.getAttribute('aria-label')).toContain('2 décembre')
+    component.calendarDays.set([{ day: 1, state: 'past-unplayed' }, { day: 2, state: 'past-unplayed' }, { day: 3, state: 'locked' }])
+    fixture.detectChanges()
+    expect(images[1].getAttribute('src')).toContain('gift-closed')
+    images[1].dispatchEvent(new Event('load'))
+    expect(images[1].hidden).toBe(false)
+  })
+
   it('distinguishes the current day from earlier played days', async () => {
     const component = fixture.componentInstance
     component.clockDate.set('2026-12-06')

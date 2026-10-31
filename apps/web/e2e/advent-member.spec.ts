@@ -45,7 +45,7 @@ test('member confirmation and ranking remain neutral and accessible', async ({ p
   expect(requests.every(path => !path.startsWith('/v1/advent-test/'))).toBe(true)
 })
 
-test('verified operator controls use the same Advent URL and member API', async ({ page }) => {
+test('verified operator controls use the same Advent URL and member API', async ({ page }, testInfo) => {
   const date = '2026-12-01'
   const paths: string[] = []
   await page.route('**/v1/**', async route => {
@@ -57,6 +57,7 @@ test('verified operator controls use the same Advent URL and member API', async 
     if (path === '/v1/advent/session') return route.fulfill({ json: { testControls: true, sessionId: 'fixture-session' } })
     if (path === '/v1/advent/clock') return route.fulfill({ json: { date } })
     if (path === '/v1/advent/results/latest-unseen') return route.fulfill({ json: { result: null } })
+    if (path === '/v1/advent/calendar') return route.fulfill({ json: { priorityResult: null, days: [{ day: 1, state: 'played', outcome: 'correct' }] } })
     if (path === '/v1/advent/doors/1' || path === '/v1/advent/doors/2') return route.fulfill({ json: { day: Number(path.split('/').pop()), name: 'Lutin fictif', portrait: '', genericElf: true, statements: ['Une', 'Deux', 'Trois'] } })
     if (path.endsWith('/answer')) return route.fulfill({ json: { status: 'available' } })
     return route.fulfill({ json: {} })
@@ -68,6 +69,14 @@ test('verified operator controls use the same Advent URL and member API', async 
   await expect(page.getByRole('status', { name: 'Jour simulé : 2 décembre' })).toBeVisible()
   expect(paths).not.toContain('/v1/advent/clock/next-day')
   expect(paths.every(path => !path.startsWith('/v1/advent-test/'))).toBe(true)
+  await page.setViewportSize({ width: 320, height: 700 })
+  await page.getByRole('button', { name: 'Voir le calendrier' }).click()
+  const gift = page.locator('.advent__calendar-door')
+  const close = page.locator('.advent__calendar-close')
+  await expect(close).toBeVisible()
+  const giftBox = await gift.boundingBox(), closeBox = await close.boundingBox()
+  expect(closeBox!.y).toBeGreaterThanOrEqual(giftBox!.y + giftBox!.height)
+  await page.screenshot({ path: testInfo.outputPath('calendar-operator-320.png') })
 })
 
 test('each operator tab simulates independently of the other operator and member', async ({ browser, baseURL }) => {
@@ -141,6 +150,9 @@ test('calendar remains legible at 320px and past unplayed content can be answere
   await expect(page.getByRole('button', { name: 'Classement', exact: true })).toBeVisible()
   const cells = page.locator('.advent__calendar button')
   await expect(cells).toHaveCount(25)
+  for (const index of [0, 3]) {
+    await expect.poll(() => cells.nth(index).locator('img').evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0)
+  }
   await expect(cells.nth(2)).toBeDisabled()
   expect(await page.locator('.advent__calendar').evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').length)).toBe(4)
   for (const width of [320, 375, 390, 430, 768, 1280]) {
@@ -153,6 +165,13 @@ test('calendar remains legible at 320px and past unplayed content can be answere
     expect(boxes.every(box => box.width >= 48 && box.height >= 48)).toBe(true)
     await page.screenshot({ path: testInfo.outputPath(`calendar-${width}.png`) })
   }
+  await page.setViewportSize({ width: 320, height: 700 })
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.route('**/gift-open-v1.png?failure=1', route => route.abort())
+  await cells.nth(3).locator('img').evaluate((el: HTMLImageElement) => { el.src = '/advent/gifts/gift-open-v1.png?failure=1' })
+  await expect(cells.nth(3).locator('img')).toBeHidden()
+  await expect(cells.nth(3).locator('.advent__gift-lid')).toBeVisible()
+  await page.screenshot({ path: testInfo.outputPath('calendar-fallback-reduced-motion.png') })
   await page.setViewportSize({ width: 320, height: 700 })
   await page.evaluate(() => { document.documentElement.style.fontSize = '200%' })
   await page.screenshot({ path: testInfo.outputPath('calendar-320-large-text.png') })
