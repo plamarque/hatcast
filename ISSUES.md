@@ -53,6 +53,13 @@ human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
 
+### BUG-068 — Advent CI tests target obsolete behavior
+- **Status**: Corrected locally; CI verification pending.
+- **Severity**: Medium.
+- **Affected area**: API integration and browser smoke suites.
+- **Observed behavior**: An offline API test calls retired test routes, while the browser test expects the former ranking presentation and a removed test-mode message.
+- **Expected behavior**: Tests exercise the supported member API and the current ranking while retaining security and keyboard coverage.
+
 ### BUG-067 — Missing Advent cases resemble unplayed cases
 - **Status**: Corrected locally; awaiting human verification.
 - **Severity**: Low.
