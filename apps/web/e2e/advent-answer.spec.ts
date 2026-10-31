@@ -97,8 +97,11 @@ test('keyboard answers on a narrow enlarged screen with reduced motion', async (
   await rankingButton.focus()
   await page.keyboard.press('Enter')
   await expect(page.getByRole('heading', { name: 'Classement des lutins' })).toBeFocused()
-  await expect(page.locator('.advent__ranking')).toContainText('Rang 2 · Camille')
-  await expect(page.locator('.advent__ranking')).toContainText('tous les points enregistrés')
+  const myRanking = page.locator('.advent__ranking-list li').filter({ hasText: 'Camille' })
+  await expect(myRanking.getByLabel('Position 2')).toBeVisible()
+  await expect(myRanking).toContainText('Camille')
+  await expect(myRanking.locator('.advent__ranking-score strong')).toHaveText('11')
+  await expect(page.locator('.advent__ranking')).not.toContainText('tous les points enregistrés')
   await expect(page.locator('.advent__ranking')).toContainText('Chaque groupe de trois bonnes réponses')
   for (const width of [320, 375, 390, 430, 768, 1280]) {
     await page.setViewportSize({ width, height: 700 })
