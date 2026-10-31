@@ -64,3 +64,7 @@ Chaque commande expose les états repos, survol si applicable, focus visible, s�
 - Prévoir une expérience équivalente avec mouvement réduit.
 
 Pour le 25, Patrice retient un Père Noël à tête classique, dessiné dans le même style que les lutins, tendant une boîte décorative portant le logo de La Malice. Le personnage et sa boîte se placent au-dessus du message ; le score bien visible et les accès au classement et au calendrier suivent. Un village est un décor possible ; la réalisation graphique reste à préciser. La boîte ne propose pas d’ouverture pour l’instant.
+
+### Mode test activé volontairement
+
+Pour les testeurs autorisés, une commande accessible placée à gauche de la barre rouge active ou désactive le mode test, initialement désactivé. La barre de commandes contextuelle apparaît sur une ligne sous la barre rouge et repousse le contenu ; elle reste présente dans le parcours tant que le mode est actif. Les actions sont adaptées à l’écran, avec des libellés accessibles et des cibles tactiles utilisables. Le style demeure isolé dans l’Avent.

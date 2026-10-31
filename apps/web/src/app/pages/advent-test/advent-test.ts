@@ -30,11 +30,14 @@ export class AdventTest {
   private readonly auth = inject(AuthApiService)
   private identity = this.auth.sessionUser()?.id ?? null
   private projectionEpoch = 0
+  private identityEpoch = 0
   constructor() {
     effect(() => {
       const identity = this.auth.sessionUser()?.id ?? null
       if (identity === this.identity) return
       this.identity = identity
+      this.identityEpoch++
+      this.personalResetConfirm.set(null)
       this.projectionEpoch++
       this.calendarDays.set([]); this.calendarOpen.set(false)
       this.result.set(null); this.resultContent.set(null); this.history.set(null)
@@ -43,13 +46,33 @@ export class AdventTest {
       this.loading.set(false); this.submitting.set(false); this.closingDay.set(null)
       this.error.set(false); this.rankingError.set(false); this.christmasError.set(false); this.calendarActionMessage.set('')
       this.generation = null; this.replayToken = null; this.sessionId = null; this.recordedLate = false
-      this.choice.set(null); this.answerState.set('checking'); this.testControls.set(false); this.sessionChanged.set(false)
+      this.choice.set(null); this.answerState.set('checking'); this.testControls.set(false); this.testMode.set(false); this.sessionChanged.set(false)
       if (identity) void this.start()
     })
   }
   readonly testControls = signal(false)
+  readonly testMode = signal(false)
+  readonly pendingMutations = signal(0)
   readonly resetConfirm = signal(false)
-  get memberMode(): boolean { return !this.testControls() }
+  readonly personalResetConfirm = signal<'calendar' | 'replay' | null>(null)
+  get memberMode(): boolean { return !this.testMode() }
+  async toggleTestMode(): Promise<void> {
+    if (!this.testControls() || this.loading() || this.submitting() || this.closingDay() !== null || this.pendingMutations()) return
+    const identity = this.auth.sessionUser()?.id ?? null
+    const identityEpoch = this.identityEpoch
+    const enabled = !this.testMode()
+    const previousScreen = this.calendarOpen() ? 'calendar' : this.rankingOpen() ? 'ranking' : null
+    this.projectionEpoch++
+    this.testMode.set(enabled)
+    this.resetConfirm.set(false)
+    this.personalResetConfirm.set(null)
+    this.simulatedDate.set(enabled ? (this.clockDate() && this.clockDate()! >= '2026-12-01' && this.clockDate()! <= '2027-01-15' ? this.clockDate() : '2026-12-01') : null)
+    await this.start()
+    if (identityEpoch === this.identityEpoch && identity === (this.auth.sessionUser()?.id ?? null) && !this.error() && !this.unavailable() && !this.result() && !this.transitionRequired()) {
+      if (previousScreen === 'calendar') await this.openCalendar()
+      if (previousScreen === 'ranking') await this.openRanking()
+    }
+  }
   private readonly api = '/v1/advent'
   readonly ranking = signal<AdventRanking | null>(null)
   isTied(board: AdventRanking, rank: number): boolean { return board.entries.filter(entry => entry.rank === rank).length > 1 }
@@ -125,14 +148,15 @@ export class AdventTest {
     this.result.set(null); this.resultContent.set(null); this.quiz.set(null); this.preview.set(null)
     this.generation = null; this.replayToken = null; this.choice.set(null)
     this.clockDate.set(null)
-    this.simulatedDate.set(null)
     try {
       const session = await this.requestJson<{ testControls: boolean; sessionId: string; transitionRequired?: boolean }>('/v1/advent/session', { credentials: 'include', cache: 'no-store' })
       if (!session.sessionId) throw new Error('Invalid session')
       this.testControls.set(session.testControls === true)
+      if (!session.testControls) { this.testMode.set(false); this.simulatedDate.set(null) }
       this.sessionId = session.sessionId
       if (session.transitionRequired) { this.transitionRequired.set(true); this.loading.set(false); return }
-      const clock = await this.requestJson<{ date: string }>('/v1/advent-test/clock', { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
+      const clock = await this.requestJson<{ date: string } | null>('/v1/advent-test/clock', { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() }, true)
+      if (!clock) { this.showUnavailable(); return }
       await this.enterAt(clock.date)
     } catch (error) { if (!(error instanceof StaleRequestError)) { this.error.set(true); this.loading.set(false) } }
   }
@@ -173,7 +197,8 @@ export class AdventTest {
           return
         }
         heading.focus()
-        void fetch(`${this.api}/doors/${result.day}/result/acknowledge`, { method: 'POST', credentials: 'include', cache: 'no-store', headers: { ...this.csrfHeaders(), ...this.sessionHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({ answerId: result.answerId }) }).then(response => { if (this.contextCurrent(resultEpoch, resultIdentity) && response.status === 409) { this.sessionChanged.set(true); this.error.set(true) } }).catch(() => {})
+        this.pendingMutations.update(n => n + 1)
+        void fetch(`${this.api}/doors/${result.day}/result/acknowledge`, { method: 'POST', credentials: 'include', cache: 'no-store', signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS), headers: { ...this.csrfHeaders(), ...this.sessionHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({ answerId: result.answerId }) }).then(response => { if (this.contextCurrent(resultEpoch, resultIdentity) && response.status === 409) { this.sessionChanged.set(true); this.error.set(true) } }).catch(() => {}).finally(() => this.pendingMutations.update(n => n - 1))
       }))
     }
     if (document.visibilityState === 'visible') display()
@@ -228,6 +253,7 @@ export class AdventTest {
   }
 
   async openCalendar(): Promise<void> {
+    this.personalResetConfirm.set(null)
     const epoch = this.projectionEpoch
     const identity = this.auth.sessionUser()?.id ?? null
     if (this.loading() || this.submitting() || this.result() || this.sessionChanged()) return
@@ -250,11 +276,19 @@ export class AdventTest {
     return this.calendarDays().find(day => day.state === 'played' && this.isCalendarToday(day))
   }
 
+  async confirmPersonalReset(): Promise<void> {
+    const action = this.personalResetConfirm()
+    this.personalResetConfirm.set(null)
+    if (!this.testMode()) return
+    if (action === 'calendar') await this.closeCalendarDay()
+    if (action === 'replay') await this.replay()
+  }
+
   async closeCalendarDay(): Promise<void> {
     const day = this.currentPlayedDay()
     const epoch = this.projectionEpoch
     const identity = this.auth.sessionUser()?.id ?? null
-    if (!day || !this.testControls() || !this.calendarOpen() || this.loading() || this.submitting() || this.closingDay() !== null) return
+    if (!day || !this.testMode() || !this.calendarOpen() || this.loading() || this.submitting() || this.closingDay() !== null) return
     this.closingDay.set(day.day)
     this.calendarActionMessage.set('')
     try {
@@ -333,6 +367,7 @@ export class AdventTest {
   }
 
   async openRanking(): Promise<void> {
+    this.personalResetConfirm.set(null)
     const epoch = this.projectionEpoch
     const identity = this.auth.sessionUser()?.id ?? null
     if (this.loading() || this.submitting() || this.result() || this.sessionChanged() || this.rankingOpen()) return
@@ -362,7 +397,7 @@ export class AdventTest {
   async resetGame(): Promise<void> {
     const epoch = this.projectionEpoch
     const identity = this.auth.sessionUser()?.id ?? null
-    if (!this.testControls() || !this.resetConfirm() || this.loading() || this.submitting()) return
+    if (!this.testMode() || !this.resetConfirm() || this.loading() || this.submitting()) return
     this.loading.set(true)
     this.error.set(false)
     try {
@@ -385,7 +420,7 @@ export class AdventTest {
 
   async advanceClock(): Promise<void> {
     const target = this.shiftedDate(1)
-    if (!this.testControls() || !target || this.loading() || this.submitting() || this.closingDay() !== null) return
+    if (!this.testMode() || !target || this.loading() || this.submitting() || this.closingDay() !== null) return
     this.loading.set(true)
     this.error.set(false)
     this.simulatedDate.set(target)
@@ -479,7 +514,7 @@ export class AdventTest {
 
   async previousDay(): Promise<void> {
     const target = this.shiftedDate(-1)
-    if (!this.testControls() || !target || this.loading() || this.submitting() || this.closingDay() !== null || (this.quiz() && this.answerState() === 'checking')) return
+    if (!this.testMode() || !target || this.loading() || this.submitting() || this.closingDay() !== null || (this.quiz() && this.answerState() === 'checking')) return
     this.loading.set(true)
     this.error.set(false)
     this.simulatedDate.set(target)
@@ -607,13 +642,15 @@ export class AdventTest {
   private async requestJson<T>(url: string, options: RequestInit, notFoundAsNull = false): Promise<T> {
     const epoch = this.projectionEpoch
     const identity = this.auth.sessionUser()?.id ?? null
+    const mutation = (options.method ?? 'GET').toUpperCase() !== 'GET'
+    if (mutation) this.pendingMutations.update(n => n + 1)
     try {
       return await this.requestJsonOnce<T>(url, options, notFoundAsNull)
     } catch (error) {
       if (!this.contextCurrent(epoch, identity)) throw new StaleRequestError()
       if ((options.method ?? 'GET').toUpperCase() !== 'GET' || !(error instanceof TransientReadError)) throw error
-      return this.requestJsonOnce<T>(url, options, notFoundAsNull)
-    }
+      return await this.requestJsonOnce<T>(url, options, notFoundAsNull)
+    } finally { if (mutation) this.pendingMutations.update(n => n - 1) }
   }
 
   private async requestJsonOnce<T>(url: string, options: RequestInit, notFoundAsNull: boolean): Promise<T> {
@@ -655,7 +692,8 @@ export class AdventTest {
   private sessionHeaders(): Record<string, string> {
     return {
       ...(this.sessionId ? { 'X-Advent-Test-Session': this.sessionId } : {}),
-      ...(this.testControls() && this.simulatedDate() ? { 'X-Advent-Simulated-Date': this.simulatedDate()! } : {}),
+      ...(this.testMode() ? { 'X-Advent-Test-Mode': 'true' } : {}),
+      ...(this.testMode() && this.simulatedDate() ? { 'X-Advent-Simulated-Date': this.simulatedDate()! } : {}),
     }
   }
 

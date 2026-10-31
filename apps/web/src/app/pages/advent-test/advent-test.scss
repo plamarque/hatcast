@@ -121,12 +121,6 @@
 @keyframes advent-confetti { from { transform: translateY(1rem) scale(.5); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .advent__confetti { animation: none; } }
 
-.advent__test-actions { flex-wrap: wrap; max-width: 100%; }
-.advent__header .advent__clock-action { flex: 0 1 auto; width: auto; min-width: 0; padding-inline: .75rem; }
-.advent__test-actions { box-sizing: border-box; min-width: 0; flex: 1 1 0; }
-.advent__header .advent__clock-action { max-width: 100%; min-height: 48px; height: auto; white-space: normal; }
-.advent__clock-action .mdc-button__label { white-space: normal; }
-
 .advent__history-list { text-align: left; padding-left: 1.4rem; }
 .advent__history-list li { margin-block: .75rem; }
 .advent__christmas { text-align: center; }
@@ -141,11 +135,14 @@
 }
 .advent__santa-logo { position: absolute; width: 110%; height: 110%; bottom: -1%; object-fit: contain; mix-blend-mode: multiply; }
 
-/* Keep the test clock and navigation usable on calendar screens. */
-.advent__test-actions:has(.advent__simulated-day) { flex: 0 1 auto; }
-.advent__test-actions:not(:has(button)) { flex: 0 0 auto; min-height: 2rem; padding: .2rem .65rem; }
+/* Opt-in controls occupy their own Advent-only row. */
+.advent__test-actions, .advent__test-actions.advent__test-actions--calendar { display: flex; flex-wrap: nowrap; width: 100%; max-width: 100%; min-height: 3rem; box-sizing: border-box; gap: .125rem; border-radius: 0; overflow-x: visible; padding: 0 .5rem; }
+.advent__test-actions button { flex: 0 0 48px; width: 48px; height: 48px; color: var(--hatcast-avent-green) !important; }
+.advent__test-label { font: var(--mat-sys-label-large); }
+.advent__test-label-short { display: none; }
+.advent__simulated-day { min-width: 3.5rem; white-space: nowrap; }
 
-/* The daily action gets its own wrapping test row at narrow widths. */
-.advent__test-actions.advent__test-actions--calendar { flex: 1 0 100% !important; order: 2; }
-.advent__header .advent__clock-action { flex: 1 1 10rem; }
-.advent__header .advent__clock-action:focus-visible { outline: 3px solid var(--advent-focus); outline-offset: -3px; }
+@media (max-width: 360px) {
+  .advent__test-label { display: none; }
+  .advent__simulated-day { min-width: 0; flex: 1 1 auto; }
+}
