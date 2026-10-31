@@ -1,8 +1,9 @@
 ---
 name: Calendrier de l’Avent La Malice
 status: final
-updated: 2026-10-30
+updated: 2026-10-31
 visual_amendment: in-progress
+calendar_amendment: in-progress
 sources:
   - ../../prds/prd-hatcast-2026-10-28/prd.md
   - ../../../../docs/v2/technical/FRONTEND_UI.md
@@ -37,7 +38,7 @@ Français, tutoiement, ton festif et encourageant. Après confirmation : accusé
 - **Porte et choix** : toucher la grande porte pour découvrir le contenu ; sélectionner une des trois anecdotes supposée fausse, changer librement avant confirmation. En production, une réponse enregistrée est définitive ; en mode test isolé uniquement, la commande de rejeu personnel permet d’effacer sa propre réponse et rejouer la case selon le contrat existant.
 - **Confirmation** : sur la surface du quiz, confirmer l’enregistrement sans révéler justesse, fausse anecdote ou points ; en production, ne pas exposer d’indice par les scores ou le classement ; en test isolé, le classement courant fait exception comme précisé ci-dessus. En cas d’échec, proposer de réessayer tant que le quiz est jouable. Si l’enregistrement est incertain après une coupure, vérifier l’état enregistré avant de proposer un nouveau geste : si la réponse existe, afficher la confirmation ; sinon permettre le réessai avant minuit, ou expliquer la clôture après minuit. La résolution technique et les conflits entre appareils relèvent de l’architecture.
 - **Révélation** : dès minuit le lendemain, heure de Paris, montrer la justesse et la fausse anecdote, ainsi que le choix lorsque celui-ci diffère ; afficher uniquement les points gagnés ce jour (réponse, participation et éventuel bonus additionnés). Présenter aussi le complément facultatif lorsqu’il existe. Mettre les points du jour en évidence et la célébration validée pour une bonne réponse, avec alternative sans mouvement. La consultation ultérieure ne rejoue pas la célébration.
-- **Accès au classement de la story 25.4** : après l’enregistrement de sa réponse, le membre utilise le bouton « Voir le classement » dans l’accusé ; le retour le ramène à cet accusé. Ne pas ajouter de navigation ou de parcours supplémentaire pour cette story. La révélation prioritaire précède l’accès au classement. Le calendrier et les parcours du 25 et de fin de saison restent les sujets des stories ultérieures ; cette story ne les réalise pas.
+- **Accès au calendrier et au classement** : après l’enregistrement de sa réponse, le membre peut ouvrir le classement depuis l’accusé. Les icônes de la barre donnent accès directement au calendrier et au classement ; elles sont désactivées pendant la révélation prioritaire.
 - **Classement** : rappel de la position et du score révélés, puis tous les membres classables nommés, y compris à zéro. Une légende accessible explique le barème : 10 points pour une bonne réponse, 0 pour une mauvaise, 1 point de participation par réponse et 2 points de bonus par groupe non chevauchant de trois bonnes réponses consécutives ; une mauvaise réponse remet la série à zéro, un jour manqué ne la rompt pas. Sa présentation reste à préciser pour la story 25.4. Les ex æquo reçoivent le rang le plus bas de leur groupe : 1, 3, 3, 4 ; si tous les N membres sont à égalité, tous sont Nᵉ. Patrice et Toinou voient séparément leur score sans rang et ne figurent pas dans la liste. En production, les totaux excluent les points non révélés, sans détail permettant de les déduire. En test isolé, ils incluent toutes les réponses notées enregistrées même avant leur révélation, quelle que soit la date simulée.
 
 ## State Patterns
@@ -47,16 +48,16 @@ Français, tutoiement, ton festif et encourageant. Après confirmation : accusé
 | Quiz du jour disponible, non répondu | Porte du jour, sans cadenas ; accès possible depuis calendrier et icône. |
 | Réponse enregistrée avant révélation | Ouvrir l’accusé « Réponse enregistrée ! Reviens demain pour découvrir la réponse. » avec accès au classement, et au calendrier depuis son icône dans la barre, sans afficher le choix, la justesse ou les points du jour. |
 | Résultat de la dernière réponse révélable et non vu | Révélation prioritaire, avant quiz du jour ; pas d’accès au calendrier sur cet écran. Marquer vu dès que l’écran de révélation est effectivement affiché ; une fermeture ultérieure ne le rend pas à nouveau prioritaire. Une interruption avant affichage le laisse prioritaire au prochain accès. Consultation partagée entre appareils ; préciser en architecture comment garantir ce contrat. |
-| Résultats plus anciens révélables et non vus | Consultation dans leur case du calendrier, sans repère particulier et sans enchaînement automatique. |
-| Case jouée et révélée | Porte ouverte ; consultation de la fausse anecdote, du choix s’il diffère et des points gagnés ce jour, sans rejouer l’animation. |
+| Résultats plus anciens révélables et non vus | Consultation dans leur case du calendrier, sans enchaînement automatique ; leur résultat personnel est indiqué dans le récapitulatif dès qu’il est révélable, selon les règles ci-dessous. |
+| Case jouée et révélée | Consultation de la fausse anecdote, du choix s’il diffère et des points gagnés ce jour, sans rejouer l’animation. La représentation future par cadeau et résultat suit les arbitrages ci-dessous. |
 | Case passée non jouée | Après sa date, ouvrir le cadeau puis répondre une fois pour le plaisir ; le résultat personnel est immédiat et vaut zéro, sans effet sur score ni série. Le texte indique cette règle avant confirmation. Les consultations suivantes ouvrent directement le résultat. |
-| Case future | Porte numérotée et verrouillée ; contenu inaccessible. |
+| Case future | Case numérotée et verrouillée ; contenu inaccessible. Le 25 futur reste sombre et verrouillé malgré son caractère distinctif. |
 | Case sans contenu | Après ouverture, message d’absence ; une publication tardive pendant le jour rend le quiz jouable jusqu’à minuit. |
 | Confirmation reçue à partir de minuit Paris | Réponse refusée ; expliquer que le quiz est terminé et permettre l’accès au calendrier et au classement. |
 | 25 décembre | Pas de quiz ; révélation éventuelle du 24, puis message de Noël et bilan personnel. Classement final disponible dès minuit. |
 | 26 décembre–15 janvier inclus | Classement final et calendrier accessibles ; une case passée non jouée reste jouable une fois sans point. |
 
-La représentation de la case 25 et le traitement graphique des cases manquées restent à affiner en story. Les états sont compréhensibles sans la couleur seule.
+La représentation du 25 et le traitement des cases manquées restent à préciser ci-dessous. Les états sont compréhensibles sans la couleur seule.
 
 ## Interaction Primitives
 
@@ -64,7 +65,7 @@ Toucher la porte ou une affirmation ; confirmer explicitement. Ouverture et cél
 
 ## Accessibility Floor
 
-Cibles 48 × 48 px privilégiées, minimum 44 × 44 px. Clavier, focus visible, libellés et états accessibles ; annoncer transitions et erreurs, placer le focus dans la surface automatique puis le restaurer au retour lorsque pertinent, sans piège clavier. Exposer numéro et état des cases sans divulguer leur contenu ; lecture de gauche à droite. Alternatives pertinentes pour les portraits, sémantique de choix unique, contraste et agrandissement sans perte. Avec mouvement réduit, supprimer les animations tout en donnant immédiatement le même contenu. L’objectif de quiz sans défilement ne prime jamais sur l’accessibilité.
+Cibles 48 × 48 px privilégiées, minimum 44 × 44 px. Clavier, focus visible, libellés et états accessibles ; annoncer transitions et erreurs, placer le focus dans la surface automatique puis le restaurer au retour lorsque pertinent, sans piège clavier. Exposer numéro et état des cases sans divulguer de contenu ou résultat avant l’heure autorisée ; lecture de gauche à droite. Alternatives pertinentes pour les portraits, sémantique de choix unique, contraste et agrandissement sans perte. Avec mouvement réduit, supprimer les animations tout en donnant immédiatement le même contenu. L’objectif de quiz sans défilement ne prime jamais sur l’accessibilité.
 
 ## Responsive & Platform
 
@@ -149,3 +150,15 @@ Dans le calendrier uniquement, chaque case jouée propose aux opérateurs autori
 ### Accès au calendrier — clarification du 31 octobre
 
 La barre de l’Avent comporte à droite les icônes calendrier, classement et fermeture sur les écrans du parcours. Le calendrier et le classement sont désactivés pendant la révélation prioritaire. Ils remplacent le bouton de retour en bas des résultats historiques ; chaque icône ouvre directement sa destination.
+
+## Évolution du calendrier personnel — 31 octobre 2026
+
+**Décisions retenues par Patrice et Toinou :** faire évoluer la grille livrée par la story 25.5 en un récapitulatif personnel de 25 cadeaux inspirés de ceux de l’éditeur. La forme ouverte ou fermée exprime l’ouverture ; le résultat personnel est vert ou rouge avec un indice accessible, neutre en l’absence de résultat ; les jours futurs sont sombres et le cadeau du 25 distinctif. DESIGN.md porte la cible visuelle approuvée et les détails encore à valider. Le 25 reste un bilan sans quiz.
+
+**Confidentialité :** avant l’heure de révélation autorisée, aucun état visuel, libellé accessible ou donnée du calendrier ne donne d’indice sur la justesse ou les points. L’heure et les droits sont déterminés côté serveur selon l’architecture Avent. La priorité de révélation et les règles de test existantes restent applicables : l’exception de classement en test isolé ne crée aucune exception pour les cases. Les résultats des autres personnes ne figurent pas dans ce récapitulatif personnel.
+
+**États précisés par Patrice :** un cadeau est ouvert dès que la réponse est enregistrée. Avant l’heure autorisée il reste neutre, sans indice de justesse ; dès que le résultat devient révélable, il devient vert ou rouge avec un indice accessible, même si le résultat n’a pas encore été consulté. La révélation prioritaire continue de s’appliquer. Ouvrir la scène de découverte ne change pas à lui seul la silhouette de la case : celle-ci ne s’ouvre qu’à l’enregistrement de la réponse. Un jour passé non joué reste fermé et neutre, sans indication « jour manqué » ; lorsqu’un quiz existe, il peut être joué une fois sans point. Les jours sans contenu doivent rester distincts des jours manqués par un indice accessible ; sa forme visuelle reste à valider. Une réponse tardive donne un résultat immédiat sans point ni effet sur la série ou le classement. Vert signifie bonne réponse et rouge mauvaise réponse ; les formes exactes des indices non chromatiques restent à valider. Le 25 accessible mène au bilan et ne représente aucun résultat de quiz ; sa silhouette précise reste à valider.
+
+**Vérifications pour une future story :** grille ordonnée, lecture du numéro et de l’état au clavier et par lecteur d’écran, repère non chromatique, cibles tactiles et focus, contraste, mouvement réduit et zoom ; éprouver visuellement le cadeau ouvert à la taille réelle, y compris à 320 px. Vérifier les limites de révélation à minuit Paris, les résultats non consultés, le 25, les jours manqués et sans contenu, ainsi que l’isolation du thème Avent et des comptes. La projection des résultats dans le calendrier reste à concevoir ; le calendrier livré ne fournit pas ce récapitulatif coloré.
+
+**Données et accessibilité :** au changement de compte ou au recul de la date simulée, retirer les états et résultats précédemment affichés et recharger les seules données autorisées pour le compte et l’instant serveur ; respecter les règles de cache privé de l’architecture. Un calendrier déjà ouvert n’expose un nouveau résultat qu’après lecture autorisée du serveur, sans promettre une actualisation exactement à minuit. Chaque case annonce son numéro et son état autorisé, par exemple « jour 3, réponse enregistrée, résultat en attente », « jour 4, bonne réponse », « jour 5, mauvaise réponse », « jour 6, sans contenu », « jour 7, verrouillé » ou « 25 décembre, bilan » ; aucune mention de jour manqué. Préserver clavier, focus et état verrouillé accessibles.

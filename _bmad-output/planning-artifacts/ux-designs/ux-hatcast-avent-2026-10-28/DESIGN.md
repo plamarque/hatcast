@@ -2,8 +2,8 @@
 name: Calendrier de l’Avent La Malice
 status: final
 description: Une surprise festive intégrée à HatCast, simple et rapide au quotidien.
-updated: 2026-10-30
-status_note: Direction artistique approuvée ; traduction technique et vérification de contraste à réaliser
+updated: 2026-10-31
+status_note: Direction artistique approuvée ; évolution du calendrier en cours d’arbitrage
 sources:
   - ../../prds/prd-hatcast-2026-10-28/prd.md
   - ../../../../docs/v2/technical/FRONTEND_UI.md
@@ -17,7 +17,7 @@ L'Avent possède une identité indépendante de HatCast. Angular Material 3 rest
 
 ## Colors
 
-Palette de départ indicative, à ajuster après mesure des contrastes : crème `#FFF6E4`, rouge `#B52235`, vert sapin `#075441`, or `#DEA537`. Le kit indique que ces valeurs sont des approximations ; la planche contient d'autres valeurs indicatives. Définir des rôles sémantiques propres à l'Avent pour les surfaces, textes, actions, contours, focus et états, avec couples de couleurs vérifiés. Aucun texte de réponse pâle. La couleur seule ne distingue jamais un état. Contraste minimal 4,5:1 pour le texte courant et 3:1 pour le grand texte admissible ; vérifier également contrôles et focus.
+Palette de départ indicative, à ajuster après mesure des contrastes : crème `#FFF6E4`, rouge `#B52235`, vert sapin `#075441`, or `#DEA537`. Le kit indique que ces valeurs sont des approximations ; la planche contient d'autres valeurs indicatives. Définir des rôles sémantiques propres à l'Avent pour les surfaces, textes, actions, contours, focus et états, avec couples de couleurs vérifiés. Aucun texte de réponse pâle. La couleur seule ne distingue jamais un état. Contraste minimal 4,5:1 pour le texte courant et 3:1 pour le grand texte admissible ; vérifier également à 3:1 les indicateurs graphiques et de focus applicables sur les couleurs effectivement rendues.
 
 Rôles minimaux du système, à définir sous la racine Avent et à partager entre composants : `surface`, `surface-card`, `text`, `text-muted`, `primary`, `on-primary`, `accent`, `border`, `focus`, `selected`, `disabled` et `error`. Les couples proposés vert/crème et rouge/blanc atteignent respectivement 8,31:1 et 6,47:1 avec les valeurs indicatives ; or/crème atteint seulement 2,05:1 et reste décoratif, jamais un texte ou indicateur essentiel seul. Vérifier les valeurs effectivement rendues et tous les états avant livraison.
 
@@ -35,7 +35,7 @@ Panneaux chaleureux, contours dorés, neige et ombres douces inspirés des réf�
 
 ## Shapes
 
-Les cases évoquent des portes de calendrier : ouvertes après avoir joué, fermées avant découverte ; les futures portent un petit cadenas. La grande porte comporte des étoiles et flocons flottants et une bordure animée ; une lumière douce apparaît à l’ouverture, avec alternative sans mouvement. La case du jour est fermée et numérotée, sans cadenas ; une couleur distincte peut attirer discrètement l’attention. Les cases jouées montrent une petite porte ouverte et un numéro visible.
+La grille livrée évoque des portes. Pour son évolution, Patrice et Toinou retiennent des cadeaux ouverts ou fermés ; un cadeau s’ouvre dès qu’une réponse est enregistrée. Les futures restent verrouillées. La grande porte comporte des étoiles et flocons flottants et une bordure animée ; une lumière douce apparaît à l’ouverture, avec alternative sans mouvement. Dans la grille livrée, la case du jour est fermée et numérotée, sans cadenas ; une couleur distincte peut attirer discrètement l’attention. Chaque case conserve un numéro visible.
 
 ## Components
 
@@ -45,7 +45,8 @@ Les cases évoquent des portes de calendrier : ouvertes après avoir joué, ferm
 - **Choix du quiz** : cartes de choix arrondies lisibles, états non sélectionné, sélectionné, désactivé et erreur clairement différenciés, avec sémantique de choix unique.
 - **Révélation différée** : reprend la surface du quiz après minuit, heure de Paris ; célébration à la bonne réponse : confettis qui jaillissent puis retombent et points de couleur vive animés brièvement, avec alternative sans mouvement. En cas d’erreur, message encourageant dans la même ambiance festive.
 - **Confirmation et attente** : composition illustrée selon la référence de confirmation, message en texte réel et action de classement quand disponible ; aucun indice sur la réponse ou les points.
-- **Calendrier et classement** : grille et liste utilisent les composants accessibles et les rôles visuels propres à l’Avent ; différencier les états par texte et forme, et conserver le rang et le score lisibles. Les détails graphiques des cases manquées, en attente et du 25 seront affinés en story.
+- **Calendrier et classement** : la grille de 25 cadeaux constitue un récapitulatif visuel personnel, inspiré des cadeaux portés par les lutins ; le classement conserve rang et score lisibles. Le [lutin générique](../../../../services/api/src/main/resources/advent/lutin-generique-net.png) fournit une référence existante : boîte rectangulaire, couvercle, ruban et grand nœud ; adapter et simplifier ces éléments pour la grille. Direction retenue : cadeau ouvert ou fermé pour exprimer l’ouverture, vert ou rouge pour le résultat personnel autorisé, neutre sans résultat, sombre pour les jours futurs ; le 25 est distinctif. Les états et leurs conditions de révélation sont précisés dans EXPERIENCE.md. Distinguer les résultats par un indice lisible et accessible en plus de la couleur.
+- **Propositions à valider** : cadeau du 25 doré ou légèrement scintillant ; dessin exact, teintes et indices graphiques restent à choisir. L’or ne porte pas seul une information essentielle ; toute animation est décorative et supprimée en mouvement réduit. La [maquette des cadeaux](mockups/calendrier-cadeaux-proposition.png) est la cible visuelle approuvée ; elle ne spécifie pas les états : ses couleurs et son 25 visible en avance ne font pas autorité. Vérifier sur un prototype à taille réelle, notamment à 320 px et au zoom, que les silhouettes ouvert/fermé se distinguent et que numéro, indice, contraste, focus et cible tactile restent lisibles ; la grille actuelle ne prouve pas la lisibilité d’un cadeau ouvert.
 - **25 décembre** : Pour le 25, Patrice retient un Père Noël à tête classique, dessiné dans le même style que les lutins, tendant une boîte décorative portant le logo de La Malice. Le personnage et sa boîte se placent au-dessus du message ; le score bien visible et les accès au classement et au calendrier suivent. Un village est un décor possible ; la réalisation graphique reste à préciser. La boîte ne propose pas d’ouverture pour l’instant.
 - **Navigation** : dans la barre rouge, icônes accessibles Calendrier, Classement et Fermer ; les deux premières sont désactivées pendant la révélation prioritaire.
 - **Icône Père Noël** : près de Mon compte ; léger mouvement discret de moins de cinq secondes, une fois à l’ouverture de HatCast.
@@ -62,4 +63,4 @@ Chaque commande expose les états repos, survol si applicable, focus visible, s�
 - Décliner les états chargement, erreur, indisponible, sélection, désactivation et focus dans le même univers sans inventer de fonctionnalité.
 - Prévoir une expérience équivalente avec mouvement réduit.
 
-La représentation de la case du 25 reste à explorer. Pour le 25, Patrice retient un Père Noël à tête classique, dessiné dans le même style que les lutins, tendant une boîte décorative portant le logo de La Malice. Le personnage et sa boîte se placent au-dessus du message ; le score bien visible et les accès au classement et au calendrier suivent. Un village est un décor possible ; la réalisation graphique reste à préciser. La boîte ne propose pas d’ouverture pour l’instant.
+Pour le 25, Patrice retient un Père Noël à tête classique, dessiné dans le même style que les lutins, tendant une boîte décorative portant le logo de La Malice. Le personnage et sa boîte se placent au-dessus du message ; le score bien visible et les accès au classement et au calendrier suivent. Un village est un décor possible ; la réalisation graphique reste à préciser. La boîte ne propose pas d’ouverture pour l’instant.
