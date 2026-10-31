@@ -51,6 +51,14 @@ human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
 
+### BUG-061 — Advent test controls wrap on mobile
+- **Status**: Corrected locally; awaiting human verification.
+- **Severity**: Low.
+- **Affected area**: Advent test header on mobile.
+- **Observed behavior**: Test controls wrap onto a second line and push the quiz content down.
+- **Expected behavior**: Test controls stay on one line on mobile, using the space occupied by the quiz title.
+- **Notes/context**: Reported with a phone screenshot during story 25.4. Chromium checks passed at widths from 320 to 430 px with all controls visible and 44 px touch targets.
+
 ### BUG-060 — Advent test reveal obscures the simulated day
 - **Status**: Corrected locally; human verification accepted on 2026-10-31.
 - **Severity**: Low.
@@ -101,7 +109,7 @@ BUG-037 and BUG-029 have fixture-only corrections verified by the complete API s
 - **Affected area**: V2 PWA system banner on `/avent-test`.
 - **Observed behavior**: In Chromium at a 320 px viewport with the root text size at 200%, the banner actions extend beyond the viewport and the document scrolls horizontally. The Advent quiz fits after dismissing the banner.
 - **Expected behavior**: The banner and its actions remain within the viewport and readable at increased text size.
-- **Notes/context**: Observed with fictional quiz content and intercepted API responses during story 25.2 browser verification. This is distinct from BUG-050, which concerned a banner covering the test label. Other routes and real devices have not been checked.
+- **Notes/context**: Observed with fictional quiz content and intercepted API responses during story 25.2 browser verification. This is distinct from BUG-050, which concerned a banner covering the test label. On 2026-10-31, the same overflow was observed on `/avent` in a mocked Chromium member-ranking test at 320 px and 200% text size: banner actions reached approximately 343–347 px. Real devices have not been checked.
 
 ### BUG-053 — Development Google sign-in rejected the Cloud Run origin
 - **Status**: OAuth configuration updated; awaiting end-to-end user verification.

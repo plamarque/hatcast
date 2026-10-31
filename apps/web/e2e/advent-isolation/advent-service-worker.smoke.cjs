@@ -15,15 +15,15 @@ const assert = require('node:assert/strict')
     await page.getByRole('button', { name: 'Se connecter' }).click()
     await page.waitForURL(url => !url.pathname.includes('connexion'), { timeout: 30000 })
   }
-  async function api(path, method = 'GET') {
-    return page.evaluate(async ({ path, method }) => {
-      const sessionResponse = await fetch('/v1/advent-test/session', { cache: 'no-store' })
+  async function api(path, method = 'GET', simulated = null) {
+    return page.evaluate(async ({ path, method, simulated }) => {
+      const sessionResponse = await fetch('/v1/advent/session', { cache: 'no-store' })
       if (!sessionResponse.ok) return { status: sessionResponse.status }
       const session = await sessionResponse.json()
       const csrf = document.cookie.split('; ').find(x => x.startsWith('XSRF-TOKEN='))?.slice('XSRF-TOKEN='.length)
-      const response = await fetch(path, { method, cache: 'no-store', headers: { 'X-Advent-Test-Session': session.sessionId, ...(csrf ? { 'X-XSRF-TOKEN': decodeURIComponent(csrf) } : {}) } })
+      const response = await fetch(path, { method, cache: 'no-store', headers: { 'X-Advent-Test-Session': session.sessionId, ...(simulated ? { 'X-Advent-Simulated-Date': simulated } : {}), ...(csrf ? { 'X-XSRF-TOKEN': decodeURIComponent(csrf) } : {}) } })
       return { status: response.status, cache: response.headers.get('cache-control'), body: await response.json().catch(() => null) }
-    }, { path, method })
+    }, { path, method, simulated })
   }
   await page.goto(base)
   await page.evaluate(async () => {
@@ -32,14 +32,14 @@ const assert = require('node:assert/strict')
   await page.reload()
   assert.equal(await page.evaluate(() => !!navigator.serviceWorker.controller), true, 'worker must control page')
   await login('patrice@seed.improbots.test', 'patricep')
-  assert.equal((await api('/v1/advent-test/session/reset', 'POST')).status, 200)
-  await page.goto(`${base}/avent-test`)
+  assert.equal((await api('/v1/advent/session/reset', 'POST')).status, 200)
+  await page.goto(`${base}/avent`)
   await page.getByRole('button', { name: 'Ouvrir le cadeau du jour 1' }).click()
   await page.getByRole('radio').first().focus()
   await page.keyboard.press('Space')
   await page.getByRole('button', { name: 'Confirmer ma réponse' }).click()
   await page.getByText('Ta réponse', { exact: false }).first().waitFor()
-  const pending = await api('/v1/advent-test/doors/1/result')
+  const pending = await api('/v1/advent/doors/1/result')
   assert.equal(pending.status, 404); assert.match(pending.cache, /no-store/)
   await page.getByRole('button', { name: 'Avancer au jour suivant' }).focus()
   await page.keyboard.press('Enter')
@@ -70,13 +70,13 @@ const assert = require('node:assert/strict')
     assert.ok(box && box.width >= 44 && box.height >= 44, 'reveal controls must be at least 44px')
   }
 
-  const result = await api('/v1/advent-test/doors/1/result')
+  const result = await api('/v1/advent/doors/1/result', 'GET', '2026-12-02')
   assert.equal(result.status, 200); assert.match(result.cache, /no-store/)
-  const sessionId = await page.evaluate(async () => (await (await fetch('/v1/advent-test/session', { cache: 'no-store' })).json()).sessionId)
+  const sessionId = await page.evaluate(async () => (await (await fetch('/v1/advent/session', { cache: 'no-store' })).json()).sessionId)
   await context.setOffline(true)
   const offline = await page.evaluate(async sessionId => {
     try {
-      const response = await fetch('/v1/advent-test/doors/1/result', { cache: 'no-store', headers: { 'X-Advent-Test-Session': sessionId } })
+      const response = await fetch('/v1/advent/doors/1/result', { cache: 'no-store', headers: { 'X-Advent-Test-Session': sessionId } })
       const body = await response.text()
       return { status: response.status, type: response.headers.get('content-type'), containsResult: /selectedChoice|falseChoice|responsePoints|participationPoints|bonusPoints|totalPoints|answerId/.test(body) }
     } catch { return { status: 0, type: null, containsResult: false } }
@@ -89,7 +89,7 @@ const assert = require('node:assert/strict')
     const found = []
     for (const name of await caches.keys()) {
       const cache = await caches.open(name)
-      for (const request of await cache.keys()) if (new URL(request.url).pathname.startsWith('/v1/advent-test/')) found.push(request.url)
+      for (const request of await cache.keys()) if (new URL(request.url).pathname.startsWith('/v1/advent/')) found.push(request.url)
     }
     return found.length
   })
@@ -103,9 +103,9 @@ const assert = require('node:assert/strict')
   await page.getByTestId('account-logout').click()
   await login('charlene@seed.improbots.test', 'charlene')
   assert.equal(await page.evaluate(() => !!navigator.serviceWorker.controller), true)
-  const other = await api('/v1/advent-test/doors/1/result')
+  const other = await api('/v1/advent/doors/1/result')
   assert.equal(other.status, 404); assert.match(other.cache, /no-store/)
-  const latest = await api('/v1/advent-test/results/latest-unseen')
+  const latest = await api('/v1/advent/results/latest-unseen')
   assert.equal(latest.status, 200); assert.equal(latest.body.result, null); assert.match(latest.cache, /no-store/)
   console.log('PASS: worker actif, no-store, aucun cache Avent, indisponible hors ligne, changement de compte, focus et mouvement réduit')
   await browser.close()

@@ -13,9 +13,12 @@ test('keyboard answers on a narrow enlarged screen with reduced motion', async (
     if (path === '/v1/auth/me') return route.fulfill({ json: { user: { id: 'test-user', slug: 'test', displayName: 'Test', email: 'test@example.test', avatarUrl: null }, platformAdmin: false } })
     if (path === '/v1/troupes') return route.fulfill({ json: [] })
     if (path === '/v1/me/preferences') return route.fulfill({ json: { memberDisplayName: 'Test', preferredRoleKeys: [] } })
-    if (path === '/v1/advent-test/clock') return route.fulfill({ json: { date: '2026-12-01' } })
-    if (path === '/v1/advent-test/results/latest-unseen') return route.fulfill({ json: { result: null } })
-    if (path === '/v1/advent-test/session') return route.fulfill({ json: { sessionId: 'test-session' } })
+    if (path === '/v1/advent/clock') return route.fulfill({ json: { date: '2026-12-01' } })
+    if (path === '/v1/advent/results/latest-unseen') return route.fulfill({ json: { result: null } })
+    if (path === '/v1/advent/session') return route.fulfill({ json: { sessionId: 'test-session', testControls: true } })
+    if (path === '/v1/advent/ranking') return route.fulfill({ json: { priorityResult: null, ranking: { score: 11, rank: 2, entries: [
+      { name: 'Alex', rank: 1, score: 22, mine: false }, { name: 'Camille', rank: 2, score: 11, mine: true }, { name: 'Lou', rank: 3, score: 0, mine: false },
+    ] } } })
     if (path.endsWith('/answer/reconcile')) return route.fulfill({ json: { status: 'available', generation: 'test-generation' } })
     if (path.endsWith('/answer/reserve')) {
       const body = route.request().postDataJSON()
@@ -25,7 +28,7 @@ test('keyboard answers on a narrow enlarged screen with reduced motion', async (
     }
     if (path.endsWith('/answer') && route.request().method() === 'POST') confirmed = route.request().postDataJSON()
     if (path.endsWith('/answer')) return route.fulfill({ json: route.request().method() === 'POST' ? { status: 'recorded', replayToken: 'test-token' } : { status: 'available' } })
-    if (path === '/v1/advent-test/doors/1') return route.fulfill({ json: { day: 1, name: 'Lutin', portrait: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a2ioAAAAASUVORK5CYII=', genericElf: true, statements: ['Une affirmation fictive assez longue pour vérifier que le texte reste lisible à grande taille.', 'Une deuxième affirmation.', 'Une troisième affirmation.'] } })
+    if (path === '/v1/advent/doors/1') return route.fulfill({ json: { day: 1, name: 'Lutin', portrait: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a2ioAAAAASUVORK5CYII=', genericElf: true, statements: ['Une affirmation fictive assez longue pour vérifier que le texte reste lisible à grande taille.', 'Une deuxième affirmation.', 'Une troisième affirmation.'] } })
     return route.fulfill({ json: {} })
   })
   await page.goto('/accueil')
@@ -37,11 +40,12 @@ test('keyboard answers on a narrow enlarged screen with reduced motion', async (
     const style = getComputedStyle(el)
     return { font: style.fontFamily, size: style.fontSize, color: style.color }
   })
-  await page.goto('/avent-test')
+  await page.goto('/avent')
   await page.addStyleTag({ content: 'html { font-size: 200% !important; }' })
   const gift = page.getByRole('button', { name: 'Ouvrir le cadeau du jour 1' })
   await expect(gift).toBeVisible()
   expect(await page.locator('.advent__elf').evaluate(el => getComputedStyle(el).animationName)).toBe('none')
+  await expect(page.getByRole('button', { name: 'Voir le classement' })).toHaveCount(0)
   await gift.focus()
   await page.keyboard.press('Enter')
   await expect(page.locator('#quiz-title')).toBeFocused()
@@ -88,6 +92,23 @@ test('keyboard answers on a narrow enlarged screen with reduced motion', async (
   expect(await page.locator('html').evaluate(el => getComputedStyle(el).getPropertyValue('--hatcast-avent-red').trim())).toBe('')
   expect(reservedAttempt).toBeTruthy()
   expect(confirmed).toEqual({ choice: 0, attemptId: reservedAttempt })
+  const rankingButton = page.getByRole('button', { name: 'Voir le classement' })
+  await expect(rankingButton).toBeVisible()
+  await rankingButton.focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('heading', { name: 'Classement amical' })).toBeFocused()
+  await expect(page.locator('.advent__ranking')).toContainText('Rang 2 · Camille')
+  await expect(page.locator('.advent__ranking')).toContainText('tous les points enregistrés')
+  await expect(page.locator('.advent__ranking')).toContainText('Chaque groupe de trois bonnes réponses')
+  for (const width of [320, 375, 390, 430, 768, 1280]) {
+    await page.setViewportSize({ width, height: 700 })
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  }
+  await page.setViewportSize({ width: 320, height: 700 })
+  await page.getByRole('button', { name: 'Retour', exact: true }).focus()
+  await page.keyboard.press('Enter')
+  await expect(rankingButton).toBeFocused()
+  await expect(page.locator('.advent__recorded')).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   await page.goto('/accueil')
   expect(await page.locator('body').evaluate(el => {
@@ -112,10 +133,10 @@ test('keyboard recovery after the shared test session is reset', async ({ page }
     if (path === '/v1/auth/me') return route.fulfill({ json: { user: { id: 'test-user', slug: 'test', displayName: 'Test', email: 'test@example.test', avatarUrl: null }, platformAdmin: false } })
     if (path === '/v1/troupes') return route.fulfill({ json: [] })
     if (path === '/v1/me/preferences') return route.fulfill({ json: { memberDisplayName: 'Test', preferredRoleKeys: [] } })
-    if (path === '/v1/advent-test/clock') return route.fulfill({ json: { date: '2026-12-01' } })
-    if (path === '/v1/advent-test/results/latest-unseen') return route.fulfill({ json: { result: null } })
-    if (path === '/v1/advent-test/session') return route.fulfill({ json: { sessionId: session } })
-    if (path === '/v1/advent-test/doors/1') return route.fulfill({ json: { day: 1, name: 'Lutin', portrait: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a2ioAAAAASUVORK5CYII=', genericElf: true, statements: ['Une', 'Deux', 'Trois'] } })
+    if (path === '/v1/advent/clock') return route.fulfill({ json: { date: '2026-12-01' } })
+    if (path === '/v1/advent/results/latest-unseen') return route.fulfill({ json: { result: null } })
+    if (path === '/v1/advent/session') return route.fulfill({ json: { sessionId: session, testControls: true } })
+    if (path === '/v1/advent/doors/1') return route.fulfill({ json: { day: 1, name: 'Lutin', portrait: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a2ioAAAAASUVORK5CYII=', genericElf: true, statements: ['Une', 'Deux', 'Trois'] } })
     if (path.endsWith('/answer/reconcile')) {
       if (request.headers()['x-advent-test-session'] === 'old-session') {
         session = 'new-session'
@@ -127,7 +148,7 @@ test('keyboard recovery after the shared test session is reset', async ({ page }
     if (path.endsWith('/answer')) return route.fulfill({ json: { status: 'available' } })
     return route.fulfill({ json: {} })
   })
-  await page.goto('/avent-test')
+  await page.goto('/avent')
   const gift = page.getByRole('button', { name: 'Ouvrir le cadeau du jour 1' })
   await gift.focus()
   await page.keyboard.press('Enter')
@@ -145,21 +166,20 @@ test('keyboard recovery after the shared test session is reset', async ({ page }
 })
 
 
-test('reveals the most recent result accessibly after advancing the shared clock', async ({ page }) => {
+test('reveals the most recent result accessibly after advancing the tab date', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 700 })
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.addInitScript(() => localStorage.setItem('hatcast-pwa-banner-dismissed', String(Date.now())))
-  let date = '2026-12-08'
   let seen = false
   const result = { answerId: 'answer-one', day: 8, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false, explanation: 'Explication fictive du résultat.' }
   await page.route('**/v1/**', async route => {
     const path = new URL(route.request().url()).pathname
+    const date = route.request().headers()['x-advent-simulated-date'] ?? '2026-12-08'
     if (path === '/v1/auth/me') return route.fulfill({ json: { user: { id: 'test-user', slug: 'test', displayName: 'Test', email: 'test@example.test', avatarUrl: null }, platformAdmin: false } })
     if (path === '/v1/troupes') return route.fulfill({ json: [] })
     if (path === '/v1/me/preferences') return route.fulfill({ json: {} })
-    if (path === '/v1/advent-test/session') return route.fulfill({ json: { sessionId: 'test-session' } })
-    if (path === '/v1/advent-test/clock') return route.fulfill({ json: { date } })
-    if (path === '/v1/advent-test/clock/next-day') { date = '2026-12-09'; return route.fulfill({ json: { date } }) }
+    if (path === '/v1/advent/session') return route.fulfill({ json: { sessionId: 'test-session', testControls: true } })
+    if (path === '/v1/advent/clock') return route.fulfill({ json: { date } })
     if (path.endsWith('/latest-unseen')) return route.fulfill({ json: { result: date === '2026-12-09' && !seen ? result : null } })
     if (path.endsWith('/acknowledge')) { expect(route.request().postDataJSON()).toEqual({ answerId: 'answer-one' }); seen = true; return route.fulfill({ status: 200 }) }
     if (path.endsWith('/answer')) {
@@ -176,7 +196,7 @@ test('reveals the most recent result accessibly after advancing the shared clock
     if (path.includes('/doors/')) return route.fulfill({ json: { day: Number(path.split('/').pop()), name: 'Lutin', portrait: '', statements: ['Une', 'Deux', 'Trois'], genericElf: true } })
     return route.fulfill({ json: {} })
   })
-  await page.goto('/avent-test')
+  await page.goto('/avent')
   await expect(page.getByText('Explication fictive du résultat.')).toHaveCount(0)
   await page.getByRole('button', { name: 'Avancer au jour suivant' }).click()
   await expect(page.getByText('Explication fictive du résultat.')).toBeVisible()
@@ -185,7 +205,7 @@ test('reveals the most recent result accessibly after advancing the shared clock
   await expect(page.locator('.advent__reveal .advent__date')).toContainText('8 décembre')
   const title = page.getByRole('heading', { name: 'Bravo, tu as trouvé !' })
   await expect(title).toBeFocused()
-  await expect(page.locator('.advent__result-answer--truth')).toContainText('La bonne réponse')
+  await expect(page.locator('.advent__result-answer--truth')).toContainText('L’anecdote qui était fausse')
   await expect(page.locator('.advent__result-answer--truth')).toContainText('Une')
   await expect(page.locator('.advent__result-points')).toHaveText('+11 points gagnés')
   await expect.poll(() => seen).toBe(true)

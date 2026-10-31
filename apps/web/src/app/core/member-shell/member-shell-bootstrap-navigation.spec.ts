@@ -111,9 +111,9 @@ describe('member shell bootstrap navigation', () => {
     vi.spyOn(bootstrap, 'ensureReady').mockResolvedValue({ ok: false } as never)
     const router = TestBed.inject(Router)
 
-    await router.navigateByUrl('/avent-test?aper%C3%A7u=2')
+    await router.navigateByUrl('/avent?aper%C3%A7u=2')
 
-    expect(localStorage.getItem('hatcast.postLoginRedirect')).toBe('/avent-test?aper%C3%A7u=2')
+    expect(localStorage.getItem('hatcast.postLoginRedirect')).toBe('/avent?aper%C3%A7u=2')
     expect(router.url).toBe('/connexion')
     localStorage.clear()
   })

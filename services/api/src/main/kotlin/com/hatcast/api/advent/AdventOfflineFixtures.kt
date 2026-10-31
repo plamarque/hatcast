@@ -23,6 +23,13 @@ class AdventOfflineFixtures(
         val profiles = environment.activeProfiles.toSet()
         if ("offline" !in profiles || profiles.any { it != "offline" && it != "dev" }) return
         if (!isWorktreeDatabase()) return
+        // Do not pair newly invented content with any historical answer.
+        jdbc.update("""INSERT INTO advent_quizzes (quiz_day, display_name, statement_0, statement_1, statement_2, false_choice)
+            SELECT 1, ?, ?, ?, ?, 0
+            WHERE NOT EXISTS (SELECT 1 FROM advent_quizzes WHERE quiz_day = 1)
+              AND NOT EXISTS (SELECT 1 FROM advent_test_answers WHERE quiz_day = 1)
+              AND NOT EXISTS (SELECT 1 FROM advent_member_answers WHERE quiz_day = 1)""",
+            "Lutin fictif 1", "A inventé une histoire pour la fête.", "A décoré un sapin imaginaire.", "A voyagé sur une étoile en papier.")
         for ((index, quiz) in fictionalQuizzes.withIndex()) {
             val day = index + 2
             // Never pair a new fictional quiz with a preexisting answer for that day.
@@ -36,9 +43,10 @@ class AdventOfflineFixtures(
             jdbc.update("""INSERT INTO advent_quizzes (quiz_day, display_name, portrait_ref, statement_0, statement_1, statement_2, false_choice, explanation)
                 SELECT ?, ?, ?, ?, ?, ?, ?, NULL
                 WHERE NOT EXISTS (SELECT 1 FROM advent_quizzes WHERE quiz_day = ?)
-                  AND NOT EXISTS (SELECT 1 FROM advent_test_answers WHERE quiz_day = ?)""".trimIndent(),
+                  AND NOT EXISTS (SELECT 1 FROM advent_test_answers WHERE quiz_day = ?)
+                  AND NOT EXISTS (SELECT 1 FROM advent_member_answers WHERE quiz_day = ?)""".trimIndent(),
                 day, name, portrait, quiz.statements[0], quiz.statements[1], quiz.statements[2],
-                quiz.falseChoice, day, day)
+                quiz.falseChoice, day, day, day)
         }
     }
 

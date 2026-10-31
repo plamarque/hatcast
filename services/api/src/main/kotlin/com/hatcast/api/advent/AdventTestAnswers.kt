@@ -208,6 +208,36 @@ class AdventTestAnswers(private val jdbc: JdbcTemplate) {
         return previous.atZone(paris).toLocalDate()
     }
 
+    /** Test scores intentionally include every recorded answer, even after clock reversal. */
+    @Transactional
+    fun testRanking(user: UUID, troupe: UUID, receipt: Instant, excludedIds: Set<UUID>): AdventRanking {
+        simulatedInstant(receipt)
+        return rankingAt(user, troupe, null, excludedIds)
+    }
+
+    /** Exercises production's reveal cutoff against isolated data; this is not a production route. */
+    @Transactional
+    fun testRevealableRanking(user: UUID, troupe: UUID, reference: Instant, excludedIds: Set<UUID>): AdventRanking {
+        jdbc.query("SELECT id FROM advent_test_clock WHERE id = 1 FOR UPDATE") { rs, _ -> rs.getInt(1) }
+        return rankingAt(user, troupe, reference, excludedIds)
+    }
+
+    private fun rankingAt(user: UUID, troupe: UUID, revealAt: Instant?, excludedIds: Set<UUID>): AdventRanking {
+        if (excludedIds.size != 2 || excludedIds.count { id ->
+            jdbc.queryForObject("SELECT COUNT(*) FROM users WHERE id = ?", Int::class.java, id) == 1
+        } != 2) throw ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE)
+        val members = jdbc.query("""SELECT m.user_id, m.display_name FROM troupe_memberships m
+            JOIN users u ON u.id = m.user_id
+            WHERE m.troupe_id = ? AND m.status = 'ACTIVE' AND m.baseline_role <> 'EXTERNE'""", { rs, _ ->
+            RankingMember(UUID.fromString(rs.getString(1)), rs.getString(2))
+        }, troupe)
+        val answers = jdbc.query("""SELECT user_id, quiz_day, choice, correct_choice, reveal_at
+            FROM advent_test_answers""", { rs, _ ->
+            RankingAnswer(UUID.fromString(rs.getString(1)), rs.getInt(2), rs.getInt(3) == rs.getInt(4), rs.getTimestamp(5).toInstant())
+        })
+        return AdventRankingCalculator.calculate(user, members, answers, revealAt, excludedIds)
+    }
+
     private fun recompute(user: UUID) {
         val scored = jdbc.query("SELECT quiz_day, choice, correct_choice FROM advent_test_answers WHERE user_id = ? ORDER BY quiz_day", { rs, _ -> Triple(rs.getInt(1), rs.getInt(2), rs.getInt(3)) }, user)
         var streak = 0
@@ -268,6 +298,36 @@ object AdventParisTime {
     private val paris: ZoneId = ZoneId.of("Europe/Paris")
     fun isClosed(day: Int, instant: Instant): Boolean =
         !instant.isBefore(LocalDate.of(2026, 12, day).plusDays(1).atStartOfDay(paris).toInstant())
+    fun memberAccessOpen(instant: Instant): Boolean {
+        val date = instant.atZone(paris).toLocalDate()
+        return !date.isBefore(LocalDate.of(2026, 12, 1)) && date.isBefore(LocalDate.of(2027, 1, 16))
+    }
 }
 
 data class AdventQuiz(val name: String, val portraitRef: String?, val statements: List<String>, val falseChoice: Int, val explanation: String?)
+
+data class RankingMember(val id: UUID, val name: String)
+data class RankingAnswer(val user: UUID, val day: Int, val correct: Boolean, val revealAt: Instant)
+data class AdventRankingEntry(val name: String, val score: Int, val rank: Int, val mine: Boolean)
+data class AdventRanking(val score: Int, val rank: Int?, val entries: List<AdventRankingEntry>)
+
+/** Shared pure ranking calculation. A null cutoff is reserved for isolated test mode. */
+object AdventRankingCalculator {
+    fun calculate(user: UUID, members: List<RankingMember>, answers: List<RankingAnswer>, cutoff: Instant?, excludedIds: Set<UUID>): AdventRanking {
+        val own = members.firstOrNull { it.id == user } ?: throw ResponseStatusException(HttpStatus.FORBIDDEN)
+        val totals = answers.filter { cutoff == null || !it.revealAt.isAfter(cutoff) }
+            .groupBy { it.user }.mapValues { (_, rows) ->
+                var streak = 0
+                rows.sortedBy { it.day }.sumOf { answer ->
+                    streak = if (answer.correct) streak + 1 else 0
+                    1 + (if (answer.correct) 10 else 0) + (if (streak > 0 && streak % 3 == 0) 2 else 0)
+                }
+            }
+        val sorted = members.filter { it.id !in excludedIds }.sortedWith(compareByDescending<RankingMember> { totals[it.id] ?: 0 }.thenBy { it.name.lowercase() }.thenBy { it.id })
+        val entries = sorted.map { member ->
+            val score = totals[member.id] ?: 0
+            AdventRankingEntry(member.name, score, sorted.indexOfLast { (totals[it.id] ?: 0) == score } + 1, member.id == user)
+        }
+        return AdventRanking(totals[own.id] ?: 0, entries.firstOrNull { it.mine }?.rank, entries)
+    }
+}

@@ -12,7 +12,7 @@ import org.springframework.web.filter.OncePerRequestFilter
 @Order(Ordered.HIGHEST_PRECEDENCE)
 class AdventNoStoreFilter : OncePerRequestFilter() {
     override fun shouldNotFilter(request: HttpServletRequest): Boolean =
-        !request.requestURI.startsWith("/v1/advent-test/")
+        !request.requestURI.startsWith("/v1/advent-test/") && !request.requestURI.startsWith("/v1/advent/")
 
     override fun doFilterInternal(request: HttpServletRequest, response: HttpServletResponse, chain: FilterChain) {
         request.setAttribute("hatcast.advent.received-at", java.time.Instant.now())
