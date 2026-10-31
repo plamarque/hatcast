@@ -47,7 +47,7 @@ Les cases évoquent des portes de calendrier : ouvertes après avoir joué, ferm
 - **Confirmation et attente** : composition illustrée selon la référence de confirmation, message en texte réel et action de classement quand disponible ; aucun indice sur la réponse ou les points.
 - **Calendrier et classement** : grille et liste utilisent les composants accessibles et les rôles visuels propres à l’Avent ; différencier les états par texte et forme, et conserver le rang et le score lisibles. Les détails graphiques des cases manquées, en attente et du 25 seront affinés en story.
 - **25 décembre** : Pour le 25, Patrice retient un Père Noël à tête classique, dessiné dans le même style que les lutins, tendant une boîte décorative portant le logo de La Malice. Le personnage et sa boîte se placent au-dessus du message ; le score bien visible et les accès au classement et au calendrier suivent. Un village est un décor possible ; la réalisation graphique reste à préciser. La boîte ne propose pas d’ouverture pour l’instant.
-- **Onglets** : onglets accessibles Calendrier et Classement adaptés à la DA Avent.
+- **Navigation** : dans la barre rouge, icônes accessibles Calendrier, Classement et Fermer ; les deux premières sont désactivées pendant la révélation prioritaire.
 - **Icône Père Noël** : près de Mon compte ; léger mouvement discret de moins de cinq secondes, une fois à l’ouverture de HatCast.
 
 ### États et illustrations réutilisables

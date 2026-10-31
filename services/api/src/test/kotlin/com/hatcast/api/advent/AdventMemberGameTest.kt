@@ -52,6 +52,207 @@ class AdventMemberGameTest {
         assertEquals("available", game.reserve(member, day, attempt, generation).status)
         return attempt
     }
+    @Test fun `calendar and history respect Paris dates personal answers and priority revelation`() {
+        val attempt = reserve()
+        game.confirm(member, 1, 0, attempt)
+        val pending = game.calendar(member).days!!
+        assertEquals(25, pending.size)
+        assertEquals("played", pending[0].state)
+        assertEquals("locked", pending[1].state)
+        assertEquals("today", game.calendar(other).days!![0].state)
+        assertEquals(404, assertThrows(ResponseStatusException::class.java) { game.history(member, 1) }.statusCode.value())
+        at("2026-12-01T23:00:00Z")
+        val priority = game.calendar(member).priorityResult!!
+        assertEquals(priority.answerId, game.history(member, 1).priorityResult!!.answerId)
+        game.acknowledge(member, 1, UUID.fromString(priority.answerId))
+        assertEquals("played", game.calendar(member).days!![0].state)
+        assertEquals("past-unplayed", game.calendar(other).days!![0].state)
+        assertNull(game.history(other, 1).history!!.falseChoice)
+        assertNull(game.history(other, 1).history!!.result)
+        assertEquals(priority.answerId, game.history(member, 1).history!!.result!!.answerId)
+        assertEquals("available", game.state(other, 1).status)
+        at("2027-01-15T22:59:59Z")
+        assertEquals("christmas", game.calendar(other).days!![24].state)
+        at("2027-01-15T23:00:00Z")
+        assertThrows(ResponseStatusException::class.java) { game.calendar(other) }
+    }
+
+    @Test fun `explicit late answer persists without affecting ranking participation or streak`() {
+        at("2026-12-02T12:00:00Z")
+        assertEquals("closed", game.reconcile(member, 1).status)
+        assertNull(game.history(member, 1).history!!.falseChoice)
+        val generation = game.reconcile(member, 1, lateAccess = true).generation!!
+        val attempt = UUID.randomUUID()
+        assertEquals("available", game.reserve(member, 1, attempt, generation).status)
+        val answer = game.confirm(member, 1, 1, attempt)
+        assertEquals("recorded", answer.status)
+        assertTrue(answer.late)
+        assertTrue(game.confirm(member, 1, 0, attempt).late)
+        val result = game.result(member, 1)!!
+        assertTrue(result.late)
+        assertFalse(result.correct)
+        assertEquals(0, result.responsePoints + result.participationPoints + result.bonusPoints)
+        assertNull(game.latestUnseen(member))
+        assertNull(game.result(other, 1))
+        for (day in 2..4) {
+            jdbc.update("INSERT INTO advent_quizzes (quiz_day, display_name, statement_0, statement_1, statement_2, false_choice) SELECT ?, 'Fictif', 'A', 'B', 'C', 0 WHERE NOT EXISTS (SELECT 1 FROM advent_quizzes WHERE quiz_day = ?)", day, day)
+            jdbc.update("INSERT INTO advent_member_answers (user_id, quiz_day, answer_id, choice, correct_choice, answered_at, reveal_at, seen_at) VALUES (?, ?, ?, 0, 0, ?, ?, ?)", member, day, UUID.randomUUID(), Timestamp.from(Instant.parse("2026-12-01T12:00:00Z")), Timestamp.from(Instant.parse("2026-12-02T00:00:00Z")), Timestamp.from(Instant.parse("2026-12-02T00:00:00Z")))
+        }
+        at("2026-12-05T12:00:00Z")
+        assertEquals(35, game.ranking(member, troupe, excluded).ranking!!.score)
+        assertEquals(2, game.result(member, 4)!!.bonusPoints)
+        assertEquals(0, game.ranking(other, troupe, excluded).ranking!!.score)
+        assertEquals(result.answerId, game.history(member, 1).history!!.result!!.answerId)
+    }
+
+    @Test fun `simultaneous late confirmation records only one answer`() {
+        at("2026-12-02T12:00:00Z")
+        val generation = game.reconcile(member, 1, lateAccess = true).generation!!
+        val attempt = UUID.randomUUID()
+        game.reserve(member, 1, attempt, generation)
+        val start = CountDownLatch(1)
+        val pool = Executors.newFixedThreadPool(2)
+        try {
+            val reads = (0..1).map { choice -> pool.submit(Callable { start.await(); game.confirm(member, 1, choice, attempt) }) }
+            start.countDown()
+            assertTrue(reads.all { it.get(10, TimeUnit.SECONDS).late })
+            assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM advent_member_answers WHERE user_id = ? AND quiz_day = 1", Int::class.java, member))
+        } finally { pool.shutdownNow() }
+    }
+
+    @Test fun `operator replay cannot turn a late answer into scored participation`() {
+        `when`(clock.isolatedControlsAllowed()).thenReturn(true)
+        at("2026-12-02T12:00:00Z")
+        val session = game.session()
+        val generation = game.reconcile(member, 1, true, session, lateAccess = true).generation!!
+        val attempt = UUID.randomUUID()
+        game.reserve(member, 1, attempt, generation, true, session)
+        val recorded = game.confirm(member, 1, 0, attempt, true, session)
+        assertEquals("available", game.replay(member, 1, recorded.replayToken!!, session).status)
+        assertEquals("closed", game.reconcile(member, 1, true, session).status)
+        val lateGeneration = game.reconcile(member, 1, true, session, lateAccess = true).generation!!
+        val replayAttempt = UUID.randomUUID()
+        game.reserve(member, 1, replayAttempt, lateGeneration, true, session)
+        assertTrue(game.confirm(member, 1, 0, replayAttempt, true, session).late)
+        assertEquals(0, game.ranking(member, troupe, excluded, true, session).ranking!!.score)
+    }
+
+    @Test fun `late reservations are fenced by generation and simulation date`() {
+        `when`(clock.isolatedControlsAllowed()).thenReturn(true)
+        val session = game.session()
+        val lateDay = LocalDate.of(2026, 12, 2)
+        val first = game.reconcile(member, 1, true, session, lateDay, true).generation!!
+        val second = game.reconcile(member, 1, true, session, lateDay, true).generation!!
+        assertEquals("stale", game.reserve(member, 1, UUID.randomUUID(), first, true, session, lateDay).status)
+        val attempt = UUID.randomUUID()
+        assertEquals("available", game.reserve(member, 1, attempt, second, true, session, lateDay).status)
+        assertEquals("closed", game.confirm(member, 1, 0, attempt, true, session, LocalDate.of(2026, 12, 1)).status)
+        assertTrue(game.confirm(member, 1, 0, attempt, true, session, lateDay).late)
+        assertNull(game.result(member, 1, session, LocalDate.of(2026, 12, 1)))
+    }
+
+    @Test fun `closing today restores normal play and rejects stale sessions`() {
+        `when`(clock.isolatedControlsAllowed()).thenReturn(true)
+        val session = game.session()
+        val recorded = game.confirm(member, 1, 0, reserve(), true, session)
+        assertEquals("cleared", game.replay(member, 1, recorded.replayToken!!, session, closeOnly = true).status)
+        assertEquals("available", game.reconcile(member, 1, true, session).status)
+        game.reset(session)
+        assertThrows(ResponseStatusException::class.java) { game.replay(member, 1, recorded.replayToken!!, session, closeOnly = true) }
+    }
+
+    @Test fun `closing an operator case clears only own answer and never grants scored replay`() {
+        `when`(clock.isolatedControlsAllowed()).thenReturn(true)
+        val session = game.session()
+        val attempt = reserve()
+        val recorded = game.confirm(member, 1, 0, attempt, true, session)
+        val otherGen = game.reconcile(other, 1).generation!!
+        val otherAttempt = UUID.randomUUID()
+        game.reserve(other, 1, otherAttempt, otherGen)
+        game.confirm(other, 1, 0, otherAttempt)
+        at("2026-12-02T12:00:00Z")
+        jdbc.update("INSERT INTO advent_quizzes (quiz_day, display_name, statement_0, statement_1, statement_2, false_choice) SELECT 2, 'Fictif', 'A', 'B', 'C', 0 WHERE NOT EXISTS (SELECT 1 FROM advent_quizzes WHERE quiz_day = 2)")
+        val nextGen = game.reconcile(member, 2, true, session).generation!!
+        val nextAttempt = UUID.randomUUID()
+        game.reserve(member, 2, nextAttempt, nextGen, true, session)
+        game.confirm(member, 2, 0, nextAttempt, true, session)
+        val reveal = game.latestUnseen(member)!!
+        assertEquals("priority", game.replay(member, 1, recorded.replayToken!!, session, closeOnly = true).status)
+        assertNotNull(game.result(member, 1))
+        game.acknowledge(member, 1, UUID.fromString(reveal.answerId), session)
+        assertEquals("stale", game.replay(member, 1, UUID.randomUUID(), session, closeOnly = true).status)
+        assertEquals("cleared", game.replay(member, 1, recorded.replayToken!!, session, closeOnly = true).status)
+        assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM advent_member_replays WHERE user_id = ? AND quiz_day = 1", Int::class.java, member))
+        assertNull(game.result(member, 1, session))
+        assertEquals("recorded", game.state(member, 2, true, session).status)
+        assertNotNull(game.result(other, 1, session))
+        assertEquals("closed", game.reconcile(member, 1, true, session).status)
+        val lateGen = game.reconcile(member, 1, true, session, lateAccess = true).generation!!
+        val lateAttempt = UUID.randomUUID()
+        game.reserve(member, 1, lateAttempt, lateGen, true, session)
+        assertTrue(game.confirm(member, 1, 0, lateAttempt, true, session).late)
+        assertEquals(0, game.result(member, 1, session)!!.participationPoints)
+    }
+
+    @Test fun `quiz published during its Paris day becomes normally playable until midnight`() {
+        jdbc.update("DELETE FROM advent_quizzes WHERE quiz_day = 17")
+        at("2026-12-17T12:00:00Z")
+        assertEquals("missing", game.calendar(member).days!![16].state)
+        assertNull(game.quiz(17))
+        assertEquals("unavailable", game.state(member, 17).status)
+        jdbc.update("INSERT INTO advent_quizzes (quiz_day, display_name, statement_0, statement_1, statement_2, false_choice) VALUES (17, 'Fictif', 'A', 'B', 'C', 0)")
+        at("2026-12-17T22:59:59Z")
+        assertEquals("today", game.calendar(member).days!![16].state)
+        val generation = game.reconcile(member, 17).generation!!
+        val attempt = UUID.randomUUID()
+        assertEquals("available", game.reserve(member, 17, attempt, generation).status)
+        val recorded = game.confirm(member, 17, 0, attempt)
+        assertEquals("recorded", recorded.status)
+        assertFalse(recorded.late)
+        assertNull(game.result(member, 17))
+        assertEquals(0, game.ranking(member, troupe, excluded).ranking!!.score)
+        at("2026-12-17T23:00:00Z")
+        val result = game.result(member, 17)!!
+        assertEquals(10, result.responsePoints)
+        assertEquals(1, result.participationPoints)
+        assertFalse(result.late)
+    }
+
+    @Test fun `quiz published after its Paris day becomes explicit zero point late discovery`() {
+        jdbc.update("DELETE FROM advent_quizzes WHERE quiz_day = 18")
+        at("2026-12-19T12:00:00Z")
+        assertEquals("missing", game.calendar(member).days!![17].state)
+        assertNull(game.history(member, 18).history)
+        assertEquals("unavailable", game.state(member, 18).status)
+        jdbc.update("INSERT INTO advent_quizzes (quiz_day, display_name, statement_0, statement_1, statement_2, false_choice) VALUES (18, 'Fictif', 'A', 'B', 'C', 0)")
+        assertEquals("past-unplayed", game.calendar(member).days!![17].state)
+        assertNull(game.history(member, 18).history!!.falseChoice)
+        assertEquals("closed", game.reconcile(member, 18).status)
+        val generation = game.reconcile(member, 18, lateAccess = true).generation!!
+        val attempt = UUID.randomUUID()
+        assertEquals("available", game.reserve(member, 18, attempt, generation).status)
+        assertTrue(game.confirm(member, 18, 0, attempt).late)
+        val result = game.result(member, 18)!!
+        assertTrue(result.correct)
+        assertTrue(result.late)
+        assertEquals(0, result.responsePoints + result.participationPoints + result.bonusPoints)
+        assertEquals(0, game.ranking(member, troupe, excluded).ranking!!.score)
+        assertNull(game.result(other, 18))
+        assertEquals(result.answerId, game.history(member, 18).history!!.result!!.answerId)
+    }
+
+    @Test fun `zero answer member sees Christmas and final ranking through Paris January 15`() {
+        for (instant in listOf("2026-12-25T00:00:00Z", "2027-01-15T22:59:59Z")) {
+            at(instant)
+            assertEquals("christmas", game.calendar(other).days!![24].state)
+            assertEquals(0, game.ranking(other, troupe, excluded).ranking!!.score)
+            assertNull(game.latestUnseen(other))
+        }
+        at("2027-01-15T23:00:00Z")
+        assertEquals(404, assertThrows(ResponseStatusException::class.java) { game.calendar(other) }.statusCode.value())
+        assertEquals(404, assertThrows(ResponseStatusException::class.java) { game.ranking(other, troupe, excluded) }.statusCode.value())
+    }
+
     @Test fun `offline game reads the prepared catalogue instead of a demo replacement`() {
         `when`(clock.isOfflineDatabase()).thenReturn(true)
         jdbc.update("DELETE FROM advent_member_demo_quizzes WHERE quiz_day = 1")
@@ -143,7 +344,7 @@ class AdventMemberGameTest {
         at("2026-11-30T22:59:59Z")
         assertThrows(ResponseStatusException::class.java) { game.today() }
         at("2026-12-01T23:00:00Z")
-        assertEquals("closed", game.confirm(member, 1, 0, UUID.randomUUID()).status)
+        assertEquals("stale", game.confirm(member, 1, 0, UUID.randomUUID()).status)
         at("2027-01-15T22:59:59Z")
         assertEquals("2027-01-15", game.today().toString())
         at("2027-01-15T23:00:00Z")

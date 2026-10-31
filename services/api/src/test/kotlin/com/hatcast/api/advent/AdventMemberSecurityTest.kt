@@ -36,11 +36,51 @@ class AdventMemberSecurityTest {
     @Autowired lateinit var environment: ConfigurableEnvironment
     @Test fun `anonymous and unrelated user cannot access member data and errors are not cached`() {
         val cookie = TestAuthSupport.sessionCookieFromGoogleSignIn(mvc, google, "outsider-advent-member")
-        for (path in listOf("/v1/advent/clock", "/v1/advent/doors/1", "/v1/advent/doors/1/answer", "/v1/advent/doors/1/result", "/v1/advent/results/latest-unseen", "/v1/advent/ranking")) {
+        for (path in listOf("/v1/advent/clock", "/v1/advent/doors/1", "/v1/advent/doors/1/answer", "/v1/advent/doors/1/result", "/v1/advent/results/latest-unseen", "/v1/advent/ranking", "/v1/advent/calendar", "/v1/advent/doors/1/history")) {
             mvc.perform(get(path)).andExpect(status().isUnauthorized).andExpect(header().string("Cache-Control", "private, no-store"))
             mvc.perform(get(path).cookie(cookie)).andExpect(status().isForbidden).andExpect(header().string("Cache-Control", "private, no-store"))
         }
     }
+    @Test fun `late mode and history projection remain private across authenticated members`() {
+        val troupe = UUID.fromString("a0000001-0000-4000-8000-000000000001")
+        jdbc.update("INSERT INTO troupes (id, name, slug, created_at) SELECT ?, 'Troupe fictive', 'advent-security', CURRENT_TIMESTAMP WHERE NOT EXISTS (SELECT 1 FROM troupes WHERE id = ?)", troupe, troupe)
+        val alice = TestAuthSupport.sessionCookieFromGoogleSignIn(mvc, google, "late-http-alice")
+        val bob = TestAuthSupport.sessionCookieFromGoogleSignIn(mvc, google, "late-http-bob")
+        for (sub in listOf("late-http-alice", "late-http-bob")) {
+            val user = jdbc.queryForObject("SELECT id FROM users WHERE google_sub = ?", UUID::class.java, sub)!!
+            jdbc.update("INSERT INTO troupe_memberships (id, troupe_id, user_id, status, baseline_role, display_name, created_at, updated_at) VALUES (?, ?, ?, 'ACTIVE', 'MEMBER', 'Fictif', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", UUID.randomUUID(), troupe, user)
+        }
+        jdbc.update("DELETE FROM advent_quizzes WHERE quiz_day = 12")
+        jdbc.update("INSERT INTO advent_quizzes (quiz_day, display_name, statement_0, statement_1, statement_2, false_choice) VALUES (12, 'Fictif', 'A', 'B', 'C', 1)")
+        `when`(clock.instant()).thenReturn(Instant.parse("2026-12-13T12:00:00Z"))
+        val token = json.readTree(mvc.perform(get("/v1/advent/session").cookie(alice)).andExpect(status().isOk).andReturn().response.contentAsString)["sessionId"].asText()
+        val history = "/v1/advent/doors/12/history"
+        val prefix = "/v1/advent/doors/12/answer"
+        mvc.perform(get(history).cookie(alice).header("X-Advent-Test-Session", token))
+            .andExpect(status().isOk).andExpect(header().string("Cache-Control", "private, no-store"))
+            .andExpect(jsonPath("$.falseChoice").doesNotExist()).andExpect(jsonPath("$.result").doesNotExist())
+        mvc.perform(post("$prefix/reconcile").cookie(alice).with(csrf()).header("X-Advent-Test-Session", token))
+            .andExpect(status().isOk).andExpect(jsonPath("$.status").value("closed"))
+        val late = mvc.perform(post("$prefix/reconcile").cookie(alice).with(csrf()).header("X-Advent-Test-Session", token).contentType(MediaType.APPLICATION_JSON).content("""{"late":true}"""))
+            .andExpect(status().isOk).andExpect(header().string("Cache-Control", "private, no-store")).andExpect(jsonPath("$.status").value("available")).andReturn()
+        val generation = json.readTree(late.response.contentAsString)["generation"].asText()
+        val attempt = UUID.randomUUID()
+        mvc.perform(post("$prefix/reserve").cookie(alice).with(csrf()).header("X-Advent-Test-Session", token).contentType(MediaType.APPLICATION_JSON).content("""{"attemptId":"$attempt","generation":"$generation"}"""))
+            .andExpect(status().isOk).andExpect(jsonPath("$.status").value("available"))
+        mvc.perform(post(prefix).cookie(bob).with(csrf()).header("X-Advent-Test-Session", token).contentType(MediaType.APPLICATION_JSON).content("""{"attemptId":"$attempt","choice":1}"""))
+            .andExpect(status().isOk).andExpect(jsonPath("$.status").value("stale"))
+        mvc.perform(post(prefix).cookie(alice).with(csrf()).header("X-Advent-Test-Session", token).contentType(MediaType.APPLICATION_JSON).content("""{"attemptId":"$attempt","choice":1}"""))
+            .andExpect(status().isOk).andExpect(header().string("Cache-Control", "private, no-store")).andExpect(jsonPath("$.late").value(true))
+        mvc.perform(get("/v1/advent/doors/12/result").cookie(alice).header("X-Advent-Test-Session", token))
+            .andExpect(status().isOk).andExpect(header().string("Cache-Control", "private, no-store"))
+            .andExpect(jsonPath("$.late").value(true)).andExpect(jsonPath("$.responsePoints").value(0)).andExpect(jsonPath("$.participationPoints").value(0)).andExpect(jsonPath("$.bonusPoints").value(0))
+        mvc.perform(get(history).cookie(bob).header("X-Advent-Test-Session", token))
+            .andExpect(status().isOk).andExpect(header().string("Cache-Control", "private, no-store"))
+            .andExpect(jsonPath("$.falseChoice").doesNotExist()).andExpect(jsonPath("$.result").doesNotExist())
+        mvc.perform(get("/v1/advent/doors/12/result").cookie(bob).header("X-Advent-Test-Session", token))
+            .andExpect(status().isNotFound).andExpect(header().string("Cache-Control", "private, no-store"))
+    }
+
     @Test fun `ordinary members cannot invoke controls or the old test API`() {
         val troupe = UUID.fromString("a0000001-0000-4000-8000-000000000001")
         jdbc.update("INSERT INTO troupes (id, name, slug, created_at) SELECT ?, 'Troupe fictive', 'advent-security', CURRENT_TIMESTAMP WHERE NOT EXISTS (SELECT 1 FROM troupes WHERE id = ?)", troupe, troupe)
@@ -56,6 +96,8 @@ class AdventMemberSecurityTest {
         for (path in listOf("/v1/advent/clock/next-day", "/v1/advent/clock/previous-day", "/v1/advent/session/reset", "/v1/advent/doors/1/answer/replay"))
             mvc.perform(post(path).cookie(cookie).with(csrf()).header("X-Advent-Test-Session", UUID.randomUUID().toString()).contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isNotFound).andExpect(header().string("Cache-Control", "private, no-store"))
+        mvc.perform(post("/v1/advent/doors/1/answer/replay").cookie(cookie).with(csrf()).header("X-Advent-Test-Session", token).contentType(MediaType.APPLICATION_JSON).content("""{"replayToken":"${UUID.randomUUID()}","close":true}"""))
+            .andExpect(status().isNotFound).andExpect(header().string("Cache-Control", "private, no-store"))
         mvc.perform(get("/v1/advent-test/session").cookie(cookie)).andExpect(status().isForbidden)
     }
     @Test fun `two verified operators and ordinary member share game and protected controls`() {
@@ -87,6 +129,11 @@ class AdventMemberSecurityTest {
             val attempt = UUID.randomUUID()
             mvc.perform(post("/v1/advent/doors/1/answer/reserve").cookie(member).with(csrf()).header("X-Advent-Test-Session", token).contentType(MediaType.APPLICATION_JSON).content("""{"attemptId":"$attempt","generation":"$generation"}""")).andExpect(status().isOk)
             mvc.perform(post("/v1/advent/doors/1/answer").cookie(member).with(csrf()).header("X-Advent-Test-Session", token).contentType(MediaType.APPLICATION_JSON).content("""{"attemptId":"$attempt","choice":0}""")).andExpect(status().isOk)
+            mvc.perform(get("/v1/advent/calendar").cookie(member).header("X-Advent-Test-Session", token))
+                .andExpect(status().isOk).andExpect(header().string("Cache-Control", "private, no-store"))
+                .andExpect(jsonPath("$.days[0].state").value("played")).andExpect(jsonPath("$.days[1].state").value("locked"))
+            mvc.perform(get("/v1/advent/doors/2/history").cookie(member).header("X-Advent-Test-Session", token))
+                .andExpect(status().isNotFound).andExpect(header().string("Cache-Control", "private, no-store"))
             val memberBoard = mvc.perform(get("/v1/advent/ranking").cookie(member).header("X-Advent-Test-Session", token)).andExpect(status().isOk).andExpect(jsonPath("$.ranking.score").value(0)).andReturn()
             val operatorBoard = mvc.perform(get("/v1/advent/ranking").cookie(first).header("X-Advent-Test-Session", token)).andExpect(status().isOk).andReturn()
             val memberJson = json.readTree(memberBoard.response.contentAsString)

@@ -10,6 +10,7 @@ describe('AdventTest', () => {
       if (String(input).endsWith('/session')) return new Response(JSON.stringify({ sessionId: 'test-session', testControls: true }), { status: 200 })
       if (String(input).endsWith('/clock')) return new Response(JSON.stringify({ date: '2026-12-01' }))
       if (String(input).endsWith('/results/latest-unseen')) return new Response(JSON.stringify({ result: null }))
+      if (String(input).endsWith('/ranking')) return new Response(JSON.stringify({ priorityResult: null, ranking: { score: 0, rank: null, entries: [] } }))
       if (String(input).endsWith('/result')) return new Response('', { status: 404 })
       if (String(input).includes('/answer')) return new Response(JSON.stringify({ status: 'available', generation: 'test-generation' }), { status: 200 })
       const day = Number(String(input).split('/').pop())
@@ -23,6 +24,257 @@ describe('AdventTest', () => {
     fixture.detectChanges()
   })
   afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks() })
+  it('keeps calendar and ranking navigation off the door and question, then offers ranking after confirmation', async () => {
+    expect(fixture.nativeElement.querySelector('[role="tablist"]')).toBeNull()
+    expect(fixture.nativeElement.textContent).not.toContain('Voir le calendrier')
+    await fixture.componentInstance.openDoor()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('[role="tablist"]')).toBeNull()
+    expect(fixture.nativeElement.textContent).not.toContain('Voir le calendrier')
+    fixture.componentInstance.answerState.set('recorded')
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).not.toContain('Voir le calendrier')
+    expect(fixture.nativeElement.textContent).toContain('Voir le classement')
+  })
+
+  it('offers both destinations when content is missing without changing priority reveal', async () => {
+    fixture.componentInstance.unavailable.set(true)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('[aria-label="Voir le calendrier"]')).not.toBeNull()
+    expect(fixture.nativeElement.textContent).toContain('Voir le classement')
+    fixture.componentInstance.unavailable.set(false)
+    fixture.componentInstance.result.set({ answerId: 'a', day: 1, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false })
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('[role="tablist"]')).toBeNull()
+    expect(fixture.nativeElement.querySelector('[aria-label="Voir le calendrier"]').disabled).toBe(true)
+    expect(fixture.nativeElement.querySelector('[aria-label="Classement"]').disabled).toBe(true)
+  })
+
+  it('offers calendar from ranking and returns to ranking from calendar', async () => {
+    const days = Array.from({ length: 25 }, (_, i) => ({ day: i + 1, state: i === 0 ? 'played' : i === 1 ? 'today' : 'locked' }))
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ days, priorityResult: null })))
+    await fixture.componentInstance.openCalendar()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('[aria-label="Classement"]')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-state="played"] mat-icon').textContent).toContain('door_open')
+    expect(fixture.nativeElement.querySelector('[data-state="locked"] mat-icon').textContent).toContain('lock')
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ priorityResult: null, ranking: { score: 0, rank: null, entries: [] } })))
+    await fixture.componentInstance.openRanking()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('[aria-label="Voir le calendrier"]')).not.toBeNull()
+  })
+
+  it('keeps the calendar visible after an operator changes its simulated day', async () => {
+    const component = fixture.componentInstance
+    component.testControls.set(true)
+    component.clockDate.set('2026-12-02')
+    component.calendarOpen.set(true)
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ result: null })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ days: [{ day: 1, state: 'past-unplayed' }, { day: 2, state: 'today' }], priorityResult: null })))
+    await component.previousDay()
+    expect(component.clockDate()).toBe('2026-12-01')
+    expect(component.calendarOpen()).toBe(true)
+    expect(component.calendarDays()).toHaveLength(2)
+  })
+
+  it('opens the gift for an unplayed past day without revealing the false statement', async () => {
+    const component = fixture.componentInstance
+    component.clockDate.set('2026-12-02')
+    component.testControls.set(false)
+    const quiz = { day: 1, name: 'Alex', portrait: '', statements: ['A', 'B', 'C'] }
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ quiz, falseChoice: null, result: null, priorityResult: null })))
+      .mockResolvedValueOnce(new Response(JSON.stringify(quiz)))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'available' })))
+    await component.openCalendarDay({ day: 1, state: 'past-unplayed' })
+    fixture.detectChanges()
+    expect(component.lateDiscovery()).toBe(true)
+    expect(component.preview()?.day).toBe(1)
+    expect(fixture.nativeElement.textContent).not.toContain('anecdote fausse')
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ status: 'available', generation: 'fresh' })))
+    await component.openDoor()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('sans gagner de points')
+    const call = vi.mocked(window.fetch).mock.calls.find(([url]) => String(url).endsWith('/answer/reconcile'))!
+    expect(JSON.parse(String(call[1]?.body))).toEqual({ late: true })
+  })
+
+  it('opens a played past day on the personal result without celebration and retains operator replay', async () => {
+    const component = fixture.componentInstance
+    component.clockDate.set('2026-12-02')
+    const result = { answerId: 'answer-one', day: 1, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false }
+    const quiz = { day: 1, name: 'Fictif', portrait: '', genericElf: true, statements: ['A', 'B', 'C'] }
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ quiz, falseChoice: 0, result, priorityResult: null })))
+      .mockResolvedValueOnce(new Response(JSON.stringify(quiz)))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'recorded', replayToken: 'answer-one' })))
+      .mockResolvedValueOnce(new Response(JSON.stringify(result)))
+    await component.openCalendarDay({ day: 1, state: 'played' })
+    fixture.detectChanges()
+    expect(component.result()?.answerId).toBe('answer-one')
+    expect(component.historicalResult()).toBe(true)
+    expect(fixture.nativeElement.querySelector('.advent__confetti')).toBeNull()
+    expect(fixture.nativeElement.querySelector('[aria-label="Effacer ma réponse et rejouer"]')).not.toBeNull()
+    expect(fixture.nativeElement.textContent).not.toContain('Retour au calendrier')
+    expect(fixture.nativeElement.querySelector('[aria-label="Voir le calendrier"]')).not.toBeNull()
+  })
+
+  it('shows an immediately revealed zero point result after late confirmation', async () => {
+    const component = fixture.componentInstance
+    component.testControls.set(false)
+    component.clockDate.set('2026-12-02')
+    component.lateDiscovery.set(true)
+    component.selectedDay.set(1)
+    component.quiz.set({ day: 1, name: 'Fictif', portrait: '', genericElf: true, statements: ['A', 'B', 'C'] })
+    component.choice.set(0)
+    component.answerState.set('available')
+    ;(component as any).generation = 'fresh'
+    const result = { answerId: 'late', day: 1, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 0, participationPoints: 0, bonusPoints: 0, totalPoints: 0, seen: true, late: true }
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ status: 'available' })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'recorded', late: true })))
+      .mockResolvedValueOnce(new Response(JSON.stringify(result)))
+      .mockResolvedValueOnce(new Response(JSON.stringify(component.quiz())))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'recorded', late: true })))
+      .mockResolvedValueOnce(new Response(JSON.stringify(result)))
+    await component.confirm()
+    fixture.detectChanges()
+    expect(component.result()?.late).toBe(true)
+    expect(fixture.nativeElement.textContent).toContain('réponse après le jour du quiz')
+    expect(fixture.nativeElement.querySelector('.advent__confetti')).toBeNull()
+  })
+
+  it('recovers an interrupted late confirmation through reconciliation', async () => {
+    const component = fixture.componentInstance
+    component.testControls.set(false); component.clockDate.set('2026-12-02'); component.selectedDay.set(1); component.lateDiscovery.set(true)
+    const quiz = { day: 1, name: 'Fictif', portrait: '', genericElf: true, statements: ['A', 'B', 'C'] }
+    const result = { answerId: 'late', day: 1, selectedChoice: 0, falseChoice: 1, correct: false, responsePoints: 0, participationPoints: 0, bonusPoints: 0, totalPoints: 0, seen: true, late: true }
+    component.quiz.set(quiz); component.choice.set(0); component.answerState.set('available'); (component as any).generation = 'fresh'
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ status: 'available' })))
+      .mockRejectedValueOnce(new Error('lost confirmation'))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'recorded', late: true })))
+      .mockResolvedValueOnce(new Response(JSON.stringify(result)))
+      .mockResolvedValueOnce(new Response(JSON.stringify(quiz)))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'recorded', late: true })))
+      .mockResolvedValueOnce(new Response(JSON.stringify(result)))
+    await component.confirm()
+    expect(component.result()?.answerId).toBe('late')
+    expect(component.result()?.responsePoints).toBe(0)
+  })
+
+  it('distinguishes the current day from earlier played days', async () => {
+    const component = fixture.componentInstance
+    component.clockDate.set('2026-12-06')
+    component.calendarOpen.set(true)
+    component.calendarDays.set([{ day: 5, state: 'played' }, { day: 6, state: 'played' }])
+    fixture.detectChanges()
+    const doors = fixture.nativeElement.querySelectorAll('.advent__calendar-door') as NodeListOf<HTMLButtonElement>
+    expect(doors[0].getAttribute('data-today')).toBe('false')
+    expect(doors[1].getAttribute('data-today')).toBe('true')
+    expect(doors[1].getAttribute('aria-label')).toContain('aujourd’hui')
+    component.clockDate.set('2026-12-05')
+    fixture.detectChanges()
+    expect(doors[0].getAttribute('data-today')).toBe('true')
+    expect(doors[1].getAttribute('data-today')).toBe('false')
+  })
+
+  it('lets only an operator close one played case without leaving the calendar', async () => {
+    const component = fixture.componentInstance
+    component.calendarOpen.set(true)
+    component.calendarDays.set([{ day: 1, state: 'played' }, { day: 2, state: 'past-unplayed' }, { day: 3, state: 'played' }])
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelectorAll('.advent__calendar-close')).toHaveLength(2)
+    expect(fixture.nativeElement.querySelector('.advent__calendar-door button')).toBeNull()
+    component.testControls.set(false); fixture.detectChanges()
+    expect(fixture.nativeElement.querySelectorAll('.advent__calendar-close')).toHaveLength(0)
+    component.testControls.set(true); fixture.detectChanges()
+    vi.mocked(window.fetch).mockClear().mockResolvedValueOnce(new Response(JSON.stringify({ status: 'recorded', replayToken: 'own-answer' })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'cleared' })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ days: [{ day: 1, state: 'past-unplayed' }, { day: 2, state: 'past-unplayed' }, { day: 3, state: 'played' }], priorityResult: null })))
+    await component.closeCalendarDay({ day: 1, state: 'played' })
+    fixture.detectChanges()
+    const call = vi.mocked(window.fetch).mock.calls.find(([url]) => String(url).endsWith('/1/answer/replay'))!
+    expect(JSON.parse(String(call[1]?.body))).toEqual({ replayToken: 'own-answer', close: true })
+    expect(component.calendarOpen()).toBe(true)
+    expect(component.calendarDays()[0].state).toBe('past-unplayed')
+    expect(component.calendarDays()[2].state).toBe('played')
+    expect(component.calendarActionMessage()).toContain('case 1 est refermée')
+  })
+
+  it('refuses a close when the answer changed and reloads the calendar', async () => {
+    const component = fixture.componentInstance
+    component.calendarOpen.set(true); component.calendarDays.set([{ day: 1, state: 'played' }])
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ status: 'recorded', replayToken: 'old' })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'stale' })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ days: [{ day: 1, state: 'played' }], priorityResult: null })))
+    await component.closeCalendarDay({ day: 1, state: 'played' })
+    expect(component.calendarOpen()).toBe(true)
+    expect(component.calendarActionMessage()).toContain('Impossible')
+  })
+
+  it('honors a priority revelation returned while closing a calendar case', async () => {
+    const component = fixture.componentInstance
+    component.calendarOpen.set(true); component.calendarDays.set([{ day: 1, state: 'played' }])
+    const result = { answerId: 'other', day: 2, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false }
+    const quiz = { day: 2, name: 'Fictif', portrait: '', genericElf: true, statements: ['A', 'B', 'C'] }
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ status: 'recorded', replayToken: 'own' })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'priority', priorityResult: result })))
+      .mockResolvedValueOnce(new Response(JSON.stringify(quiz)))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'recorded', replayToken: 'other' })))
+      .mockResolvedValueOnce(new Response(JSON.stringify(result)))
+    await component.closeCalendarDay({ day: 1, state: 'played' })
+    expect(component.calendarOpen()).toBe(false)
+    expect(component.result()?.answerId).toBe('other')
+  })
+
+  it.each(['calendar', 'ranking'])('shows priority revelation above the previous %s view', async previous => {
+    const component = fixture.componentInstance
+    const result = { answerId: 'priority', day: 1, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false }
+    const quiz = { day: 1, name: 'Fictif', portrait: '', genericElf: true, statements: ['A', 'B', 'C'] }
+    component.calendarOpen.set(previous === 'calendar')
+    component.rankingOpen.set(previous === 'ranking')
+    if (previous === 'ranking') component.ranking.set({ score: 0, rank: null, entries: [] })
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ priorityResult: result })))
+      .mockResolvedValueOnce(new Response(JSON.stringify(quiz)))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'recorded', replayToken: 'priority' })))
+      .mockResolvedValueOnce(new Response(JSON.stringify(result)))
+    if (previous === 'calendar') await component.openRanking()
+    else await component.openCalendar()
+    fixture.detectChanges()
+    expect(component.calendarOpen()).toBe(false)
+    expect(component.rankingOpen()).toBe(false)
+    expect(fixture.nativeElement.querySelector('#advent-result-title')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('#advent-calendar-panel')).toBeNull()
+    expect(fixture.nativeElement.querySelector('#advent-ranking-panel')).toBeNull()
+  })
+
+  it('keeps the calendar and offers retry when loading the Christmas score fails', async () => {
+    const component = fixture.componentInstance
+    component.clockDate.set('2026-12-25'); component.calendarOpen.set(true)
+    component.calendarDays.set([{ day: 25, state: 'christmas' }])
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response('', { status: 503 })).mockResolvedValueOnce(new Response('', { status: 503 }))
+    await component.openCalendarDay({ day: 25, state: 'christmas' })
+    fixture.detectChanges()
+    expect(component.calendarOpen()).toBe(true)
+    expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain('score de Noël')
+    expect([...fixture.nativeElement.querySelectorAll('button')].some((button: any) => button.textContent.includes('Réessayer'))).toBe(true)
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ ranking: { score: 0, rank: null, entries: [] }, priorityResult: null })))
+    await component.openCalendarDay({ day: 25, state: 'christmas' })
+    fixture.detectChanges()
+    expect(component.calendarOpen()).toBe(false)
+    expect(fixture.nativeElement.textContent).toContain('Joyeux Noël')
+    expect(fixture.nativeElement.textContent).toContain('0 points')
+  })
+
+  it('marks missing cases with an additional symbol and accessible label', () => {
+    const component = fixture.componentInstance
+    component.calendarOpen.set(true)
+    component.calendarDays.set([{ day: 1, state: 'missing' }, { day: 2, state: 'past-unplayed' }])
+    fixture.detectChanges()
+    const missing = fixture.nativeElement.querySelector('[data-state="missing"]')
+    const past = fixture.nativeElement.querySelector('[data-state="past-unplayed"]')
+    expect(missing.getAttribute('aria-label')).toContain('Sans contenu')
+    expect(missing.querySelector('mat-icon').textContent).toContain('help_outline')
+    expect(past.querySelector('mat-icon')).toBeNull()
+  })
+
   it('retries a timed-out priority lookup before opening the selected quiz', async () => {
     vi.useFakeTimers()
     vi.mocked(window.fetch).mockReturnValueOnce(new Promise(() => {}))
@@ -125,14 +377,12 @@ describe('AdventTest', () => {
     fixture.detectChanges()
     expect(next.disabled).toBe(true)
   })
-  it('offers ranking only after an answer has been recorded', async () => {
-    expect(fixture.nativeElement.textContent).not.toContain('Voir le classement')
-    await fixture.componentInstance.openRanking()
-    expect(fixture.componentInstance.rankingOpen()).toBe(false)
-    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ status: 'recorded', replayToken: 'token' })))
-    await fixture.componentInstance.openDoor()
+  it('opens ranking from the header before answering', async () => {
     fixture.detectChanges()
-    expect(fixture.nativeElement.textContent).toContain('Voir le classement')
+    expect(fixture.nativeElement.querySelector('[aria-label="Classement"]')).not.toBeNull()
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ priorityResult: null, ranking: { score: 0, rank: null, entries: [] } })))
+    await fixture.componentInstance.openRanking()
+    expect(fixture.componentInstance.rankingOpen()).toBe(true)
   })
   it('shows the current test ranking and returns keyboard focus', async () => {
     fixture.componentInstance.quiz.set(fixture.componentInstance.preview())
@@ -145,7 +395,7 @@ describe('AdventTest', () => {
     fixture.detectChanges()
     await new Promise(resolve => setTimeout(resolve, 0))
     expect(document.activeElement?.id).toBe('ranking-title')
-    expect(fixture.nativeElement.textContent).toContain('tous les points enregistrés')
+    expect(fixture.nativeElement.textContent).not.toContain('tous les points enregistrés')
     expect(fixture.nativeElement.querySelector('.advent__ranking-me .advent__ranking-person').textContent).toContain('Camille')
     expect(fixture.nativeElement.textContent).toContain('même si ta réponse est fausse')
     expect(fixture.nativeElement.textContent).toContain('10 points supplémentaires')
@@ -202,14 +452,14 @@ describe('AdventTest', () => {
     vi.mocked(window.fetch).mockResolvedValueOnce(new Response('', { status: 404 }))
     await fixture.componentInstance.selectDay(2)
     fixture.detectChanges()
-    expect(fixture.nativeElement.querySelector('.advent__state[role=status]').textContent).toContain('quiz est indisponible')
+    expect(fixture.nativeElement.querySelector('.advent__state[role=status]').textContent).toContain('Il n’y a rien ici')
     expect(fixture.nativeElement.textContent).not.toContain('déconnecte-toi')
   })
   it('reports removal while reconciling or reserving', async () => {
     vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ status: 'unavailable' })))
     await fixture.componentInstance.openDoor()
     fixture.detectChanges()
-    expect(fixture.nativeElement.textContent).toContain('quiz est indisponible')
+    expect(fixture.nativeElement.textContent).toContain('Il n’y a rien ici')
     expect(fixture.nativeElement.querySelector('mat-radio-group')).toBeNull()
   })
   it('reports removal during reservation and confirmation', async () => {
@@ -219,7 +469,7 @@ describe('AdventTest', () => {
     vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ status: 'unavailable' })))
     await component.confirm()
     fixture.detectChanges()
-    expect(fixture.nativeElement.textContent).toContain('quiz est indisponible')
+    expect(fixture.nativeElement.textContent).toContain('Il n’y a rien ici')
     await component.selectDay(1)
     await component.openDoor()
     component.choice.set(0)
@@ -227,7 +477,7 @@ describe('AdventTest', () => {
       .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'unavailable' })))
     await component.confirm()
     fixture.detectChanges()
-    expect(fixture.nativeElement.textContent).toContain('quiz est indisponible')
+    expect(fixture.nativeElement.textContent).toContain('Il n’y a rien ici')
     expect(fixture.nativeElement.querySelector('mat-radio-group')).toBeNull()
   })
 
@@ -242,7 +492,7 @@ describe('AdventTest', () => {
     })
     await fixture.componentInstance.start()
     fixture.detectChanges()
-    expect(fixture.nativeElement.textContent).toContain('quiz est indisponible')
+    expect(fixture.nativeElement.textContent).toContain('Il n’y a rien ici')
     expect(fixture.componentInstance.selectedDay()).toBe(1)
     await fixture.componentInstance.selectDay(fixture.componentInstance.selectedDay())
     expect(String(vi.mocked(window.fetch).mock.calls.at(-1)?.[0])).toBe('/v1/advent/doors/1')
@@ -574,6 +824,22 @@ describe('AdventTest', () => {
     fixture.detectChanges()
     expect(component.unavailable()).toBe(false)
     expect(fixture.nativeElement.textContent).toContain('Bravo, tu as trouvé')
+  })
+
+  it.each(['2026-12-25', '2027-01-15'])('shows Christmas and the zero score without requiring participation on %s', async date => {
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ sessionId: 'fiction', testControls: false })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ date })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ result: null })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ priorityResult: null, ranking: { score: 0, rank: 1, entries: [] } })))
+    await fixture.componentInstance.start()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('Joyeux Noël')
+    expect(fixture.nativeElement.textContent).toContain('0 points')
+    expect(fixture.nativeElement.querySelector('.advent__santa')).not.toBeNull()
+    expect((fixture.nativeElement.querySelector('[aria-label="Voir le calendrier"]') as HTMLButtonElement).disabled).toBe(false)
+    expect(fixture.nativeElement.textContent).toContain('Voir le classement')
+    expect(fixture.nativeElement.querySelector('mat-radio-group')).toBeNull()
+    expect(fixture.nativeElement.querySelector('.advent__gift')).toBeNull()
   })
 
   it('shows Christmas after leaving an unavailable quiz', async () => {

@@ -3488,7 +3488,7 @@ As an eligible member testing the calendar, I want to open an available test doo
 
 As an eligible member, I want to select and confirm a single statement so that my answer is saved for the next day's reveal.
 
-**Clarification after completion:** Production answers remain final. The isolated test preview additionally allows a tester to erase and replay their own answer under the existing 25.2 safeguards, without changing other answers or rewinding the shared clock.
+**Clarification after completion:** Production answers remain final. The isolated test preview additionally allows a tester to erase and replay their own answer under the existing 25.2 safeguards, without changing other answers or rewinding the shared clock. **Later clarification in 25.5:** The no-catch-up rule in criterion 4 records the original delivery; an explicitly opened past unplayed quiz now accepts one late answer for zero points, immediately revealed and excluded from participation points, streak and ranking. A normal attempt still closes at Paris midnight.
 
 **Acceptance Criteria:**
 
@@ -3585,9 +3585,9 @@ As a member, I want to browse the calendar and revisit permitted content so that
 **Acceptance Criteria:**
 
 1. Show 24 numbered quiz cases and a 25 December case in a four-column ordered grid. Distinguish played, past unplayed, today, future locked and missing states accessibly, without exposing future content or relying on color alone.
-2. A played case before revelation provides only the neutral pending state. After revelation it provides the choice, false statement and points without allowing another answer or replaying celebration. An unplayed past quiz is read-only after its reveal, with portrait, anecdotes and false statement but no points or answer action.
-3. No past case can be answered. A future production case remains locked at both UI and API. An absent case shows “Il n’y a rien ici. Reviens plus tard !”; content published during its day becomes playable until midnight, and content published later is read-only after reveal.
-4. From 25 December through 15 January, eligible members can consult calendar and final ranking, even without playing. The 25 displays the Christmas message, personal score and decorative Santa and box according to UX; no quiz or automatic quiz opening occurs.
+2. A played case before revelation provides only the neutral pending state. After revelation it opens the same personal result screen with the choice, false statement and points, without another ordinary answer or replaying celebration. An unplayed past quiz opens the gift and quiz; the member is informed before confirming that the explicit late answer earns zero points.
+3. An unplayed past quiz accepts one explicit late answer, gives an immediate personal result, and persists it across devices; later openings show that result directly. The answer does not affect score, participation points, ranking or streak. Normal attempts waiting at Paris midnight remain closed; late play requires a distinct action and reservation. Future production cases remain locked at both UI and API. An absent case shows “Il n’y a rien ici. Reviens plus tard !”; content published during its day is playable normally until midnight, and content published later is playable once for zero points.
+4. From 25 December through 15 January, eligible members can consult calendar and final ranking, even without playing. The 25 displays the Christmas message, personal score and decorative Santa and box according to UX; no quiz for day 25 or automatic quiz opening occurs; earlier unanswered quizzes remain playable once for zero points.
 5. Verify case states and content permissions through direct API, URLs, cache and two accounts; meet keyboard, screen-reader, responsive, reduced-motion and Material 3 requirements.
 
 **Visual contract:** Apply the Advent visual foundation to calendar states, past content, missing content and the 25 December presentation; distinguish states without relying on color. Use the Advent DESIGN and EXPERIENCE contracts and architecture AD-7; test keyboard, accessible states, responsive rendering and isolation from HatCast.

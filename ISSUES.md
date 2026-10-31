@@ -53,6 +53,43 @@ human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
 
+### BUG-067 — Missing Advent cases resemble unplayed cases
+- **Status**: Corrected locally; awaiting human verification.
+- **Severity**: Low.
+- **Affected area**: Advent calendar.
+- **Observed behavior**: Missing content and past unplayed cases had the same visual treatment.
+- **Expected behavior**: The missing case has a visible symbol as well as its accessible label.
+
+### BUG-066 — Christmas score failure lacks recovery
+- **Status**: Corrected locally; awaiting human verification.
+- **Severity**: Medium.
+- **Affected area**: Advent calendar Christmas case.
+- **Observed behavior**: A failed score request after selecting the 25th closed the calendar without a clear retry.
+- **Expected behavior**: The calendar stays visible and offers a retry.
+
+### BUG-065 — Priority result hidden by calendar or ranking
+- **Status**: Corrected locally; awaiting human verification.
+- **Severity**: High.
+- **Affected area**: Advent priority revelation.
+- **Observed behavior**: If a priority result became available during navigation, the previous calendar or ranking view could remain visible above it.
+- **Expected behavior**: The priority result replaces the previous view before navigation continues.
+
+### BUG-064 — Advent test mutations fail through Tailscale Serve
+- **Status**: Corrected locally; awaiting human verification.
+- **Severity**: High for the local mobile test journey.
+- **Affected area**: Offline API CORS configuration and mobile test access via Tailscale Serve.
+- **Observed behavior**: On the HTTPS Tailscale origin without an explicit port, the answer reconciliation request returns 403 and the quiz reports that it cannot verify the answer. The equivalent request from localhost and the Tailscale origin on port 4200 succeeds.
+- **Expected behavior**: Authorized offline test requests work from the Tailscale Serve HTTPS origin, with existing authentication and CSRF protections.
+- **Notes/context**: The offline profile allowed only the Tailscale origin pattern with port 4200; the standard HTTPS port is now included. No production CORS configuration is changed.
+
+### BUG-063 — Played Advent doors resemble the current day
+- **Status**: Corrected locally; awaiting human verification.
+- **Severity**: Low.
+- **Affected area**: Advent calendar.
+- **Observed behavior**: Multiple played doors used the same dark green as the current day, making past played cases appear to be today when navigating simulated dates.
+- **Expected behavior**: Only the current day uses the dark green emphasis; earlier played doors retain their open shape and a distinct light treatment.
+- **Notes/context**: The current date is determined from the existing server-derived or authorized simulated date; a played current day remains identifiable as both played and today.
+
 ### BUG-062 — Advent quiz intermittently fails to load in development
 - **Status**: Mitigation implemented locally; root cause not established.
 - **Severity**: Undetermined.

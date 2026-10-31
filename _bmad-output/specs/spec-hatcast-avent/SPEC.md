@@ -23,10 +23,10 @@ Give La Malice members a surprise Christmas activity within HatCast: discover on
   - **success:** Access windows, automatic opening, daily dismissal, missing content and the priority of the most recent revealable unseen result follow FR-1, FR-2, FR-7 and FR-12 across devices.
 - **CAP-2**
   - **intent:** A member answers each available daily portrait quiz once and discovers a durable result after the reveal.
-  - **success:** One of three statements is confirmed on the quiz day; confirmations still waiting for the lock close at midnight, including retries and concurrent requests; result reads wait for an already-running transaction. The next midnight reveals the choice, false statement, correctness and points under FR-4–FR-7 and AD-3; before then no response, score or derived information reveals correctness or pending points.
+  - **success:** One of three statements is confirmed on the quiz day; normal confirmations still waiting for the lock close at midnight, including retries and concurrent requests. The next midnight reveals the choice, false statement, correctness and points; beforehand no response, score or derived information reveals correctness or pending points. A member can explicitly play an unplayed past quiz once for zero points and immediately see the personal result; its answer does not affect participation points, ranking or streak.
 - **CAP-3**
   - **intent:** Members explore the calendar and revisit played or discover missed content when permitted.
-  - **success:** The calendar has 24 quizzes and a 25 December presentation. Past unplayed content is read-only after reveal, future cases stay locked, and available results and missing content follow FR-9–FR-11 without catch-up answers.
+  - **success:** The calendar has 24 quizzes and a 25 December presentation. A past unplayed case opens the gift and quiz, then permits one explicit zero-point late answer with an immediate personal result. Played cases reopen the personal result without celebration. Future cases stay locked and missing content follows FR-9–FR-11.
 - **CAP-4**
   - **intent:** Members compare revealed progress in a friendly ranking and see their personal score.
   - **success:** All classable members appear from zero; ties receive the lowest rank of their group (1, 3, 3, 4). Patrice and Toinou see personal scores without ranking. Only revealed points count; the final ranking is available from 25 December through 15 January inclusive (FR-5, FR-8–FR-9, AD-4).
@@ -35,7 +35,7 @@ Give La Malice members a surprise Christmas activity within HatCast: discover on
   - **success:** Existing Spring reminders target 10:00 Europe/Paris on 1–24 December, checking availability and eligibility at actual execution; late or missed delivery is acceptable and no special recovery is added (FR-3, AD-5).
 - **CAP-6**
   - **intent:** Organizers publish consented content and safely test the experience before opening.
-  - **success:** Validated quizzes are prepared directly in the database by queries, only quiz content is transferred from development to production, and configured active troupe members on the dedicated tester allowlist test in isolated development using a shared simulated clock movable one day in either direction, future-case access and targeted reset (FR-11, FR-13, AD-2).
+  - **success:** Validated quizzes are prepared directly in the database by queries, only quiz content is transferred from development to production, and authorized verified operators test in isolated development using a per-tab simulated date movable one day in either direction, personal replay and targeted reset (FR-11, FR-13, AD-2).
 - **CAP-7**
   - **intent:** Organizers assess participation without exposing quiz content or mixing test and real play.
   - **success:** Two global totals distinguish distinct real players and recorded real answers; test data, anecdotes, choices and pending correctness and scores are excluded, with the database authoritative if telemetry is missed (AD-6).
@@ -44,8 +44,8 @@ Give La Malice members a surprise Christmas activity within HatCast: discover on
 
 - AD-7 binds visual isolation; AD-1–AD-6 are binding: API-enforced active membership, secrecy of future and pending content including derived scores and caches, isolated tests, durable shared state, ranking and retention, reminders and analytics.
 - Server-side Europe/Paris civil time governs 24 daily quizzes from 1–24 December. At the following midnight results are revealable; on 25 December the last result and final ranking are available, without another quiz. Member access ends at 00:00 on 16 January 2027.
-- A correct answer earns 10 points, an incorrect one 0; each recorded answer earns 1 participation point. Each non-overlapping group of three consecutive correct answers earns 2; an incorrect answer breaks the sequence, a missed day does not. Only revealed points appear in scores and rankings; maximum 280.
-- Development content is unrestricted for testing; protect personal data and private portraits used. Development and production use separate databases; only development provides test controls. A tester can erase and replay their own answer on a selected case, including past cases, without rewinding the shared clock or changing other members’ answers. The shared server clock can move one day forward or backward; answering a future case advances it to that day, using normal scoring and next-day reveal. A targeted reset clears the test game and clock to restart; production has no test mode. Verify actual December and January boundaries separately.
+- A correct answer given on the quiz day earns 10 points, an incorrect one 0; each answer given on that day earns 1 participation point. A late answer earns zero and does not affect the streak, participation points or ranking. Each non-overlapping group of three consecutive correct answers earns 2; an incorrect answer breaks the sequence, a missed day does not. Only revealed points appear in scores and rankings; maximum 280.
+- Development content is unrestricted for testing; protect personal data and private portraits used. Development and production use separate databases; only development provides test controls. A tester can erase and replay their own answer on a selected case, including past cases, without rewinding the shared clock or changing other members’ answers. Each authorized operator tab can simulate a date one day forward or backward without changing another tab’s date or the shared game. A targeted reset clears the test game and renews its session; production has no test mode. Verify actual December and January boundaries separately.
 - A result is marked seen only after its reveal screen is displayed and acknowledged by the client; simultaneous devices or a lost acknowledgment can cause repeat display (AD-3). Earlier unseen revealed results remain in their calendar cases without markers or automatic chaining.
 - Invitations reuse existing Spring scheduling and HatCast reminders without Advent-specific infrastructure, recovery or delivery guarantees.
 - Adopted DESIGN and EXPERIENCE govern the approved independent Advent visual identity, accessibility and interaction; Material 3 behaviors remain available within the isolated Advent theme. HatCast pages retain their own design system. The supplied boards are artistic references, not functional contracts or static UI; UX documents prevail for behavior.
@@ -54,7 +54,7 @@ Give La Malice members a surprise Christmas activity within HatCast: discover on
 ## Non-goals
 
 - A generic animation platform for other troupes or occasions, or an administration interface for content.
-- Catch-up answers, automated prize tie-breaking, speed bonuses, multiple answers or access to future quizzes in production.
+- Catch-up answers with points, automated prize tie-breaking, speed bonuses, multiple answers or access to future quizzes in production.
 - Advent-specific notification infrastructure or delivery guarantees.
 
 ## Success signal

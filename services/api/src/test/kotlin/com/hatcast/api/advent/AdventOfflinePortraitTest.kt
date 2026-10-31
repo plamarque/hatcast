@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.springframework.http.HttpStatus
@@ -20,6 +21,21 @@ import java.util.UUID
 
 class AdventOfflinePortraitTest {
     @TempDir lateinit var rootPath: Path
+
+    @Test fun `future door is rejected before any private portrait lookup`() {
+        val troupe = UUID.randomUUID()
+        val memberships = mock<TroupeMembershipService>()
+        val game = mock<AdventMemberGame>()
+        val clock = mock<AdventMemberClock>()
+        val root = mock<AdventOfflineRoot>()
+        val session = UUID.randomUUID()
+        val request = MockHttpServletRequest().apply { addHeader("X-Advent-Test-Session", session.toString()) }
+        whenever(game.quiz(24, session)).thenThrow(ResponseStatusException(HttpStatus.NOT_FOUND))
+        val env = MockEnvironment().withProperty("hatcast.advent.troupe-id", troupe.toString()).apply { setActiveProfiles("offline") }
+        val controller = AdventMemberController(env, memberships, game, clock, root)
+        assertEquals(404, assertThrows(ResponseStatusException::class.java) { controller.door(24, TestAuthSupport.testPrincipal(), request) }.statusCode.value())
+        verify(root, never()).worktreeRoot()
+    }
 
     @Test fun `prepared local portrait is served only after member authorization`() {
         val troupe = UUID.randomUUID()
