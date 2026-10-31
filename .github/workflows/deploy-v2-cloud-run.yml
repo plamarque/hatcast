@@ -229,6 +229,10 @@ jobs:
           HATCAST_MIGRATION_API_KEY: ${{ secrets.HATCAST_MIGRATION_API_KEY }}
           HATCAST_MIGRATION_OPERATOR_EMAIL: ${{ secrets.HATCAST_MIGRATION_OPERATOR_EMAIL }}
           TARGET_ENV: ${{ needs.classify-ref.outputs.target_env }}
+          ADVENT_TROUPE_ID: ${{ vars.HATCAST_ADVENT_TROUPE_ID }}
+          ADVENT_EXCLUDED_USER_IDS: ${{ vars.HATCAST_ADVENT_EXCLUDED_USER_IDS }}
+          ADVENT_CLOCK_OFFSET_SECONDS: ${{ vars.HATCAST_ADVENT_CLOCK_OFFSET_SECONDS }}
+          ADVENT_PRIVATE_PORTRAIT_BUCKET: ${{ vars.HATCAST_ADVENT_PRIVATE_PORTRAIT_BUCKET }}
         run: |
           set -euo pipefail
           ENV_FILE="${RUNNER_TEMP}/cloudrun-env.yaml"
@@ -307,6 +311,13 @@ jobs:
             if [ "${cf_ok}" = "false" ] && [ "${smtp_ok}" = "false" ]; then
               echo "::warning::HATCAST_NOTIFICATION_EMAIL_ENABLED=true but neither CLOUDFLARE_* (OPS-10) nor SPRING_MAIL_* complete — email send will be skipped (see DEPLOY_V2_CLOUD_RUN.md §7.6)"
             fi
+          fi
+          if [ "${TARGET_ENV}" = "development" ]; then
+            for key in ADVENT_TROUPE_ID ADVENT_EXCLUDED_USER_IDS ADVENT_CLOCK_OFFSET_SECONDS ADVENT_PRIVATE_PORTRAIT_BUCKET; do
+              if [ -n "${!key}" ]; then
+                append_env "HATCAST_${key}" "${!key}"
+              fi
+            done
           fi
           append_env JAVA_TOOL_OPTIONS -XX:MaxRAMPercentage=75.0
           MEMORY="1Gi"
