@@ -96,7 +96,7 @@ test('keyboard answers on a narrow enlarged screen with reduced motion', async (
   await expect(rankingButton).toBeVisible()
   await rankingButton.focus()
   await page.keyboard.press('Enter')
-  await expect(page.getByRole('heading', { name: 'Classement amical' })).toBeFocused()
+  await expect(page.getByRole('heading', { name: 'Classement des lutins' })).toBeFocused()
   await expect(page.locator('.advent__ranking')).toContainText('Rang 2 · Camille')
   await expect(page.locator('.advent__ranking')).toContainText('tous les points enregistrés')
   await expect(page.locator('.advent__ranking')).toContainText('Chaque groupe de trois bonnes réponses')

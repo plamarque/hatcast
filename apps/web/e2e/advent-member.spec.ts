@@ -34,7 +34,7 @@ test('member confirmation and ranking remain neutral and accessible', async ({ p
   await page.getByRole('button', { name: 'Confirmer ma réponse' }).click()
   await expect(page.locator('.advent__recorded')).not.toContainText(/bonne réponse|mauvaise réponse|points/i)
   await page.getByRole('button', { name: 'Voir le classement' }).click()
-  await expect(page.getByRole('heading', { name: 'Classement amical' })).toBeFocused()
+  await expect(page.getByRole('heading', { name: 'Classement des lutins' })).toBeFocused()
   await expect(page.locator('.advent__ranking')).toContainText('Ton score actuel : 0 points')
   await expect(page.locator('.advent__ranking')).not.toContainText('Mode test')
   for (const width of [320, 375, 430, 768, 1280]) {

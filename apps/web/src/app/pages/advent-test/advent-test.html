@@ -29,16 +29,16 @@
     @if (rankingOpen()) {
       @if (ranking(); as board) {
         <section class="advent__ranking" aria-labelledby="ranking-title">
-          <div class="advent__ranking-banner"><span aria-hidden="true">✦</span><h1 #rankingHeading id="ranking-title" tabindex="-1">Classement amical</h1><span aria-hidden="true">✦</span></div>
-          <p class="advent__ranking-summary">Ton score actuel : <strong>{{ board.score }} points</strong>@if (board.rank !== null) { · rang {{ board.rank }} } @else { · hors classement }</p>
-          @if (!memberMode) { <p class="advent__ranking-note">Mode test : tous les points enregistrés sont comptés, même avant la révélation.</p> }
+          <div class="advent__ranking-banner"><span aria-hidden="true">✦</span><h1 #rankingHeading id="ranking-title" tabindex="-1">Classement des lutins</h1><span aria-hidden="true">✦</span></div>
+          <p class="advent__ranking-summary">Ton score actuel : <strong>{{ board.score }} points</strong>@if (board.rank !== null) { · rang {{ board.rank }}@if (isTied(board, board.rank)) { ex æquo } } @else { · hors classement }</p>
+          @if (!memberMode) { <p class="advent__ranking-note">Mode test : tous les points enregistrés sont comptés, même avant la révélation.</p> } @else { <p class="advent__ranking-note">Les points apparaissent après la révélation, le lendemain.</p> }
           <ol class="advent__ranking-list">
             @for (entry of board.entries; track $index) {
-              <li [class.advent__ranking-me]="entry.mine"><span>Rang {{ entry.rank }} · {{ entry.name }}@if (entry.mine) { (toi) }</span><strong>{{ entry.score }} points</strong></li>
+              <li [class.advent__ranking-me]="entry.mine"><span>Rang {{ entry.rank }}@if (isTied(board, entry.rank)) { ex æquo } · {{ entry.name }}@if (entry.mine) { (toi) }</span><strong>{{ entry.score }} points</strong></li>
             }
           </ol>
           <div class="advent__ranking-legend"><h2>Comment gagner des points ?</h2>
-          <ul><li>Bonne réponse : 10 points ; mauvaise réponse : 0 point.</li><li>Chaque réponse rapporte 1 point de participation.</li><li>Chaque groupe de trois bonnes réponses consécutives rapporte 2 points. Une mauvaise réponse interrompt la série ; un jour sans réponse ne l’interrompt pas.</li><li>En cas d’égalité, chaque personne reçoit le rang le plus bas du groupe.</li></ul></div>
+          <ul><li>Pour chaque quiz auquel tu réponds, tu gagnes 1 point de participation, même si ta réponse est fausse.</li><li>Une bonne réponse rapporte 10 points supplémentaires.</li><li>Chaque groupe de trois bonnes réponses consécutives rapporte 2 points. Une mauvaise réponse interrompt la série ; un jour sans réponse ne l’interrompt pas.</li><li>En cas d’égalité, tout le monde partage le dernier rang du groupe : par exemple, deux personnes à égalité aux places 2 et 3 sont toutes les deux au rang 3.</li></ul></div>
           <button mat-stroked-button type="button" (click)="closeRanking(true)">Retour</button>
         </section>
       }

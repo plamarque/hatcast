@@ -117,11 +117,24 @@ describe('AdventTest', () => {
     expect(document.activeElement?.id).toBe('ranking-title')
     expect(fixture.nativeElement.textContent).toContain('tous les points enregistrés')
     expect(fixture.nativeElement.textContent).toContain('Rang 2 · Camille')
-    expect(fixture.nativeElement.textContent).toContain('Bonne réponse')
+    expect(fixture.nativeElement.textContent).toContain('même si ta réponse est fausse')
+    expect(fixture.nativeElement.textContent).toContain('10 points supplémentaires')
     fixture.componentInstance.closeRanking(true)
     fixture.detectChanges()
     await new Promise(resolve => setTimeout(resolve, 0))
     expect(document.activeElement?.textContent).toContain('Voir le classement')
+  })
+  it('identifies shared ranks without marking unique ranks as ties', () => {
+    fixture.componentInstance.ranking.set({ score: 0, rank: 3, entries: [
+      { name: 'Alex', score: 11, rank: 1, mine: false },
+      { name: 'Camille', score: 0, rank: 3, mine: true },
+      { name: 'Sophie', score: 0, rank: 3, mine: false },
+    ] })
+    fixture.componentInstance.rankingOpen.set(true)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('rang 3 ex æquo')
+    expect(fixture.nativeElement.textContent.replace(/\s+/g, ' ')).toContain('Rang 3 ex æquo · Camille')
+    expect(fixture.nativeElement.textContent).toContain('Rang 1 · Alex')
   })
   it('shows a newly eligible priority reveal before the ranking', async () => {
     fixture.componentInstance.quiz.set(fixture.componentInstance.preview())
@@ -805,7 +818,7 @@ describe('Advent member journey', () => {
     button.click()
     await fixture.whenStable()
     fixture.detectChanges()
-    expect(fixture.nativeElement.textContent).toContain('Classement amical')
+    expect(fixture.nativeElement.textContent).toContain('Classement des lutins')
     fixture.componentInstance.closeRanking(true)
     fixture.detectChanges()
     await new Promise(resolve => setTimeout(resolve, 0))
