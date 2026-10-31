@@ -331,15 +331,21 @@ Toute réponse disponible enregistrée pour un événement proposant des places 
 
 ### Réponses de test Avent
 
-Une réponse fictive confirmée est unique par membre et par jour. En test isolé, le membre peut effacer sa propre réponse et rejouer ce jour, même passé ; les scores et la série de ses réponses suivantes sont recalculés. Une bonne réponse vaut 10 points, une mauvaise 0, avec un point de participation ; chaque groupe de trois réponses correctes consécutives ajoute 2 points. Une mauvaise réponse remet la série à zéro ; un jour manqué ne la modifie pas. Avant minuit à Paris suivant le jour du quiz, seule une confirmation neutre est accessible. Le temps simulé partagé avance lors de la confirmation d’une case future ; les cases passées sans réponse préalable ne sont pas jouables.
+Une réponse fictive confirmée est unique par membre et par jour. En test isolé, le membre peut effacer sa propre réponse et rejouer ce jour, même passé ; les scores et la série de ses réponses suivantes sont recalculés. Une bonne réponse vaut 10 points, une mauvaise 0, avec un point de participation ; chaque groupe de trois réponses correctes consécutives ajoute 2 points. Une mauvaise réponse remet la série à zéro ; un jour manqué ne la modifie pas. Avant minuit à Paris suivant le jour du quiz, seule une confirmation neutre est accessible. Les cases futures et les cases passées sans réponse préalable ne sont pas jouables.
 
 
 The isolated Advent test session has a server-issued generation. A reset rotates it atomically with clearing test answers, streaks, replay and reservation state, and the simulated clock. Personal replay remains scoped to one member and day.
 
 Pour chaque réponse de test, le résultat devient révélable au début du jour suivant à Paris. Le vu est propre au membre et à la réponse ; rejouer crée une nouvelle réponse et un ancien accusé ne marque pas celle-ci comme vue. Les scores révélés comprennent 10 ou 0 points de réponse, un point de participation et deux points par groupe non chevauchant de trois bonnes réponses consécutives ; un jour manqué ne rompt pas la série.
 
-En mode test isolé, les flèches déplacent la date commune d’un jour en avant ou en arrière, sans effacer les réponses. Une réponse ne redevient visible comme résultat que lorsque la date simulée autorise sa révélation.
+En développement isolé, les flèches changent uniquement la date simulée de l’onglet opérateur, sans effacer les réponses ni modifier la date des autres membres. Une réponse ne redevient visible comme résultat que lorsque la date simulée autorise sa révélation.
 
 ### Advent quiz content
 
 A prepared quiz identifies a day, a display name, three ordered statements and the index of the false statement, with an optional private portrait reference and explanation. The explanation is disclosed only with an eligible result. Test game state is separate from quiz content. An exceptional edit during play may produce an inconsistent result.
+
+Dans le classement des deux opérateurs vérifiés en développement isolé, toutes les réponses enregistrées participent au score courant quelle que soit la date simulée ; les membres ordinaires voient seulement les réponses révélables. Les membres actifs classables sans réponse figurent avec zéro point ; les ex æquo obtiennent le dernier rang de leur groupe. Le score personnel des comptes exclus reste visible sans rang.
+
+### Réponses et classement membres Avent
+
+Une seule partie Avent est partagée par les membres dans chaque environnement. La réponse est unique par membre et jour ; une réponse ordinaire est confirmée le jour du quiz, sans rejeu. Son résultat devient révélable au début du jour suivant à Paris. Le classement ordinaire compte seulement les réponses révélables ; tous les membres actifs classables sont inclus, même à zéro, avec le dernier rang du groupe en cas d’égalité. Les deux identités configurées sont exclues de la liste mais conservent leur score personnel. En développement isolé uniquement, les deux opérateurs vérifiés peuvent rejouer leur propre réponse et réinitialiser explicitement la partie partagée ; leur classement inclut toutes les réponses enregistrées.

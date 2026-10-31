@@ -20,7 +20,7 @@ export function isValidInternalRedirectPath(path: string): boolean {
   }
 
   if (segments.length === 1) {
-    return ['agenda', 'avent-test', 'compte', 'seasons', 'troupes'].includes(segments[0])
+    return ['agenda', 'avent', 'compte', 'seasons', 'troupes'].includes(segments[0])
   }
 
   if (segments[0] === 'compte') {

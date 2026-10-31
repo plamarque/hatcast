@@ -8,6 +8,8 @@ const REQUEST_TIMEOUT_MS = 10_000
 
 interface AdventResult { answerId: string; day: number; selectedChoice: number; falseChoice: number; correct: boolean; responsePoints: number; participationPoints: number; bonusPoints: number; totalPoints: number; seen: boolean; explanation?: string | null }
 
+interface AdventRanking { score: number; rank: number | null; entries: { name: string; score: number; rank: number; mine: boolean }[] }
+
 interface FictionalQuiz { day: number; name: string; portrait: string; statements: string[]; genericElf: boolean }
 
 @Component({
@@ -18,10 +20,25 @@ interface FictionalQuiz { day: number; name: string; portrait: string; statement
   styleUrls: ['./advent-test.scss', './advent-result.scss'],
 })
 export class AdventTest {
+  readonly testControls = signal(false)
+  readonly resetConfirm = signal(false)
+  get memberMode(): boolean { return !this.testControls() }
+  private readonly api = '/v1/advent'
+  readonly ranking = signal<AdventRanking | null>(null)
+  readonly rankingOpen = signal(false)
+  readonly rankingError = signal(false)
+  @ViewChild('rankingButton', { read: ElementRef }) private rankingButton?: ElementRef<HTMLElement>
+  @ViewChild('rankingHeading') private rankingHeading?: ElementRef<HTMLElement>
   readonly result = signal<AdventResult | null>(null)
   readonly resultContent = signal<FictionalQuiz | null>(null)
   readonly clockDate = signal<string | null>(null)
+  private readonly simulatedDate = signal<string | null>(null)
   simulatedDay(): number | null { const date = this.clockDate(); return date ? Number(date.slice(-2)) : null }
+  simulatedDateLabel(short = false): string {
+    const date = this.clockDate()
+    if (!date) return 'Jour simulé non disponible'
+    return new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: short ? 'short' : 'long', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`))
+  }
   readonly selectedDay = signal(1)
   readonly preview = signal<FictionalQuiz | null>(null)
   readonly loading = signal(false)
@@ -54,13 +71,23 @@ export class AdventTest {
   }
 
   async start(): Promise<void> {
+    this.rankingOpen.set(false)
+    this.ranking.set(null)
+    this.rankingError.set(false)
     this.loading.set(true)
     this.error.set(false)
     this.sessionChanged.set(false)
     this.transitionRequired.set(false)
     this.unavailable.set(false)
+    this.clearVisibilityListener()
+    this.result.set(null); this.resultContent.set(null); this.quiz.set(null); this.preview.set(null)
+    this.generation = null; this.replayToken = null; this.choice.set(null)
+    this.clockDate.set(null)
+    this.simulatedDate.set(null)
     try {
-      const session = await this.requestJson<{ sessionId: string; transitionRequired?: boolean }>('/v1/advent-test/session', { credentials: 'include', cache: 'no-store' })
+      const session = await this.requestJson<{ testControls: boolean; sessionId: string; transitionRequired?: boolean }>('/v1/advent/session', { credentials: 'include', cache: 'no-store' })
+      if (!session.sessionId) throw new Error('Invalid session')
+      this.testControls.set(session.testControls === true)
       this.sessionId = session.sessionId
       if (session.transitionRequired) { this.transitionRequired.set(true); this.loading.set(false); return }
       const clock = await this.requestJson<{ date: string }>('/v1/advent-test/clock', { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
@@ -70,17 +97,17 @@ export class AdventTest {
 
   private async showResult(result: AdventResult): Promise<void> {
     this.selectedDay.set(result.day)
-    const content = await this.requestJson<FictionalQuiz | null>(`/v1/advent-test/doors/${result.day}`, { credentials: 'include', cache: 'no-store' }, true)
+    const content = await this.requestJson<FictionalQuiz | null>(`/v1/advent-test/doors/${result.day}`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() }, true)
     if (!content) { this.showUnavailable(); return }
     // Fence the content fetch and bind the replay token to the same answer.
     const state = await this.requestJson<{ status: string; replayToken?: string }>(`/v1/advent-test/doors/${result.day}/answer`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
     const current = await this.requestJson<AdventResult | null>(`/v1/advent-test/doors/${result.day}/result`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() }, true)
     if (state.status === 'unavailable' || !current) { this.showUnavailable(); return }
-    if (state.status !== 'recorded' || !state.replayToken || current.answerId !== result.answerId) throw new Error('Result changed')
+    if (state.status !== 'recorded' || (!this.memberMode && !state.replayToken) || current.answerId !== result.answerId) throw new Error('Result changed')
     this.clearVisibilityListener()
     this.selectedDay.set(result.day)
     this.quiz.set(null)
-    this.replayToken = state.replayToken
+    this.replayToken = state.replayToken ?? null
     this.answerState.set('recorded')
     this.resultContent.set(content)
     this.unavailable.set(false)
@@ -99,7 +126,7 @@ export class AdventTest {
           return
         }
         heading.focus()
-        void fetch(`/v1/advent-test/doors/${result.day}/result/acknowledge`, { method: 'POST', credentials: 'include', cache: 'no-store', headers: { ...this.csrfHeaders(), ...this.sessionHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({ answerId: result.answerId }) }).then(response => { if (response.status === 409) { this.sessionChanged.set(true); this.error.set(true) } }).catch(() => {})
+        void fetch(`${this.api}/doors/${result.day}/result/acknowledge`, { method: 'POST', credentials: 'include', cache: 'no-store', headers: { ...this.csrfHeaders(), ...this.sessionHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({ answerId: result.answerId }) }).then(response => { if (response.status === 409) { this.sessionChanged.set(true); this.error.set(true) } }).catch(() => {})
       }))
     }
     if (document.visibilityState === 'visible') display()
@@ -108,6 +135,11 @@ export class AdventTest {
 
   /** Re-enter at a simulated date, giving any eligible unseen reveal priority. */
   private async enterAt(date: string): Promise<void> {
+    this.closeRanking()
+    this.clearVisibilityListener()
+    this.result.set(null); this.resultContent.set(null); this.quiz.set(null); this.preview.set(null)
+    this.generation = null; this.replayToken = null; this.choice.set(null)
+    this.unavailable.set(false)
     this.clockDate.set(date)
     const latest = await this.requestJson<{ result: AdventResult | null }>('/v1/advent-test/results/latest-unseen', { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
     if (latest.result) {
@@ -123,14 +155,62 @@ export class AdventTest {
     }
   }
 
-  async advanceClock(): Promise<void> {
-    if (this.loading() || this.submitting()) return
+  finalRankingAvailable(): boolean {
+    const date = this.clockDate()
+    return date !== null && date >= '2026-12-25' && date <= '2027-01-15'
+  }
+
+  async openRanking(): Promise<void> {
+    if (this.loading() || this.submitting() || this.result() || this.sessionChanged() || (!this.finalRankingAvailable() && (!this.quiz() || this.answerState() !== 'recorded'))) return
+    this.loading.set(true)
+    this.error.set(false)
+    this.rankingError.set(false)
+    try {
+      const response = await this.requestJson<{ ranking: AdventRanking | null; priorityResult: AdventResult | null }>('/v1/advent-test/ranking', { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
+      if (response.priorityResult) { await this.showResult(response.priorityResult); return }
+      if (!response.ranking) throw new Error('Ranking unavailable')
+      this.ranking.set(response.ranking)
+      this.rankingOpen.set(true)
+      setTimeout(() => this.rankingHeading?.nativeElement.focus())
+    } catch { this.rankingError.set(true) }
+    finally { this.loading.set(false) }
+  }
+
+  closeRanking(restoreFocus = false): void {
+    this.rankingOpen.set(false)
+    this.ranking.set(null)
+    if (restoreFocus) setTimeout(() => this.rankingButton?.nativeElement.focus())
+  }
+
+  async resetGame(): Promise<void> {
+    if (!this.testControls() || !this.resetConfirm() || this.loading() || this.submitting()) return
     this.loading.set(true)
     this.error.set(false)
     try {
-      const clock = await this.requestJson<{ date: string }>('/v1/advent-test/clock/next-day', { method: 'POST', credentials: 'include', cache: 'no-store', headers: { ...this.csrfHeaders(), ...this.sessionHeaders() } })
-      await this.enterAt(clock.date)
+      const response = await fetch(`${this.api}/session/reset`, { method: 'POST', credentials: 'include', cache: 'no-store', headers: { ...this.csrfHeaders(), ...this.sessionHeaders() } })
+      if (!response.ok) throw new Error('Reset failed')
+      this.resetConfirm.set(false)
+      await this.start()
     } catch { this.error.set(true); this.loading.set(false) }
+  }
+
+  private shiftedDate(days: number): string | null {
+    const current = this.clockDate()
+    if (!current) return null
+    const date = new Date(`${current}T00:00:00Z`)
+    date.setUTCDate(date.getUTCDate() + days)
+    const target = date.toISOString().slice(0, 10)
+    return target >= '2026-12-01' && target <= '2027-01-15' ? target : null
+  }
+
+  async advanceClock(): Promise<void> {
+    const target = this.shiftedDate(1)
+    if (!this.testControls() || !target || this.loading() || this.submitting()) return
+    this.loading.set(true)
+    this.error.set(false)
+    this.simulatedDate.set(target)
+    try { await this.enterAt(target) }
+    catch { this.error.set(true); this.loading.set(false) }
   }
 
   async continueAfterResult(): Promise<void> {
@@ -138,7 +218,7 @@ export class AdventTest {
     this.loading.set(true)
     this.error.set(false)
     try {
-      // Another tester may have advanced the shared clock while the result was displayed.
+      // Refresh the server reference using this tab’s simulation context.
       const clock = await this.requestJson<{ date: string }>('/v1/advent-test/clock', { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
       this.clockDate.set(clock.date)
       this.quiz.set(null)
@@ -176,15 +256,12 @@ export class AdventTest {
     this.error.set(false)
     this.sessionChanged.set(false)
     try {
-      const content = await this.requestJson<FictionalQuiz | null>(`/v1/advent-test/doors/${day}`, { credentials: 'include', cache: 'no-store' }, true)
+      const content = await this.requestJson<FictionalQuiz | null>(`/v1/advent-test/doors/${day}`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() }, true)
       if (!content) { this.showUnavailable(); return }
-      const session = await this.requestJson<{ sessionId: string }>('/v1/advent-test/session', { credentials: 'include', cache: 'no-store' })
-      if (!session.sessionId) throw new Error('Invalid session')
-      this.sessionId = session.sessionId
       const state = await this.requestJson<{ status: 'available' | 'recorded' | 'closed' | 'unavailable'; replayToken?: string }>(`/v1/advent-test/doors/${day}/answer`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
       if (state.status === 'unavailable') { this.showUnavailable(); return }
       if (!['available', 'recorded', 'closed'].includes(state.status)) throw new Error('Invalid state')
-      if (state.status === 'recorded' && !state.replayToken) throw new Error('Invalid state')
+      if (!this.memberMode && state.status === 'recorded' && !state.replayToken) throw new Error('Invalid state')
       this.preview.set(content)
       if (state.status === 'recorded') {
         const result = await this.requestJson<AdventResult | null>(`/v1/advent-test/doors/${day}/result`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() }, true)
@@ -192,32 +269,40 @@ export class AdventTest {
           await this.showResult(result)
           return
         }
-        this.replayToken = state.replayToken!
+        this.replayToken = state.replayToken ?? null
         this.answerState.set('recorded')
         this.quiz.set(content)
       }
     } catch {
+      this.preview.set(null)
       this.error.set(true)
     } finally {
       this.loading.set(false)
     }
   }
 
-  async previousDay(): Promise<void> {
-    if (this.loading() || this.submitting() || (this.quiz() && this.answerState() === 'checking')) return
+  async retryEntry(): Promise<void> {
+    const target = this.simulatedDate()
+    if (!target || this.sessionChanged()) { await this.start(); return }
+    if (this.loading() || this.submitting()) return
     this.loading.set(true)
     this.error.set(false)
-    try {
-      const clock = await this.requestJson<{ date: string }>('/v1/advent-test/clock/previous-day', { method: 'POST', credentials: 'include', cache: 'no-store', headers: { ...this.csrfHeaders(), ...this.sessionHeaders() } })
-      await this.enterAt(clock.date)
-    } catch {
-      this.error.set(true)
-      this.loading.set(false)
-    }
+    try { await this.enterAt(target) }
+    catch { this.error.set(true); this.loading.set(false) }
+  }
+
+  async previousDay(): Promise<void> {
+    const target = this.shiftedDate(-1)
+    if (!this.testControls() || !target || this.loading() || this.submitting() || (this.quiz() && this.answerState() === 'checking')) return
+    this.loading.set(true)
+    this.error.set(false)
+    this.simulatedDate.set(target)
+    try { await this.enterAt(target) }
+    catch { this.error.set(true); this.loading.set(false) }
   }
 
   async nextDay(): Promise<void> {
-    if ((this.clockDate() ?? '') >= '2026-12-25') return
+    if ((this.clockDate() ?? '') >= '2027-01-15') return
     await this.advanceClock()
   }
 
@@ -238,7 +323,7 @@ export class AdventTest {
       if (data.status === 'unavailable') { this.showUnavailable(); return }
       if (!['available', 'recorded', 'closed'].includes(data.status)) throw new Error('Invalid state')
       if (data.status === 'available' && !data.generation) throw new Error('Invalid state')
-      if (data.status === 'recorded' && !data.replayToken) throw new Error('Invalid state')
+      if (!this.memberMode && data.status === 'recorded' && !data.replayToken) throw new Error('Invalid state')
       this.generation = data.generation ?? null
       this.replayToken = data.replayToken ?? null
       this.answerState.set(data.status)
@@ -280,7 +365,7 @@ export class AdventTest {
         method: 'POST', credentials: 'include', cache: 'no-store', headers, body: JSON.stringify({ attemptId, generation: this.generation }),
       })
       if (reserved.status === 'unavailable') { this.showUnavailable(); return }
-      if (reserved.status === 'recorded') { if (!reserved.replayToken) throw new Error('Invalid state'); this.replayToken = reserved.replayToken; this.answerState.set('recorded'); return }
+      if (reserved.status === 'recorded') { if (!this.memberMode && !reserved.replayToken) throw new Error('Invalid state'); this.replayToken = reserved.replayToken ?? null; this.answerState.set('recorded'); return }
       if (reserved.status === 'closed') { this.answerState.set('closed'); return }
       if (reserved.status !== 'available') throw new Error('Uncertain')
       const data = await this.requestJson<{ status: 'recorded' | 'closed' | 'unavailable'; replayToken?: string }>(url, {
@@ -288,7 +373,7 @@ export class AdventTest {
       })
       if (data.status === 'unavailable') { this.showUnavailable(); return }
       if (data.status !== 'recorded' && data.status !== 'closed') throw new Error('Uncertain')
-      if (data.status === 'recorded' && !data.replayToken) throw new Error('Invalid state')
+      if (!this.memberMode && data.status === 'recorded' && !data.replayToken) throw new Error('Invalid state')
       this.replayToken = data.replayToken ?? null
       this.answerState.set(data.status)
     } catch {
@@ -310,7 +395,7 @@ export class AdventTest {
     try {
       return await Promise.race([
         (async () => {
-          const response = await fetch(url, { ...options, signal: controller.signal })
+          const response = await fetch(url.replace('/v1/advent-test', this.api), { ...options, signal: controller.signal })
           if (response.status === 409) {
             this.sessionChanged.set(true)
             this.generation = null
@@ -326,7 +411,10 @@ export class AdventTest {
   }
 
   private sessionHeaders(): Record<string, string> {
-    return this.sessionId ? { 'X-Advent-Test-Session': this.sessionId } : {}
+    return {
+      ...(this.sessionId ? { 'X-Advent-Test-Session': this.sessionId } : {}),
+      ...(this.testControls() && this.simulatedDate() ? { 'X-Advent-Simulated-Date': this.simulatedDate()! } : {}),
+    }
   }
 
   private csrfHeaders(): Record<string, string> {

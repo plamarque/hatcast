@@ -110,13 +110,16 @@ Pour activer l’aperçu Avent dans ce seul environnement isolé, fournir les va
 
 ```bash
 HATCAST_ADVENT_TEST_ENABLED=true \
-HATCAST_ADVENT_TEST_TROUPE_ID=a0000001-0000-4000-8000-000000000001 \
+HATCAST_ADVENT_TROUPE_ID=a0000001-0000-4000-8000-000000000001 \
+HATCAST_ADVENT_EXCLUDED_USER_IDS="$ADVENT_DEMO_EXCLUDED_IDS" \
+HATCAST_ADVENT_TEST_ALLOWED_EMAILS="$ADVENT_DEMO_OPERATOR_EMAILS" \
+HATCAST_ADVENT_CLOCK_OFFSET_SECONDS="$ADVENT_DEMO_OFFSET_SECONDS" \
 ./scripts/start-dev.sh --offline
 ```
 
-Les jours 1 à 24 sont disponibles lorsqu’un quiz valide a été préparé en base. Les flèches avancent ou reculent l’horloge simulée commune d’un jour, sans effacer les réponses ; le résultat révélable non vu le plus récent est prioritaire. Seul le reset ciblé redémarre la partie et l’horloge. Les portraits facultatifs sont placés localement dans `.local/hatcast-avent-test/` et sélectionnés par la référence privée du quiz ; en leur absence, l’API renvoie le lutin générique. Préparer le contenu selon [la procédure du catalogue](docs/v2/technical/AVENT_CATALOGUE.md).
+Le quiz du jour est disponible lorsqu’un quiz valide a été préparé en base. Les flèches avancent ou reculent la date simulée propre à l’onglet opérateur, sans écriture de date en base ni effet sur les autres membres ; le résultat révélable non vu le plus récent est prioritaire. Le reset ciblé redémarre la partie. La démonstration locale utilise le catalogue préparé et les portraits locaux privés ; en leur absence les fixtures fictives et le lutin générique peuvent être utilisés. Préparer le contenu selon [la procédure du catalogue](docs/v2/technical/AVENT_CATALOGUE.md).
 
-Cet UUID correspond à la troupe seed **Les Improbots** ; utiliser un compte seed membre actif de cette troupe. La route directe `/avent-test` donne accès à l’aperçu incomplet et aux quiz préparés en base avec confirmation, révélation différée et rejeu personnel. Le résultat non vu le plus récent est présenté en priorité ; une interruption avant l’accusé peut conduire à le revoir. Le classement et le calendrier complet ne sont pas inclus. La base H2 doit rester dans le répertoire hors ligne du worktree, sans lien symbolique sur `.local`, `hatcast-offline` ou le fichier de base. Ne proposer aucune démonstration humaine avant d’avoir vérifié l’isolation effective des données, des notifications et de l’analytics.
+Cet UUID correspond à la troupe seed **Les Improbots** ; utiliser un compte seed membre actif de cette troupe. La route directe `/avent` donne accès à la partie commune avec confirmation et révélation différée ; `/avent-test` redirige vers cette route. Les deux opérateurs vérifiés ont le rejeu personnel. Le résultat non vu le plus récent est présenté en priorité ; une interruption avant l’accusé peut conduire à le revoir. Le classement de test inclut toutes les réponses enregistrées, même non révélées, et peut donc donner un indice sur les points en attente. Le calendrier complet et l’entrée automatique ne sont pas inclus ; les opérateurs et membres ordinaires partagent le même état et la même route. La base H2 doit rester dans le répertoire hors ligne du worktree, sans lien symbolique sur `.local`, `hatcast-offline` ou le fichier de base. Ne proposer aucune démonstration humaine avant d’avoir vérifié l’isolation effective des données, des notifications et de l’analytics.
 
 - Connexion : `/connexion` avec un compte seed `@seed.improbots.test` (ex. `charlene@seed.improbots.test` / `charlene`, ou `patrice@seed.improbots.test` / `patricep` si slug < 8 caractères) — voir § Les Improbots ci-dessous.
 - **Indisponible offline** : Google OAuth, Identity Platform (email réel), Neon, `--with-push`, Tailscale (désactivé automatiquement).
@@ -296,32 +299,22 @@ Commit messages must follow the [Commit Message Guidelines](docs/shared/technica
 
 - No shared lint/format script was observed in package.json. Use editor/IDE defaults or add eslint/prettier and wire scripts in a later slice (see PLAN.md). Do not disable or skip tests to satisfy a linter.
 
-Le mode de prévisualisation Avent vérifie également `HATCAST_ADVENT_TEST_ALLOWED_EMAILS`, liste d’adresses de test séparées par des virgules ; une liste absente refuse tout accès. Elle ne confère aucun rôle d’administration.
+### Réinitialiser la partie Avent de développement
 
-
-### Restart the isolated Advent test session
-
-Use only an isolated development instance. The cloud development instance permits the designated operator; offline requires `hatcast.advent-test.enabled=true`, an isolated worktree H2 database, an active configured troupe membership, a verified allowlisted email, and `hatcast.advent-test.operator-email` equal to that operator's email. Production and unverified database/profile combinations reject the endpoint. Never point this procedure at production.
-
-Sign in as the operator. With the browser's authenticated session, obtain `sessionId` using `GET /v1/advent-test/session`, then send `POST /v1/advent-test/session/reset` with `X-Advent-Test-Session: <sessionId>` and the usual CSRF cookie/header. For example, from the signed-in preview's browser console:
-
-```js
-const { sessionId } = await (await fetch('/v1/advent-test/session', { cache: 'no-store' })).json()
-const csrf = decodeURIComponent(document.cookie.split('; ').find(x => x.startsWith('XSRF-TOKEN='))?.slice('XSRF-TOKEN='.length) ?? '')
-const result = await fetch('/v1/advent-test/session/reset', { method: 'POST', headers: { 'X-Advent-Test-Session': sessionId, 'X-XSRF-TOKEN': csrf } })
-console.log(result.status)
-```
-
-Only HTTP 200 confirms success. This resets the shared test game for all testers: answers, scores/streaks, replay and attempt/generation records, clock advances and the simulated clock. Quiz content, users and other data are retained. If migration detected existing fictional test answers or other test-game state, this explicit operator reset is required before the database-backed preview can be used. A stale session returns 409; reload clients to acquire the new session. Personal replay and navigating to day 1 do not reset the shared clock.
-
-Verify the response and obtain a new session ID; reload the preview, confirm a new answer and check that the test clock starts again at day 1 and prior answers are absent. Verify real Paris date boundaries separately using the date-rule tests; simulated time is not production time. The reset sends no notifications or analytics. Do not run this operation against production.
-
-Les quiz de l’aperçu sont lus dans `advent_quizzes` ; la migration ne fournit aucun contenu. Préparation et promotion sélective : [catalogue privé](docs/v2/technical/AVENT_CATALOGUE.md). Le reset conserve ces quiz.
+Cette action est réservée aux deux opérateurs vérifiés sur une instance de développement isolée. Dans `/avent`, sélectionner « Réinitialiser la partie de développement » puis confirmer. La commande efface les réponses et tentatives de tous les membres de la partie commune sans modifier le décalage de base configuré. Elle conserve les quiz, les utilisateurs et les anciennes tables `advent_test_*`. Une ancienne session reçoit une erreur 409 et doit être rechargée. La production refuse ces commandes. Vérifier séparément les frontières de date réelles.
 
 ### Données fictives Avent pour la recette hors ligne
 
-Au démarrage avec les seuls profils `offline` ou `dev,offline`, l’API vérifie que la connexion effective est la base H2 fichier du worktree dans `.local/hatcast-offline/hatcast`, sans liens symboliques sur les répertoires et le fichier de base. Elle prépare les jours 2 à 24 manquants avec des quiz clairement fictifs et variés dont les positions de réponse fausse diffèrent ; elle ne modifie ni un quiz existant ni une réponse. Un jour qui a déjà une réponse mais pas de quiz reste absent pour éviter d’associer une ancienne réponse à un nouveau contenu. Ce remplissage est rejoué aux démarrages suivants et n’est pas activé pour les profils cloud ou dev seul. Ces quiz ne sont pas des contributions validées et ne doivent jamais être promus.
+La base H2 isolée utilise le catalogue `advent_quizzes` et, après autorisation, les portraits privés de `.local/hatcast-avent-test/`. Les fixtures ne créent un quiz fictif que si le jour est absent et ne possède aucune réponse historique de l’un ou l’autre jeu ; elles ne modifient aucun quiz existant. Les anciennes réponses de test restent conservées séparément, sans fusion automatique. Les portraits de production restent dans le bucket privé autorisé.
 
-Le jour 1 est préparé séparément à partir de la contribution privée validée de Patrice, sans copier son contenu dans Git ou les journaux ; voir [la procédure du catalogue](docs/v2/technical/AVENT_CATALOGUE.md#recette-hors-ligne). Le portrait reste dans `.local/hatcast-avent-test/` et l’API l’autorise avant de le servir. Si un ancien état de jeu est signalé à la migration, seul le reset ciblé autorisé décrit ci-dessus peut libérer la transition.
+Pour le classement et la capacité opérateur, configurer `HATCAST_ADVENT_EXCLUDED_USER_IDS` avec exactement deux UUID `users.id` distincts, séparés par une virgule, correspondant aux deux comptes exclus dans la base isolée utilisée. Identifier ces comptes à partir des identités vérifiées, puis relever leurs UUID dans cette base ; ne pas utiliser les identifiants d’une autre base ni les comptes fictifs comme équivalents des comptes réels. Aucun UUID réel n’est fourni dans le dépôt. Une configuration absente, mal formée ou correspondant à des comptes inexistants rend le classement indisponible ; elle n’empêche pas les quiz ni la révélation. Pour une recette avec fixtures, créer deux comptes fictifs et configurer leurs UUID propres à cette base.
 
-En recette hors ligne, les quiz fictifs des jours 2, 3, 9 et 10 utilisent respectivement les portraits privés d’Antoine, Camille, Will et Angie lorsqu’ils sont disponibles ; sinon le portrait générique est utilisé. Les affirmations restent fictives. Les fichiers des portraits restent hors Git.
+### Démonstration locale du parcours membre Avent
+
+Dans le worktree isolé, définir `HATCAST_ADVENT_TROUPE_ID` pour la troupe seed, `HATCAST_ADVENT_EXCLUDED_USER_IDS` pour deux UUID distincts de comptes fictifs de cette base, et `HATCAST_ADVENT_CLOCK_OFFSET_SECONDS` pour amener l’horloge Avent à une date de décembre 2026. Démarrer ensuite `./scripts/start-dev.sh --offline` et ouvrir `/avent` avec un membre actif. Le décalage est une configuration d’opérateur, pas une commande membre. La base H2 doit être celle du worktree, sans liens symboliques ; pour une démonstration jetable, utiliser uniquement des quiz et portraits fictifs. Le reset explicite de développement efface les réponses de cette partie commune ; les anciennes tables de test restent conservées sans fusion.
+
+Pour un environnement non local, configurer explicitement `HATCAST_ADVENT_TROUPE_ID`, `HATCAST_ADVENT_EXCLUDED_USER_IDS` et, si des portraits existent, `HATCAST_ADVENT_PRIVATE_PORTRAIT_BUCKET`. Les identités exclues doivent être les UUID vérifiés dans la base concernée ; aucune valeur réelle n’est fournie dans le dépôt. Sans cette configuration, l’accès ou le classement échoue fermé. Le décalage est refusé en environnement non vérifié et ignoré en production. Ne pas déployer ni modifier de données distantes au titre de cette recette.
+
+### Transition locale vers la partie Avent commune
+
+Avant d’utiliser cette version sur une base hors ligne existante, arrêter son API et conserver une copie de sauvegarde de son fichier H2 dans un emplacement privé. La migration est additive : les réponses `advent_member_*` deviennent la partie commune ; les anciennes réponses `advent_test_*` et les quiz de chaque jeu restent présents et ne sont ni copiés ni fusionnés. Vérifier les identités et la base cible avant toute action de reset : cette commande efface les réponses de la partie commune pour tous ses membres, sans toucher aux anciennes réponses de test ni aux quiz. Une restauration de la sauvegarde requiert l’arrêt de l’API et perdrait les réponses créées après cette sauvegarde ; les conserver séparément avant toute restauration. Si une ancienne réponse membre est liée à un quiz fictif différent du catalogue ou à un quiz manquant, la migration marque ce jour comme ambigu et l’API refuse son contenu et le classement en offline : conserver les données et décider explicitement de leur rapprochement avant toute correction. Aucun reset ou migration de données distantes n’est effectué automatiquement.

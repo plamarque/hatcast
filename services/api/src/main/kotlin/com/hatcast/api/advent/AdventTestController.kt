@@ -139,6 +139,24 @@ class AdventTestController(
         answers.acknowledge(principal.userId, day, body.answerId ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), request.getAttribute("hatcast.advent.received-at") as? Instant ?: Instant.now())
     }
 
+    @GetMapping("/ranking")
+    @Transactional
+    fun ranking(@AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AdventRankingResponse {
+        val cloud = authorize(principal, request)
+        answers.requireSession(sessionHeader(request))
+        answers.requireContentReady()
+        val troupe = if (cloud) UUID.fromString("8712db65-f7f8-4ffe-8ecd-f0d36be3e123") else
+            UUID.fromString(environment.getProperty("hatcast.advent-test.troupe-id")!!)
+        val receipt = request.getAttribute("hatcast.advent.received-at") as? Instant ?: Instant.now()
+        val priority = answers.latestUnseen(principal.userId, receipt)
+        if (priority != null) return AdventRankingResponse(priorityResult = priority)
+        val excludedIds = try {
+            environment.getProperty("hatcast.advent-test.excluded-user-ids", "")
+                .split(',').map { UUID.fromString(it.trim()) }.toSet()
+        } catch (_: IllegalArgumentException) { throw ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE) }
+        return AdventRankingResponse(ranking = answers.testRanking(principal.userId, troupe, receipt, excludedIds))
+    }
+
     @GetMapping("/clock")
     @Transactional
     fun clock(@AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): Map<String, String> {
@@ -256,3 +274,5 @@ class AdventOfflineRoot {
 }
 
 data class AcknowledgeResult(val answerId: UUID?)
+
+data class AdventRankingResponse(val ranking: AdventRanking? = null, val priorityResult: AdventResult? = null)

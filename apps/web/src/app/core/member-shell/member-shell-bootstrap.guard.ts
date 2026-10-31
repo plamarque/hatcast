@@ -14,7 +14,7 @@ export const memberShellBootstrapGuard: CanActivateFn = async (_route, state) =>
     return true
   }
 
-  if (state.url.split(/[?#]/)[0] === '/avent-test') {
+  if (state.url.split(/[?#]/)[0] === '/avent') {
     rememberPendingPostLoginRedirect(state.url)
   } else {
     rememberCurrentUrlForPostLogin(router)

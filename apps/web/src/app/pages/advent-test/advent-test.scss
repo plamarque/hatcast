@@ -48,6 +48,9 @@
 .advent__test-actions button { color: var(--hatcast-avent-green) !important; }
 
 
+/* Common panel tokens are emitted once for the Advent surfaces. */
+.advent__state, .advent__recorded-panel, .advent__ranking-banner, .advent__ranking-list, .advent__ranking-legend { @include advent.panel; }
+
 /* The Advent identity is inherited only within this feature's root. */
 .advent {
   @include advent.foundation;
@@ -77,7 +80,7 @@
 }
 .advent__options mat-radio-button:focus-within { outline: 3px solid var(--hatcast-avent-green); outline-offset: 2px; }
 .advent__quiz button[mat-flat-button] { min-height: 3.5rem; width: 100%; font: 700 1.125rem var(--advent-body-font); border-radius: 1rem; box-shadow: 0 .25rem .5rem var(--advent-shadow); }
-.advent__state { @include advent.panel; padding: 1rem; text-align: center; font-weight: 700; color: var(--advent-text); }
+.advent__state { padding: 1rem; text-align: center; font-weight: 700; color: var(--advent-text); }
 .advent__feedback { padding: 1rem; border: 2px solid var(--hatcast-avent-red); border-radius: 1rem; background: var(--hatcast-avent-white); color: var(--advent-error); }
 
 .advent__recorded-stars { color: var(--advent-gold-ink); font-size: 1.5rem; }
@@ -107,7 +110,7 @@
 .advent__recorded { margin: 1rem 0; }
 .advent__recorded:focus-visible { outline: 3px solid var(--advent-focus); outline-offset: 4px; }
 
-.advent__recorded-panel { @include advent.panel; position: relative; padding: 1rem .5rem; }
+.advent__recorded-panel { position: relative; padding: 1rem .5rem; }
 
 .advent__reveal { text-align: center; }
 .advent__confetti { font-size: 2rem; animation: advent-confetti 1.4s ease-out both; }
@@ -119,3 +122,22 @@
 .advent__test-actions { box-sizing: border-box; min-width: 0; flex: 1 1 0; }
 .advent__header .advent__clock-action { max-width: 100%; min-height: 48px; height: auto; white-space: normal; }
 .advent__clock-action .mdc-button__label { white-space: normal; }
+
+/* The ranking uses the same warm Advent panels as the confirmation and result. */
+.advent__ranking { max-width: 42rem; min-width: 0; margin: .5rem auto 1.5rem; overflow-wrap: anywhere; }
+.advent__ranking-banner { display: flex; align-items: center; justify-content: center; gap: .75rem; padding: .8rem; text-align: center; color: var(--advent-gold-ink); }
+.advent__ranking-banner h1 { margin: 0; color: var(--hatcast-avent-green); font: 700 clamp(1.75rem, 7vw, 2.25rem)/1.15 var(--advent-heading-font); }
+.advent__ranking-banner h1:focus-visible { outline: 3px solid var(--advent-focus); outline-offset: 4px; }
+.advent__ranking-summary { margin: 1rem 0 .4rem; text-align: center; color: var(--hatcast-avent-green); font-weight: 700; }
+.advent__ranking-summary strong { color: var(--hatcast-avent-red); }
+.advent__ranking-note { margin: .5rem 0 1rem; color: var(--advent-text-muted); font-size: .875rem; text-align: center; }
+.advent__ranking-list { list-style: none; padding: .3rem .75rem; margin: 1rem 0; }
+.advent__ranking-list li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .25rem 1rem; padding: .7rem .5rem; border-bottom: 1px solid var(--advent-choice-border); }
+.advent__ranking-list li:last-child { border-bottom: 0; }
+.advent__ranking-list li > * { min-width: 0; }
+.advent__ranking-list li strong { color: var(--hatcast-avent-green); }
+.advent__ranking-list .advent__ranking-me { margin: .15rem 0; border-radius: .75rem; border: 2px solid var(--hatcast-avent-green); background: var(--hatcast-avent-mint); font-weight: 700; }
+.advent__ranking-legend { padding: .75rem 1rem; margin: 1rem 0; }
+.advent__ranking-legend h2 { margin: .2rem 0; color: var(--hatcast-avent-green); font: 700 1.4rem/1.2 var(--advent-heading-font); }
+.advent__ranking-legend ul { margin: .5rem 0; padding-inline-start: 1.4rem; }
+.advent__ranking-legend li + li { margin-top: .4rem; }
