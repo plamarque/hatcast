@@ -45,18 +45,26 @@ class AdventMemberController(
         return emails.size == 2 && principal.email?.trim()?.lowercase() in emails
     }
 
+    private fun activeMode(principal: SessionUserPrincipal, request: HttpServletRequest): Boolean {
+        val requested = request.getHeader("X-Advent-Test-Mode") == "true"
+        if (requested && !canControl(principal, request)) throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        return requested
+    }
+
     private fun requireControl(principal: SessionUserPrincipal, request: HttpServletRequest): UUID {
         authorize(principal)
-        if (!canControl(principal, request)) throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        if (!activeMode(principal, request)) throw ResponseStatusException(HttpStatus.NOT_FOUND)
         return try { UUID.fromString(request.getHeader("X-Advent-Test-Session")) } catch (_: Exception) { throw ResponseStatusException(HttpStatus.CONFLICT) }
     }
 
-    private fun sessionFor(principal: SessionUserPrincipal, request: HttpServletRequest): UUID =
-        try { UUID.fromString(request.getHeader("X-Advent-Test-Session")) } catch (_: Exception) { throw ResponseStatusException(HttpStatus.CONFLICT) }
+    private fun sessionFor(principal: SessionUserPrincipal, request: HttpServletRequest): UUID {
+        activeMode(principal, request)
+        return try { UUID.fromString(request.getHeader("X-Advent-Test-Session")) } catch (_: Exception) { throw ResponseStatusException(HttpStatus.CONFLICT) }
+    }
 
     private fun simulated(principal: SessionUserPrincipal, request: HttpServletRequest): LocalDate? {
         val value = request.getHeader("X-Advent-Simulated-Date") ?: return null
-        if (!canControl(principal, request)) throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        if (!activeMode(principal, request)) throw ResponseStatusException(HttpStatus.NOT_FOUND)
         val date = try { LocalDate.parse(value) } catch (_: Exception) { throw ResponseStatusException(HttpStatus.BAD_REQUEST) }
         if (date.isBefore(LocalDate.of(2026, 12, 1)) || date.isAfter(LocalDate.of(2027, 1, 15))) throw ResponseStatusException(HttpStatus.BAD_REQUEST)
         return date
@@ -100,25 +108,25 @@ class AdventMemberController(
     @GetMapping("/doors/{day}/answer")
     fun state(@PathVariable day: Int, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AnswerState {
         authorize(principal)
-        return game.state(principal.userId, day, canControl(principal, request), sessionFor(principal, request), simulated(principal, request))
+        return game.state(principal.userId, day, activeMode(principal, request), sessionFor(principal, request), simulated(principal, request))
     }
 
     @PostMapping("/doors/{day}/answer")
     fun confirm(@PathVariable day: Int, @RequestBody body: MemberAnswer, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AnswerState {
         authorize(principal)
-        return game.confirm(principal.userId, day, body.choice ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), body.attemptId ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), canControl(principal, request), sessionFor(principal, request), simulated(principal, request))
+        return game.confirm(principal.userId, day, body.choice ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), body.attemptId ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), activeMode(principal, request), sessionFor(principal, request), simulated(principal, request))
     }
 
     @PostMapping("/doors/{day}/answer/reconcile")
     fun reconcile(@PathVariable day: Int, @RequestBody(required = false) body: LateAccess?, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AnswerState {
         authorize(principal)
-        return game.reconcile(principal.userId, day, canControl(principal, request), sessionFor(principal, request), simulated(principal, request), body?.late == true)
+        return game.reconcile(principal.userId, day, activeMode(principal, request), sessionFor(principal, request), simulated(principal, request), body?.late == true)
     }
 
     @PostMapping("/doors/{day}/answer/reserve")
     fun reserve(@PathVariable day: Int, @RequestBody body: AnswerAttempt, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AnswerState {
         authorize(principal)
-        return game.reserve(principal.userId, day, body.attemptId ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), body.generation ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), canControl(principal, request), sessionFor(principal, request), simulated(principal, request))
+        return game.reserve(principal.userId, day, body.attemptId ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), body.generation ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), activeMode(principal, request), sessionFor(principal, request), simulated(principal, request))
     }
 
     @GetMapping("/results/latest-unseen")
@@ -159,7 +167,7 @@ class AdventMemberController(
     @GetMapping("/ranking")
     fun ranking(@AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AdventRankingResponse {
         val troupe = authorize(principal)
-        return game.ranking(principal.userId, troupe, exclusions(), canControl(principal, request), sessionFor(principal, request), simulated(principal, request))
+        return game.ranking(principal.userId, troupe, exclusions(), activeMode(principal, request), sessionFor(principal, request), simulated(principal, request))
     }
 
     private fun image(ref: String?): Pair<String, Boolean> {

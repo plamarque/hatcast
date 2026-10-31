@@ -23,9 +23,109 @@ describe('AdventTest', () => {
     fixture.detectChanges()
     await fixture.whenStable()
     await new Promise(resolve => setTimeout(resolve, 0))
+    fixture.componentInstance.testMode.set(true) // Existing operator scenarios opt in explicitly.
     fixture.detectChanges()
   })
   afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks() })
+  it('starts opted out, enables controls outside the member window, then reloads without resetting', async () => {
+    const component = fixture.componentInstance
+    component.testMode.set(false)
+    vi.mocked(window.fetch).mockClear().mockImplementation(async (input, options) => {
+      const url = String(input)
+      if (url.endsWith('/session')) return new Response(JSON.stringify({ sessionId: 'same', testControls: true }))
+      if (url.endsWith('/clock')) return (options?.headers as Record<string, string>)?.['X-Advent-Test-Mode']
+        ? new Response(JSON.stringify({ date: '2026-12-01' })) : new Response('', { status: 404 })
+      if (url.endsWith('/latest-unseen')) return new Response(JSON.stringify({ result: null }))
+      if (url.endsWith('/answer')) return new Response(JSON.stringify({ status: 'available' }))
+      return new Response(JSON.stringify({ day: 1, name: 'Fictif', portrait: '', statements: ['A', 'B', 'C'] }))
+    })
+    await component.start(); fixture.detectChanges()
+    expect(component.testMode()).toBe(false)
+    expect(component.unavailable()).toBe(true)
+    expect(fixture.nativeElement.querySelector('.advent__test-actions')).toBeNull()
+    expect(fixture.nativeElement.querySelector('[aria-label="Activer le mode test"]').getAttribute('aria-pressed')).toBe('false')
+    await component.toggleTestMode(); fixture.detectChanges()
+    expect(component.testMode()).toBe(true)
+    expect(component.preview()?.day).toBe(1)
+    expect(fixture.nativeElement.querySelector('.advent__test-actions')).not.toBeNull()
+    expect(vi.mocked(window.fetch).mock.calls.some(([url, options]) => String(url).endsWith('/clock') && (options?.headers as Record<string, string>)?.['X-Advent-Simulated-Date'] === '2026-12-01')).toBe(true)
+    await component.toggleTestMode(); fixture.detectChanges()
+    expect(component.unavailable()).toBe(true)
+    expect(component.testMode()).toBe(false)
+    expect(vi.mocked(window.fetch).mock.calls.some(([url]) => String(url).endsWith('/session/reset'))).toBe(false)
+  })
+
+  it('blocks a mode switch while a mutation is in flight', async () => {
+    const component = fixture.componentInstance
+    component.testMode.set(false)
+    let resolve!: (response: Response) => void
+    vi.mocked(window.fetch).mockImplementationOnce(() => new Promise<Response>(r => { resolve = r }))
+    const mutation = component.reconcile()
+    await component.toggleTestMode()
+    expect(component.testMode()).toBe(false)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('[aria-label="Activer le mode test"]').disabled).toBe(true)
+    resolve(new Response(JSON.stringify({ status: 'available', generation: 'next' })))
+    await mutation
+    expect(component.pendingMutations()).toBe(0)
+  })
+
+  it.each(['calendar', 'ranking'] as const)('reloads the %s projection when switching mode', async screen => {
+    const component = fixture.componentInstance
+    component.calendarOpen.set(screen === 'calendar')
+    component.rankingOpen.set(screen === 'ranking')
+    const requested: { url: string; mode?: string }[] = []
+    vi.mocked(window.fetch).mockImplementation(async (input, options) => {
+      const url = String(input)
+      requested.push({ url, mode: (options?.headers as Record<string, string>)?.['X-Advent-Test-Mode'] })
+      if (url.endsWith('/session')) return new Response(JSON.stringify({ sessionId: 'same', testControls: true }))
+      if (url.endsWith('/clock')) return new Response(JSON.stringify({ date: '2026-12-01' }))
+      if (url.endsWith('/latest-unseen')) return new Response(JSON.stringify({ result: null }))
+      if (url.endsWith('/calendar')) return new Response(JSON.stringify({ days: [{ day: 1, state: 'today' }], priorityResult: null }))
+      if (url.endsWith('/ranking')) return new Response(JSON.stringify({ priorityResult: null, ranking: { score: 0, rank: 1, entries: [] } }))
+      if (url.endsWith('/answer')) return new Response(JSON.stringify({ status: 'available' }))
+      return new Response(JSON.stringify({ day: 1, name: 'Fictif', portrait: '', statements: ['A', 'B', 'C'] }))
+    })
+    await component.toggleTestMode()
+    expect(component.testMode()).toBe(false)
+    expect(screen === 'calendar' ? component.calendarOpen() : component.rankingOpen()).toBe(true)
+    expect(requested.some(call => call.url.endsWith(`/${screen}`) && !call.mode)).toBe(true)
+  })
+
+  it('gives a priority reveal precedence over restoring the previous screen', async () => {
+    const component = fixture.componentInstance
+    component.rankingOpen.set(true)
+    const result = { answerId: 'reveal', day: 1, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false }
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url = String(input)
+      if (url.endsWith('/session')) return new Response(JSON.stringify({ sessionId: 'same', testControls: true }))
+      if (url.endsWith('/clock')) return new Response(JSON.stringify({ date: '2026-12-02' }))
+      if (url.endsWith('/latest-unseen')) return new Response(JSON.stringify({ result }))
+      if (url.endsWith('/answer')) return new Response(JSON.stringify({ status: 'recorded' }))
+      if (url.endsWith('/result')) return new Response(JSON.stringify(result))
+      return new Response(JSON.stringify({ day: 1, name: 'Fictif', portrait: '', statements: ['A', 'B', 'C'] }))
+    })
+    await component.toggleTestMode()
+    expect(component.result()?.answerId).toBe('reveal')
+    expect(component.rankingOpen()).toBe(false)
+    expect(vi.mocked(window.fetch).mock.calls.some(([url]) => String(url).endsWith('/ranking'))).toBe(false)
+  })
+
+  it('does not restore an old screen after identity changes during a mode switch', async () => {
+    const component = fixture.componentInstance
+    component.calendarOpen.set(true)
+    let finish!: () => void
+    vi.spyOn(component, 'start').mockImplementationOnce(() => new Promise<void>(resolve => { finish = resolve })).mockResolvedValue()
+    const open = vi.spyOn(component, 'openCalendar')
+    const switching = component.toggleTestMode()
+    const auth = TestBed.inject(AuthApiService) as unknown as { sessionUserSignal: WritableSignal<UserSummary | null> }
+    auth.sessionUserSignal.set({ id: 'new', slug: 'new', email: null, displayName: 'Nouvelle' })
+    fixture.detectChanges()
+    finish()
+    await switching
+    expect(open).not.toHaveBeenCalled()
+  })
+
   it('keeps calendar and ranking navigation off the door and question, then offers ranking after confirmation', async () => {
     expect(fixture.nativeElement.querySelector('[role="tablist"]')).toBeNull()
     expect(fixture.nativeElement.textContent).not.toContain('Voir le calendrier')
@@ -162,7 +262,7 @@ describe('AdventTest', () => {
   it('opens the gift for an unplayed past day without revealing the false statement', async () => {
     const component = fixture.componentInstance
     component.clockDate.set('2026-12-02')
-    component.testControls.set(false)
+    component.testControls.set(false); component.testMode.set(false)
     const quiz = { day: 1, name: 'Alex', portrait: '', statements: ['A', 'B', 'C'] }
     vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ quiz, falseChoice: null, result: null, priorityResult: null })))
       .mockResolvedValueOnce(new Response(JSON.stringify(quiz)))
@@ -201,7 +301,7 @@ describe('AdventTest', () => {
 
   it('shows an immediately revealed zero point result after late confirmation', async () => {
     const component = fixture.componentInstance
-    component.testControls.set(false)
+    component.testControls.set(false); component.testMode.set(false)
     component.clockDate.set('2026-12-02')
     component.lateDiscovery.set(true)
     component.selectedDay.set(1)
@@ -225,7 +325,7 @@ describe('AdventTest', () => {
 
   it('recovers an interrupted late confirmation through reconciliation', async () => {
     const component = fixture.componentInstance
-    component.testControls.set(false); component.clockDate.set('2026-12-02'); component.selectedDay.set(1); component.lateDiscovery.set(true)
+    component.testControls.set(false); component.testMode.set(false); component.clockDate.set('2026-12-02'); component.selectedDay.set(1); component.lateDiscovery.set(true)
     const quiz = { day: 1, name: 'Fictif', portrait: '', genericElf: true, statements: ['A', 'B', 'C'] }
     const result = { answerId: 'late', day: 1, selectedChoice: 0, falseChoice: 1, correct: false, responsePoints: 0, participationPoints: 0, bonusPoints: 0, totalPoints: 0, seen: true, late: true }
     component.quiz.set(quiz); component.choice.set(0); component.answerState.set('available'); (component as any).generation = 'fresh'
@@ -283,11 +383,11 @@ describe('AdventTest', () => {
     component.clockDate.set('2026-12-01')
     component.calendarDays.set([{ day: 1, state: 'played' }, { day: 2, state: 'past-unplayed' }, { day: 3, state: 'played' }])
     fixture.detectChanges()
-    expect(fixture.nativeElement.querySelectorAll('.advent__clock-action')).toHaveLength(1)
+    expect(fixture.nativeElement.querySelectorAll('[aria-label="Refermer mon cadeau du jour et effacer ma réponse"]')).toHaveLength(1)
     expect(fixture.nativeElement.querySelector('.advent__calendar-door button')).toBeNull()
-    component.testControls.set(false); fixture.detectChanges()
-    expect(fixture.nativeElement.querySelectorAll('.advent__clock-action')).toHaveLength(0)
-    component.testControls.set(true); fixture.detectChanges()
+    component.testControls.set(false); component.testMode.set(false); fixture.detectChanges()
+    expect(fixture.nativeElement.querySelectorAll('[aria-label="Refermer mon cadeau du jour et effacer ma réponse"]')).toHaveLength(0)
+    component.testControls.set(true); component.testMode.set(true); fixture.detectChanges()
     vi.mocked(window.fetch).mockClear().mockResolvedValueOnce(new Response(JSON.stringify({ status: 'recorded', replayToken: 'own-answer' })))
       .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'cleared' })))
       .mockResolvedValueOnce(new Response(JSON.stringify({ days: [{ day: 1, state: 'past-unplayed' }, { day: 2, state: 'past-unplayed' }, { day: 3, state: 'played' }], priorityResult: null })))
@@ -307,15 +407,15 @@ describe('AdventTest', () => {
     component.calendarDays.set([{ day: 1, state: 'played' }, { day: 2, state: 'today' }, { day: 24, state: 'played' }])
     for (const date of ['2026-12-02', '2026-12-25', '2027-01-01']) {
       component.clockDate.set(date); fixture.detectChanges()
-      expect(fixture.nativeElement.querySelector('.advent__clock-action').disabled).toBe(true)
+      expect(fixture.nativeElement.querySelector('[aria-label="Refermer mon cadeau du jour et effacer ma réponse"]')).toBeNull()
       vi.mocked(window.fetch).mockClear()
       await component.closeCalendarDay()
       expect(window.fetch).not.toHaveBeenCalled()
     }
     component.clockDate.set('2026-12-24'); fixture.detectChanges()
-    expect(fixture.nativeElement.querySelector('.advent__clock-action').disabled).toBe(false)
+    expect(fixture.nativeElement.querySelector('[aria-label="Refermer mon cadeau du jour et effacer ma réponse"]').disabled).toBe(false)
     component.closingDay.set(24); fixture.detectChanges()
-    expect(fixture.nativeElement.querySelector('.advent__clock-action').disabled).toBe(true)
+    expect(fixture.nativeElement.querySelector('[aria-label="Refermer mon cadeau du jour et effacer ma réponse"]').disabled).toBe(true)
   })
 
   it('disables both date arrows during a delayed daily reset and keeps the date', async () => {
@@ -914,6 +1014,10 @@ describe('AdventTest', () => {
     vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ status: 'available' }), { status: 200 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'available', generation: 'new' }), { status: 200 }))
     button.click()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('Ta réponse à ce cadeau sera effacée')
+    expect(fixture.componentInstance.answerState()).toBe('recorded')
+    await fixture.componentInstance.confirmPersonalReset()
     await fixture.whenStable()
     expect(fixture.componentInstance.answerState()).toBe('available')
     expect(fixture.componentInstance.choice()).toBeNull()

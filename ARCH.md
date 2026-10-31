@@ -165,3 +165,7 @@ Les deux exclusions du classement sont configurées par UUID de compte (`hatcast
 La route directe `/avent` utilise `/v1/advent` et la partie commune décrite ci-dessus. En offline, la partie utilise les quiz déjà préparés dans `advent_quizzes` et leurs portraits locaux privés ; les fixtures ne remplissent que les jours manquants sans réponse historique. Les anciennes réponses restent préservées. Une réponse membre liée à un ancien quiz fictif différent du catalogue bloque le jour concerné et le classement en offline jusqu’à résolution explicite.
 
 Un décalage de l’horloge Avent est réservé à la base H2 offline vérifiée du worktree ou au service `hatcast-v2-dev` et à sa base Neon de développement vérifiés. Le service de production utilise toujours l’heure réelle ; une configuration ambiguë refuse le décalage. Cette horloge ne modifie ni les dates stockées ni les autres fonctions HatCast. Aucun déploiement, entrée automatique ou notification n’est implicite.
+
+### Advent test mode selection
+
+Advent testers enter with normal member behavior. The client can request the isolated test mode explicitly; the API validates the tester and environment on each privileged request and rejects simulated dates and test commands without an authorized active request. Switching mode reloads the projection without resetting the shared game. See the Advent architecture spine, AD-2 and AD-4.

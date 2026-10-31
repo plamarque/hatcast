@@ -1,7 +1,12 @@
 <main class="advent">
   <header class="advent__header">
-    <span class="advent__header-title" [class.advent__header-title--test]="!memberMode">Quiz de l’Avent</span>
-    @if (!memberMode) {
+    @if (testControls()) { <button mat-icon-button type="button" (click)="toggleTestMode()" [disabled]="loading() || submitting() || closingDay() !== null || pendingMutations() > 0" [attr.aria-pressed]="testMode()" [attr.aria-label]="testMode() ? 'Désactiver le mode test' : 'Activer le mode test'" title="Mode test"><mat-icon aria-hidden="true">science</mat-icon></button> }
+    <span class="advent__header-title">Quiz de l’Avent</span>
+    <button mat-icon-button type="button" (click)="historicalResult() ? returnToCalendar() : openCalendar()" [disabled]="loading() || submitting() || closingDay() !== null || (result() !== null && !historicalResult())" [attr.aria-current]="calendarOpen() ? 'page' : null" aria-label="Voir le calendrier" title="Calendrier"><mat-icon aria-hidden="true">calendar_month</mat-icon></button>
+    <button mat-icon-button type="button" (click)="navigateRanking()" [disabled]="loading() || submitting() || closingDay() !== null || (result() !== null && !historicalResult())" [attr.aria-current]="rankingOpen() ? 'page' : null" aria-label="Classement" title="Classement"><mat-icon aria-hidden="true">leaderboard</mat-icon></button>
+    <a mat-icon-button routerLink="/accueil" aria-label="Fermer le quiz" title="Fermer"><mat-icon aria-hidden="true">close</mat-icon></a>
+  </header>
+  @if (!memberMode) {
     <div class="advent__test-actions" [class.advent__test-actions--calendar]="calendarOpen()" aria-label="Commandes de test">
       <span class="advent__test-label"><span class="advent__test-label-full">Mode test</span><span class="advent__test-label-short">Test</span></span>
       @if (!rankingOpen()) {
@@ -9,22 +14,26 @@
       <span class="advent__simulated-day" role="status" aria-live="polite" [attr.aria-label]="clockDate() === null ? 'Jour simulé non disponible' : 'Jour simulé : ' + simulatedDateLabel()">{{ clockDate() === null ? '–' : simulatedDateLabel(true) }}</span>
       <button mat-icon-button type="button" (click)="nextDay()" [disabled]="transitionRequired() || loading() || submitting() || closingDay() !== null || (quiz() && answerState() === 'checking') || !clockDate() || clockDate()! >= '2027-01-15'" aria-label="Avancer au jour suivant" title="Jour suivant"><mat-icon aria-hidden="true">arrow_forward</mat-icon></button>
       }
-      @if (calendarOpen() && testControls()) {
-      <button mat-button class="advent__clock-action" type="button" (click)="closeCalendarDay()" [disabled]="!currentPlayedDay() || loading() || submitting() || closingDay() !== null" aria-label="Refermer mon cadeau du jour et effacer ma réponse">Refermer mon cadeau et effacer ma réponse</button>
+      @if (calendarOpen() && currentPlayedDay()) {
+      <button mat-icon-button type="button" (click)="personalResetConfirm.set('calendar')" [disabled]="!currentPlayedDay() || loading() || submitting() || closingDay() !== null" aria-label="Refermer mon cadeau du jour et effacer ma réponse" title="Refermer mon cadeau et effacer ma réponse"><mat-icon aria-hidden="true">card_giftcard</mat-icon></button>
       }
       @if (!calendarOpen() && !rankingOpen()) {
       <button mat-icon-button type="button" (click)="resetConfirm.set(true)" [disabled]="loading() || submitting()" aria-label="Réinitialiser la partie de développement" title="Réinitialiser la partie"><mat-icon aria-hidden="true">restart_alt</mat-icon></button>
       @if ((result() || quiz() || history()?.result) && answerState() === 'recorded') {
-        <button mat-icon-button type="button" (click)="replay()" [disabled]="submitting()" aria-label="Effacer ma réponse et rejouer" title="Effacer ma réponse et rejouer"><mat-icon aria-hidden="true">delete_outline</mat-icon></button>
+        <button mat-icon-button type="button" (click)="personalResetConfirm.set('replay')" [disabled]="submitting()" aria-label="Effacer ma réponse et rejouer" title="Effacer ma réponse et rejouer"><mat-icon aria-hidden="true">delete_outline</mat-icon></button>
       }
       }
     </div>
     }
-    <button mat-icon-button type="button" (click)="historicalResult() ? returnToCalendar() : openCalendar()" [disabled]="loading() || submitting() || closingDay() !== null || (result() !== null && !historicalResult())" [attr.aria-current]="calendarOpen() ? 'page' : null" aria-label="Voir le calendrier" title="Calendrier"><mat-icon aria-hidden="true">calendar_month</mat-icon></button>
-    <button mat-icon-button type="button" (click)="navigateRanking()" [disabled]="loading() || submitting() || closingDay() !== null || (result() !== null && !historicalResult())" [attr.aria-current]="rankingOpen() ? 'page' : null" aria-label="Classement" title="Classement"><mat-icon aria-hidden="true">leaderboard</mat-icon></button>
-    <a mat-icon-button routerLink="/accueil" aria-label="Fermer le quiz" title="Fermer"><mat-icon aria-hidden="true">close</mat-icon></a>
-  </header>
   <div class="advent__content">
+    @if (personalResetConfirm() && !memberMode) {
+      <section aria-labelledby="advent-personal-reset-title">
+        <h2 id="advent-personal-reset-title">Effacer ta réponse ?</h2>
+        <p>Ta réponse à ce cadeau sera effacée. Tu pourras rejouer.</p>
+        <button mat-stroked-button type="button" (click)="personalResetConfirm.set(null)">Annuler</button>
+        <button mat-flat-button type="button" (click)="confirmPersonalReset()">Effacer ma réponse</button>
+      </section>
+    }
     @if (resetConfirm() && !memberMode) {
       <section aria-labelledby="advent-reset-title">
         <h2 id="advent-reset-title">Réinitialiser la partie de développement ?</h2>

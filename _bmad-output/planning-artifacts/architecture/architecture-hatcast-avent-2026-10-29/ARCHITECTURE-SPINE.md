@@ -99,3 +99,7 @@ La fermeture de l’ouverture automatique est persistée par membre et jour, y c
 ### Livraison du parcours membre direct
 
 Le parcours direct utilise une seule API, une seule partie et les mêmes réponses pour tous les membres dans chaque environnement. Un verrou commun sérialise confirmation, révélations, classement et reset ; l’instant effectif est prélevé après acquisition. Deux comptes vérifiés seulement obtiennent les contrôles de développement isolé et le classement incluant les réponses en attente. Les membres ordinaires reçoivent uniquement les scores révélables. La production conserve l’heure réelle. Les anciennes tables de test sont conservées sans fusion automatique. La route directe ne constitue ni une entrée automatique ni la réalisation du calendrier ou des notifications.
+
+### Mode test choisi explicitement
+
+L’autorisation d’un testeur et l’activation du mode sont distinctes. À l’entrée, le mode est désactivé : même pour un testeur, l’API applique l’horloge serveur normale et le classement limité aux points révélables. Une requête de mode test est validée côté serveur après contrôle de l’environnement, de l’identité et de l’appartenance ; seul ce mode autorise les dates simulées, les commandes de test et le classement courant d’AD-4. Le choix client reste en mémoire pendant le parcours et ne modifie ni la partie ni l’horloge partagée. AD-7 continue de s’appliquer.
