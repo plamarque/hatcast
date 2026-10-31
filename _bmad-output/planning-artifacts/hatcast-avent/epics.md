@@ -191,6 +191,22 @@ As an organizer, I want to prepare validated quizzes in the database and test th
 
 **Dependencies:** 25.1, 25.2, 25.2a and 25.3; precedes 25.4–25.7 and 25.9 where they rely on real quiz content and environment boundaries. Preserve completed story history and existing uncommitted catalogue work as evidence, not as an approved implementation.
 
+### Story 25.3b: Manage and synchronize the private Advent catalogue
+
+As an organizer, I want a canonical private catalogue of validated quizzes and portraits and a reliable operator workflow to maintain and synchronize them, so that the intended contributions can be prepared for an explicitly selected environment.
+
+**Acceptance Criteria:**
+
+1. **Given** a private catalogue, **when** an authorized operator adds or modifies a contribution, **then** its ordered statements, false choice and portrait reference can be validated and maintained privately; fictional placeholders remain distinguishable and are never treated as validated contributions.
+2. **Given** explicitly selected validated contributions, **when** an operator prepares or compares a synchronization from their workstation, **then** the source, target environment, effective identity and permissions are verified, and the operator can identify additions, unchanged entries and conflicts without exposing private content.
+3. **Given** a verified local, development, staging or production target, **when** an authorized synchronization is performed, **then** only selected validated quiz content and corresponding private portraits are synchronized; answers and game state remain intact. Production writes require separate explicit authorization and are not part of this request.
+4. **Given** existing or concurrently modified target content, **when** a conflict or uncertain identity, access or state is detected, **then** the operation stops safely without silently overwriting changes, and the operator receives a private, actionable resolution path.
+5. **Given** implementation and documentation, **when** verified with disposable data, **then** tests cover selection, placeholders, target and permission checks, privacy, conflicts, failure recovery and preservation of answers and game state. Evaluate an operator tool and API against these requirements before selecting the mechanism.
+
+**UI:** N/A for the member interface; preserve existing privacy and reveal guarantees.
+
+**Dependencies:** Story 25.3a and the private catalogue procedure. Preserve existing worktrees and contributions; no production data operation or deployment is authorized by this story request.
+
 ### Story 25.4: See the friendly ranking
 
 As a member, I want to see the revealed ranking and my own score so that I can share the fun without learning today's result early.
