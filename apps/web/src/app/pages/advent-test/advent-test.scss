@@ -81,6 +81,10 @@
 .advent__options mat-radio-button:focus-within { outline: 3px solid var(--hatcast-avent-green); outline-offset: 2px; }
 .advent__quiz button[mat-flat-button] { min-height: 3.5rem; width: 100%; font: 700 1.125rem var(--advent-body-font); border-radius: 1rem; box-shadow: 0 .25rem .5rem var(--advent-shadow); }
 .advent__state { padding: 1rem; text-align: center; font-weight: 700; color: var(--advent-text); }
+.advent__loading { text-align: center; padding: clamp(2rem, 10vh, 5rem) 1rem; color: var(--hatcast-avent-green); }
+.advent__loading p { margin: 1rem 0 0; font: 700 clamp(1.5rem, 6vw, 1.9rem)/1.2 var(--advent-heading-font); }
+.advent__loading-scene { display: flex; align-items: center; justify-content: center; gap: 1rem; color: var(--advent-gold-ink); font-size: 1.5rem; }
+.advent__loading-scene mat-icon { box-sizing: content-box; width: 3rem; height: 3rem; padding: 1.25rem; border: 2px solid var(--hatcast-avent-gold); border-radius: 50%; background: var(--hatcast-avent-cream); color: var(--hatcast-avent-red); font-size: 3rem; line-height: 1; box-shadow: 0 .35rem .8rem var(--advent-shadow); }
 .advent__feedback { padding: 1rem; border: 2px solid var(--hatcast-avent-red); border-radius: 1rem; background: var(--hatcast-avent-white); color: var(--advent-error); }
 
 .advent__recorded-stars { color: var(--advent-gold-ink); font-size: 1.5rem; }

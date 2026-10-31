@@ -439,9 +439,11 @@ export class AdventTest {
     this.error.set(false)
     this.sessionChanged.set(false)
     try {
-      const content = await this.requestJson<FictionalQuiz | null>(`/v1/advent-test/doors/${day}`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() }, true)
+      const [content, state] = await Promise.all([
+        this.requestJson<FictionalQuiz | null>(`/v1/advent-test/doors/${day}`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() }, true),
+        this.requestJson<{ status: 'available' | 'recorded' | 'closed' | 'unavailable'; replayToken?: string }>(`/v1/advent-test/doors/${day}/answer`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() }),
+      ])
       if (!content) { this.showUnavailable(); return }
-      const state = await this.requestJson<{ status: 'available' | 'recorded' | 'closed' | 'unavailable'; replayToken?: string }>(`/v1/advent-test/doors/${day}/answer`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
       if (state.status === 'unavailable') { this.showUnavailable(); return }
       if (!['available', 'recorded', 'closed'].includes(state.status)) throw new Error('Invalid state')
       if (!this.memberMode && state.status === 'recorded' && !state.replayToken) throw new Error('Invalid state')

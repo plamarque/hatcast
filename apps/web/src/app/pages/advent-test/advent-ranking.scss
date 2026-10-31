@@ -5,7 +5,6 @@
 .advent__ranking-banner h1:focus-visible { outline: 3px solid var(--advent-focus); outline-offset: 4px; }
 .advent__ranking-summary { margin: 1rem 0 .4rem; text-align: center; color: var(--hatcast-avent-green); font-weight: 700; }
 .advent__ranking-summary strong { color: var(--hatcast-avent-red); }
-.advent__ranking-note { margin: .5rem 0 1rem; color: var(--advent-text-muted); font-size: .875rem; text-align: center; }
 .advent__ranking-list { list-style: none; padding: .3rem .75rem; margin: 1rem 0; }
 .advent__ranking-list li { display: grid; grid-template-columns: 2.5rem minmax(0, 1fr) auto; align-items: center; gap: .75rem; padding: .75rem .25rem; border-bottom: 1px solid var(--advent-choice-border); }
 .advent__ranking-list li:last-child { border-bottom: 0; }

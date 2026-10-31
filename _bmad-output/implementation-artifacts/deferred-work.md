@@ -22,3 +22,6 @@ status: open
 - source_spec: `spec-25-3a-simulated-date-and-continuation.md`
   summary: Verify the live announcement of the simulated Advent day with a real screen reader.
   evidence: Medium, unverified: the number has a polite live region and a full accessible label; actual announcement on day changes varies by assistive technology and needs a device check.
+- source_spec: `_bmad-output/implementation-artifacts/spec-avent-loading.md`
+  summary: Avoid waiting for a stalled answer-state read when the quiz is already missing.
+  evidence: The parallel reads currently both finish before missing content is displayed; safely cancelling the remaining read requires cancellation handling.

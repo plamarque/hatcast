@@ -479,8 +479,13 @@ describe('AdventTest', () => {
   })
   it.each(['priority', 'quiz'])('clears stale content and retries the selected date after %s fails', async failure => {
     expect(fixture.componentInstance.preview()?.day).toBe(1)
-    if (failure === 'quiz') vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ result: null })))
-    vi.mocked(window.fetch).mockRejectedValueOnce(new Error('network')).mockRejectedValueOnce(new Error('network'))
+    const fallback = vi.mocked(window.fetch).getMockImplementation()!
+    let failures = 0
+    vi.mocked(window.fetch).mockImplementation((input, init) => {
+      const target = failure === 'quiz' ? '/doors/2' : '/results/latest-unseen'
+      if (String(input).endsWith(target) && failures++ < 2) return Promise.reject(new Error('network'))
+      return fallback(input, init)
+    })
     await fixture.componentInstance.nextDay()
     fixture.detectChanges()
     expect(fixture.componentInstance.clockDate()).toBe('2026-12-02')
@@ -677,7 +682,7 @@ describe('AdventTest', () => {
     expect(fixture.nativeElement.textContent).toContain('Il n’y a rien ici')
     expect(fixture.componentInstance.selectedDay()).toBe(1)
     await fixture.componentInstance.selectDay(fixture.componentInstance.selectedDay())
-    expect(String(vi.mocked(window.fetch).mock.calls.at(-1)?.[0])).toBe('/v1/advent/doors/1')
+    expect(vi.mocked(window.fetch).mock.calls.some(([url]) => String(url) === '/v1/advent/doors/1')).toBe(true)
     expect(fixture.nativeElement.querySelector('[aria-label="Avancer au jour suivant"]')).toBeTruthy()
   })
   it('explains that the operator must reset legacy test answers', async () => {
@@ -725,7 +730,7 @@ describe('AdventTest', () => {
     vi.mocked(window.fetch).mockReturnValueOnce(new Promise(resolve => { resolvePreview = resolve }))
     const selection = fixture.componentInstance.selectDay(2)
     fixture.detectChanges()
-    expect(fixture.nativeElement.querySelector('.advent__state[role=status]').textContent).toContain('Le lutin arrive')
+    expect(fixture.nativeElement.querySelector('.advent__loading[role=status]').textContent).toContain('Noël approche')
     resolvePreview(new Response(JSON.stringify({ day: 2, name: 'Lutin', portrait: '', statements: ['un', 'deux', 'trois'] })))
     await selection
 
@@ -739,6 +744,25 @@ describe('AdventTest', () => {
     fixture.detectChanges()
     expect(fixture.nativeElement.querySelector('.advent__state[role=status]').textContent).toContain('Ce quiz est fermé')
     expect(fixture.nativeElement.querySelector('mat-radio-group')).toBeNull()
+  })
+
+  it('requests the quiz and answer state together and handles a reset during loading', async () => {
+    let resolveContent!: (response: Response) => void
+    let resolveState!: (response: Response) => void
+    vi.mocked(window.fetch).mockImplementation(input => {
+      if (String(input).endsWith('/doors/2')) return new Promise(resolve => { resolveContent = resolve })
+      if (String(input).endsWith('/doors/2/answer')) return new Promise(resolve => { resolveState = resolve })
+      throw new Error('Unexpected request')
+    })
+    const selection = fixture.componentInstance.selectDay(2)
+    expect(resolveContent).toBeTypeOf('function')
+    expect(resolveState).toBeTypeOf('function')
+    resolveContent(new Response('', { status: 404 }))
+    resolveState(new Response('', { status: 409 }))
+    await selection
+    expect(fixture.componentInstance.sessionChanged()).toBe(true)
+    expect(fixture.componentInstance.error()).toBe(true)
+    expect(fixture.componentInstance.unavailable()).toBe(false)
   })
 
   it('opens the selected gift and focuses the fictional quiz', async () => {
@@ -849,7 +873,8 @@ describe('AdventTest', () => {
   })
   it('recovers when the preview never responds', async () => {
     vi.useFakeTimers()
-    vi.mocked(window.fetch).mockReturnValueOnce(new Promise(() => {})).mockReturnValueOnce(new Promise(() => {}))
+    const fallback = vi.mocked(window.fetch).getMockImplementation()!
+    vi.mocked(window.fetch).mockImplementation((input, init) => String(input).endsWith('/doors/10') ? new Promise(() => {}) : fallback(input, init))
     const selection = fixture.componentInstance.selectDay(10)
     await vi.advanceTimersByTimeAsync(20_000)
     await selection
@@ -1313,7 +1338,7 @@ describe('Advent member journey', () => {
     button.click()
     await fixture.whenStable()
     fixture.detectChanges()
-    expect(fixture.nativeElement.textContent).toContain('Classement des lutins')
+    expect(fixture.nativeElement.querySelector('#ranking-title')?.textContent).toContain('Classement')
     fixture.componentInstance.closeRanking(true)
     fixture.detectChanges()
     await new Promise(resolve => setTimeout(resolve, 0))
