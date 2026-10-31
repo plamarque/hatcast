@@ -132,11 +132,17 @@
 .advent__ranking-summary strong { color: var(--hatcast-avent-red); }
 .advent__ranking-note { margin: .5rem 0 1rem; color: var(--advent-text-muted); font-size: .875rem; text-align: center; }
 .advent__ranking-list { list-style: none; padding: .3rem .75rem; margin: 1rem 0; }
-.advent__ranking-list li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .25rem 1rem; padding: .7rem .5rem; border-bottom: 1px solid var(--advent-choice-border); }
+.advent__ranking-list li { display: grid; grid-template-columns: 2.5rem minmax(0, 1fr) auto; align-items: center; gap: .75rem; padding: .75rem .25rem; border-bottom: 1px solid var(--advent-choice-border); }
 .advent__ranking-list li:last-child { border-bottom: 0; }
-.advent__ranking-list li > * { min-width: 0; }
-.advent__ranking-list li strong { color: var(--hatcast-avent-green); }
-.advent__ranking-list .advent__ranking-me { margin: .15rem 0; border-radius: .75rem; border: 2px solid var(--hatcast-avent-green); background: var(--hatcast-avent-mint); font-weight: 700; }
+.advent__ranking-position { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: 50%; background: var(--hatcast-avent-mint); color: var(--hatcast-avent-green); font-weight: 700; }
+.advent__ranking-person { min-width: 0; line-height: 1.25; text-align: left; }
+.advent__ranking-person strong { display: block; color: var(--hatcast-avent-ink); }
+.advent__ranking-you, .advent__ranking-tie { font-size: .8rem; }
+.advent__ranking-tie { display: block; color: var(--advent-text-muted); }
+.advent__ranking-score { display: flex; flex-direction: column; align-items: end; color: var(--hatcast-avent-green); line-height: 1.1; }
+.advent__ranking-score strong { font-size: 1.25rem; }
+.advent__ranking-score span { font-size: .75rem; }
+.advent__ranking-list .advent__ranking-me { margin: .15rem 0; padding-inline: .5rem; border-radius: .75rem; border: 2px solid var(--hatcast-avent-green); background: var(--hatcast-avent-mint); }
 .advent__ranking-legend { padding: .75rem 1rem; margin: 1rem 0; }
 .advent__ranking-legend h2 { margin: .2rem 0; color: var(--hatcast-avent-green); font: 700 1.4rem/1.2 var(--advent-heading-font); }
 .advent__ranking-legend ul { margin: .5rem 0; padding-inline-start: 1.4rem; }
