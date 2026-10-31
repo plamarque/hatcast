@@ -506,6 +506,27 @@ describe('AdventTest', () => {
     await new Promise(resolve => setTimeout(resolve, 0))
     expect(document.activeElement?.textContent).toContain('Voir le classement')
   })
+  it('opens the calendar from the ranking action', async () => {
+    fixture.componentInstance.ranking.set({ score: 0, rank: null, entries: [] })
+    fixture.componentInstance.rankingOpen.set(true)
+    fixture.detectChanges()
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ priorityResult: null, days: [] })))
+    const button = fixture.nativeElement.querySelector('.advent__ranking-action button') as HTMLButtonElement
+    expect(button.textContent).toContain('Voir le calendrier')
+    button.click()
+    await vi.waitFor(() => expect(fixture.componentInstance.calendarOpen()).toBe(true))
+    expect(fixture.componentInstance.rankingOpen()).toBe(false)
+  })
+  it('reports a calendar loading failure from the ranking', async () => {
+    fixture.componentInstance.ranking.set({ score: 0, rank: null, entries: [] })
+    fixture.componentInstance.rankingOpen.set(true)
+    fixture.detectChanges()
+    vi.mocked(window.fetch).mockRejectedValueOnce(new Error('Network error'))
+    ;(fixture.nativeElement.querySelector('.advent__ranking-action button') as HTMLButtonElement).click()
+    await vi.waitFor(() => expect(fixture.componentInstance.error()).toBe(true))
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain('Impossible de charger le calendrier')
+  })
   it('identifies shared ranks without marking unique ranks as ties', () => {
     fixture.componentInstance.ranking.set({ score: 0, rank: 3, entries: [
       { name: 'Alex', score: 11, rank: 1, mine: false },

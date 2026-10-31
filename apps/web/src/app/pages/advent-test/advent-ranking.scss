@@ -22,3 +22,5 @@
 .advent__ranking-legend h2 { margin: .2rem 0; color: var(--hatcast-avent-green); font: 700 1.4rem/1.2 var(--advent-heading-font); }
 .advent__ranking-legend ul { margin: .5rem 0; padding-inline-start: 1.4rem; }
 .advent__ranking-legend li + li { margin-top: .4rem; }
+.advent__ranking-action { display: flex; justify-content: center; }
+.advent__ranking-action button { width: 100%; min-height: 3.5rem; padding-inline: 2rem; font: 700 1.125rem var(--advent-body-font); border-radius: 1rem; box-shadow: 0 .25rem .5rem var(--advent-shadow); }

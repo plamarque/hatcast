@@ -30,7 +30,7 @@
         <button mat-flat-button type="button" (click)="resetGame()" [disabled]="loading()">Réinitialiser</button>
       </section>
     }
-    @if (error() && (quiz() || result() || history())) { <p class="advent__feedback" role="alert">{{ sessionChanged() ? 'La partie de test a été réinitialisée. Recharge l’aperçu.' : memberMode ? 'Impossible de mettre à jour le quiz. Réessaie.' : 'Impossible de mettre à jour la partie de test. Réessaie.' }}</p> }
+    @if (error() && (quiz() || result() || history() || rankingOpen())) { <p class="advent__feedback" role="alert">{{ sessionChanged() ? 'La partie de test a été réinitialisée. Recharge l’aperçu.' : rankingOpen() ? 'Impossible de charger le calendrier. Réessaie.' : memberMode ? 'Impossible de mettre à jour le quiz. Réessaie.' : 'Impossible de mettre à jour la partie de test. Réessaie.' }}</p> }
     @if (rankingError()) { <p role="alert">{{ sessionChanged() ? 'La partie de test a été réinitialisée. Recharge l’aperçu.' : 'Impossible de charger le classement. Réessaie.' }}</p> @if (sessionChanged()) { <button mat-stroked-button type="button" (click)="start()">Recharger l’aperçu</button> } }
     @if (history(); as past) {
       <section class="advent__quiz" aria-labelledby="history-title">
@@ -76,7 +76,7 @@
           </ol>
           <div class="advent__ranking-legend"><h2>Comment gagner des points ?</h2>
           <ul><li>Pour chaque quiz auquel tu réponds, tu gagnes 1 point de participation, même si ta réponse est fausse.</li><li>Une bonne réponse rapporte 10 points supplémentaires.</li><li>Chaque groupe de trois bonnes réponses consécutives rapporte 2 points. Une mauvaise réponse interrompt la série ; un jour sans réponse ne l’interrompt pas.</li><li>En cas d’égalité, tout le monde partage le dernier rang du groupe : par exemple, deux personnes à égalité aux places 2 et 3 sont toutes les deux au rang 3.</li></ul></div>
-          <button mat-stroked-button type="button" (click)="closeRanking(true)">Retour</button>
+          <div class="advent__ranking-action"><button mat-flat-button type="button" (click)="openCalendar()" [disabled]="loading()">Voir le calendrier <mat-icon aria-hidden="true">arrow_forward</mat-icon></button></div>
         </section>
       }
     } @else if (transitionRequired()) {
