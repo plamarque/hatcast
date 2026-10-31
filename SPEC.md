@@ -465,7 +465,7 @@ Accueil verifies the inbox on each entry and always displays newly received task
 
 ### Parcours Avent partagé
 
-Les membres actifs autorisés accèdent au même parcours, aux mêmes quiz et aux mêmes réponses dans leur environnement. La confirmation reste neutre jusqu’à la révélation et une réponse incertaine est vérifiée avant un nouvel essai. Après sa réponse, le membre peut ouvrir le classement. En développement isolé uniquement, les deux opérateurs vérifiés disposent en plus des commandes de date, de rejeu personnel et de réinitialisation explicite de la partie commune ; leur classement inclut les réponses enregistrées avant révélation. Le calendrier complet et l’entrée automatique restent hors de ce parcours.
+Les membres actifs autorisés accèdent au même parcours, aux mêmes quiz et aux mêmes réponses dans leur environnement. La confirmation reste neutre jusqu’à la révélation et une réponse incertaine est vérifiée avant un nouvel essai. Après sa réponse, le membre peut ouvrir le classement. En développement isolé uniquement, les deux opérateurs vérifiés disposent en plus des commandes de date, de rejeu personnel et de réinitialisation explicite de la partie commune ; leur classement inclut les réponses enregistrées avant révélation. Le calendrier personnel présente les 25 jours sous forme de cadeaux : les réponses enregistrées restent neutres jusqu’à leur révélation, puis leur justesse est indiquée. L’entrée automatique reste hors de ce parcours.
 
 ### Identité visuelle Advent Quiz
 

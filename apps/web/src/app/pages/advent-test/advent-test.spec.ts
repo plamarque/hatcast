@@ -2,6 +2,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { provideRouter } from '@angular/router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AdventTest } from './advent-test'
+import { AuthApiService, UserSummary } from '../../core/auth/auth-api.service'
+import { WritableSignal } from '@angular/core'
 
 describe('AdventTest', () => {
   let fixture: ComponentFixture<AdventTest>
@@ -56,12 +58,92 @@ describe('AdventTest', () => {
     await fixture.componentInstance.openCalendar()
     fixture.detectChanges()
     expect(fixture.nativeElement.querySelector('[aria-label="Classement"]')).not.toBeNull()
-    expect(fixture.nativeElement.querySelector('[data-state="played"] mat-icon').textContent).toContain('door_open')
+    expect(fixture.nativeElement.querySelector('[data-state="played"] mat-icon').textContent).toContain('hourglass_empty')
     expect(fixture.nativeElement.querySelector('[data-state="locked"] mat-icon').textContent).toContain('lock')
     vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ priorityResult: null, ranking: { score: 0, rank: null, entries: [] } })))
     await fixture.componentInstance.openRanking()
     fixture.detectChanges()
     expect(fixture.nativeElement.querySelector('[aria-label="Voir le calendrier"]')).not.toBeNull()
+  })
+
+  it('describes pending and revealed gifts without relying on color', () => {
+    const component = fixture.componentInstance
+    component.calendarDays.set([
+      { day: 1, state: 'played', outcome: 'pending' },
+      { day: 2, state: 'played', outcome: 'correct' },
+      { day: 3, state: 'played', outcome: 'incorrect' },
+      { day: 4, state: 'past-unplayed' },
+      { day: 5, state: 'missing' },
+    ])
+    component.calendarOpen.set(true)
+    fixture.detectChanges()
+    const buttons = fixture.nativeElement.querySelectorAll('.advent__calendar-door') as NodeListOf<HTMLButtonElement>
+    expect(buttons[0].getAttribute('aria-label')).toContain('résultat en attente')
+    expect(buttons[1].getAttribute('aria-label')).toContain('Bonne réponse')
+    expect(buttons[1].textContent).toContain('check')
+    expect(buttons[2].getAttribute('aria-label')).toContain('Mauvaise réponse')
+    expect(buttons[2].textContent).toContain('close')
+    expect(buttons[3].getAttribute('aria-label')).toContain('Cadeau fermé')
+    expect(buttons[4].getAttribute('aria-label')).toContain('Sans contenu')
+  })
+
+  it('ignores a calendar response after the component is restarted', async () => {
+    let resolve!: (response: Response) => void
+    vi.mocked(window.fetch).mockImplementationOnce(() => new Promise<Response>(r => { resolve = r }))
+    const pending = fixture.componentInstance.openCalendar()
+    const restart = fixture.componentInstance.start()
+    resolve(new Response(JSON.stringify({ days: [{ day: 1, state: 'played', outcome: 'correct' }], priorityResult: null })))
+    await Promise.all([pending, restart])
+    expect(fixture.componentInstance.calendarDays()).toEqual([])
+    expect(fixture.componentInstance.calendarOpen()).toBe(false)
+    expect(fixture.componentInstance.error()).toBe(false)
+  })
+
+  it('clears the previous account and ignores a delayed calendar failure', async () => {
+    const auth = TestBed.inject(AuthApiService) as unknown as { sessionUserSignal: WritableSignal<UserSummary | null> }
+    const component = fixture.componentInstance
+    component.calendarDays.set([{ day: 1, state: 'played', outcome: 'correct' }])
+    let reject!: (reason: Error) => void
+    vi.mocked(window.fetch).mockImplementationOnce(() => new Promise<Response>((_, r) => { reject = r }))
+    const oldRequest = component.openCalendar()
+    auth.sessionUserSignal.set({ id: 'new', slug: 'new', email: null, displayName: 'Nouvelle' })
+    fixture.detectChanges()
+    expect(component.calendarDays()).toEqual([])
+    reject(new Error('network'))
+    await oldRequest
+    await fixture.whenStable()
+    expect(component.error()).toBe(false)
+    expect(component.calendarDays()).toEqual([])
+    expect(component.calendarOpen()).toBe(false)
+  })
+
+  it('does not clear loading or show an error when an old request fails during a new session', async () => {
+    let rejectOld!: (reason: Error) => void
+    let resolveNew!: (response: Response) => void
+    vi.mocked(window.fetch).mockImplementationOnce(() => new Promise<Response>((_, reject) => { rejectOld = reject }))
+      .mockImplementationOnce(() => new Promise<Response>(resolve => { resolveNew = resolve }))
+    const oldRequest = fixture.componentInstance.openCalendar()
+    const newRequest = fixture.componentInstance.start()
+    rejectOld(new Error('offline'))
+    await oldRequest
+    expect(fixture.componentInstance.loading()).toBe(true)
+    expect(fixture.componentInstance.error()).toBe(false)
+    resolveNew(new Response(JSON.stringify({ sessionId: 'fresh', testControls: false })))
+    await newRequest
+    expect(fixture.componentInstance.error()).toBe(false)
+  })
+
+  it('discards a delayed revealed calendar after a simulated date rollback', async () => {
+    const component = fixture.componentInstance
+    let resolve!: (response: Response) => void
+    vi.mocked(window.fetch).mockImplementationOnce(() => new Promise<Response>(r => { resolve = r }))
+    const oldRequest = component.openCalendar()
+    const rollback = (component as unknown as { enterAt(date: string): Promise<void> }).enterAt('2026-12-01')
+    resolve(new Response(JSON.stringify({ days: [{ day: 1, state: 'played', outcome: 'correct' }], priorityResult: null })))
+    await Promise.all([oldRequest, rollback])
+    expect(component.calendarDays()).toEqual([])
+    expect(component.error()).toBe(false)
+    expect(component.clockDate()).toBe('2026-12-01')
   })
 
   it('keeps the calendar visible after an operator changes its simulated day', async () => {
@@ -589,6 +671,20 @@ describe('AdventTest', () => {
     expect(component.answerState()).toBe('recorded')
     expect(fixture.nativeElement.textContent).toContain('Ta réponse est enregistrée')
     expect(fixture.nativeElement.querySelector('mat-radio-group')).toBeNull()
+  })
+  it('does not focus confirmation after its identity or date context is invalidated', async () => {
+    const component = fixture.componentInstance
+    await component.openDoor()
+    component.choice.set(1)
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ status: 'available' })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'recorded', replayToken: 'token' })))
+    vi.useFakeTimers()
+    const focus = vi.fn()
+    ;(component as any).recordedStatus = { nativeElement: { focus } }
+    await component.confirm()
+    ;(component as any).projectionEpoch++
+    await vi.runAllTimersAsync()
+    expect(focus).not.toHaveBeenCalled()
   })
   it('reconciles again when a new instance opens after a lost response', async () => {
     await fixture.componentInstance.openDoor()

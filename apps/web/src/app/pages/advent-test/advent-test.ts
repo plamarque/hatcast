@@ -1,18 +1,20 @@
-import { Component, ElementRef, ViewChild, signal } from '@angular/core'
+import { Component, ElementRef, ViewChild, signal, inject, effect } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
 import { MatRadioModule } from '@angular/material/radio'
 import { RouterLink } from '@angular/router'
+import { AuthApiService } from '../../core/auth/auth-api.service'
 
 const REQUEST_TIMEOUT_MS = 10_000
 
 class TransientReadError extends Error {}
+class StaleRequestError extends Error {}
 
 interface AdventResult { answerId: string; day: number; selectedChoice: number; falseChoice: number; correct: boolean; responsePoints: number; participationPoints: number; bonusPoints: number; totalPoints: number; seen: boolean; explanation?: string | null; late?: boolean }
 
 interface AdventRanking { score: number; rank: number | null; entries: { name: string; score: number; rank: number; mine: boolean }[] }
 
-interface CalendarDay { day: number; state: 'locked' | 'played' | 'today' | 'past-unplayed' | 'missing' | 'christmas' }
+interface CalendarDay { day: number; state: 'locked' | 'played' | 'today' | 'past-unplayed' | 'missing' | 'christmas'; outcome?: 'pending' | 'correct' | 'incorrect' | null }
 interface History { quiz: FictionalQuiz; falseChoice: number; result: AdventResult | null }
 
 interface FictionalQuiz { day: number; name: string; portrait: string; statements: string[]; genericElf: boolean }
@@ -25,6 +27,26 @@ interface FictionalQuiz { day: number; name: string; portrait: string; statement
   styleUrls: ['./advent-test.scss', './advent-result.scss', './advent-ranking.scss', './advent-calendar.scss'],
 })
 export class AdventTest {
+  private readonly auth = inject(AuthApiService)
+  private identity = this.auth.sessionUser()?.id ?? null
+  private projectionEpoch = 0
+  constructor() {
+    effect(() => {
+      const identity = this.auth.sessionUser()?.id ?? null
+      if (identity === this.identity) return
+      this.identity = identity
+      this.projectionEpoch++
+      this.calendarDays.set([]); this.calendarOpen.set(false)
+      this.result.set(null); this.resultContent.set(null); this.history.set(null)
+      this.ranking.set(null); this.rankingOpen.set(false); this.christmasScore.set(null)
+      this.quiz.set(null); this.preview.set(null); this.clearVisibilityListener()
+      this.loading.set(false); this.submitting.set(false); this.closingDay.set(null)
+      this.error.set(false); this.rankingError.set(false); this.christmasError.set(false); this.calendarActionMessage.set('')
+      this.generation = null; this.replayToken = null; this.sessionId = null; this.recordedLate = false
+      this.choice.set(null); this.answerState.set('checking'); this.testControls.set(false); this.sessionChanged.set(false)
+      if (identity) void this.start()
+    })
+  }
   readonly testControls = signal(false)
   readonly resetConfirm = signal(false)
   get memberMode(): boolean { return !this.testControls() }
@@ -82,13 +104,14 @@ export class AdventTest {
   }
 
   ngOnInit(): void { void this.start() }
-  ngOnDestroy(): void { this.clearVisibilityListener() }
+  ngOnDestroy(): void { this.projectionEpoch++; this.clearVisibilityListener() }
   private clearVisibilityListener(): void {
     if (this.visibilityListener) document.removeEventListener('visibilitychange', this.visibilityListener)
     this.visibilityListener = null
   }
 
   async start(): Promise<void> {
+    this.projectionEpoch++
     this.calendarOpen.set(false); this.calendarDays.set([]); this.history.set(null); this.christmasScore.set(null); this.lateDiscovery.set(false)
     this.rankingOpen.set(false)
     this.ranking.set(null)
@@ -111,7 +134,7 @@ export class AdventTest {
       if (session.transitionRequired) { this.transitionRequired.set(true); this.loading.set(false); return }
       const clock = await this.requestJson<{ date: string }>('/v1/advent-test/clock', { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
       await this.enterAt(clock.date)
-    } catch { this.error.set(true); this.loading.set(false) }
+    } catch (error) { if (!(error instanceof StaleRequestError)) { this.error.set(true); this.loading.set(false) } }
   }
 
   private async showResult(result: AdventResult, historical = false): Promise<void> {
@@ -134,11 +157,14 @@ export class AdventTest {
     this.unavailable.set(false)
     this.result.set(current)
     this.loading.set(false)
+    const resultEpoch = this.projectionEpoch
+    const resultIdentity = this.auth.sessionUser()?.id ?? null
     const display = () => {
       if (document.visibilityState !== 'visible') return
       this.clearVisibilityListener()
       requestAnimationFrame(() => requestAnimationFrame(() => {
         const heading = this.resultHeading?.nativeElement
+        if (!this.contextCurrent(resultEpoch, resultIdentity)) return
         if (document.visibilityState !== 'visible' || !heading?.isConnected || this.result()?.answerId !== result.answerId) {
           if (this.result()?.answerId === result.answerId && document.visibilityState !== 'visible') {
             this.visibilityListener = display
@@ -147,7 +173,7 @@ export class AdventTest {
           return
         }
         heading.focus()
-        void fetch(`${this.api}/doors/${result.day}/result/acknowledge`, { method: 'POST', credentials: 'include', cache: 'no-store', headers: { ...this.csrfHeaders(), ...this.sessionHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({ answerId: result.answerId }) }).then(response => { if (response.status === 409) { this.sessionChanged.set(true); this.error.set(true) } }).catch(() => {})
+        void fetch(`${this.api}/doors/${result.day}/result/acknowledge`, { method: 'POST', credentials: 'include', cache: 'no-store', headers: { ...this.csrfHeaders(), ...this.sessionHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({ answerId: result.answerId }) }).then(response => { if (this.contextCurrent(resultEpoch, resultIdentity) && response.status === 409) { this.sessionChanged.set(true); this.error.set(true) } }).catch(() => {})
       }))
     }
     if (document.visibilityState === 'visible') display()
@@ -156,6 +182,7 @@ export class AdventTest {
 
   /** Re-enter at a simulated date, giving any eligible unseen reveal priority. */
   private async enterAt(date: string): Promise<void> {
+    this.projectionEpoch++
     const returnToCalendar = this.calendarOpen()
     this.closeRanking()
     this.calendarOpen.set(false); this.calendarDays.set([]); this.history.set(null); this.christmasScore.set(null); this.lateDiscovery.set(false)
@@ -196,10 +223,13 @@ export class AdventTest {
   }
 
   calendarLabel(day: CalendarDay): string {
-    return ({ locked: 'Verrouillé', played: 'Joué', today: 'Aujourd’hui', 'past-unplayed': 'Non joué', missing: 'Sans contenu', christmas: 'Noël' })[day.state]
+    if (day.state === 'played') return ({ pending: 'Réponse enregistrée, résultat en attente', correct: 'Bonne réponse', incorrect: 'Mauvaise réponse' })[day.outcome ?? 'pending']
+    return ({ locked: 'Verrouillé', played: 'Réponse enregistrée', today: 'Aujourd’hui', 'past-unplayed': 'Cadeau fermé', missing: 'Sans contenu', christmas: 'Résumé de Noël' })[day.state]
   }
 
   async openCalendar(): Promise<void> {
+    const epoch = this.projectionEpoch
+    const identity = this.auth.sessionUser()?.id ?? null
     if (this.loading() || this.submitting() || this.result() || this.sessionChanged()) return
     this.loading.set(true); this.error.set(false)
     try {
@@ -208,11 +238,15 @@ export class AdventTest {
       if (!response.days) throw new Error('Calendar unavailable')
       this.calendarDays.set(response.days); this.history.set(null); this.rankingOpen.set(false); this.calendarOpen.set(true)
       setTimeout(() => this.calendarHeading?.nativeElement.focus())
-    } catch { this.error.set(true) }
-    finally { this.loading.set(false) }
+    } catch (error) {
+      if (error instanceof StaleRequestError || !this.contextCurrent(epoch, identity)) return
+      this.error.set(true) }
+    finally { if (this.contextCurrent(epoch, identity)) this.loading.set(false) }
   }
 
   async closeCalendarDay(day: CalendarDay): Promise<void> {
+    const epoch = this.projectionEpoch
+    const identity = this.auth.sessionUser()?.id ?? null
     if (!this.testControls() || !this.calendarOpen() || day.state !== 'played' || this.loading() || this.submitting() || this.closingDay() !== null) return
     this.closingDay.set(day.day)
     this.calendarActionMessage.set('')
@@ -225,22 +259,27 @@ export class AdventTest {
       if (response.priorityResult) { this.calendarOpen.set(false); await this.showResult(response.priorityResult); return }
       if (response.status !== 'cleared') throw new Error('Answer changed')
       await this.openCalendar()
-      if (this.calendarOpen() && !this.error()) this.calendarActionMessage.set(`La case ${day.day} est refermée.`)
-    } catch {
+      if (this.contextCurrent(epoch, identity) && this.calendarOpen() && !this.error()) this.calendarActionMessage.set(`La case ${day.day} est refermée.`)
+    } catch (error) {
+      if (error instanceof StaleRequestError || !this.contextCurrent(epoch, identity)) return
       this.calendarActionMessage.set('Impossible de refermer cette case. Actualise le calendrier avant de réessayer.')
       await this.openCalendar()
-    } finally { this.closingDay.set(null) }
+    } finally { if (this.contextCurrent(epoch, identity)) this.closingDay.set(null) }
   }
 
   async openCalendarDay(day: CalendarDay): Promise<void> {
+    const epoch = this.projectionEpoch
+    const identity = this.auth.sessionUser()?.id ?? null
     if (day.state === 'locked' || this.loading()) return
     if (day.state === 'christmas') {
       this.christmasError.set(false); this.loading.set(true)
       try {
         await this.loadChristmasScore()
         if (!this.result()) { this.calendarOpen.set(false); this.history.set(null); this.quiz.set(null); this.preview.set(null); this.unavailable.set(false) }
-      } catch { this.christmasError.set(true) }
-      finally { this.loading.set(false) }
+      } catch (error) {
+      if (error instanceof StaleRequestError || !this.contextCurrent(epoch, identity)) return
+        this.christmasError.set(true) }
+      finally { if (this.contextCurrent(epoch, identity)) this.loading.set(false) }
       return
     }
     if (day.state === 'today' || (day.state === 'played' && this.clockDate() === `2026-12-${String(day.day).padStart(2, '0')}`)) {
@@ -258,8 +297,10 @@ export class AdventTest {
       this.lateDiscovery.set(true)
       this.loading.set(false)
       await this.selectDay(day.day)
-    } catch { this.error.set(true) }
-    finally { this.loading.set(false) }
+    } catch (error) {
+      if (error instanceof StaleRequestError || !this.contextCurrent(epoch, identity)) return
+      this.error.set(true) }
+    finally { if (this.contextCurrent(epoch, identity)) this.loading.set(false) }
   }
 
   async returnToCalendar(): Promise<void> {
@@ -285,6 +326,8 @@ export class AdventTest {
   }
 
   async openRanking(): Promise<void> {
+    const epoch = this.projectionEpoch
+    const identity = this.auth.sessionUser()?.id ?? null
     if (this.loading() || this.submitting() || this.result() || this.sessionChanged() || this.rankingOpen()) return
     this.loading.set(true)
     this.error.set(false)
@@ -297,8 +340,10 @@ export class AdventTest {
       this.calendarOpen.set(false); this.history.set(null)
       this.rankingOpen.set(true)
       setTimeout(() => this.rankingHeading?.nativeElement.focus())
-    } catch { this.rankingError.set(true) }
-    finally { this.loading.set(false) }
+    } catch (error) {
+      if (error instanceof StaleRequestError || !this.contextCurrent(epoch, identity)) return
+      this.rankingError.set(true) }
+    finally { if (this.contextCurrent(epoch, identity)) this.loading.set(false) }
   }
 
   closeRanking(restoreFocus = false): void {
@@ -308,15 +353,18 @@ export class AdventTest {
   }
 
   async resetGame(): Promise<void> {
+    const epoch = this.projectionEpoch
+    const identity = this.auth.sessionUser()?.id ?? null
     if (!this.testControls() || !this.resetConfirm() || this.loading() || this.submitting()) return
     this.loading.set(true)
     this.error.set(false)
     try {
       const response = await fetch(`${this.api}/session/reset`, { method: 'POST', credentials: 'include', cache: 'no-store', headers: { ...this.csrfHeaders(), ...this.sessionHeaders() } })
+      if (!this.contextCurrent(epoch, identity)) throw new StaleRequestError()
       if (!response.ok) throw new Error('Reset failed')
       this.resetConfirm.set(false)
       await this.start()
-    } catch { this.error.set(true); this.loading.set(false) }
+    } catch (error) { if (!(error instanceof StaleRequestError) && this.contextCurrent(epoch, identity)) { this.error.set(true); this.loading.set(false) } }
   }
 
   private shiftedDate(days: number): string | null {
@@ -335,7 +383,7 @@ export class AdventTest {
     this.error.set(false)
     this.simulatedDate.set(target)
     try { await this.enterAt(target) }
-    catch { this.error.set(true); this.loading.set(false) }
+    catch (error) { if (!(error instanceof StaleRequestError)) { this.error.set(true); this.loading.set(false) } }
   }
 
   async continueAfterResult(): Promise<void> {
@@ -356,7 +404,8 @@ export class AdventTest {
       this.loading.set(false)
       if (clock.date >= '2026-12-25') { await this.loadChristmasScore(); return }
       await this.selectDay(Math.min(24, Math.max(1, Number(clock.date.slice(-2)))))
-    } catch {
+    } catch (error) {
+      if (error instanceof StaleRequestError) return
       this.error.set(true)
       this.loading.set(false)
     }
@@ -370,6 +419,8 @@ export class AdventTest {
   }
 
   async selectDay(day: number): Promise<void> {
+    const epoch = this.projectionEpoch
+    const identity = this.auth.sessionUser()?.id ?? null
     if (this.loading() || this.submitting() || (this.quiz() && this.answerState() === 'checking')) return
     this.selectedDay.set(day)
     this.unavailable.set(false)
@@ -398,11 +449,12 @@ export class AdventTest {
         this.answerState.set('recorded')
         this.quiz.set(content)
       }
-    } catch {
+    } catch (error) {
+      if (error instanceof StaleRequestError || !this.contextCurrent(epoch, identity)) return
       this.preview.set(null)
       this.error.set(true)
     } finally {
-      this.loading.set(false)
+      if (this.contextCurrent(epoch, identity)) this.loading.set(false)
     }
   }
 
@@ -413,7 +465,7 @@ export class AdventTest {
     this.loading.set(true)
     this.error.set(false)
     try { await this.enterAt(target) }
-    catch { this.error.set(true); this.loading.set(false) }
+    catch (error) { if (!(error instanceof StaleRequestError)) { this.error.set(true); this.loading.set(false) } }
   }
 
   async previousDay(): Promise<void> {
@@ -423,7 +475,7 @@ export class AdventTest {
     this.error.set(false)
     this.simulatedDate.set(target)
     try { await this.enterAt(target) }
-    catch { this.error.set(true); this.loading.set(false) }
+    catch (error) { if (!(error instanceof StaleRequestError)) { this.error.set(true); this.loading.set(false) } }
   }
 
   async nextDay(): Promise<void> {
@@ -432,13 +484,16 @@ export class AdventTest {
   }
 
   async openDoor(): Promise<void> {
+    const epoch = this.projectionEpoch
+    const identity = this.auth.sessionUser()?.id ?? null
     if (this.loading() || this.submitting() || (this.quiz() && this.answerState() === 'checking')) return
     if (!this.preview()) await this.selectDay(this.selectedDay())
+    if (!this.contextCurrent(epoch, identity)) return
     const content = this.preview()
     if (content) {
       this.quiz.set(content)
       await this.reconcile()
-      setTimeout(() => (this.answerState() === 'recorded' ? this.recordedStatus : this.quizHeading)?.nativeElement.focus())
+      if (this.contextCurrent(epoch, identity)) setTimeout(() => { if (this.contextCurrent(epoch, identity)) (this.answerState() === 'recorded' ? this.recordedStatus : this.quizHeading)?.nativeElement.focus() })
     }
   }
   async reconcile(): Promise<void> {
@@ -454,10 +509,12 @@ export class AdventTest {
       this.answerState.set(data.status)
       this.recordedLate = data.late === true
       if (data.status === 'recorded' && this.recordedLate && !this.submitting()) await this.showLateResult()
-    } catch { this.generation = null; this.answerState.set('uncertain') }
+    } catch (error) { if (!(error instanceof StaleRequestError)) { this.generation = null; this.answerState.set('uncertain') } }
   }
 
   async replay(): Promise<void> {
+    const epoch = this.projectionEpoch
+    const identity = this.auth.sessionUser()?.id ?? null
     if (this.submitting() || this.answerState() !== 'recorded' || !this.replayToken) return
     this.submitting.set(true)
     this.choice.set(null)
@@ -478,12 +535,16 @@ export class AdventTest {
         this.resultContent.set(null)
       }
       await this.reconcile()
-      setTimeout(() => (this.answerState() === 'recorded' ? this.recordedStatus : this.quizHeading)?.nativeElement.focus())
-    } catch { this.generation = null; if (reveal || historical) this.error.set(true); else this.answerState.set('uncertain') }
-    finally { this.submitting.set(false) }
+      if (this.contextCurrent(epoch, identity)) setTimeout(() => { if (this.contextCurrent(epoch, identity)) (this.answerState() === 'recorded' ? this.recordedStatus : this.quizHeading)?.nativeElement.focus() })
+    } catch (error) {
+      if (error instanceof StaleRequestError || !this.contextCurrent(epoch, identity)) return
+      this.generation = null; if (reveal || historical) this.error.set(true); else this.answerState.set('uncertain') }
+    finally { if (this.contextCurrent(epoch, identity)) this.submitting.set(false) }
   }
 
   async confirm(): Promise<void> {
+    const epoch = this.projectionEpoch
+    const identity = this.auth.sessionUser()?.id ?? null
     const choice = this.choice()
     if (choice === null || this.submitting() || this.answerState() !== 'available' || !this.generation) return
     this.submitting.set(true)
@@ -507,16 +568,20 @@ export class AdventTest {
       this.replayToken = data.replayToken ?? null
       this.recordedLate = data.late === true
       this.answerState.set(data.status)
-    } catch {
+    } catch (error) {
+      if (error instanceof StaleRequestError || !this.contextCurrent(epoch, identity)) return
       if (this.sessionChanged()) this.answerState.set('uncertain')
       else await this.reconcile()
     }
     finally {
+      if (!this.contextCurrent(epoch, identity)) return
       this.submitting.set(false)
       if (this.answerState() === 'recorded' && this.recordedLate) {
-        try { await this.showLateResult(); return } catch { this.answerState.set('uncertain'); return }
+        try { await this.showLateResult(); return } catch (error) {
+      if (error instanceof StaleRequestError || !this.contextCurrent(epoch, identity)) return
+          this.answerState.set('uncertain'); return }
       }
-      if (this.answerState() === 'recorded') setTimeout(() => this.recordedStatus?.nativeElement.focus())
+      if (this.answerState() === 'recorded') setTimeout(() => { if (this.contextCurrent(epoch, identity)) this.recordedStatus?.nativeElement.focus() })
     }
   }
 
@@ -526,16 +591,25 @@ export class AdventTest {
     await this.showResult(result, true)
   }
 
+  private contextCurrent(epoch: number, identity: string | null): boolean {
+    return epoch === this.projectionEpoch && identity === (this.auth.sessionUser()?.id ?? null)
+  }
+
   private async requestJson<T>(url: string, options: RequestInit, notFoundAsNull = false): Promise<T> {
+    const epoch = this.projectionEpoch
+    const identity = this.auth.sessionUser()?.id ?? null
     try {
       return await this.requestJsonOnce<T>(url, options, notFoundAsNull)
     } catch (error) {
+      if (!this.contextCurrent(epoch, identity)) throw new StaleRequestError()
       if ((options.method ?? 'GET').toUpperCase() !== 'GET' || !(error instanceof TransientReadError)) throw error
       return this.requestJsonOnce<T>(url, options, notFoundAsNull)
     }
   }
 
   private async requestJsonOnce<T>(url: string, options: RequestInit, notFoundAsNull: boolean): Promise<T> {
+    const epoch = this.projectionEpoch
+    const identity = this.auth.sessionUser()?.id ?? null
     const controller = new AbortController()
     let timer: ReturnType<typeof setTimeout> | undefined
     const timeout = new Promise<never>((_, reject) => {
@@ -545,6 +619,7 @@ export class AdventTest {
       return await Promise.race([
         (async () => {
           const response = await fetch(url.replace('/v1/advent-test', this.api), { ...options, signal: controller.signal }).catch(() => { throw new TransientReadError('Network failure') })
+          if (epoch !== this.projectionEpoch || identity !== (this.auth.sessionUser()?.id ?? null)) throw new StaleRequestError()
           if (response.status === 409) {
             this.sessionChanged.set(true)
             this.generation = null
@@ -553,11 +628,18 @@ export class AdventTest {
           if (response.status === 404 && notFoundAsNull) return null as T
           if (response.status >= 500) throw new TransientReadError('Server unavailable')
           if (!response.ok) throw new Error('Unavailable')
-          try { return await response.json() as T }
+          try {
+            const data = await response.json() as T
+            if (epoch !== this.projectionEpoch || identity !== (this.auth.sessionUser()?.id ?? null)) throw new StaleRequestError()
+            return data
+          }
           catch (error) { if (error instanceof TypeError) throw new TransientReadError('Response interrupted'); throw error }
         })(),
         timeout,
       ])
+    } catch (error) {
+      if (!this.contextCurrent(epoch, identity)) throw new StaleRequestError()
+      throw error
     } finally { clearTimeout(timer) }
   }
 

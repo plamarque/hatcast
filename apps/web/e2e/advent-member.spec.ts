@@ -103,7 +103,7 @@ test('each operator tab simulates independently of the other operator and member
   await context.close()
 })
 
-test('calendar remains legible at 320px and past unplayed content can be answered without points', async ({ page }) => {
+test('calendar remains legible at 320px and past unplayed content can be answered without points', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 320, height: 700 })
   await page.emulateMedia({ reducedMotion: 'reduce' })
   let lateRecorded = false
@@ -117,7 +117,7 @@ test('calendar remains legible at 320px and past unplayed content can be answere
     if (path === '/v1/advent/clock') return route.fulfill({ json: { date: '2026-12-02' } })
     if (path === '/v1/advent/results/latest-unseen') return route.fulfill({ json: { result: null } })
     if (path === '/v1/advent/ranking') return route.fulfill({ json: { priorityResult: null, ranking: { score: 0, rank: 1, entries: [] } } })
-    if (path === '/v1/advent/calendar') return route.fulfill({ json: { priorityResult: null, days: Array.from({ length: 25 }, (_, i) => ({ day: i + 1, state: i === 0 ? 'past-unplayed' : i === 1 ? 'today' : 'locked' })) } })
+    if (path === '/v1/advent/calendar') return route.fulfill({ json: { priorityResult: null, days: Array.from({ length: 25 }, (_, i) => ({ day: i + 1, state: i === 0 ? 'past-unplayed' : i === 1 ? 'today' : i >= 3 && i <= 5 ? 'played' : i === 6 ? 'missing' : i === 24 ? 'christmas' : 'locked', outcome: i === 3 ? 'pending' : i === 4 ? 'correct' : i === 5 ? 'incorrect' : null })) } })
     if (path === '/v1/advent/doors/1/history') return route.fulfill({ json: { priorityResult: null, quiz: { day: 1, name: 'Fiction', portrait: '', statements: ['A', 'B', 'C'] }, falseChoice: null, result: lateRecorded ? lateResult : null } })
     if (path === '/v1/advent/doors/1/result') return route.fulfill({ json: lateResult })
     if (path === '/v1/advent/doors/1') return route.fulfill({ json: { day: 1, name: 'Fiction', portrait: '', statements: ['A', 'B', 'C'] } })
@@ -143,6 +143,34 @@ test('calendar remains legible at 320px and past unplayed content can be answere
   await expect(cells).toHaveCount(25)
   await expect(cells.nth(2)).toBeDisabled()
   expect(await page.locator('.advent__calendar').evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').length)).toBe(4)
+  for (const width of [320, 375, 390, 430, 768, 1280]) {
+    await page.setViewportSize({ width, height: 900 })
+    expect(await page.locator('.advent__calendar').evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').length)).toBe(4)
+    const boxes = await cells.evaluateAll(elements => elements.map(el => {
+      const rect = el.getBoundingClientRect()
+      return { width: rect.width, height: rect.height }
+    }))
+    expect(boxes.every(box => box.width >= 48 && box.height >= 48)).toBe(true)
+    await page.screenshot({ path: testInfo.outputPath(`calendar-${width}.png`) })
+  }
+  await page.setViewportSize({ width: 320, height: 700 })
+  await page.evaluate(() => { document.documentElement.style.fontSize = '200%' })
+  await page.screenshot({ path: testInfo.outputPath('calendar-320-large-text.png') })
+  const boxes = await cells.evaluateAll(elements => elements.slice(0, 4).map(el => {
+    const rect = el.getBoundingClientRect()
+    return { left: rect.left, right: rect.right }
+  }))
+  expect(boxes.every((box, index) => index === 0 || boxes[index - 1].right <= box.left)).toBe(true)
+  await cells.nth(1).focus()
+  await page.keyboard.press('Tab')
+  await expect(cells.nth(3)).toBeFocused()
+  const focusedVisible = await cells.nth(3).evaluate(el => {
+    const button = el.getBoundingClientRect()
+    const container = el.closest('.advent__calendar')!.getBoundingClientRect()
+    return button.left >= container.left && button.right <= container.right && button.left >= 0 && button.right <= window.innerWidth
+  })
+  expect(focusedVisible).toBe(true)
+  await page.evaluate(() => { document.documentElement.style.fontSize = '' })
   await cells.first().click()
   await page.getByRole('button', { name: 'Ouvrir le cadeau du jour 1' }).click()
   await expect(page.getByText(/sans gagner de points/)).toBeVisible()

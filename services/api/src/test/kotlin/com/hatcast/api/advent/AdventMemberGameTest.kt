@@ -58,6 +58,8 @@ class AdventMemberGameTest {
         val pending = game.calendar(member).days!!
         assertEquals(25, pending.size)
         assertEquals("played", pending[0].state)
+        assertEquals("pending", pending[0].outcome)
+        assertNull(game.calendar(other).days!![0].outcome)
         assertEquals("locked", pending[1].state)
         assertEquals("today", game.calendar(other).days!![0].state)
         assertEquals(404, assertThrows(ResponseStatusException::class.java) { game.history(member, 1) }.statusCode.value())
@@ -66,6 +68,7 @@ class AdventMemberGameTest {
         assertEquals(priority.answerId, game.history(member, 1).priorityResult!!.answerId)
         game.acknowledge(member, 1, UUID.fromString(priority.answerId))
         assertEquals("played", game.calendar(member).days!![0].state)
+        assertEquals(if (priority.correct) "correct" else "incorrect", game.calendar(member).days!![0].outcome)
         assertEquals("past-unplayed", game.calendar(other).days!![0].state)
         assertNull(game.history(other, 1).history!!.falseChoice)
         assertNull(game.history(other, 1).history!!.result)
@@ -75,6 +78,21 @@ class AdventMemberGameTest {
         assertEquals("christmas", game.calendar(other).days!![24].state)
         at("2027-01-15T23:00:00Z")
         assertThrows(ResponseStatusException::class.java) { game.calendar(other) }
+    }
+
+    @Test fun `calendar rolls revealed results back to neutral at the server boundary`() {
+        val attempt = reserve()
+        game.confirm(member, 1, 1, attempt)
+        at("2026-12-01T22:59:59Z")
+        assertEquals("pending", game.calendar(member).days!![0].outcome)
+        at("2026-12-01T23:00:00Z")
+        val priority = game.calendar(member).priorityResult!!
+        assertFalse(priority.correct)
+        game.acknowledge(member, 1, UUID.fromString(priority.answerId))
+        assertEquals("incorrect", game.calendar(member).days!![0].outcome)
+        assertNull(game.calendar(other).days!![0].outcome)
+        at("2026-12-01T22:59:59Z")
+        assertEquals("pending", game.calendar(member).days!![0].outcome)
     }
 
     @Test fun `explicit late answer persists without affecting ranking participation or streak`() {
@@ -90,6 +108,7 @@ class AdventMemberGameTest {
         assertTrue(game.confirm(member, 1, 0, attempt).late)
         val result = game.result(member, 1)!!
         assertTrue(result.late)
+        assertEquals("incorrect", game.calendar(member).days!![0].outcome)
         assertFalse(result.correct)
         assertEquals(0, result.responsePoints + result.participationPoints + result.bonusPoints)
         assertNull(game.latestUnseen(member))

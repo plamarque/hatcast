@@ -194,7 +194,10 @@ class AdventMemberGame(private val jdbc: JdbcTemplate, private val clock: Advent
             !conflict && memberQuiz(day) != null
         }
         if (unseen != null) return AdventCalendarResponse(priorityResult = resultAt(user, unseen, time))
-        val answered = jdbc.query("SELECT quiz_day FROM advent_member_answers WHERE user_id = ?", { rs, _ -> rs.getInt(1) }, user).toSet()
+        val answered = jdbc.query("SELECT quiz_day, reveal_at, choice, correct_choice FROM advent_member_answers WHERE user_id = ?", { rs, _ ->
+            val outcome = if (rs.getTimestamp(2).toInstant().isAfter(time)) "pending" else if (rs.getInt(3) == rs.getInt(4)) "correct" else "incorrect"
+            rs.getInt(1) to outcome
+        }, user).toMap()
         val days = (1..25).map { day ->
             val target = LocalDate.of(2026, 12, day)
             val state = when {
@@ -205,7 +208,7 @@ class AdventMemberGame(private val jdbc: JdbcTemplate, private val clock: Advent
                 target == today -> "today"
                 else -> "past-unplayed"
             }
-            AdventCalendarDay(day, state)
+            AdventCalendarDay(day, state, if (state == "played") answered[day] else null)
         }
         return AdventCalendarResponse(days = days)
     }
@@ -273,7 +276,7 @@ class AdventMemberGame(private val jdbc: JdbcTemplate, private val clock: Advent
 private data class MemberResultRow(val day: Int, val answerId: String, val choice: Int, val correctChoice: Int, val seen: Boolean, val late: Boolean)
 
 
-data class AdventCalendarDay(val day: Int, val state: String)
+data class AdventCalendarDay(val day: Int, val state: String, val outcome: String? = null)
 data class AdventCalendarResponse(val days: List<AdventCalendarDay>? = null, val priorityResult: AdventResult? = null)
 data class AdventHistory(val quiz: AdventQuiz, val result: AdventResult?, val falseChoice: Int?)
 
