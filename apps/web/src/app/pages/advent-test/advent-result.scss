@@ -53,3 +53,6 @@
 .advent__confetti i:nth-child(12) { --piece: 12; }
 @keyframes advent-piece { 0% { opacity: 0; transform: translateY(3rem) scale(.3) rotate(0); } 30% { opacity: 1; transform: translateY(-.5rem) rotate(90deg); } 100% { opacity: 0; transform: translateY(10rem) rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .advent__confetti { display: none; } }
+
+.advent__header:has(.advent__test-actions--calendar) { flex-wrap: wrap; }
+.advent__header .advent__test-actions .advent__clock-action { flex: 1 1 10rem; width: auto; height: auto; }

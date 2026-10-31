@@ -48,6 +48,9 @@ test('member confirmation and ranking remain neutral and accessible', async ({ p
 test('verified operator controls use the same Advent URL and member API', async ({ page }, testInfo) => {
   const date = '2026-12-01'
   const paths: string[] = []
+  const replays: { date: string | undefined; body: unknown }[] = []
+  let cleared = false
+  let calendarLoaded = false
   await page.route('**/v1/**', async route => {
     const path = new URL(route.request().url()).pathname
     paths.push(path)
@@ -57,9 +60,10 @@ test('verified operator controls use the same Advent URL and member API', async 
     if (path === '/v1/advent/session') return route.fulfill({ json: { testControls: true, sessionId: 'fixture-session' } })
     if (path === '/v1/advent/clock') return route.fulfill({ json: { date } })
     if (path === '/v1/advent/results/latest-unseen') return route.fulfill({ json: { result: null } })
-    if (path === '/v1/advent/calendar') return route.fulfill({ json: { priorityResult: null, days: [{ day: 1, state: 'played', outcome: 'correct' }] } })
+    if (path === '/v1/advent/calendar') { calendarLoaded = true; return route.fulfill({ json: { priorityResult: null, days: [{ day: 1, state: cleared ? 'today' : 'played', outcome: cleared ? null : 'pending' }, { day: 25, state: 'locked' }] } }) }
     if (path === '/v1/advent/doors/1' || path === '/v1/advent/doors/2') return route.fulfill({ json: { day: Number(path.split('/').pop()), name: 'Lutin fictif', portrait: '', genericElf: true, statements: ['Une', 'Deux', 'Trois'] } })
-    if (path.endsWith('/answer')) return route.fulfill({ json: { status: 'available' } })
+    if (path.endsWith('/answer/replay')) { replays.push({ date: route.request().headers()['x-advent-simulated-date'], body: route.request().postDataJSON() }); cleared = true; return route.fulfill({ json: { status: 'cleared' } }) }
+    if (path.endsWith('/answer')) return route.fulfill({ json: calendarLoaded && path.includes('/1/') ? { status: 'recorded', replayToken: 'own-token' } : { status: 'available' } })
     return route.fulfill({ json: {} })
   })
   await page.goto('/avent')
@@ -71,11 +75,22 @@ test('verified operator controls use the same Advent URL and member API', async 
   expect(paths.every(path => !path.startsWith('/v1/advent-test/'))).toBe(true)
   await page.setViewportSize({ width: 320, height: 700 })
   await page.getByRole('button', { name: 'Voir le calendrier' }).click()
-  const gift = page.locator('.advent__calendar-door')
-  const close = page.locator('.advent__calendar-close')
+  const close = page.getByRole('button', { name: 'Refermer mon cadeau du jour et effacer ma réponse' })
   await expect(close).toBeVisible()
-  const giftBox = await gift.boundingBox(), closeBox = await close.boundingBox()
-  expect(closeBox!.y).toBeGreaterThanOrEqual(giftBox!.y + giftBox!.height)
+  await expect(close).toBeDisabled()
+  await expect(page.locator('.advent__calendar-cell button')).toHaveCount(2)
+  await expect(page.getByRole('button', { name: '25 décembre : Verrouillé' })).toBeDisabled()
+  await page.getByRole('button', { name: 'Revenir au jour précédent' }).click()
+  await expect(close).toBeEnabled()
+  await close.focus()
+  const closeBox = await close.boundingBox()
+  expect(closeBox!.width).toBeGreaterThanOrEqual(44)
+  expect(closeBox!.height).toBeGreaterThanOrEqual(44)
+  expect(closeBox!.x + closeBox!.width).toBeLessThanOrEqual(320)
+  await page.screenshot({ path: testInfo.outputPath('calendar-operator-focus-320.png') })
+  await close.click()
+  await expect.poll(() => replays).toEqual([{ date: '2026-12-01', body: { replayToken: 'own-token', close: true } }])
+  await expect(close).toBeDisabled()
   await page.screenshot({ path: testInfo.outputPath('calendar-operator-320.png') })
 })
 
@@ -152,6 +167,7 @@ test('calendar remains legible at 320px and past unplayed content can be answere
   await expect(cells).toHaveCount(25)
   for (const index of [0, 3]) {
     await expect.poll(() => cells.nth(index).locator('img').evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0)
+    expect((await cells.nth(index).locator('img').boundingBox())!.width).toBeGreaterThan(40)
   }
   await expect(cells.nth(2)).toBeDisabled()
   expect(await page.locator('.advent__calendar').evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').length)).toBe(4)
@@ -167,8 +183,8 @@ test('calendar remains legible at 320px and past unplayed content can be answere
   }
   await page.setViewportSize({ width: 320, height: 700 })
   await page.emulateMedia({ reducedMotion: 'reduce' })
-  await page.route('**/gift-open-v1.png?failure=1', route => route.abort())
-  await cells.nth(3).locator('img').evaluate((el: HTMLImageElement) => { el.src = '/advent/gifts/gift-open-v1.png?failure=1' })
+  await page.route('**/gift-open-v2.png?failure=1', route => route.abort())
+  await cells.nth(3).locator('img').evaluate((el: HTMLImageElement) => { el.src = '/advent/gifts/gift-open-v2.png?failure=1' })
   await expect(cells.nth(3).locator('img')).toBeHidden()
   await expect(cells.nth(3).locator('.advent__gift-lid')).toBeVisible()
   await page.screenshot({ path: testInfo.outputPath('calendar-fallback-reduced-motion.png') })

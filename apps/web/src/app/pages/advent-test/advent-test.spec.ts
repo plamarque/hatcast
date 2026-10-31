@@ -58,8 +58,8 @@ describe('AdventTest', () => {
     await fixture.componentInstance.openCalendar()
     fixture.detectChanges()
     expect(fixture.nativeElement.querySelector('[aria-label="Classement"]')).not.toBeNull()
-    expect(fixture.nativeElement.querySelector('[data-state="played"] mat-icon').textContent).toContain('hourglass_empty')
-    expect(fixture.nativeElement.querySelector('[data-state="locked"] mat-icon').textContent).toContain('lock')
+    expect(fixture.nativeElement.querySelector('[data-state="played"]').getAttribute('aria-label')).toContain('résultat en attente')
+    expect(fixture.nativeElement.querySelector('[data-state="locked"]').getAttribute('aria-label')).toContain('Verrouillé')
     vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ priorityResult: null, ranking: { score: 0, rank: null, entries: [] } })))
     await fixture.componentInstance.openRanking()
     fixture.detectChanges()
@@ -80,9 +80,9 @@ describe('AdventTest', () => {
     const buttons = fixture.nativeElement.querySelectorAll('.advent__calendar-door') as NodeListOf<HTMLButtonElement>
     expect(buttons[0].getAttribute('aria-label')).toContain('résultat en attente')
     expect(buttons[1].getAttribute('aria-label')).toContain('Bonne réponse')
-    expect(buttons[1].textContent).toContain('check')
+    expect(buttons[1].querySelector('.advent__gift-caption')?.textContent?.trim()).toBe('2')
     expect(buttons[2].getAttribute('aria-label')).toContain('Mauvaise réponse')
-    expect(buttons[2].textContent).toContain('close')
+    expect(buttons[2].querySelector('.advent__gift-caption')?.textContent?.trim()).toBe('3')
     expect(buttons[3].getAttribute('aria-label')).toContain('Cadeau fermé')
     expect(buttons[4].getAttribute('aria-label')).toContain('Sans contenu')
   })
@@ -280,17 +280,18 @@ describe('AdventTest', () => {
   it('lets only an operator close one played case without leaving the calendar', async () => {
     const component = fixture.componentInstance
     component.calendarOpen.set(true)
+    component.clockDate.set('2026-12-01')
     component.calendarDays.set([{ day: 1, state: 'played' }, { day: 2, state: 'past-unplayed' }, { day: 3, state: 'played' }])
     fixture.detectChanges()
-    expect(fixture.nativeElement.querySelectorAll('.advent__calendar-close')).toHaveLength(2)
+    expect(fixture.nativeElement.querySelectorAll('.advent__clock-action')).toHaveLength(1)
     expect(fixture.nativeElement.querySelector('.advent__calendar-door button')).toBeNull()
     component.testControls.set(false); fixture.detectChanges()
-    expect(fixture.nativeElement.querySelectorAll('.advent__calendar-close')).toHaveLength(0)
+    expect(fixture.nativeElement.querySelectorAll('.advent__clock-action')).toHaveLength(0)
     component.testControls.set(true); fixture.detectChanges()
     vi.mocked(window.fetch).mockClear().mockResolvedValueOnce(new Response(JSON.stringify({ status: 'recorded', replayToken: 'own-answer' })))
       .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'cleared' })))
       .mockResolvedValueOnce(new Response(JSON.stringify({ days: [{ day: 1, state: 'past-unplayed' }, { day: 2, state: 'past-unplayed' }, { day: 3, state: 'played' }], priorityResult: null })))
-    await component.closeCalendarDay({ day: 1, state: 'played' })
+    await component.closeCalendarDay()
     fixture.detectChanges()
     const call = vi.mocked(window.fetch).mock.calls.find(([url]) => String(url).endsWith('/1/answer/replay'))!
     expect(JSON.parse(String(call[1]?.body))).toEqual({ replayToken: 'own-answer', close: true })
@@ -300,20 +301,78 @@ describe('AdventTest', () => {
     expect(component.calendarActionMessage()).toContain('case 1 est refermée')
   })
 
+  it('only enables reset for the played exact December date and refuses other dates', async () => {
+    const component = fixture.componentInstance
+    component.calendarOpen.set(true)
+    component.calendarDays.set([{ day: 1, state: 'played' }, { day: 2, state: 'today' }, { day: 24, state: 'played' }])
+    for (const date of ['2026-12-02', '2026-12-25', '2027-01-01']) {
+      component.clockDate.set(date); fixture.detectChanges()
+      expect(fixture.nativeElement.querySelector('.advent__clock-action').disabled).toBe(true)
+      vi.mocked(window.fetch).mockClear()
+      await component.closeCalendarDay()
+      expect(window.fetch).not.toHaveBeenCalled()
+    }
+    component.clockDate.set('2026-12-24'); fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.advent__clock-action').disabled).toBe(false)
+    component.closingDay.set(24); fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.advent__clock-action').disabled).toBe(true)
+  })
+
+  it('disables both date arrows during a delayed daily reset and keeps the date', async () => {
+    const component = fixture.componentInstance
+    component.calendarOpen.set(true); component.clockDate.set('2026-12-10')
+    component.calendarDays.set([{ day: 10, state: 'played' }])
+    let resolve!: (response: Response) => void
+    vi.mocked(window.fetch).mockClear().mockImplementationOnce(() => new Promise<Response>(r => { resolve = r }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'cleared' })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ days: [{ day: 10, state: 'today' }], priorityResult: null })))
+    const closing = component.closeCalendarDay()
+    fixture.detectChanges()
+    const previous = fixture.nativeElement.querySelector('[aria-label="Revenir au jour précédent"]') as HTMLButtonElement
+    const next = fixture.nativeElement.querySelector('[aria-label="Avancer au jour suivant"]') as HTMLButtonElement
+    expect(previous.disabled).toBe(true); expect(next.disabled).toBe(true)
+    previous.click(); next.click()
+    await component.previousDay(); await component.nextDay()
+    expect(component.clockDate()).toBe('2026-12-10')
+    expect(vi.mocked(window.fetch)).toHaveBeenCalledTimes(1)
+    resolve(new Response(JSON.stringify({ status: 'recorded', replayToken: 'own' })))
+    await closing
+    expect(component.clockDate()).toBe('2026-12-10')
+  })
+
+  it('does not send a replay if the identity changes while obtaining the token', async () => {
+    const component = fixture.componentInstance
+    component.calendarOpen.set(true); component.clockDate.set('2026-12-01')
+    component.calendarDays.set([{ day: 1, state: 'played' }])
+    let resolve!: (response: Response) => void
+    vi.mocked(window.fetch).mockClear().mockImplementationOnce(() => new Promise<Response>(r => { resolve = r }))
+    const closing = component.closeCalendarDay()
+    const auth = TestBed.inject(AuthApiService) as unknown as { sessionUserSignal: WritableSignal<UserSummary | null> }
+    auth.sessionUserSignal.set({ id: 'other', slug: 'other', email: null, displayName: 'Autre' })
+    fixture.detectChanges()
+    resolve(new Response(JSON.stringify({ status: 'recorded', replayToken: 'old' })))
+    await closing
+    expect(vi.mocked(window.fetch).mock.calls.some(([url]) => String(url).endsWith('/answer/replay'))).toBe(false)
+  })
+
   it('refuses a close when the answer changed and reloads the calendar', async () => {
     const component = fixture.componentInstance
-    component.calendarOpen.set(true); component.calendarDays.set([{ day: 1, state: 'played' }])
+    component.calendarOpen.set(true); component.clockDate.set('2026-12-01'); component.calendarDays.set([{ day: 1, state: 'played' }])
     vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ status: 'recorded', replayToken: 'old' })))
       .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'stale' })))
       .mockResolvedValueOnce(new Response(JSON.stringify({ days: [{ day: 1, state: 'played' }], priorityResult: null })))
-    await component.closeCalendarDay({ day: 1, state: 'played' })
+    await component.closeCalendarDay()
     expect(component.calendarOpen()).toBe(true)
     expect(component.calendarActionMessage()).toContain('Impossible')
+    fixture.detectChanges()
+    const feedback = fixture.nativeElement.querySelector('[role="status"][aria-live="polite"].advent__feedback') as HTMLElement
+    expect(feedback.textContent).toContain('Impossible de refermer')
+    expect(feedback.classList.contains('advent__visually-hidden')).toBe(false)
   })
 
   it('honors a priority revelation returned while closing a calendar case', async () => {
     const component = fixture.componentInstance
-    component.calendarOpen.set(true); component.calendarDays.set([{ day: 1, state: 'played' }])
+    component.calendarOpen.set(true); component.clockDate.set('2026-12-01'); component.calendarDays.set([{ day: 1, state: 'played' }])
     const result = { answerId: 'other', day: 2, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false }
     const quiz = { day: 2, name: 'Fictif', portrait: '', genericElf: true, statements: ['A', 'B', 'C'] }
     vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ status: 'recorded', replayToken: 'own' })))
@@ -321,7 +380,7 @@ describe('AdventTest', () => {
       .mockResolvedValueOnce(new Response(JSON.stringify(quiz)))
       .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'recorded', replayToken: 'other' })))
       .mockResolvedValueOnce(new Response(JSON.stringify(result)))
-    await component.closeCalendarDay({ day: 1, state: 'played' })
+    await component.closeCalendarDay()
     expect(component.calendarOpen()).toBe(false)
     expect(component.result()?.answerId).toBe('other')
   })
@@ -365,7 +424,7 @@ describe('AdventTest', () => {
     expect(fixture.nativeElement.textContent).toContain('0 points')
   })
 
-  it('marks missing cases with an additional symbol and accessible label', () => {
+  it('describes missing cases with an accessible label', () => {
     const component = fixture.componentInstance
     component.calendarOpen.set(true)
     component.calendarDays.set([{ day: 1, state: 'missing' }, { day: 2, state: 'past-unplayed' }])
@@ -373,7 +432,7 @@ describe('AdventTest', () => {
     const missing = fixture.nativeElement.querySelector('[data-state="missing"]')
     const past = fixture.nativeElement.querySelector('[data-state="past-unplayed"]')
     expect(missing.getAttribute('aria-label')).toContain('Sans contenu')
-    expect(missing.querySelector('mat-icon').textContent).toContain('help_outline')
+    expect(missing.querySelector('.advent__gift-caption').textContent.trim()).toBe('1')
     expect(past.querySelector('mat-icon')).toBeNull()
   })
 

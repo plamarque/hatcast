@@ -145,7 +145,7 @@ Tous les membres empruntent le même parcours et voient la même partie. En dév
 
 ### Fermeture ciblée en développement isolé
 
-Dans le calendrier uniquement, chaque case jouée propose aux opérateurs autorisés une commande distincte pour refermer leur propre case sans quitter le calendrier. Elle efface leur seule réponse à ce jour, respecte la priorité de révélation et laisse les autres réponses et la date inchangées. Une case passée ainsi refermée se rejoue comme une découverte tardive sans point ; aucun membre ordinaire ne voit cette commande.
+Dans le calendrier uniquement, une commande dans la barre de test permet aux opérateurs autorisés de refermer leur propre cadeau du jour simulé sans quitter le calendrier. Elle est désactivée si ce jour du 1er au 24 décembre ne comporte pas de réponse personnelle, ainsi que pendant une opération. Elle efface cette seule réponse, respecte la priorité de révélation et laisse les autres réponses et la date inchangées. Aucun membre ordinaire ne voit cette commande.
 
 ### Accès au calendrier — clarification du 31 octobre
 

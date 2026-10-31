@@ -2,12 +2,15 @@
   <header class="advent__header">
     <span class="advent__header-title" [class.advent__header-title--test]="!memberMode">Quiz de l’Avent</span>
     @if (!memberMode) {
-    <div class="advent__test-actions" aria-label="Commandes de test">
+    <div class="advent__test-actions" [class.advent__test-actions--calendar]="calendarOpen()" aria-label="Commandes de test">
       <span class="advent__test-label"><span class="advent__test-label-full">Mode test</span><span class="advent__test-label-short">Test</span></span>
       @if (!rankingOpen()) {
-      <button mat-icon-button type="button" (click)="previousDay()" [disabled]="transitionRequired() || loading() || submitting() || (quiz() && answerState() === 'checking') || !clockDate() || clockDate()! <= '2026-12-01'" aria-label="Revenir au jour précédent" title="Jour précédent"><mat-icon aria-hidden="true">arrow_back</mat-icon></button>
+      <button mat-icon-button type="button" (click)="previousDay()" [disabled]="transitionRequired() || loading() || submitting() || closingDay() !== null || (quiz() && answerState() === 'checking') || !clockDate() || clockDate()! <= '2026-12-01'" aria-label="Revenir au jour précédent" title="Jour précédent"><mat-icon aria-hidden="true">arrow_back</mat-icon></button>
       <span class="advent__simulated-day" role="status" aria-live="polite" [attr.aria-label]="clockDate() === null ? 'Jour simulé non disponible' : 'Jour simulé : ' + simulatedDateLabel()">{{ clockDate() === null ? '–' : simulatedDateLabel(true) }}</span>
-      <button mat-icon-button type="button" (click)="nextDay()" [disabled]="transitionRequired() || loading() || submitting() || (quiz() && answerState() === 'checking') || !clockDate() || clockDate()! >= '2027-01-15'" aria-label="Avancer au jour suivant" title="Jour suivant"><mat-icon aria-hidden="true">arrow_forward</mat-icon></button>
+      <button mat-icon-button type="button" (click)="nextDay()" [disabled]="transitionRequired() || loading() || submitting() || closingDay() !== null || (quiz() && answerState() === 'checking') || !clockDate() || clockDate()! >= '2027-01-15'" aria-label="Avancer au jour suivant" title="Jour suivant"><mat-icon aria-hidden="true">arrow_forward</mat-icon></button>
+      }
+      @if (calendarOpen() && testControls()) {
+      <button mat-button class="advent__clock-action" type="button" (click)="closeCalendarDay()" [disabled]="!currentPlayedDay() || loading() || submitting() || closingDay() !== null" aria-label="Refermer mon cadeau du jour et effacer ma réponse">Refermer mon cadeau et effacer ma réponse</button>
       }
       @if (!calendarOpen() && !rankingOpen()) {
       <button mat-icon-button type="button" (click)="resetConfirm.set(true)" [disabled]="loading() || submitting()" aria-label="Réinitialiser la partie de développement" title="Réinitialiser la partie"><mat-icon aria-hidden="true">restart_alt</mat-icon></button>
@@ -17,8 +20,8 @@
       }
     </div>
     }
-    <button mat-icon-button type="button" (click)="historicalResult() ? returnToCalendar() : openCalendar()" [disabled]="loading() || submitting() || (result() !== null && !historicalResult())" [attr.aria-current]="calendarOpen() ? 'page' : null" aria-label="Voir le calendrier" title="Calendrier"><mat-icon aria-hidden="true">calendar_month</mat-icon></button>
-    <button mat-icon-button type="button" (click)="navigateRanking()" [disabled]="loading() || submitting() || (result() !== null && !historicalResult())" [attr.aria-current]="rankingOpen() ? 'page' : null" aria-label="Classement" title="Classement"><mat-icon aria-hidden="true">leaderboard</mat-icon></button>
+    <button mat-icon-button type="button" (click)="historicalResult() ? returnToCalendar() : openCalendar()" [disabled]="loading() || submitting() || closingDay() !== null || (result() !== null && !historicalResult())" [attr.aria-current]="calendarOpen() ? 'page' : null" aria-label="Voir le calendrier" title="Calendrier"><mat-icon aria-hidden="true">calendar_month</mat-icon></button>
+    <button mat-icon-button type="button" (click)="navigateRanking()" [disabled]="loading() || submitting() || closingDay() !== null || (result() !== null && !historicalResult())" [attr.aria-current]="rankingOpen() ? 'page' : null" aria-label="Classement" title="Classement"><mat-icon aria-hidden="true">leaderboard</mat-icon></button>
     <a mat-icon-button routerLink="/accueil" aria-label="Fermer le quiz" title="Fermer"><mat-icon aria-hidden="true">close</mat-icon></a>
   </header>
   <div class="advent__content">
@@ -48,17 +51,14 @@
       <section id="advent-calendar-panel" aria-labelledby="calendar-title">
         <h1 #calendarHeading id="calendar-title" class="advent__visually-hidden" tabindex="-1">Calendrier de l’Avent</h1>
         @if (christmasError()) { <p class="advent__feedback" role="alert">Impossible de charger ton score de Noël.</p><button mat-stroked-button type="button" (click)="openCalendarDay({ day: 25, state: 'christmas' })" [disabled]="loading()">Réessayer</button> }
-        <div class="advent__calendar-garland" aria-hidden="true">✦ &nbsp; ❄ &nbsp; ✧ &nbsp; ❄ &nbsp; ✦</div>
-        <p class="advent__visually-hidden" role="status" aria-live="polite">{{ calendarActionMessage() }}</p>
+        <p [class.advent__visually-hidden]="!calendarActionMessage()" [class.advent__feedback]="calendarActionMessage()" role="status" aria-live="polite">{{ calendarActionMessage() }}</p>
         <div class="advent__calendar">
           @for (day of calendarDays(); track day.day) {
             <div class="advent__calendar-cell">
-            <button mat-button class="advent__calendar-door" type="button" [attr.data-state]="day.state" [attr.data-outcome]="day.outcome || null" [attr.data-today]="isCalendarToday(day)" [disabled]="day.state === 'locked'" (click)="openCalendarDay(day)" [attr.aria-label]="day.day + ' décembre : ' + calendarLabel(day) + (isCalendarToday(day) && day.state !== 'today' ? ', aujourd’hui' : '')">
-              <span class="advent__gift-box" aria-hidden="true"><img class="advent__gift-art" [src]="day.state === 'played' ? '/advent/gifts/gift-open-v1.png' : '/advent/gifts/gift-closed-v1.png'" alt="" (error)="$any($event.target).hidden = true" (load)="$any($event.target).hidden = false"><span class="advent__gift-lid"><span class="advent__gift-snow"></span></span><span class="advent__gift-body"><strong>{{ day.day }}</strong>@if (day.state === 'locked') { <mat-icon>lock</mat-icon> } @else if (day.outcome === 'correct') { <mat-icon>check</mat-icon> } @else if (day.outcome === 'incorrect') { <mat-icon>close</mat-icon> } @else if (day.state === 'played') { <mat-icon>hourglass_empty</mat-icon> } @else if (day.state === 'missing') { <mat-icon>help_outline</mat-icon> } @else if (day.state === 'christmas') { <mat-icon>star</mat-icon> }</span></span>
+            <button mat-button class="advent__calendar-door" type="button" [attr.data-day]="day.day" [attr.data-state]="day.state" [attr.data-outcome]="day.outcome || null" [attr.data-today]="isCalendarToday(day)" [disabled]="day.state === 'locked' || closingDay() !== null" (click)="openCalendarDay(day)" [attr.aria-label]="day.day + ' décembre : ' + calendarLabel(day) + (isCalendarToday(day) && day.state !== 'today' ? ', aujourd’hui' : '')">
+              <span class="advent__gift-box" aria-hidden="true"><img class="advent__gift-art" [src]="day.state === 'played' ? '/advent/gifts/gift-open-v2.png' : '/advent/gifts/gift-closed-v1.png'" alt="" (error)="$any($event.target).hidden = true" (load)="$any($event.target).hidden = false"><span class="advent__gift-lid"><span class="advent__gift-snow"></span></span><span class="advent__gift-body"></span></span>
+              <span class="advent__gift-caption" aria-hidden="true"><strong>{{ day.day }}</strong></span>
             </button>
-            @if (testControls() && day.state === 'played') {
-              <button mat-icon-button class="advent__calendar-close" type="button" (click)="closeCalendarDay(day)" [disabled]="loading() || closingDay() !== null" [attr.aria-label]="'Refermer la case ' + day.day + ' et effacer ma réponse'" [attr.title]="'Refermer la case ' + day.day"><mat-icon aria-hidden="true">restart_alt</mat-icon></button>
-            }
             </div>
           }
         </div>

@@ -140,3 +140,8 @@
 /* Keep the test clock and navigation usable on calendar screens. */
 .advent__test-actions:has(.advent__simulated-day) { flex: 0 1 auto; }
 .advent__test-actions:not(:has(button)) { flex: 0 0 auto; min-height: 2rem; padding: .2rem .65rem; }
+
+/* The daily action gets its own wrapping test row at narrow widths. */
+.advent__test-actions.advent__test-actions--calendar { flex: 1 0 100% !important; order: 2; }
+.advent__header .advent__clock-action { flex: 1 1 10rem; }
+.advent__header .advent__clock-action:focus-visible { outline: 3px solid var(--advent-focus); outline-offset: -3px; }

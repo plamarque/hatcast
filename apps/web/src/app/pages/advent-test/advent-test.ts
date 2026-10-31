@@ -244,10 +244,17 @@ export class AdventTest {
     finally { if (this.contextCurrent(epoch, identity)) this.loading.set(false) }
   }
 
-  async closeCalendarDay(day: CalendarDay): Promise<void> {
+  currentPlayedDay(): CalendarDay | undefined {
+    const date = this.clockDate()
+    if (!date || !/^2026-12-(0[1-9]|1[0-9]|2[0-4])$/.test(date)) return undefined
+    return this.calendarDays().find(day => day.state === 'played' && this.isCalendarToday(day))
+  }
+
+  async closeCalendarDay(): Promise<void> {
+    const day = this.currentPlayedDay()
     const epoch = this.projectionEpoch
     const identity = this.auth.sessionUser()?.id ?? null
-    if (!this.testControls() || !this.calendarOpen() || day.state !== 'played' || this.loading() || this.submitting() || this.closingDay() !== null) return
+    if (!day || !this.testControls() || !this.calendarOpen() || this.loading() || this.submitting() || this.closingDay() !== null) return
     this.closingDay.set(day.day)
     this.calendarActionMessage.set('')
     try {
@@ -378,7 +385,7 @@ export class AdventTest {
 
   async advanceClock(): Promise<void> {
     const target = this.shiftedDate(1)
-    if (!this.testControls() || !target || this.loading() || this.submitting()) return
+    if (!this.testControls() || !target || this.loading() || this.submitting() || this.closingDay() !== null) return
     this.loading.set(true)
     this.error.set(false)
     this.simulatedDate.set(target)
@@ -470,7 +477,7 @@ export class AdventTest {
 
   async previousDay(): Promise<void> {
     const target = this.shiftedDate(-1)
-    if (!this.testControls() || !target || this.loading() || this.submitting() || (this.quiz() && this.answerState() === 'checking')) return
+    if (!this.testControls() || !target || this.loading() || this.submitting() || this.closingDay() !== null || (this.quiz() && this.answerState() === 'checking')) return
     this.loading.set(true)
     this.error.set(false)
     this.simulatedDate.set(target)
