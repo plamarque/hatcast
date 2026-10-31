@@ -15,6 +15,8 @@ historical registry below.
 
 ### Open defects and limitations
 
+BUG-062 (intermittent Advent loading failure; bounded read retry implemented locally, root cause unknown).
+
 BUG-054 (PWA banner overflows at 200% text size on a narrow screen).
 
 BUG-049 (production scheduled reminder encountered a database connection timeout).
@@ -50,6 +52,14 @@ BUG-024, and BUG-021 have local fixes but still require their stated review,
 human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
+
+### BUG-062 — Advent quiz intermittently fails to load in development
+- **Status**: Mitigation implemented locally; root cause not established.
+- **Severity**: Undetermined.
+- **Affected area**: Advent member journey in the development environment.
+- **Observed behavior**: On 2026-10-31, navigating to the 2 December quiz displayed “Le lutin est indisponible. Réessaie.”; a later retry loaded the quiz successfully.
+- **Expected behavior**: An available quiz loads reliably, with a retry offered if a transient failure occurs.
+- **Notes/context**: The client uses one generic error for network, HTTP, and timeout failures. A priority result lookup at 11:32:36 UTC took 40.7 seconds and returned HTTP 200, beyond the client’s 10-second deadline; another lookup completed in 0.19 seconds. This is consistent with, but does not conclusively identify, the failure. Subsequent quiz requests succeeded. A single retry of transient GET failures is implemented locally; prolonged or repeated failures can still occur. Do not infer that the portrait or database was missing.
 
 ### BUG-061 — Advent test controls wrap on mobile
 - **Status**: Corrected locally; awaiting human verification.

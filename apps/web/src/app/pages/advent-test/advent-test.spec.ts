@@ -23,6 +23,36 @@ describe('AdventTest', () => {
     fixture.detectChanges()
   })
   afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks() })
+  it('retries a timed-out priority lookup before opening the selected quiz', async () => {
+    vi.useFakeTimers()
+    vi.mocked(window.fetch).mockReturnValueOnce(new Promise(() => {}))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ result: null })))
+    const entry = fixture.componentInstance.nextDay()
+    await vi.advanceTimersByTimeAsync(10_000)
+    await entry
+    expect(fixture.componentInstance.preview()?.day).toBe(2)
+    expect(vi.mocked(window.fetch).mock.calls.filter(([url]) => String(url).endsWith('/latest-unseen')).length).toBeGreaterThanOrEqual(2)
+  })
+  it('retries an interrupted response body but not invalid JSON', async () => {
+    const request = (fixture.componentInstance as any).requestJson.bind(fixture.componentInstance)
+    const interrupted = new Response('{}')
+    vi.spyOn(interrupted, 'json').mockRejectedValueOnce(new TypeError('connection lost'))
+    vi.mocked(window.fetch).mockClear().mockResolvedValueOnce(interrupted).mockResolvedValueOnce(new Response('{"date":"2026-12-02"}'))
+    await expect(request('/v1/advent-test/clock', {})).resolves.toEqual({ date: '2026-12-02' })
+    expect(vi.mocked(window.fetch)).toHaveBeenCalledTimes(2)
+    vi.mocked(window.fetch).mockClear().mockResolvedValueOnce(new Response('invalid json'))
+    await expect(request('/v1/advent-test/clock', {})).rejects.toThrow()
+    expect(vi.mocked(window.fetch)).toHaveBeenCalledTimes(1)
+  })
+  it('does not retry client errors or mutation failures', async () => {
+    const request = (fixture.componentInstance as any).requestJson.bind(fixture.componentInstance)
+    vi.mocked(window.fetch).mockClear().mockResolvedValueOnce(new Response('', { status: 401 }))
+    await expect(request('/v1/advent-test/clock', {})).rejects.toThrow()
+    expect(vi.mocked(window.fetch)).toHaveBeenCalledTimes(1)
+    vi.mocked(window.fetch).mockClear().mockRejectedValueOnce(new Error('offline'))
+    await expect(request('/v1/advent-test/doors/1/answer', { method: 'POST' })).rejects.toThrow()
+    expect(vi.mocked(window.fetch)).toHaveBeenCalledTimes(1)
+  })
   it('follows the server clock until the operator explicitly selects a simulation', async () => {
     const calls = vi.mocked(window.fetch).mock.calls
     expect(calls.some(([, options]) => (options?.headers as Record<string, string>)?.['X-Advent-Simulated-Date'])).toBe(false)
@@ -37,7 +67,7 @@ describe('AdventTest', () => {
   it.each(['priority', 'quiz'])('clears stale content and retries the selected date after %s fails', async failure => {
     expect(fixture.componentInstance.preview()?.day).toBe(1)
     if (failure === 'quiz') vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ result: null })))
-    vi.mocked(window.fetch).mockRejectedValueOnce(new Error('network'))
+    vi.mocked(window.fetch).mockRejectedValueOnce(new Error('network')).mockRejectedValueOnce(new Error('network'))
     await fixture.componentInstance.nextDay()
     fixture.detectChanges()
     expect(fixture.componentInstance.clockDate()).toBe('2026-12-02')
@@ -55,7 +85,7 @@ describe('AdventTest', () => {
   it('does not retain an old revealed result when a date change fails', async () => {
     fixture.componentInstance.result.set({ answerId: 'old', day: 1, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: true })
     fixture.componentInstance.resultContent.set({ day: 1, name: 'Ancien', portrait: '', genericElf: true, statements: ['A', 'B', 'C'] })
-    vi.mocked(window.fetch).mockRejectedValueOnce(new Error('network'))
+    vi.mocked(window.fetch).mockRejectedValueOnce(new Error('network')).mockRejectedValueOnce(new Error('network'))
     await fixture.componentInstance.nextDay()
     fixture.detectChanges()
     expect(fixture.componentInstance.result()).toBeNull()
@@ -65,7 +95,7 @@ describe('AdventTest', () => {
   })
   it('does not offer final ranking when the priority lookup fails on Christmas', async () => {
     fixture.componentInstance.clockDate.set('2026-12-24')
-    vi.mocked(window.fetch).mockRejectedValueOnce(new Error('network'))
+    vi.mocked(window.fetch).mockRejectedValueOnce(new Error('network')).mockRejectedValueOnce(new Error('network'))
     await fixture.componentInstance.nextDay()
     fixture.detectChanges()
     expect(fixture.nativeElement.querySelector('[role="alert"]')).not.toBeNull()
@@ -371,9 +401,9 @@ describe('AdventTest', () => {
   })
   it('recovers when the preview never responds', async () => {
     vi.useFakeTimers()
-    vi.mocked(window.fetch).mockReturnValueOnce(new Promise(() => {}))
+    vi.mocked(window.fetch).mockReturnValueOnce(new Promise(() => {})).mockReturnValueOnce(new Promise(() => {}))
     const selection = fixture.componentInstance.selectDay(10)
-    await vi.advanceTimersByTimeAsync(10_000)
+    await vi.advanceTimersByTimeAsync(20_000)
     await selection
     expect(fixture.componentInstance.loading()).toBe(false)
     expect(fixture.componentInstance.error()).toBe(true)
@@ -418,6 +448,7 @@ describe('AdventTest', () => {
     const request = fixture.componentInstance.selectDay(10)
     fixture.detectChanges()
     expect(fixture.nativeElement.querySelector('.advent__test-actions button').disabled).toBe(true)
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response('', { status: 503 }))
     resolveFetch(new Response('', { status: 503 }))
     await request
     fixture.detectChanges()
@@ -639,7 +670,7 @@ describe('AdventTest', () => {
   it('keeps the result visible if refreshing the clock fails', async () => {
     const component = fixture.componentInstance
     component.result.set({ answerId: 'a', day: 1, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false })
-    vi.mocked(window.fetch).mockRejectedValueOnce(new Error('offline'))
+    vi.mocked(window.fetch).mockRejectedValueOnce(new Error('offline')).mockRejectedValueOnce(new Error('offline'))
     await component.continueAfterResult()
     expect(component.result()?.answerId).toBe('a')
     expect(component.error()).toBe(true)

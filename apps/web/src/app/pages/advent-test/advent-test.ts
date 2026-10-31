@@ -6,6 +6,8 @@ import { RouterLink } from '@angular/router'
 
 const REQUEST_TIMEOUT_MS = 10_000
 
+class TransientReadError extends Error {}
+
 interface AdventResult { answerId: string; day: number; selectedChoice: number; falseChoice: number; correct: boolean; responsePoints: number; participationPoints: number; bonusPoints: number; totalPoints: number; seen: boolean; explanation?: string | null }
 
 interface AdventRanking { score: number; rank: number | null; entries: { name: string; score: number; rank: number; mine: boolean }[] }
@@ -388,23 +390,34 @@ export class AdventTest {
   }
 
   private async requestJson<T>(url: string, options: RequestInit, notFoundAsNull = false): Promise<T> {
+    try {
+      return await this.requestJsonOnce<T>(url, options, notFoundAsNull)
+    } catch (error) {
+      if ((options.method ?? 'GET').toUpperCase() !== 'GET' || !(error instanceof TransientReadError)) throw error
+      return this.requestJsonOnce<T>(url, options, notFoundAsNull)
+    }
+  }
+
+  private async requestJsonOnce<T>(url: string, options: RequestInit, notFoundAsNull: boolean): Promise<T> {
     const controller = new AbortController()
     let timer: ReturnType<typeof setTimeout> | undefined
     const timeout = new Promise<never>((_, reject) => {
-      timer = setTimeout(() => { controller.abort(); reject(new Error('Timeout')) }, REQUEST_TIMEOUT_MS)
+      timer = setTimeout(() => { controller.abort(); reject(new TransientReadError('Timeout')) }, REQUEST_TIMEOUT_MS)
     })
     try {
       return await Promise.race([
         (async () => {
-          const response = await fetch(url.replace('/v1/advent-test', this.api), { ...options, signal: controller.signal })
+          const response = await fetch(url.replace('/v1/advent-test', this.api), { ...options, signal: controller.signal }).catch(() => { throw new TransientReadError('Network failure') })
           if (response.status === 409) {
             this.sessionChanged.set(true)
             this.generation = null
             this.replayToken = null
           }
           if (response.status === 404 && notFoundAsNull) return null as T
+          if (response.status >= 500) throw new TransientReadError('Server unavailable')
           if (!response.ok) throw new Error('Unavailable')
-          return await response.json() as T
+          try { return await response.json() as T }
+          catch (error) { if (error instanceof TypeError) throw new TransientReadError('Response interrupted'); throw error }
         })(),
         timeout,
       ])
