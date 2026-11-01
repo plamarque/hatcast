@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail closed when required Advent JUnit suites have no successful execution."""
+"""Fail closed when required JUnit suites have no successful execution."""
 import argparse
 import glob
 import os
