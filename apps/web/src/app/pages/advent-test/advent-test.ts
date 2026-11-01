@@ -510,7 +510,7 @@ export class AdventTest {
     this.loading.set(true)
     this.error.set(false)
     this.simulatedDate.set(target)
-    try { await this.enterAt(target) }
+    try { await this.enterAt(target, true) }
     catch (error) { if (!(error instanceof StaleRequestError)) { this.error.set(true); this.loading.set(false) } }
   }
 
@@ -534,7 +534,7 @@ export class AdventTest {
       if (clock.date > '2026-12-25') { await this.openRanking(); return }
       const day = Math.min(24, Math.max(1, Number(clock.date.slice(-2))))
       const state = await this.requestJson<{ status: string }>(`/v1/advent-test/doors/${day}/answer`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
-      if (state.status === 'recorded') await this.openRanking(); else await this.selectDay(day)
+      if (state.status === 'recorded' && !this.testMode()) await this.openRanking(); else await this.selectDay(day)
     } catch (error) {
       if (error instanceof StaleRequestError) return
       this.error.set(true)
@@ -597,7 +597,7 @@ export class AdventTest {
     if (this.loading() || this.submitting()) return
     this.loading.set(true)
     this.error.set(false)
-    try { await this.enterAt(target) }
+    try { await this.enterAt(target, this.testMode()) }
     catch (error) { if (!(error instanceof StaleRequestError)) { this.error.set(true); this.loading.set(false) } }
   }
 
@@ -607,7 +607,7 @@ export class AdventTest {
     this.loading.set(true)
     this.error.set(false)
     this.simulatedDate.set(target)
-    try { await this.enterAt(target) }
+    try { await this.enterAt(target, true) }
     catch (error) { if (!(error instanceof StaleRequestError)) { this.error.set(true); this.loading.set(false) } }
   }
 

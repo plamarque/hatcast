@@ -219,6 +219,61 @@ describe('AdventTest', () => {
     expect(fixture.nativeElement.querySelector('.advent__recorded')).not.toBeNull()
   })
 
+  it.each(['previousDay', 'nextDay', 'retryEntry'] as const)('shows an answered test day after %s without opening the ranking', async action => {
+    const component = fixture.componentInstance
+    component.testMode.set(true)
+    component.clockDate.set(action === 'previousDay' ? '2026-12-03' : '2026-12-01')
+    if (action === 'retryEntry') (component as any).simulatedDate.set('2026-12-02')
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url = String(input)
+      if (url.endsWith('/latest-unseen')) return new Response(JSON.stringify({ result: null }))
+      if (url.endsWith('/answer')) return new Response(JSON.stringify({ status: 'recorded', replayToken: 'own' }))
+      if (url.endsWith('/result')) return new Response('', { status: 404 })
+      return new Response(JSON.stringify({ day: 2, name: 'Fictif', portrait: '', statements: ['A', 'B', 'C'] }))
+    })
+    await component[action]()
+    fixture.detectChanges()
+    expect(component.clockDate()).toBe('2026-12-02')
+    expect(component.answerState()).toBe('recorded')
+    expect(component.rankingOpen()).toBe(false)
+    expect(fixture.nativeElement.querySelector('.advent__recorded')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('[aria-label="Avancer au jour suivant"]')).not.toBeNull()
+  })
+
+  it('returns to the answered test day after a revelation', async () => {
+    const component = fixture.componentInstance
+    component.testMode.set(true)
+    component.result.set({ answerId: 'a', day: 1, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: true })
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url = String(input)
+      if (url.endsWith('/clock')) return new Response(JSON.stringify({ date: '2026-12-02' }))
+      if (url.endsWith('/answer')) return new Response(JSON.stringify({ status: 'recorded', replayToken: 'own' }))
+      if (url.endsWith('/result')) return new Response('', { status: 404 })
+      return new Response(JSON.stringify({ day: 2, name: 'Fictif', portrait: '', statements: ['A', 'B', 'C'] }))
+    })
+    await component.continueAfterResult()
+    expect(component.answerState()).toBe('recorded')
+    expect(component.rankingOpen()).toBe(false)
+    expect(component.clockDate()).toBe('2026-12-02')
+  })
+
+  it('keeps the calendar open while changing test day', async () => {
+    const component = fixture.componentInstance
+    component.testMode.set(true)
+    component.clockDate.set('2026-12-01')
+    component.calendarOpen.set(true)
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url = String(input)
+      if (url.endsWith('/latest-unseen')) return new Response(JSON.stringify({ result: null }))
+      if (url.endsWith('/calendar')) return new Response(JSON.stringify({ days: [{ day: 2, state: 'today' }], priorityResult: null }))
+      throw new Error(`Unexpected request: ${url}`)
+    })
+    await component.nextDay()
+    expect(component.calendarOpen()).toBe(true)
+    expect(component.clockDate()).toBe('2026-12-02')
+    expect(component.rankingOpen()).toBe(false)
+  })
+
   it.each(['calendar', 'ranking'] as const)('reloads the %s projection when switching mode', async screen => {
     const component = fixture.componentInstance
     component.calendarOpen.set(screen === 'calendar')

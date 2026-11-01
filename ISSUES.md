@@ -15,6 +15,8 @@ historical registry below.
 
 ### Open defects and limitations
 
+BUG-074 (Advent test day navigation opens the ranking for answered days).
+
 BUG-071 (Advent catalogue PostgreSQL integration test loses its connection in CI).
 
 BUG-072 (V2 Playwright smoke suite fails on commit b560afa4).
@@ -64,12 +66,12 @@ human-smoke, integration, or validation gate.
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
 
 ### BUG-074 — Advent test mode opens ranking instead of current day's state
-- **Status**: Closed; deployed to development and validated by Patrice on 2026-11-01.
+- **Status**: Reopened and reproduced on development; further correction implemented locally, awaiting deployment and human verification.
 - **Severity**: Medium.
 - **Affected area**: Advent test-mode entry in development.
 - **Observed behavior**: On 2026-11-01, activating test mode at simulated December 1 displayed the ranking instead of the day's lutin, available result, or pending-result state.
 - **Expected behavior**: Show the appropriate current-day state, while preserving priority for an unseen result.
-- **Notes/context**: The previous local `enterAt` opened the ranking when the current day's answer was recorded; `toggleTestMode` could also restore a previously open ranking. Targeted component tests exercise both paths. Fix `b9c14575` was deployed to development revision `hatcast-v2-dev-00258-2lg`; Patrice confirmed the behavior works. The precise trigger in the original report was not independently established.
+- **Notes/context**: Fix `b9c14575` addressed activation but not the date arrows. In Chrome on development revision `hatcast-v2-dev-00258-2lg`, returning from December 3 to an already-answered December 2 opened the ranking, where the date arrows were unavailable. The calendar still allowed the day's recorded confirmation to be opened.
 
 ### BUG-073 — Advent catalogue synchronization refuses an additional zero-traffic revision
 - **Status**: Corrected locally; live verification passed; integration pending.
