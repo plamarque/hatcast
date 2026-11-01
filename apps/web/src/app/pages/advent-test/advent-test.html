@@ -194,7 +194,7 @@
         <h2 #quizHeading id="quiz-title" tabindex="-1" [hidden]="answerState() === 'recorded'">Une anecdote sur {{ content.name }}</h2>
         @if (answerState() === 'available') {
           <p class="advent__question" [hidden]="answerState() === 'recorded'">Quelle affirmation est fausse ?</p>
-          @if (lateDiscovery()) { <p>Cette case est passée : tu peux jouer pour le plaisir, sans gagner de points.</p> }
+          @if (lateDiscovery()) { <p>{{ clockDate() === '2026-12-' + (selectedDay() < 10 ? '0' : '') + selectedDay() ? 'Ce rejeu ne rapporte pas de points.' : 'Cette case est passée : tu peux jouer pour le plaisir, sans gagner de points.' }}</p> }
           <mat-radio-group class="advent__options" aria-label="Quelle affirmation est fausse ?" [value]="choice()" (change)="choice.set($event.value)">
             @for (statement of content.statements; track $index) { <mat-radio-button [value]="$index" [disabled]="submitting()">{{ statement }}</mat-radio-button> }
           </mat-radio-group>

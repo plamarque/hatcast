@@ -15,6 +15,8 @@ historical registry below.
 
 ### Open defects and limitations
 
+BUG-075 (late Advent test replay is closed on its simulated quiz day).
+
 BUG-074 (Advent test day navigation opens the ranking for answered days).
 
 BUG-071 (Advent catalogue PostgreSQL integration test loses its connection in CI).
@@ -64,6 +66,14 @@ BUG-024, and BUG-021 have local fixes but still require their stated review,
 human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
+
+### BUG-075 — Late test replay is closed on its simulated day
+- **Status**: Corrected locally; deployment and verification in development pending.
+- **Severity**: Medium.
+- **Affected area**: Advent isolated test replay.
+- **Observed behavior**: After a late December 1 answer was erased and the clock moved back to December 1, its quiz displayed as closed. Development database read-only inspection found the retained day 1 replay marker was late.
+- **Expected behavior**: The authorized tester can replay on that simulated day without points or premature revelation; ordinary late answers retain their existing rules.
+- **Notes/context**: Reproduced in Chrome on 2026-11-01. Only the operator's December 1 and 2 answers were erased; no global reset was performed.
 
 ### BUG-074 — Advent test mode opens ranking instead of current day's state
 - **Status**: Reopened and reproduced on development; further correction implemented locally, awaiting deployment and human verification.

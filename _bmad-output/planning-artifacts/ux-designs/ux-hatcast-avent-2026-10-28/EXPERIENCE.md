@@ -169,6 +169,8 @@ Un testeur autorisé commence en mode membre : le temps, les réponses et le cla
 
 À l’activation du mode test, une révélation non vue reste prioritaire ; sinon, avant le 25 décembre, afficher l’état de la case du jour simulé, y compris l’accusé neutre si sa réponse est déjà enregistrée. Ce parcours remplace l’écran calendrier ou classement précédemment ouvert.
 
+Lorsqu’un testeur rejoue une réponse initialement tardive en revenant au jour simulé correspondant, le rejeu reste sans points et l’interface l’indique ; sa réponse et son résultat restent masqués jusqu’à la révélation autorisée.
+
 
 ### Vérifications visuelles de la reprise 25.8
 

@@ -233,6 +233,29 @@ class AdventMemberGameTest {
         assertEquals(0, game.ranking(member, troupe, excluded, true, session).ranking!!.score)
     }
 
+    @Test fun `late replay on its simulated day remains unscored and hidden until reveal`() {
+        `when`(clock.isolatedControlsAllowed()).thenReturn(true)
+        at("2026-12-02T12:00:00Z")
+        val session = game.session()
+        val later = LocalDate.of(2026, 12, 2)
+        val today = LocalDate.of(2026, 12, 1)
+        val generation = game.reconcile(member, 1, true, session, later, true).generation!!
+        val attempt = UUID.randomUUID()
+        game.reserve(member, 1, attempt, generation, true, session, later)
+        val recorded = game.confirm(member, 1, 0, attempt, true, session, later)
+        assertEquals("available", game.replay(member, 1, recorded.replayToken!!, session, today).status)
+        val replayState = game.reconcile(member, 1, true, session, today)
+        assertTrue(replayState.late)
+        val replayGeneration = replayState.generation!!
+        val replayAttempt = UUID.randomUUID()
+        assertEquals("available", game.reserve(member, 1, replayAttempt, replayGeneration, true, session, today).status)
+        assertTrue(game.confirm(member, 1, 0, replayAttempt, true, session, today).late)
+        assertNull(game.result(member, 1, session, today))
+        assertEquals(0, game.ranking(member, troupe, excluded, true, session, today).ranking!!.score)
+        assertTrue(game.result(member, 1, session, later)!!.late)
+        assertEquals(1, game.latestUnseen(member, session, later)!!.day)
+    }
+
     @Test fun `late reservations are fenced by generation and simulation date`() {
         `when`(clock.isolatedControlsAllowed()).thenReturn(true)
         val session = game.session()

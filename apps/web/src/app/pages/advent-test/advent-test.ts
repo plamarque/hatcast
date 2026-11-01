@@ -639,6 +639,7 @@ export class AdventTest {
       if (!this.memberMode && data.status === 'recorded' && !data.replayToken) throw new Error('Invalid state')
       this.generation = data.generation ?? null
       this.replayToken = data.replayToken ?? null
+      if (data.status === 'available' && data.late === true) this.lateDiscovery.set(true)
       this.answerState.set(data.status)
       this.recordedLate = data.late === true
       if (data.status === 'recorded' && this.recordedLate && !this.submitting()) await this.showLateResult()
@@ -720,6 +721,12 @@ export class AdventTest {
 
   private async showLateResult(): Promise<void> {
     const result = await this.requestJson<AdventResult | null>(`/v1/advent-test/doors/${this.selectedDay()}/result`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() }, true)
+    if (!result && this.testMode() && this.clockDate() === `2026-12-${String(this.selectedDay()).padStart(2, '0')}`) {
+      const epoch = this.projectionEpoch
+      const identity = this.auth.sessionUser()?.id ?? null
+      setTimeout(() => { if (this.contextCurrent(epoch, identity)) this.recordedStatus?.nativeElement.focus() })
+      return
+    }
     if (!result || !result.late) throw new Error('Late result unavailable')
     await this.showResult(result, true)
   }

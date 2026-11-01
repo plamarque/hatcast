@@ -1056,6 +1056,27 @@ describe('AdventTest', () => {
     expect(illustration.getAttribute('alt')).toContain('Portrait du lutin')
     expect(fixture.nativeElement.querySelector('mat-radio-group')).toBeNull()
   })
+
+  it('keeps a late replay neutral when its simulated day has not reached reveal', async () => {
+    const component = fixture.componentInstance
+    component.testMode.set(true)
+    component.clockDate.set('2026-12-01')
+    component.selectedDay.set(1)
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response('', { status: 404 }))
+    await expect((component as any).showLateResult()).resolves.toBeUndefined()
+    expect(component.result()).toBeNull()
+  })
+
+  it('warns that a same-day late replay earns no points', async () => {
+    const component = fixture.componentInstance
+    component.testMode.set(true)
+    component.clockDate.set('2026-12-01')
+    component.selectedDay.set(1)
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ status: 'available', generation: 'replay-generation', late: true })))
+    await component.reconcile()
+    expect(component.lateDiscovery()).toBe(true)
+    expect(component.answerState()).toBe('available')
+  })
   it('returns directly to the acknowledgement for a previously answered day', async () => {
     vi.mocked(window.fetch).mockImplementation(async input => {
       if (String(input).endsWith('/discovery')) return new Response(JSON.stringify({ discovered: true }))
