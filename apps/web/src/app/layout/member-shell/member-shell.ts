@@ -1,6 +1,7 @@
-import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core'
+import { Component, computed, DestroyRef, effect, inject, OnInit, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router'
+import { MatButtonModule } from '@angular/material/button'
 import { filter } from 'rxjs/operators'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
@@ -18,7 +19,7 @@ import { isMemberMobileShellViewport, MEMBER_SHELL_MOBILE_MEDIA_QUERY } from './
 
 @Component({
   selector: 'app-member-shell',
-  imports: [RouterOutlet, MemberNav, MemberAccountMenuTrigger],
+  imports: [RouterOutlet, MemberNav, MemberAccountMenuTrigger, MatButtonModule],
   templateUrl: './member-shell.html',
   styleUrl: './member-shell.scss',
 })
@@ -27,6 +28,51 @@ export class MemberShell implements OnInit {
   private readonly destroyRef = inject(DestroyRef)
   private readonly auth = inject(AuthApiService)
   private readonly inboxBadge = inject(MemberInboxBadgeService)
+
+  protected readonly adventVisible = signal(false)
+  protected readonly adventSparkle = signal(true)
+  protected readonly adventError = signal(false)
+  private adventIdentity: string | null = null
+  private adventEpoch = 0
+
+  constructor() {
+    effect(() => {
+      const identity = this.auth.sessionUser()?.id ?? null
+      if (identity === this.adventIdentity) return
+      if (this.adventIdentity) sessionStorage.removeItem("hatcast-advent-return")
+      this.adventIdentity = identity
+      const epoch = ++this.adventEpoch
+      this.adventVisible.set(false)
+      this.adventError.set(false)
+      if (identity) void this.checkAdvent(identity, epoch)
+    })
+  }
+
+  private async checkAdvent(identity: string, epoch: number, allowAutoOpen = true): Promise<void> {
+    try {
+      const response = await fetch('/v1/advent/entry', { credentials: 'include', cache: 'no-store', signal: AbortSignal.timeout(10_000) })
+      if (epoch !== this.adventEpoch || identity !== this.auth.sessionUser()?.id) return
+      if (!response.ok) { this.adventVisible.set(false); this.adventError.set(![401, 403, 404].includes(response.status)); return }
+      const state = await response.json() as { autoOpen: boolean }
+      if (epoch !== this.adventEpoch || identity !== this.auth.sessionUser()?.id) return
+      this.adventVisible.set(true)
+      this.adventError.set(false)
+      if (allowAutoOpen && state.autoOpen && shouldShowMemberNav(this.router.url)) await this.openAdvent()
+    } catch { if (epoch === this.adventEpoch && identity === this.auth.sessionUser()?.id) { this.adventVisible.set(false); this.adventError.set(true) } }
+  }
+
+  protected retryAdvent(): void {
+    const identity = this.auth.sessionUser()?.id
+    if (identity) { this.adventError.set(false); void this.checkAdvent(identity, ++this.adventEpoch) }
+  }
+
+  protected async openAdvent(): Promise<void> {
+    const path = this.router.url
+    if (!shouldShowMemberNav(path)) return
+    this.adventSparkle.set(false)
+    sessionStorage.setItem('hatcast-advent-return', path)
+    await this.router.navigateByUrl('/avent')
+  }
 
   private readonly currentUrl = signal(this.router.url)
 
@@ -56,9 +102,13 @@ export class MemberShell implements OnInit {
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe((event) => {
+        const returningFromAdvent = pathFromUrl(this.currentUrl()) === '/avent'
         this.currentUrl.set(event.urlAfterRedirects)
+        if (returningFromAdvent) setTimeout(() => (document.getElementById(this.isMobileViewport() ? 'advent-entry-mobile' : 'advent-entry-desktop') ?? document.querySelector<HTMLElement>('.member-shell__content'))?.focus())
         const path = pathFromUrl(event.urlAfterRedirects)
         void this.persistMemberEntryPathIfNeeded(event.urlAfterRedirects, path)
+        const identity = this.auth.sessionUser()?.id
+        if (identity && shouldShowMemberNav(event.urlAfterRedirects)) void this.checkAdvent(identity, ++this.adventEpoch, !returningFromAdvent)
       })
   }
 

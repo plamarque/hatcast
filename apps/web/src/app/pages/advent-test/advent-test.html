@@ -1,10 +1,10 @@
 <main class="advent">
   <header class="advent__header">
     @if (testControls()) { <button mat-icon-button type="button" (click)="toggleTestMode()" [disabled]="loading() || submitting() || closingDay() !== null || pendingMutations() > 0" [attr.aria-pressed]="testMode()" [attr.aria-label]="testMode() ? 'Désactiver le mode test' : 'Activer le mode test'" title="Mode test"><mat-icon aria-hidden="true">science</mat-icon></button> }
-    <span class="advent__header-title">Quiz de l’Avent</span>
+    <span #entryHeading tabindex="-1" class="advent__header-title">Quiz de l’Avent</span>
     <button mat-icon-button type="button" (click)="historicalResult() ? returnToCalendar() : openCalendar()" [disabled]="loading() || submitting() || closingDay() !== null || (result() !== null && !historicalResult())" [attr.aria-current]="calendarOpen() ? 'page' : null" aria-label="Voir le calendrier" title="Calendrier"><mat-icon aria-hidden="true">calendar_month</mat-icon></button>
     <button mat-icon-button type="button" (click)="navigateRanking()" [disabled]="loading() || submitting() || closingDay() !== null || (result() !== null && !historicalResult())" [attr.aria-current]="rankingOpen() ? 'page' : null" aria-label="Classement" title="Classement"><mat-icon aria-hidden="true">emoji_events</mat-icon></button>
-    <a mat-icon-button routerLink="/accueil" aria-label="Fermer le quiz" title="Fermer"><mat-icon aria-hidden="true">close</mat-icon></a>
+    <button mat-icon-button type="button" (click)="closeExperience()" [disabled]="closingExperience() || loading() || submitting() || pendingMutations() > 0 || closingDay() !== null" aria-label="Fermer le quiz" title="Fermer"><mat-icon aria-hidden="true">close</mat-icon></button>
   </header>
   @if (!memberMode) {
     <div class="advent__test-actions" [class.advent__test-actions--calendar]="calendarOpen()" aria-label="Commandes de test">
@@ -26,6 +26,7 @@
     </div>
     }
   <div class="advent__content">
+    @if (closeError()) { <p role="alert">Impossible d’enregistrer la fermeture pour aujourd’hui. Réessaie ou quitte sans l’enregistrer.</p><button mat-stroked-button type="button" (click)="leaveExperience()">Quitter sans enregistrer</button> }
     @if (personalResetConfirm() && !memberMode) {
       <section aria-labelledby="advent-personal-reset-title">
         <h2 id="advent-personal-reset-title">Effacer ta réponse ?</h2>
@@ -186,6 +187,7 @@
           @if (!sessionChanged()) {
             <button #rankingButton mat-flat-button type="button" (click)="openRanking()" [disabled]="loading() || submitting()">Voir le classement <mat-icon aria-hidden="true">arrow_forward</mat-icon></button>
           }
+          <button mat-stroked-button class="advent__return-button" type="button" (click)="closeExperience()" [disabled]="closingExperience()">Revenir à HatCast</button>
         } @else if (answerState() === 'closed') {
           <p class="advent__state" role="status">Ce quiz est fermé.</p><button mat-stroked-button type="button" (click)="openRanking()">Voir le classement</button>
         } @else if (answerState() === 'uncertain') {

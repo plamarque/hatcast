@@ -3600,7 +3600,7 @@ As an eligible member, I want to discover and reopen the experience without repe
 
 **Acceptance Criteria:**
 
-1. In production show the Santa icon near My Account from 1 December to 15 January inclusive Paris time; hide it outside that window and enforce the same server access. Its discreet motion lasts less than five seconds, once on opening, and respects reduced motion.
+1. In production show the gift icon near My Account from 1 December to 15 January inclusive Paris time; hide it outside that window and enforce the same server access. Its discreet motion lasts less than five seconds, once on opening, and respects reduced motion.
 2. From 1–24 December, automatically open an available unanswered daily quiz on the first eligible visit after any priority reveal. Persist dismissal by member and day across devices; a recorded answer also prevents opening. Visiting without available content does not consume the opening; closing the experience does.
 3. With no quiz, no automatic opening occurs; the icon offers the absence message and Calendar and Ranking after the priority reveal. When content appears later that day, it may auto-open on a later eligible visit unless already closed.
 4. After today's answer, the icon opens Ranking subject to reveal priority. On 25 December show the Christmas journey after any priority reveal; thereafter and through 15 January provide final Ranking and Calendar without new answers or automatic quiz opening.

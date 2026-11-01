@@ -1,5 +1,13 @@
+:host {
+  max-width: 100%;
+  min-width: 0;
+}
+
 .composition-status-badge {
   display: inline-flex;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;

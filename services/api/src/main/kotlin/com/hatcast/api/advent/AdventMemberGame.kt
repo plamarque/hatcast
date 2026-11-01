@@ -40,6 +40,25 @@ class AdventMemberGame(private val jdbc: JdbcTemplate, private val clock: Advent
     private fun date(now: Instant) = now.atZone(paris).toLocalDate()
     private fun checkDay(day: Int) { if (day !in 1..24) throw ResponseStatusException(HttpStatus.NOT_FOUND) }
 
+    data class EntryState(val autoOpen: Boolean)
+
+    /** This projection never contains quiz content, answers or scores. */
+    @Transactional
+    fun entry(user: UUID, expected: UUID? = null, simulated: LocalDate? = null): EntryState {
+        val today = date(now(expected, simulated))
+        if (today.monthValue != 12 || today.dayOfMonth > 24) return EntryState(false)
+        val day = today.dayOfMonth
+        val dismissed = jdbc.queryForObject("SELECT COUNT(*) FROM advent_member_dismissals WHERE user_id = ? AND dismissed_on = ?", Int::class.java, user, today) != 0
+        return EntryState(!dismissed && stateAt(user, day, today.atStartOfDay(paris).toInstant()).status == "available")
+    }
+
+    @Transactional
+    fun dismiss(user: UUID, expected: UUID? = null, simulated: LocalDate? = null) {
+        val today = date(now(expected, simulated))
+        if (jdbc.queryForObject("SELECT COUNT(*) FROM advent_member_dismissals WHERE user_id = ? AND dismissed_on = ?", Int::class.java, user, today) == 0)
+            jdbc.update("INSERT INTO advent_member_dismissals (user_id, dismissed_on) VALUES (?, ?)", user, today)
+    }
+
     @Transactional
     fun today(expected: UUID? = null, simulated: LocalDate? = null): LocalDate = date(now(expected, simulated))
 
@@ -244,7 +263,7 @@ class AdventMemberGame(private val jdbc: JdbcTemplate, private val clock: Advent
     @Transactional
     fun reset(expected: UUID) {
         requireSession(expected)
-        listOf("advent_member_attempts", "advent_member_generations", "advent_member_replays", "advent_member_answers", "advent_offline_content_conflicts").forEach { jdbc.update("DELETE FROM $it") }
+        listOf("advent_member_dismissals", "advent_member_attempts", "advent_member_generations", "advent_member_replays", "advent_member_answers", "advent_offline_content_conflicts").forEach { jdbc.update("DELETE FROM $it") }
         jdbc.update("UPDATE advent_member_lock SET test_session_id = ? WHERE id = 1", UUID.randomUUID())
     }
 

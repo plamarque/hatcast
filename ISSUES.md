@@ -158,12 +158,12 @@ BUG-037 and BUG-029 have fixture-only corrections verified by the complete API s
 - **Notes/context**: The late-lock and simulated-clock reproductions now pass locally after the 2026-10-30 decision. A transaction paused after its deadline check and before commit remains unverified; the issue stays open pending a complete guarantee. The feature has not been integrated or deployed.
 
 ### BUG-054 — PWA banner overflows at increased text size
-- **Status**: Open.
+- **Status**: Corrected locally; integration pending.
 - **Severity**: Medium (content may require horizontal scrolling at increased text size).
 - **Affected area**: V2 PWA system banner on `/avent-test`.
 - **Observed behavior**: In Chromium at a 320 px viewport with the root text size at 200%, the banner actions extend beyond the viewport and the document scrolls horizontally. The Advent quiz fits after dismissing the banner.
 - **Expected behavior**: The banner and its actions remain within the viewport and readable at increased text size.
-- **Notes/context**: Observed with fictional quiz content and intercepted API responses during story 25.2 browser verification. This is distinct from BUG-050, which concerned a banner covering the test label. On 2026-10-31, the same overflow was observed on `/avent` in a mocked Chromium member-ranking test at 320 px and 200% text size: banner actions reached approximately 343–347 px. Real devices have not been checked.
+- **Notes/context**: Observed with fictional quiz content and intercepted API responses during story 25.2 browser verification. This is distinct from BUG-050, which concerned a banner covering the test label. On 2026-10-31, the same overflow was observed on `/avent` in a mocked Chromium member-ranking test at 320 px and 200% text size: banner actions reached approximately 343–347 px. Real devices have not been checked. On 2026-11-01, the issue was also reproduced on `/accueil`; the navigation and an agenda badge also overflowed at 320 px with browser zoom at 200%. Responsive fixes were applied locally and the same browser check no longer reports document overflow.
 
 ### BUG-053 — Development Google sign-in rejected the Cloud Run origin
 - **Status**: OAuth configuration updated; awaiting end-to-end user verification.

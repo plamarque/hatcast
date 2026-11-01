@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, OnInit, signal } from '@angular/core'
+import { Component, computed, DestroyRef, effect, inject, OnInit, signal } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { MatDialogModule } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
@@ -72,6 +72,7 @@ export class UserAgenda implements OnInit {
   private readonly api = inject(UserAgendaApiService)
   private readonly mePreferencesApi = inject(MePreferencesApiService)
   private readonly router = inject(Router)
+  private readonly destroyRef = inject(DestroyRef)
   private readonly route = inject(ActivatedRoute)
   private readonly snack = inject(MatSnackBar)
   private readonly demoJoin = inject(DemoTroupeJoinService)
@@ -428,6 +429,8 @@ export class UserAgenda implements OnInit {
   }
 
   private async syncFilterQueryParams(): Promise<void> {
+    const target = this.router.currentNavigation()?.extractedUrl.toString() ?? this.router.url
+    if (this.destroyRef.destroyed || target.split(/[?#]/)[0] !== '/agenda') return
     const troupeId = this.selectedTroupeId()
     const seasonId = this.selectedSeasonId()
     await this.router.navigate([], {

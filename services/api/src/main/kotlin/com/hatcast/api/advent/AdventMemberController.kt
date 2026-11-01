@@ -70,6 +70,18 @@ class AdventMemberController(
         return date
     }
 
+    @GetMapping("/entry")
+    fun entry(@AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AdventMemberGame.EntryState {
+        authorize(principal)
+        return game.entry(principal.userId, null, simulated(principal, request))
+    }
+
+    @PostMapping("/entry/dismiss")
+    fun dismiss(@AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest) {
+        authorize(principal)
+        game.dismiss(principal.userId, sessionFor(principal, request), simulated(principal, request))
+    }
+
     @GetMapping("/session")
     fun session(@AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): Map<String, Any> {
         authorize(principal)

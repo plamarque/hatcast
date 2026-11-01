@@ -65,6 +65,7 @@ describe('MemberShell', () => {
             children: [
               { path: 'accueil', component: ShellChildStub },
               { path: 'agenda', component: ShellChildStub },
+              { path: 'avent', component: ShellChildStub },
               { path: 'membre/:userSlug', component: ShellChildStub },
               { path: 'saison/:slug', component: ShellChildStub },
               { path: 'saison/:slug/event/:eventSlug', component: ShellChildStub },
@@ -83,6 +84,7 @@ describe('MemberShell', () => {
           provide: AuthApiService,
           useValue: {
             sessionUser: signal({
+              id: 'user-1',
               slug: 'alice',
               email: 'alice@example.com',
               displayName: 'Alice',
@@ -133,6 +135,47 @@ describe('MemberShell', () => {
     await fixture.whenStable()
     fixture.detectChanges()
   }
+
+  it('opens an eligible daily entry and remembers the originating route', async () => {
+    vi.mocked(fetch).mockImplementation(async input => {
+      if (String(input).endsWith('/v1/advent/entry')) return new Response(JSON.stringify({ autoOpen: true }))
+      return new Response('', { status: 404 })
+    })
+    await renderAt('/agenda')
+    await vi.waitFor(() => expect(router.url).toBe('/avent'))
+    expect(sessionStorage.getItem('hatcast-advent-return')).toBe('/agenda')
+  })
+
+  it('does not automatically reopen when returning from Advent without a saved dismissal', async () => {
+    vi.mocked(fetch).mockImplementation(async input => String(input).endsWith('/v1/advent/entry')
+      ? new Response(JSON.stringify({ autoOpen: true })) : new Response('', { status: 404 }))
+    await renderAt('/agenda')
+    await vi.waitFor(() => expect(router.url).toBe('/avent'))
+    await router.navigateByUrl('/agenda')
+    await fixture.whenStable()
+    expect(router.url).toBe('/agenda')
+  })
+
+  it('offers a manual entry without reopening when the day was dismissed', async () => {
+    vi.mocked(fetch).mockImplementation(async input => {
+      if (String(input).endsWith('/v1/advent/entry')) return new Response(JSON.stringify({ autoOpen: false }))
+      return new Response('', { status: 404 })
+    })
+    await renderAt('/agenda')
+    await vi.waitFor(() => { fixture.detectChanges(); expect(fixture.nativeElement.querySelector('#advent-entry-mobile')).not.toBeNull() })
+    expect(router.url).toBe('/agenda')
+    fixture.nativeElement.querySelector('#advent-entry-mobile').click()
+    await vi.waitFor(() => expect(router.url).toBe('/avent'))
+  })
+
+  it.each([423, 503])('offers retry after an entry service failure (%i)', async (status) => {
+    vi.mocked(fetch).mockImplementation(async input => {
+      if (String(input).endsWith('/v1/advent/entry')) return new Response('', { status })
+      return new Response('', { status: 404 })
+    })
+    await renderAt('/agenda')
+    await vi.waitFor(() => { fixture.detectChanges(); expect(fixture.nativeElement.querySelector('[role="alert"]')?.textContent).toContain('Réessayer') })
+  })
 
   it('shows member nav on shell routes', async () => {
     await renderAt('/agenda')

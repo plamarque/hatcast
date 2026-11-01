@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing'
-import { provideRouter } from '@angular/router'
+import { provideRouter, Router } from '@angular/router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AdventTest } from './advent-test'
 import { AuthApiService, UserSummary } from '../../core/auth/auth-api.service'
@@ -1151,7 +1151,7 @@ describe('AdventTest', () => {
     expect(fixture.nativeElement.textContent).toContain('Bravo, tu as trouvé')
   })
 
-  it.each(['2026-12-25', '2027-01-15'])('shows Christmas and the zero score without requiring participation on %s', async date => {
+  it.each(['2026-12-25'])('shows Christmas and the zero score without requiring participation on %s', async date => {
     vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ sessionId: 'fiction', testControls: false })))
       .mockResolvedValueOnce(new Response(JSON.stringify({ date })))
       .mockResolvedValueOnce(new Response(JSON.stringify({ result: null })))
@@ -1430,7 +1430,7 @@ describe('Advent member journey', () => {
     const clockRequest = vi.mocked(window.fetch).mock.calls.filter(call => String(call[0]).endsWith('/clock')).at(-1)
     expect((clockRequest?.[1]?.headers as Record<string, string>)['X-Advent-Test-Session']).toBe('member-session')
   })
-  it.each(['2026-12-25', '2027-01-15'])('opens the final ranking on %s without an answer', async date => {
+  it.each(['2026-12-25'])('opens the final ranking on %s without an answer', async date => {
     vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ testControls: false, sessionId: 'member-session' })))
       .mockResolvedValueOnce(new Response(JSON.stringify({ date })))
       .mockResolvedValueOnce(new Response(JSON.stringify({ result: null })))
@@ -1462,6 +1462,45 @@ describe('Advent member journey', () => {
     fixture.detectChanges()
     expect(fixture.componentInstance.rankingOpen()).toBe(false)
     expect(fixture.nativeElement.textContent).toContain('Bravo, tu as trouvé')
+  })
+
+  it('opens the final ranking directly after Christmas', async () => {
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ testControls: false, sessionId: 'member-session' })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ date: '2027-01-15' })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ result: null })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ranking: { score: 0, rank: 2, entries: [] }, priorityResult: null })))
+    await fixture.componentInstance.start()
+    fixture.detectChanges()
+    expect(fixture.componentInstance.rankingOpen()).toBe(true)
+  })
+
+  it('records a dismissal before returning to the originating route', async () => {
+    const router = TestBed.inject(Router)
+    const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true)
+    sessionStorage.setItem('hatcast-advent-return', '/agenda')
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(null, { status: 204 }))
+    await fixture.componentInstance.closeExperience()
+    expect(vi.mocked(window.fetch).mock.calls.at(-1)?.[0]).toBe('/v1/advent/entry/dismiss')
+    expect(vi.mocked(window.fetch).mock.calls.at(-1)?.[1]?.signal).toBeInstanceOf(AbortSignal)
+    expect(navigate).toHaveBeenCalledWith('/agenda')
+    expect(sessionStorage.getItem('hatcast-advent-return')).toBeNull()
+  })
+
+  it('prevents dismissal while an answer mutation is pending', async () => {
+    fixture.componentInstance.submitting.set(true)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('[aria-label="Fermer le quiz"]').disabled).toBe(true)
+    vi.mocked(window.fetch).mockClear()
+    await fixture.componentInstance.closeExperience()
+    expect(window.fetch).not.toHaveBeenCalled()
+  })
+
+  it('keeps the experience open when dismissal fails and offers an explicit exit', async () => {
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response('', { status: 503 }))
+    await fixture.componentInstance.closeExperience()
+    fixture.detectChanges()
+    expect(fixture.componentInstance.closeError()).toBe(true)
+    expect(fixture.nativeElement.textContent).toContain('Quitter sans enregistrer')
   })
 
 })
