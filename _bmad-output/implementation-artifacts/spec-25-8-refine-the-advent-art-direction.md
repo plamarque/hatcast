@@ -2,7 +2,7 @@
 title: 'Refine the Advent art direction'
 type: 'feature'
 created: '2026-11-01'
-status: 'in-review'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 0
 baseline_commit: '6a28ed87179bc37894bcdd4f2192b7427a490e95'
@@ -91,5 +91,8 @@ Rejected:
 ## Review Triage Log
 
 ## Verification
+
+Post-integration verification: 106 Advent component tests passed; the production build passed with existing CSS budget warnings; 10 isolated Advent browser tests passed after the simulated-day toolbar was made flexible at 200% text size.
+
 
 Run the relevant Advent Angular tests, production web build and selected isolated E2E cases for answer secrecy, reveal and calendar. Compare real screenshots with the visual references, record the demonstration, check responsive layouts and reduced motion, and report exact coverage and remaining limitations. Screen-reader and numerical contrast tests are explicitly waived for this work.
