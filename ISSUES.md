@@ -15,6 +15,8 @@ historical registry below.
 
 ### Open defects and limitations
 
+BUG-069 (late Advent answer confirmation incorrectly asks the player to return tomorrow).
+
 BUG-067 (failed ranking load leaves a past result).
 
 BUG-062 (intermittent Advent loading failure; bounded read retry implemented locally, root cause unknown).
@@ -54,6 +56,14 @@ BUG-024, and BUG-021 have local fixes but still require their stated review,
 human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
+
+### BUG-069 — Late Advent answer confirmation misstates reveal timing
+- **Status**: Open.
+- **Severity**: Low.
+- **Affected area**: Advent member quiz, late-play confirmation.
+- **Observed behavior**: After answering the December 5 quiz on simulated December 11 in development, the confirmation says “Reviens demain pour découvrir le résultat !” although the result is already available through the calendar.
+- **Expected behavior**: The confirmation accurately indicates when the result is available for a late answer.
+- **Notes**: Observed on 2026-11-01 in development; the result itself showed the correct answer and zero points for late play. No clock or other member's answers were modified.
 
 ### BUG-068 — Advent CI tests target obsolete behavior
 - **Status**: Corrected locally; CI verification pending.
