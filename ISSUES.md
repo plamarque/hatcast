@@ -65,6 +65,14 @@ BUG-037 and BUG-029 have fixture-only corrections verified by the complete API s
 - **Expected behavior**: The confirmation accurately indicates when the result is available for a late answer.
 - **Notes**: Observed on 2026-11-01 in development; the result itself showed the correct answer and zero points for late play. No clock or other member's answers were modified.
 
+### BUG-070 — Advent catalogue rejects healthy Cloud Run configuration
+- **Status**: Corrected locally; live read-only verification passed; synchronization still requires operator authorization.
+- **Severity**: Medium.
+- **Affected area**: Advent private catalogue operator, Cloud Run V2 target verification.
+- **Observed behavior**: Development synchronization refused a healthy revision because Cloud Run v2 omitted default false reconciliation fields, returned a short revision ID in traffic status and used a default Compute Engine service-account address.
+- **Expected behavior**: Accept the equivalent verified healthy v2 representations while still rejecting reconciliation, wrong revisions and ambiguous environments.
+- **Notes/context**: Observed on development revision `hatcast-v2-dev-00254-rat`; verified using read-only API calls and synthetic regression tests. This configuration check does not prove effective runtime access to private objects.
+
 ### BUG-068 — Advent CI tests target obsolete behavior
 - **Status**: Corrected locally; CI verification pending.
 - **Severity**: Medium.

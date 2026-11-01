@@ -27,6 +27,8 @@ class AdventOfflineFixtures(
         jdbc.update("""INSERT INTO advent_quizzes (quiz_day, display_name, statement_0, statement_1, statement_2, false_choice)
             SELECT 1, ?, ?, ?, ?, 0
             WHERE NOT EXISTS (SELECT 1 FROM advent_quizzes WHERE quiz_day = 1)
+              AND NOT EXISTS (SELECT 1 FROM advent_character_reservations WHERE quiz_day = 1)
+              AND NOT EXISTS (SELECT 1 FROM advent_local_deleted_days WHERE quiz_day = 1)
               AND NOT EXISTS (SELECT 1 FROM advent_test_answers WHERE quiz_day = 1)
               AND NOT EXISTS (SELECT 1 FROM advent_member_answers WHERE quiz_day = 1)""",
             "Lutin fictif 1", "A inventé une histoire pour la fête.", "A décoré un sapin imaginaire.", "A voyagé sur une étoile en papier.")
@@ -43,10 +45,12 @@ class AdventOfflineFixtures(
             jdbc.update("""INSERT INTO advent_quizzes (quiz_day, display_name, portrait_ref, statement_0, statement_1, statement_2, false_choice, explanation)
                 SELECT ?, ?, ?, ?, ?, ?, ?, NULL
                 WHERE NOT EXISTS (SELECT 1 FROM advent_quizzes WHERE quiz_day = ?)
+                  AND NOT EXISTS (SELECT 1 FROM advent_character_reservations WHERE quiz_day = ?)
+                  AND NOT EXISTS (SELECT 1 FROM advent_local_deleted_days WHERE quiz_day = ?)
                   AND NOT EXISTS (SELECT 1 FROM advent_test_answers WHERE quiz_day = ?)
                   AND NOT EXISTS (SELECT 1 FROM advent_member_answers WHERE quiz_day = ?)""".trimIndent(),
                 day, name, portrait, quiz.statements[0], quiz.statements[1], quiz.statements[2],
-                quiz.falseChoice, day, day, day)
+                quiz.falseChoice, day, day, day, day, day)
         }
     }
 

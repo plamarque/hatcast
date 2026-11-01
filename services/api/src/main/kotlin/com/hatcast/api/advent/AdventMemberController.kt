@@ -23,6 +23,7 @@ class AdventMemberController(
     private val game: AdventMemberGame,
     private val clock: AdventMemberClock,
     private val offlineRoot: AdventOfflineRoot,
+    private val portraitStorage: AdventMemberPortraitStorage,
 ) {
     private fun authorize(principal: SessionUserPrincipal): UUID {
         val troupe = try { UUID.fromString(environment.getProperty("hatcast.advent.troupe-id", "")) }
@@ -195,6 +196,7 @@ class AdventMemberController(
     }
 
     private fun image(ref: String?): Pair<String, Boolean> {
+        val objectName = ref?.let(::adventPortraitObject)
         val profiles = environment.activeProfiles.toSet()
         val bytes: ByteArray? = if (ref == null) null else if ("offline" in profiles) {
             val local = offlineRoot.worktreeRoot().resolve(".local")
@@ -206,8 +208,7 @@ class AdventMemberController(
             val bucket = environment.getProperty("hatcast.advent.private-portrait-bucket", "").trim()
             if (!bucket.matches(Regex("[a-z0-9][a-z0-9._-]{1,221}[a-z0-9]"))) throw ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE)
             try {
-                val blob = com.google.cloud.storage.StorageOptions.getDefaultInstance().service.get(bucket, ref)
-                if (blob != null && blob.size <= 5_000_000) blob.getContent() else null
+                portraitStorage.read(bucket, objectName!!)
             } catch (_: Exception) { null }
         }
         if (ref != null && bytes == null && "offline" !in profiles) throw ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE)
@@ -222,3 +223,17 @@ data class AdventHistoryResponse(val quiz: FictionalQuiz? = null, val falseChoic
 data class LateAccess(val late: Boolean = false)
 
 data class DiscoveryAttempt(val attemptId: UUID?)
+
+// Database references remain filenames; never allow a path into the catalogue.
+internal fun adventPortraitObject(ref: String): String {
+    if (ref.length > 255 || !ref.matches(Regex("[A-Za-z0-9_-]+\\.png"))) throw ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE)
+    return "portraits/$ref"
+}
+
+@org.springframework.stereotype.Component
+class AdventMemberPortraitStorage {
+    fun read(bucket: String, objectName: String): ByteArray? {
+        val blob = com.google.cloud.storage.StorageOptions.getDefaultInstance().service.get(bucket, objectName)
+        return if (blob != null && blob.size <= 5_000_000) blob.getContent() else null
+    }
+}

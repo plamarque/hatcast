@@ -476,6 +476,8 @@ In verified isolated Advent development, an authorized operator can restart the 
 
 Dans l’aperçu isolé, un membre autorisé découvre son résultat après le début du jour suivant à Paris. Le résultat révélable non vu le plus récent est prioritaire au retour ; son affichage est suivi d’un accusé persistant. Une interruption ou des appareils concurrents peuvent entraîner une nouvelle présentation. Les flèches changent la date simulée du seul onglet opérateur sans l’enregistrer ni effacer les réponses ; le serveur valide ce contexte à chaque requête. La date des autres membres reste inchangée. Le reset ciblé redémarre la partie.
 
+An authorized operator can compare and synchronize selected validated characters and quizzes independently to a verified local, development, staging or production target. A fixed day remains assigned to its character; a reservation without a complete quiz is unavailable to members. An explicitly confirmed targeted deletion is available only on verified local, development or staging targets and removes the selected days and their game state while preserving other days, global state, canonical assignments and shared portraits. Production deletion is forbidden.
+
 The isolated Advent preview reads prepared database quizzes; an unavailable or invalid quiz cannot be answered. Optional explanations are disclosed only with eligible results. Le parcours membre direct est disponible pour les membres actifs de la troupe configurée pendant la période autorisée ; son API est conçue pour la production, sans déploiement implicite.
 
 Après confirmation, les deux opérateurs vérifiés en développement isolé peuvent consulter le classement courant et leur score personnel ; ils incluent toutes les réponses enregistrées même si la date simulée précède leur révélation. La révélation prioritaire reste présentée avant l’accès au classement. Les membres ordinaires ne reçoivent que les scores révélables.
@@ -492,3 +494,5 @@ Pendant la période autorisée, un cadeau près du compte permet aux membres él
 ### Première découverte du calendrier
 
 À la première visite, une invitation précède le parcours. Son action explicite ouvre le calendrier personnel et enregistre durablement la découverte ; fermer avant cette action ne l’enregistre pas. Une révélation existante reste non vue et reprend sa priorité aux visites suivantes.
+
+The shared private Advent bucket stores the canonical catalogue under `catalogue/` and elf images under `portraits/`. Cloud runtime resolves simple database portrait references under `portraits/`; offline uses the local private directory. Environments retain distinct databases. Migration and deployment require separate authorization; existing objects and game state are preserved.

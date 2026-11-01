@@ -1,0 +1,29 @@
+name: Advent catalogue tests
+
+on:
+  pull_request:
+    paths: ['scripts/v2/advent-catalogue-*', 'scripts/v2/AdventLocalH2*.java', 'services/api/src/main/resources/db/migration/V7*.sql', 'services/api/src/main/resources/db/migration/V8*.sql', 'package.json', 'package-lock.json', '.github/workflows/advent-catalogue.yml']
+  push:
+    branches: [v2, main]
+    paths: ['scripts/v2/advent-catalogue-*', 'scripts/v2/AdventLocalH2*.java', 'services/api/src/main/resources/db/migration/V7*.sql', 'services/api/src/main/resources/db/migration/V8*.sql', 'package.json', 'package-lock.json', '.github/workflows/advent-catalogue.yml']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm ci
+      - run: npm run test:advent-catalogue
+      - run: bash scripts/v2/advent-catalogue-database.test.sh
+      - name: Test local H2 synchronization
+        run: |
+          curl --fail --silent --show-error --location -o "$RUNNER_TEMP/h2.jar" https://repo.maven.apache.org/maven2/com/h2database/h2/2.3.232/h2-2.3.232.jar
+          ADVENT_H2_JAR="$RUNNER_TEMP/h2.jar" node --test scripts/v2/advent-catalogue-local-h2.integration.mjs

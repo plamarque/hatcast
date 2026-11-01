@@ -53,3 +53,5 @@ Give eligible La Malice members a seasonal way to discover each other through 24
 
 - Discovery, answering, isolated reset, revelation, quiz content and ranking establish foundations for calendar, entry, invitation and participation work. The private catalogue is a separate operator workflow; preserve its dedicated worktree and contributions.
 - Calendar and ranking share date, membership, content confidentiality and revealed-score boundaries. After initial discovery, entry follows priority revelation before daily or seasonal destinations; invitations and participation measurement depend on production/test separation.
+
+The canonical private catalogue provides independent character and quiz synchronization to verified targets. Targeted test-only deletion removes selected day state while preserving the canonical assignment and shared portraits; production deletion is forbidden. Deployment and production writes require separate authorization.
