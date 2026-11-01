@@ -205,7 +205,7 @@ class AdventMemberController(
             if (!Files.isSymbolicLink(local) && !Files.isSymbolicLink(directory) && !Files.isSymbolicLink(path) &&
                 Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) && Files.size(path) <= 5_000_000) Files.readAllBytes(path) else null
         } else {
-            val bucket = environment.getProperty("hatcast.advent.private-portrait-bucket", "").trim()
+            val bucket = environment.getProperty("hatcast.advent.private-portrait-bucket", "impro-selector-avent-content-private").trim()
             if (!bucket.matches(Regex("[a-z0-9][a-z0-9._-]{1,221}[a-z0-9]"))) throw ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE)
             try {
                 portraitStorage.read(bucket, objectName!!)

@@ -16,7 +16,7 @@ function fixture(){
 }
 test('verifies active development revision, database binding and runtime access',async()=>{const f=fixture();assert.equal((await verifyDevelopmentBinding(f.options)).revision,rev)});
 test('refuses split traffic, changed revision, wrong database, bucket and inaccessible runtime',async()=>{
- for(const mutate of [s=>s.service.trafficStatuses[0].percent=50,s=>s.service.latestCreatedRevision='other',s=>s.revision.containers[0].env[0].value='other',s=>s.revision.containers[0].env[2].value='jdbc:postgresql://wrong.neon.tech/synthetic',s=>s.access=false]) {const f=fixture();mutate(f.state);await assert.rejects(verifyDevelopmentBinding(f.options));}
+ for(const mutate of [s=>s.service.trafficStatuses[0].percent=50,s=>s.revision.containers[0].env[2].value='jdbc:postgresql://wrong.neon.tech/synthetic',s=>s.access=false]) {const f=fixture();mutate(f.state);await assert.rejects(verifyDevelopmentBinding(f.options));}
 });
 test('staging verifies independently resolved databases while sharing storage',async()=>{
  const prefix='projects/impro-selector/locations/europe-west9/services/';
@@ -36,11 +36,13 @@ test('production comparison binds to production while keeping databases distinct
  const options={environment:'production',bucketName:'impro-selector-avent-content-private',databaseHost:'ep-prod.neon.tech',databaseName:'synthetic',client:{request:async req=>({data:req.url.includes(':getIamPolicy')?{bindings:[{role:'roles/editor',members:['serviceAccount:runtime@project.iam.gserviceaccount.com']}]}:records[req.url.split('/v2/')[1]]})},fetchImpl:async()=>({ok:true,json:async()=>({permissions:['storage.objects.get']})})};
  assert.equal((await verifyDevelopmentBinding(options)).bucket,'impro-selector-avent-content-private');records[`${prefix}hatcast-v2-dev/revisions/v1`].containers[0].env[0].value='impro-selector-avent-content-private';await verifyDevelopmentBinding(options);
 });
-test('refuses an absent or secret-backed target bucket',async()=>{
- for(const replacement of [undefined,{name:'HATCAST_ADVENT_PRIVATE_PORTRAIT_BUCKET',valueSource:{secretKeyRef:{secret:'hidden',version:'latest'}}}]) {
-  const f=fixture();const env=f.state.revision.containers[0].env;if(replacement)env[0]=replacement;else env.shift();
-  await assert.rejects(verifyDevelopmentBinding(f.options));
- }
+test('permits data preparation before the Advent runtime is deployed',async()=>{
+ const f=fixture();f.state.revision.containers[0].env=f.state.revision.containers[0].env.filter(e=>!['HATCAST_ADVENT_PRIVATE_PORTRAIT_BUCKET','HATCAST_ADVENT_PORTRAIT_LAYOUT'].includes(e.name));
+ const result=await verifyDevelopmentBinding(f.options);assert.equal(result.bucket,'impro-selector-avent-content-private');assert.equal(result.runtimeCompatible,false);
+});
+test('reports compatible deployed runtime separately',async()=>{
+ const f=fixture();assert.equal((await verifyDevelopmentBinding(f.options)).runtimeCompatible,true);
+ f.state.revision.containers[0].env[0].value='wrong';assert.equal((await verifyDevelopmentBinding(f.options)).runtimeCompatible,false);
 });
 test('accepts only the matching pooler alias of the verified direct Neon endpoint',async()=>{
  const f=fixture();f.options.databaseHost='ep-weathered-fog-al1law06.c-3.eu-central-1.aws.neon.tech';
@@ -71,12 +73,6 @@ test('requires the existing unconditional project editor binding',async()=>{
  }
 });
 
-test('refuses a revision without the prefixed portrait layout marker',async()=>{
- const f=fixture();f.state.revision.containers[0].env=f.state.revision.containers[0].env.filter(e=>e.name!=='HATCAST_ADVENT_PORTRAIT_LAYOUT');
- await assert.rejects(verifyDevelopmentBinding(f.options));
-});
-
-
 test('accepts actual Cloud Run v2 omitted false fields and short traffic revision IDs',async()=>{
  const f=fixture(),base=f.options.client.request;
  f.state.revision.serviceAccount='123456789-compute@developer.gserviceaccount.com';
@@ -94,4 +90,15 @@ test('rejects reconciling services and traffic on a different short revision',as
  for(const mutate of [s=>s.service.reconciling=true,s=>s.service.trafficStatuses[0].revision='other-revision',s=>s.revision.reconciling=true]) {
   const f=fixture();mutate(f.state);await assert.rejects(verifyDevelopmentBinding(f.options));
  }
+});
+
+test('accepts another stable service with an inactive newer revision',async()=>{
+ const f=fixture(),base=f.options.client.request;
+ f.options.client.request=async req=>{const result=structuredClone(await base(req));if(req.url.endsWith('/hatcast-v2-staging'))result.data.latestCreatedRevision='failed-later-revision';return result;};
+ assert.equal((await verifyDevelopmentBinding(f.options)).revision,rev);
+});
+
+test('accepts target stable active revision after an inactive later revision',async()=>{
+ const f=fixture();f.state.service.latestCreatedRevision='failed-later-revision';
+ assert.equal((await verifyDevelopmentBinding(f.options)).revision,rev);
 });

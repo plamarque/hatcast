@@ -14,7 +14,7 @@ test('each deployment uses the shared bucket even with an obsolete preview setti
   const result=spawnSync('bash',['-c',`append_env() { printf '%s=%s\\n' "$1" "$2"; }\n${block}`],{encoding:'utf8',env:{...process.env,TARGET_ENV:environment,ADVENT_PRIVATE_PORTRAIT_BUCKET:'impro-selector-avent-preview-private'}});
   assert.equal(result.status,0,result.stderr);
   const entries=result.stdout.trim().split('\n');
-  assert.equal(entries.filter(e=>e.startsWith('HATCAST_ADVENT_PRIVATE_PORTRAIT_BUCKET=')).join(), 'HATCAST_ADVENT_PRIVATE_PORTRAIT_BUCKET=impro-selector-avent-content-private');
-  assert(entries.includes('HATCAST_ADVENT_PORTRAIT_LAYOUT=portraits-v1'));
+  assert.equal(entries.filter(e=>e.startsWith('HATCAST_ADVENT_PRIVATE_PORTRAIT_BUCKET=')).length, 0);
+  assert(entries.includes('HATCAST_ADVENT_PORTRAIT_LAYOUT=portraits-default-v2'));
  }
 });

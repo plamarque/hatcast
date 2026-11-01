@@ -19,7 +19,7 @@ function revisionName(service, ref) {
   return `${prefix}${id}`;
 }
 function isReconciled(value) { return value === undefined || value === false; }
-// Requires permission to read the service, revision and existing project IAM policy. A missing or secret-backed configuration that cannot be compared is refused.
+// Requires permission to read the service, revision and existing project IAM policy. Explicit configurations that cannot be compared are refused.
 export async function verifyDevelopmentBinding({client,databaseHost,databaseName,environment='development',bucketName=BUCKET,portraitRefs=[]}) {
   if(!['development','staging','production'].includes(environment) || !/^[a-z0-9][a-z0-9._-]{1,220}[a-z0-9]$/.test(bucketName||'') || bucketName!==BUCKET)fail();
   const serviceName=environment==='development'?SERVICE:environment==='staging'?'projects/impro-selector/locations/europe-west9/services/hatcast-v2-staging':PRODUCTION_SERVICE;
@@ -27,14 +27,14 @@ export async function verifyDevelopmentBinding({client,databaseHost,databaseName
   const service=(await client.request({url:`https://run.googleapis.com/v2/${serviceName}`})).data;
   const traffic=service.trafficStatuses;
   if(service.name!==serviceName||!isReconciled(service.reconciling)||!service.etag||service.generation!==service.observedGeneration||
-     !service.latestReadyRevision||service.latestReadyRevision!==service.latestCreatedRevision||
+     !service.latestReadyRevision||
      !Array.isArray(traffic)||traffic.length!==1||traffic[0].percent!==100||revisionName(serviceName,traffic[0].revision)!==revisionName(serviceName,service.latestReadyRevision))fail();
   {
     const staging='projects/impro-selector/locations/europe-west9/services/hatcast-v2-staging';
     const others=[SERVICE,staging,PRODUCTION_SERVICE].filter(name=>name!==serviceName);
     for(const other of others) {
       const otherService=(await client.request({url:`https://run.googleapis.com/v2/${other}`})).data;
-      if(otherService.name!==other||!isReconciled(otherService.reconciling)||!otherService.etag||!otherService.latestReadyRevision||otherService.latestReadyRevision!==otherService.latestCreatedRevision||otherService.generation!==otherService.observedGeneration||!Array.isArray(otherService.trafficStatuses)||otherService.trafficStatuses.length!==1||otherService.trafficStatuses[0].percent!==100||revisionName(other,otherService.trafficStatuses[0].revision)!==revisionName(other,otherService.latestReadyRevision))fail();
+      if(otherService.name!==other||!isReconciled(otherService.reconciling)||!otherService.etag||!otherService.latestReadyRevision||otherService.generation!==otherService.observedGeneration||!Array.isArray(otherService.trafficStatuses)||otherService.trafficStatuses.length!==1||otherService.trafficStatuses[0].percent!==100||revisionName(other,otherService.trafficStatuses[0].revision)!==revisionName(other,otherService.latestReadyRevision))fail();
       const otherRevision=otherService.latestReadyRevision.startsWith('projects/')?otherService.latestReadyRevision:`${other}/revisions/${otherService.latestReadyRevision}`;
       if(!otherRevision.startsWith(`${other}/revisions/`))fail();
       const otherData=(await client.request({url:`https://run.googleapis.com/v2/${otherRevision}`})).data;
@@ -55,7 +55,12 @@ export async function verifyDevelopmentBinding({client,databaseHost,databaseName
      !/^[^@\s]+@(?:[^@\s]+\.iam|developer)\.gserviceaccount\.com$/.test(revision.serviceAccount||''))fail();
   const env=revision.containers[0].env;if(!Array.isArray(env))fail();
   function value(name){const found=env.filter(e=>e.name===name);if(found.length!==1||typeof found[0].value!=='string'||found[0].valueSource)fail();return found[0].value;}
-  if(value('HATCAST_ADVENT_PRIVATE_PORTRAIT_BUCKET')!==bucketName || value('HATCAST_ADVENT_PORTRAIT_LAYOUT')!=='portraits-v1')fail();
+  // This status concerns only the active runtime, not database preparation.
+  const buckets=env.filter(e=>e.name==='HATCAST_ADVENT_PRIVATE_PORTRAIT_BUCKET');
+  const layouts=env.filter(e=>e.name==='HATCAST_ADVENT_PORTRAIT_LAYOUT');
+  const explicitBucket=buckets.length===1 && typeof buckets[0].value==='string' && !buckets[0].valueSource && buckets[0].value===bucketName;
+  const layout=layouts.length===1 && !layouts[0].valueSource ? layouts[0].value : undefined;
+  const runtimeCompatible=(layout==='portraits-v1' && explicitBucket) || (layout==='portraits-default-v2' && (buckets.length===0 || explicitBucket));
   const jdbc=value('HATCAST_DATASOURCE_URL');if(!jdbc.startsWith('jdbc:postgresql://'))fail();
   const runtime=new URL(jdbc.slice(5));
   if(neonEndpoint(runtime.hostname)!==databaseHost||decodeURIComponent(runtime.pathname.slice(1))!==databaseName)fail();
@@ -67,5 +72,5 @@ export async function verifyDevelopmentBinding({client,databaseHost,databaseName
   if(!Array.isArray(policy.bindings)||!policy.bindings.some(b=>b.role==='roles/editor'&&!b.condition&&Array.isArray(b.members)&&b.members.includes(`serviceAccount:${revision.serviceAccount}`)))fail();
   const again=(await client.request({url:`https://run.googleapis.com/v2/${serviceName}`})).data;
   if(again.etag!==service.etag||!isReconciled(again.reconciling))fail();
-  return {revision:revName,bucket:bucketName,serviceAccount:revision.serviceAccount};
+  return {revision:revName,bucket:bucketName,serviceAccount:revision.serviceAccount,runtimeCompatible};
 }

@@ -9,20 +9,22 @@ import {verifyDevelopmentBinding} from './advent-catalogue-cloudrun-binding.mjs'
 import {runOperator,compareProduction} from './advent-catalogue-operator.mjs';
 import {insertReviewedQuizzes} from './advent-catalogue-database.mjs';
 import {deleteTestDays} from './advent-catalogue-delete.mjs';
+import {checkReadiness} from './advent-catalogue-check.mjs';
 import {runCloudContent} from './advent-catalogue-cloud-content.mjs';
 const require=createRequire(import.meta.url);
 const refuse=()=>{throw Error('Synchronization refused')};
 async function main() {
   // Production requires a second, plan-specific interactive authorization.
-  const operation=['character','quiz','delete'].includes(process.argv[2])?process.argv[2]:null;
+  const operation=['character','quiz','delete','check'].includes(process.argv[2])?process.argv[2]:null;
+  const checking=operation==='check';
   const deletion=operation==='delete';
   const offset=operation?1:0;
-  if(!operation||process.argv.length!==4+offset||!['development','staging','production'].includes(process.argv[2+offset])||!stdin.isTTY||!stdout.isTTY)refuse();
+  if(!operation||process.argv.length!==(checking?4:4+offset)||!['development','staging','production'].includes(process.argv[2+offset])||(!checking&&(!stdin.isTTY||!stdout.isTTY)))refuse();
   const environment=process.argv[2+offset];
   if(deletion && environment==='production')refuse();
   const bucketName='impro-selector-avent-content-private';
   if(!bucketName)refuse();
-  const days=process.argv[3+offset].split(',').map(s=>/^([1-9]|1[0-9]|2[0-4])$/.test(s)?Number(s):NaN);
+  const days=checking?[]:process.argv[3+offset].split(',').map(s=>/^([1-9]|1[0-9]|2[0-4])$/.test(s)?Number(s):NaN);
   if(days.some(Number.isNaN)||new Set(days).size!==days.length)refuse();
   const {ADVENT_DATABASE_URL,ADVENT_NEON_PROJECT,ADVENT_NEON_BRANCH,NEON_API_KEY,ADVENT_OPERATOR_SERVICE_ACCOUNT,ADVENT_OPERATOR_PRINCIPAL}=process.env;
   const principal=ADVENT_OPERATOR_PRINCIPAL || ADVENT_OPERATOR_SERVICE_ACCOUNT;
@@ -37,14 +39,20 @@ async function main() {
   const source=createGcsSource({storage,auth,expectedPrincipal:principal});
   const db=new Client({connectionString:ADVENT_DATABASE_URL,connectionTimeoutMillis:10000});
   try {
+    let warnedRuntime=false;
     await db.connect();if(environment==='production')await db.query('BEGIN READ ONLY');let identity;
     async function verifyBinding(forWrite=false,portraitRefs=[],requireExisting=false) {
       const neon=await verifyNeonDevelopment({databaseUrl:ADVENT_DATABASE_URL,projectId:ADVENT_NEON_PROJECT,branchId:ADVENT_NEON_BRANCH,apiKey:NEON_API_KEY,client:db,environment,forWrite});
       const run=await verifyDevelopmentBinding({client:google,databaseHost:neon.host,databaseName:neon.database,environment,bucketName,portraitRefs,requireExisting});
+      if(!run.runtimeCompatible && !warnedRuntime) { console.log('La révision active ne prouve pas la disponibilité des portraits ; vérifier avant ouverture du calendrier.'); warnedRuntime=true; }
       identity=JSON.stringify({neon,run});
     }
     const store=createGcsPortraitStore({storage,bucketName,projectNumber:project.name.split('/')[1],verifyBinding});
     async function ask(question){const prompt=createInterface({input:stdin,output:stdout});try{return await prompt.question(question);}finally{prompt.close();}}
+    if(checking) {
+      await checkReadiness({source,store,db,environment,write:line=>console.log(line)});
+      return;
+    }
     if(deletion) {
       await source.verify();await store.verify(true);
       const tables=['advent_member_attempts','advent_member_generations','advent_member_replays','advent_member_answers','advent_test_attempts','advent_test_generations','advent_test_replays','advent_test_answers','advent_offline_content_conflicts','advent_member_demo_quizzes','advent_quizzes','advent_character_reservations'];

@@ -45,6 +45,10 @@ export function createGcsSource({storage,auth,expectedPrincipal}) {
     const [latest]=await file.getMetadata(); if (generation(latest,limit)!==gen) fail();
     return {bytes,generation:gen};
   }
+  async function verifyCatalogue() {
+    const [metadata]=await bucket.file(SOURCE_OBJECT).getMetadata();
+    generation(metadata,2_000_000);
+  }
   async function snapshot(days, operation) {
     const catalogue=await readVersion(SOURCE_OBJECT,2_000_000);
     const rows=validateCatalogue(JSON.parse(catalogue.bytes.toString('utf8')),days);
@@ -61,5 +65,5 @@ export function createGcsSource({storage,auth,expectedPrincipal}) {
   async function acquire(snapshot) {
     return acquireGcsHolds(bucket,[{name:SOURCE_OBJECT,generation:snapshot.generation},...snapshot.portraits.map(p=>({name:`portraits/${p.ref}`,generation:p.generation}))]);
   }
-  return {verify,snapshot,acquire};
+  return {verify,verifyCatalogue,snapshot,acquire};
 }
