@@ -25,29 +25,36 @@ jobs:
       - run: npm ci
       - name: Advent API security and game tests
         working-directory: services/api
-        run: ./gradlew test --no-daemon --tests '*AdventMemberSecurityTest' --tests '*AdventMemberGameTest' --tests '*AdventOfflineIntegrationTest' --tests '*AdventMemberClockTest' --tests '*AdventParisTimeTest' --tests '*AdventRankingCalculatorTest' --tests '*AdventCloudPortraitTest' --tests '*AdventPortraitObjectTest'
+        run: ./gradlew cleanTest test --no-daemon --tests '*AdventMemberSecurityTest' --tests '*AdventMemberGameTest' --tests '*AdventOfflineIntegrationTest' --tests '*AdventMemberClockTest' --tests '*AdventParisTimeTest' --tests '*AdventRankingCalculatorTest' --tests '*AdventCloudPortraitTest' --tests '*AdventPortraitObjectTest'
       - name: Require all API suites to execute
-        working-directory: services/api
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import xml.etree.ElementTree as ET
-          for name in ('AdventMemberSecurityTest', 'AdventMemberGameTest', 'AdventOfflineIntegrationTest', 'AdventMemberClockTest', 'AdventParisTimeTest', 'AdventRankingCalculatorTest', 'AdventCloudPortraitTest', 'AdventPortraitObjectTest'):
-              matches = list(Path('build/test-results/test').glob(f'TEST-*{name}.xml'))
-              if len(matches) != 1:
-                  raise SystemExit(f'{name}: missing or ambiguous test report')
-              suite = ET.parse(matches[0]).getroot()
-              total, skipped = int(suite.get('tests', '0')), int(suite.get('skipped', '0'))
-              print(f'{name}: {total} tests, {skipped} skipped')
-              if not total or skipped:
-                  raise SystemExit(f'{name}: no tests or skipped tests')
-          PY
+        if: always()
+        run: >-
+          python3 scripts/v2/ci/check_reports.py 'services/api/build/test-results/test/TEST-*.xml'
+          AdventMemberSecurityTest AdventMemberGameTest AdventOfflineIntegrationTest
+          AdventMemberClockTest AdventParisTimeTest AdventRankingCalculatorTest
+          AdventCloudPortraitTest AdventPortraitObjectTest
+      - name: Upload Advent API reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: advent-api-results
+          path: services/api/build/test-results/test/
+          if-no-files-found: warn
       - name: Advent unit tests
         working-directory: apps/web
-        run: npm test -- --watch=false --include='**/advent-test.spec.ts'
-      - name: Member shell unit tests
-        working-directory: apps/web
-        run: npm test -- --watch=false --include='**/member-shell.spec.ts'
+        run: npm test -- --watch=false --include='**/advent-test.spec.ts' --reporters=junit --output-file=advent-angular-results.xml
+      - name: Require Advent unit tests to execute
+        if: always()
+        run: python3 scripts/v2/ci/check_reports.py apps/web/advent-angular-results.xml src/app/pages/advent-test/advent-test.spec.ts
+      - name: Upload Advent Angular report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: advent-angular-results
+          path: apps/web/advent-angular-results.xml
+          if-no-files-found: warn
+      - name: Check report validator
+        run: python3 -m unittest discover -s scripts/v2/ci -p 'test_*.py'
       - name: Analytics privacy configuration
         working-directory: apps/web
         run: npm test -- --watch=false --include='**/posthog-browser.client.spec.ts'
@@ -55,6 +62,28 @@ jobs:
         run: python3 scripts/v2/test-advent-config.py
       - name: Service-worker privacy configuration
         run: node apps/web/e2e/advent-isolation/check-service-worker-config.cjs
+  member-shell:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - name: Member shell unit tests
+        working-directory: apps/web
+        run: npm test -- --watch=false --include='**/member-shell.spec.ts' --reporters=junit --output-file=member-shell-results.xml
+      - name: Require member shell unit tests to execute
+        if: always()
+        run: python3 scripts/v2/ci/check_reports.py apps/web/member-shell-results.xml src/app/layout/member-shell/member-shell.spec.ts
+      - name: Upload member shell report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: member-shell-results
+          path: apps/web/member-shell-results.xml
+          if-no-files-found: warn
   browser:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -115,20 +144,16 @@ jobs:
           cache: gradle
       - name: PostgreSQL privacy and concurrency tests
         working-directory: services/api
-        run: ./gradlew test --no-daemon --tests '*AdventMemberPostgresTest' --tests '*AdventRankingPostgresTest' --tests '*AdventResultPostgresTest'
+        run: ./gradlew cleanTest test --no-daemon --tests '*AdventMemberPostgresTest' --tests '*AdventRankingPostgresTest' --tests '*AdventResultPostgresTest'
       - name: Require all PostgreSQL suites to execute
-        working-directory: services/api
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import xml.etree.ElementTree as ET
-          for name in ('AdventMemberPostgresTest', 'AdventRankingPostgresTest', 'AdventResultPostgresTest'):
-              matches = list(Path('build/test-results/test').glob(f'TEST-*{name}.xml'))
-              if len(matches) != 1:
-                  raise SystemExit(f'{name}: missing or ambiguous test report')
-              suite = ET.parse(matches[0]).getroot()
-              total, skipped = int(suite.get('tests', '0')), int(suite.get('skipped', '0'))
-              print(f'{name}: {total} tests, {skipped} skipped')
-              if not total or skipped:
-                  raise SystemExit(f'{name}: no tests or skipped tests')
-          PY
+        if: always()
+        run: >-
+          python3 scripts/v2/ci/check_reports.py 'services/api/build/test-results/test/TEST-*.xml'
+          AdventMemberPostgresTest AdventRankingPostgresTest AdventResultPostgresTest
+      - name: Upload Advent PostgreSQL reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: advent-postgres-results
+          path: services/api/build/test-results/test/
+          if-no-files-found: warn

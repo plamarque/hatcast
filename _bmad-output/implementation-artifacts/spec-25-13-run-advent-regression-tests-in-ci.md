@@ -69,9 +69,13 @@ Rejected: Playwright successful-run artifacts concern the existing smoke workflo
 
 ## Implementation Notes
 
+- Reconciliation: `v2` now contains `.github/workflows/advent-regression.yml`, already called by the V2 release gate. Preserve that workflow and its existing coverage; add the report validator and artifacts there instead of executing duplicate Advent Angular and PostgreSQL suites in the general API and web workflows. On eventual retirement, move general member-shell coverage to a general web workflow before removing the Advent job.
+
 - Follow-up review: isolated PostgreSQL in its own job, made relevant trigger filters symmetric, and kept member-shell tests independent; targeted Node 20 runs passed separately.
 
 - Local verification: Angular under Node 20.20.2 passed 139 tests with no skips. PostgreSQL 16 disposable: seven required tests passed; full Gradle suite passed in 5m 33s. Report guard contract tests passed; Playwright lists 16 scenarios. CI execution and remote branch protection remain unverified.
+
+- Reconciled with the release workflow already present on v2; independent shell job and reports, no duplicate Angular or PostgreSQL jobs in the general workflows. Local Node 20: 144 Advent and 24 shell tests; H2: 55 tests across eight classes; PostgreSQL 16: eight tests across three classes. Validator contracts and YAML checks passed. Independent follow-up reviews found no remaining actionable issue. GitHub Actions on this reconciled revision has not run.
 
 ## Spec Change Log
 

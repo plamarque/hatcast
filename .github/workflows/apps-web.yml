@@ -5,22 +5,14 @@ on:
   pull_request:
     paths:
       - 'apps/web/**'
-      - 'services/api/**'
-      - '.github/workflows/api-test.yml'
       - 'package.json'
       - 'package-lock.json'
-      - '.github/workflows/apps-web.yml'
-      - 'scripts/v2/ci/**'
   push:
     branches: [v2, main]
     paths:
       - 'apps/web/**'
-      - 'services/api/**'
-      - '.github/workflows/api-test.yml'
       - 'package.json'
       - 'package-lock.json'
-      - '.github/workflows/apps-web.yml'
-      - 'scripts/v2/ci/**'
 
 jobs:
   build-placeholder:
@@ -35,43 +27,3 @@ jobs:
         run: npm ci
       - name: Run apps/web build script (placeholder until Angular scaffold)
         run: npm run build -w @hatcast/web
-
-      # General HatCast coverage is independent of the temporary Advent feature.
-      - name: Run member shell Angular tests
-        working-directory: apps/web
-        run: |
-          echo "Candidate SHA: $GITHUB_SHA"
-          npm test -- --watch=false --include=src/app/layout/member-shell/member-shell.spec.ts --reporters=junit --output-file=member-shell-results.xml
-      - name: Validate member shell evidence
-        if: always()
-        run: >-
-          python3 scripts/v2/ci/check_reports.py apps/web/member-shell-results.xml
-          src/app/layout/member-shell/member-shell.spec.ts
-      - name: Upload member shell evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: member-shell-results
-          path: apps/web/member-shell-results.xml
-          if-no-files-found: warn
-
-      # Advent-specific evidence; the existing build and shell tests remain independent.
-      - name: Check report validator
-        run: python3 -m unittest discover -s scripts/v2/ci -p 'test_*.py'
-      - name: Run Advent Angular tests
-        working-directory: apps/web
-        run: |
-          echo "Candidate SHA: $GITHUB_SHA"
-          npm test -- --watch=false --include=src/app/pages/advent-test/advent-test.spec.ts --reporters=junit --output-file=advent-angular-results.xml
-      - name: Validate Angular evidence
-        if: always()
-        run: >-
-          python3 scripts/v2/ci/check_reports.py apps/web/advent-angular-results.xml
-          src/app/pages/advent-test/advent-test.spec.ts
-      - name: Upload Angular evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: advent-angular-results
-          path: apps/web/advent-angular-results.xml
-          if-no-files-found: warn
