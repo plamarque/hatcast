@@ -23,6 +23,8 @@ Give active La Malice members a festive way to discover each other through 24 da
 - Story 25.10: Discover the Advent calendar
 - Story 25.11: Generate a fictional ranking for tests
 - Story 25.12: Return to the sleeping elf after playing
+- Story 25.13: Run Advent regression tests in CI
+- Story 25.14: Give Advent CTA snow realistic volume
 
 ## Requirements & Constraints
 
@@ -42,6 +44,8 @@ Give active La Malice members a festive way to discover each other through 24 da
 - Prepare validated content privately and synchronize selected quiz content and portraits only, never game answers or state, between verified targets. Development and production databases are distinct. Exceptional changes to published contributions may cause inconsistency; no additional versioning or snapshots are required solely for that risk. Production writes and deployment require separate authorization.
 - Sensitive responses are private and no-store; service worker, client storage and intermediaries must not serve stale or cross-account content. Verify direct APIs and portraits, manipulated headers, session changes, caches, retries and concurrent requests.
 - Validate 30 November 23:59:59 and 1 December 00:00 Paris using a controlled server clock in isolation, both preview identities and unauthorized accounts, and production-equivalent denial of test controls. Automated checks must actually run and block relevant change and release paths; separately verify the deployed revision and configuration after authorized deployment.
+
+- Keep Advent-specific tests, fixtures, CI selections and utilities identifiable and removable when the temporary feature is retired. Maintain shared HatCast tests independently and preserve necessary coverage while Advent is accessible. Evidence must identify the candidate revision and actual executed, skipped and failed tests; an empty selection is not a successful coverage claim.
 
 ## UX & Interaction Patterns
 

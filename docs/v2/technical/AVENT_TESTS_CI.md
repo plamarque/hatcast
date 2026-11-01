@@ -1,0 +1,22 @@
+# Inventaire des tests Avent en CI
+
+Cet inventaire identifie les ajouts saisonniers à retirer avec l'Avent, sans supprimer les protections générales. Il ne vaut pas preuve de release ou de déploiement.
+
+## Sélections et preuves
+
+- `apps-web.yml` conserve le build existant. Sur changement `apps/web/**`, dépendances racine, ce workflow ou `scripts/v2/advent-ci/**`, il lance `advent-test.spec.ts` et `member-shell.spec.ts` avec Angular/Vitest, puis contrôle les deux suites dans le XML. Les tests généraux du shell restent dans leur fichier existant ; ils n'exigent ni base ni horloge Avent. Le rapport est archivé même en cas d'échec. La sortie indique SHA candidat, nombres, échecs, skips, durée et horodatage de chaque suite ; la durée du job figure aussi dans Actions.
+- `api-test.yml` conserve toute la suite Gradle, avec un service PostgreSQL 16 jetable sur loopback et des identifiants fictifs propres au job. Les chemins API, son workflow et le validateur déclenchent ce contrôle. `cleanTest` évite de réutiliser des résultats périmés. La garde exige une exécution réussie sans skip pour chacune des classes `AdventMemberPostgresTest`, `AdventRankingPostgresTest`, `AdventResultPostgresTest`. Les rapports XML et HTML sont publiés même en cas d'échec. Le SHA et les comptes, durées et horodatages des classes sont affichés ; les autres suites restent dans les rapports Gradle.
+- `scripts/v2/advent-ci/check_reports.py` refuse un rapport absent, une suite absente ou ambiguë, zéro test exécuté, un skip, une erreur ou un échec dans une suite requise. Ses tests de contrat se lancent par `python3 -m unittest discover -s scripts/v2/advent-ci -p 'test_*.py'`.
+- Les deux workflows se déclenchent en pull request et en push sur `v2` ou `main` selon leurs filtres ; le workflow API accepte également `workflow_dispatch`. Ces jobs ne prouvent pas qu'ils sont requis par la protection de branche. Celle-ci était inaccessible lors de la vérification locale (accès réseau GitHub impossible) : statut **inconnu**.
+
+## Inventaire navigateur
+
+`e2e-smoke.yml` conserve `npm run test:e2e` et son contrat existant. Le 1er novembre 2026, `npx playwright test --list --project=chromium-advent-answer` a découvert **16 tests dans 3 fichiers** : 3 `advent-answer.spec.ts`, 6 `advent-isolation/advent-answer.spec.ts` et 7 `advent-member.spec.ts`. La liste établit la sélection, pas leur réussite. Ces scénarios interceptent des requêtes API et ne démontrent pas le parcours membre réel jusqu'à la base. Le rapport Playwright existant est archivé en cas d'échec.
+
+`src/app/pages/advent-test/advent-test.motion.browser.cjs` contient deux tests autonomes Node/Chromium, hors de cette sélection Playwright. `e2e/advent-isolation/advent-service-worker.smoke.cjs` est également autonome et hors sélection ; il nécessite une API de test ensemencée sur 8080 et un build `production-local` sur 4322 avec proxy adapté, et réinitialise l'état de test. Ne l'exécuter que sur services et données isolés. Aucun de ces scripts autonomes n'a été exécuté ici.
+
+## Mesures locales et limites
+
+Sur l'arbre de travail basé sur `b1d2fc5773396fbf5279f814e5b858470077a389`, avec les changements CI non commités, le 1er novembre 2026 : Node 26 avec `NODE_OPTIONS=--no-experimental-webstorage`, 119 tests Advent en 2,223 s et 20 shell en 0,894 s, zéro échec ni skip (durées XML, hors compilation). Un premier essai sans cette option a échoué sur les 20 tests shell car `localStorage` était indisponible. Un second essai avec Node 20.20.2, sans option de compatibilité, a exécuté les mêmes 139 tests sans échec ni skip : 2,668 s pour Avent et 1,036 s pour le shell (durées XML, hors compilation). Sur PostgreSQL 16 jetable, les trois classes ciblées ont exécuté sept tests sans échec ni skip, en 3,178 s cumulées (durées XML, hors compilation). La suite API Gradle complète a également réussi avec PostgreSQL 16 jetable en 5 min 33 s ; les trois classes ciblées ont exécuté sept tests sans échec ni skip. Ces vérifications locales ne prouvent pas l'exécution du job GitHub Actions. Les rapports CI sur le SHA candidat restent à consulter.
+
+Pour retirer les ajouts saisonniers, supprimer les étapes Angular et de validation PostgreSQL, le service et les variables dédiées, `scripts/v2/advent-ci/` et cet inventaire ; conserver les étapes générales de build, suite API et Playwright. Les parcours navigateur réels, l'horloge serveur contrôlable et la recette PWA/accessibilité restent à traiter selon `PLAN.md`.
