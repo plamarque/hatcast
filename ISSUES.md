@@ -15,6 +15,10 @@ historical registry below.
 
 ### Open defects and limitations
 
+BUG-074 (activating Advent test mode can show the ranking instead of the current day's state).
+
+BUG-073 (Advent catalogue synchronization refuses an additional zero-traffic revision).
+
 BUG-071 (Advent catalogue PostgreSQL integration test loses its connection in CI).
 
 BUG-072 (V2 Playwright smoke suite fails on commit b560afa4).
@@ -60,6 +64,22 @@ BUG-024, and BUG-021 have local fixes but still require their stated review,
 human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
+
+### BUG-074 — Advent test mode opens ranking instead of current day's state
+- **Status**: Open; reported, not independently reproduced.
+- **Severity**: Medium.
+- **Affected area**: Advent test-mode entry in development.
+- **Observed behavior**: On 2026-11-01, activating test mode at simulated December 1 displayed the ranking instead of the day's lutin, available result, or pending-result state.
+- **Expected behavior**: Show the appropriate current-day state, while preserving priority for an unseen result.
+- **Notes/context**: The current local `enterAt` opens the ranking when the current day's answer is recorded; `toggleTestMode` may also restore a previously open ranking. The actual trigger and deployed revision behavior remain to be verified.
+
+### BUG-073 — Advent catalogue synchronization refuses an additional zero-traffic revision
+- **Status**: Open.
+- **Severity**: Medium (content synchronization blocked).
+- **Affected area**: Advent private catalogue operator, Cloud Run target verification.
+- **Observed behavior**: The operator refuses synchronization when the development service reports a current revision receiving 100% of traffic alongside another traffic status with no percentage, because the verifier requires exactly one status. This also blocks verification of the other environments.
+- **Expected behavior**: Safely verify the active revision and environment isolation when Cloud Run reports additional zero-traffic statuses, or provide an actionable diagnosis if they prevent verification.
+- **Notes/context**: Observed on 2026-11-01 while preparing a production character sync. No production write occurred. The additional status and its purpose require investigation before changing the guard.
 
 ### BUG-071 — Advent catalogue PostgreSQL integration test loses connection in CI
 - **Status**: Open.
