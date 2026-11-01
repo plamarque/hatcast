@@ -24,6 +24,7 @@ export default defineConfig({
     ignoreHTTPSErrors: true,
   },
   projects: [
+    { name: 'chromium-advent-answer', testMatch: /advent-(answer|member)\.spec\.ts/, use: { ...devices['Desktop Chrome'] } },
     {
       name: 'chromium-accueil-feedback',
       testMatch: /accueil-feedback\.spec\.ts/,
@@ -179,7 +180,7 @@ export default defineConfig({
           timeout: 240_000,
         },
         {
-          command: 'npm run dev -- --port 4200 --host 127.0.0.1',
+          command: `npm run dev -- --port ${Number(process.env.PLAYWRIGHT_WEB_PORT ?? 4200)} --host 127.0.0.1`,
           url: baseURL,
           reuseExistingServer: reuseServers,
           timeout: 180_000,

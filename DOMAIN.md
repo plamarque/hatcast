@@ -327,3 +327,47 @@ Product owner definition (2026-06-04):
 ## Disponibilité bénévole obligatoire (V2)
 
 Toute réponse disponible enregistrée pour un événement proposant des places `volunteer` inclut ce rôle obligatoire, même sans rôle optionnel. Le formulaire le coche dès Dispo et empêche son retrait ; une aide adjacente activable au toucher et au clavier explique : « Quand tu es disponible, tu es aussi disponible comme bénévole. » Les autres rôles restent facultatifs. Sans bénévole proposé, aucun bénévole n'est ajouté ; sans rôle proposé, la disponibilité générale reste possible. La règle vaut pour soi et en saisie déléguée, même avec le champ historique `applyVolunteerRule=false`. Les statuts indisponible et non renseigné enregistrent une liste vide. Les anciennes réponses disponibles sans rôle gardent leur candidature à tous les rôles jusqu'à un enregistrement explicite ; ouvrir ou annuler ne modifie aucune donnée.
+
+
+### Réponses de test Avent
+
+Une réponse fictive confirmée est unique par membre et par jour. En test isolé, le membre peut effacer sa propre réponse et rejouer ce jour, même passé ; les scores et la série de ses réponses suivantes sont recalculés. Une bonne réponse vaut 10 points, une mauvaise 0, avec un point de participation ; chaque groupe de trois réponses correctes consécutives ajoute 2 points. Une mauvaise réponse remet la série à zéro ; un jour manqué ne la modifie pas. Avant minuit à Paris suivant le jour du quiz, seule une confirmation neutre est accessible. Les cases futures ne sont pas jouables ; une réponse tardive explicite sur une case passée non jouée vaut zéro et ne participe pas au score ni aux séries.
+
+
+The isolated Advent test session has a server-issued generation. A reset rotates it atomically with clearing test answers, streaks, replay and reservation state, and the simulated clock. Personal replay remains scoped to one member and day.
+
+Pour chaque réponse de test, le résultat devient révélable au début du jour suivant à Paris. Le vu est propre au membre et à la réponse ; rejouer crée une nouvelle réponse et un ancien accusé ne marque pas celle-ci comme vue. Les scores révélés comprennent 10 ou 0 points de réponse, un point de participation et deux points par groupe non chevauchant de trois bonnes réponses consécutives ; un jour manqué ne rompt pas la série.
+
+En développement isolé, les flèches changent uniquement la date simulée de l’onglet opérateur, sans effacer les réponses ni modifier la date des autres membres. Une réponse ne redevient visible comme résultat que lorsque la date simulée autorise sa révélation.
+
+### Advent quiz content
+
+The private catalogue is the canonical preparation source; only validated contributions are selected for synchronization. Each character has a stable identity and fixed day, represented by a private reservation independently of its optional quiz. Prepared complete quizzes in the target database are the runtime content. Deletion from a test target removes its selected reservations and preserves assignments in the canonical source.
+
+A prepared quiz identifies a day, a display name, three ordered statements and the index of the false statement, with an optional private portrait reference and explanation. The explanation is disclosed only with an eligible result. Test game state is separate from quiz content. An exceptional edit during play may produce an inconsistent result.
+
+Dans le classement des deux opérateurs vérifiés en développement isolé, toutes les réponses normales enregistrées participent au score courant quelle que soit la date simulée ; les membres ordinaires voient seulement les réponses révélables. Les membres actifs classables sans réponse figurent avec zéro point ; les ex æquo obtiennent le dernier rang de leur groupe. Le score personnel des comptes exclus reste visible sans rang.
+
+### Réponses et classement membres Avent
+
+Avant le 1er décembre 2026 à 00 h Europe/Paris, la navigation ordinaire ne révèle pas l’Avent, y compris en cas d’échec réseau ou serveur. Par URL directe, Patrice et Toinou, authentifiés, vérifiés et membres actifs, peuvent prévisualiser les quiz et portraits futurs de production, enregistrer une réponse personnelle définitive et consulter immédiatement leur résultat et son explication. Ce parcours distinct du mode test ne change ni l’horloge ni l’état des autres ; les contrôles de simulation, suppression et rejeu restent interdits en production. Les réponses restent privées et les deux comptes sont exclus du classement.
+
+
+Une seule partie Avent est partagée par les membres dans chaque environnement. La réponse est unique par membre et jour ; une réponse ordinaire est définitive, sans rejeu. Son résultat devient révélable au début du jour suivant à Paris. Le classement ordinaire compte seulement les réponses révélables ; tous les membres actifs classables sont inclus, même à zéro, avec le dernier rang du groupe en cas d’égalité. Les deux identités configurées sont exclues de la liste mais conservent leur score personnel. En développement isolé uniquement, les deux opérateurs vérifiés peuvent rejouer leur propre réponse et réinitialiser explicitement la partie partagée ; leur classement inclut les réponses normales enregistrées, y compris en attente ; les réponses tardives ne comptent pas.
+
+Le calendrier Avent distingue les jours joués, non joués, disponibles, sans contenu et futurs verrouillés. Un cadeau joué reste neutre jusqu’à la révélation autorisée ; ensuite il indique la justesse personnelle, même si le résultat n’a pas encore été vu. Une réponse non enregistrée laisse le cadeau fermé et neutre. Après la fin du jour à Paris, une contribution publiée non jouée peut recevoir une réponse tardive unique, immédiatement révélée et sans point ni effet sur les séries ; le résultat personnel reste propre au membre. Le 25 décembre ne comporte pas de quiz.
+
+### Fermeture quotidienne Avent
+
+La fermeture explicite du parcours est propre à un membre et à une date civile de Paris. Elle est partagée entre ses appareils et empêche l’ouverture automatique pour cette journée ; elle ne supprime ni réponse ni résultat. Une visite sans quiz disponible ne constitue pas une fermeture. Une réponse enregistrée empêche également l’ouverture automatique du jour.
+
+
+### Première découverte du calendrier
+
+La découverte du calendrier est un état propre à chaque membre, durable et partagé entre ses appareils. Elle résulte exclusivement de l’action explicite d’ouverture du calendrier ; elle est distincte des fermetures quotidiennes et des réponses.
+
+The shared private Advent bucket stores the canonical catalogue under `catalogue/` and elf images under `portraits/`. Cloud runtime resolves simple database portrait references under `portraits/`; offline uses the local private directory. Environments retain distinct databases. Migration and deployment require separate authorization; existing objects and game state are preserved.
+
+### Préférence et tentative de rappel Avent
+
+La préférence de rappel Avent appartient au membre et est commune à ses appareils. L’autorisation de notification et l’abonnement push sont propres à chaque appareil. Une tentative d’invitation est unique par membre et par jour de quiz ; elle ne prouve pas la livraison. Elle ne constitue pas un événement de spectacle ni une réponse au quiz.

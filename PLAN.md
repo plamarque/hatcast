@@ -36,6 +36,135 @@ tracker.
 
 ## Slices (incremental deliverables)
 
+### Proposition — accélération des releases V2 (2026-10-23)
+
+**Statut : proposé, non approuvé pour implémentation.** Révision du contrat A
+autorisée par Patrice le 2026-10-23 après vérification de parité local/CI :
+CI complète de référence, E2E locaux à la demande. Constat détaillé :
+[_bmad-output/specs/spec-release-delivery/local-ci-parity.md](_bmad-output/specs/spec-release-delivery/local-ci-parity.md). Demande : séparer la
+suppression des répétitions à couverture équivalente de la sélection des gates
+par blast radius. Référence factuelle et schémas avant/après :
+[audit du 23 octobre](docs/v2/technical/RELEASE_CHAIN_AUDIT_2026-10-23.md).
+Limitations suivies : LIMIT-011, LIMIT-012 ; fiabilité E2E : BUG-038.
+Les procédures actuelles restent applicables. Ce plan n'autorise aucun push,
+tag, changement de gate effective ou déploiement.
+
+**Sens de « couverture équivalente » pour le volet A :** conserver sur le
+candidat final les scénarios/assertions via une CI T1 complète de référence,
+le staging T2, C1–C5 + delta humain et le contrôle prod. Le local est à la
+demande. La diversité poste/runner et les observations répétées ne sont plus
+obligatoires ; ce risque est explicitement accepté dans ce contrat de cible.
+Les différences de retries/workers restent visibles et leur disposition relève
+de Q-3. B reste compatible : il peut sélectionner moins de scénarios bloquants
+sur ce même socle, après adoption distincte de ses règles et risques.
+
+#### Ordre et dépendances
+
+**Cible clarifiée par Patrice (2026-10-23) :** clôture de story selon le
+contrat existant → intégration dans `v2` → évaluation du blast radius de tout
+le delta non livré → proposition de release avec un parcours ou d’attente.
+Un accord pour lancer la release déclenche le mécanisme optimisé A avec les
+vérifications du parcours B retenu, sous les gates/autorités de release. Un
+refus ne lance aucun travail de release ; les E2E locaux restent recommandés
+et disponibles à la demande. Les tests/readiness propres à la story et les
+workflows déjà déclenchés par son intégration gardent leur contrat distinct.
+
+Cette cible remplace le cadrage « A systématique puis B éventuellement ».
+Elle n’active aucun parcours réduit : deux parcours (ciblé/complet) et critères sémantiques sont validés ; les
+sélections exactes, preuves et dispositions restent à décider dans l’architecture. A peut être construit
+indépendamment ; l’ordre détaillé d’implémentation de la cible reste à arrêter
+après ces décisions. Aucune implémentation n’est autorisée dans ce cadrage.
+
+`A0 → A1 → A2 → bilan sur 2–3 releases autorisées`
+
+`A3` peut suivre A1 indépendamment d'A2 ; son gain doit être mesuré séparément.
+Chaque étape est livrable et réversible indépendamment. Mettre à jour scripts,
+workflows, runbook, skill et contrat de smoke concernés dans le même changement,
+sans laisser l'ancienne procédure contredire le nouveau mécanisme.
+
+#### Volet A — mêmes preuves sur le candidat final, moins de répétitions
+
+| Étape | Livraison | Gain attendu | Risque / coût accepté | Critère de validation |
+|---|---|---|---|---|
+| **A0 — Identifier et mesurer** | Définir le manifeste de release : prod servie, delta, SHA candidat, RC, image staging/prod, suites/projets/environnements requis, résultats avec retries/skips, recette humaine et horodatages. Faire vérifier ces preuves par le préflight de promotion et la révision réellement servie en staging. | Aucun gain direct promis ; rend les suppressions suivantes vérifiables. | Complexité du manifeste et possibles blocages légitimes si preuve manquante. Une ascendance Git seule ne vaut pas résultat de test. | Tests du contrôleur : refus de SHA différent, preuve absente/périmée, couverture insuffisante et staging remplacé ; distinctions pass/failed/blocked/waived ; pas d'acceptation implicite d'un retry/skip. Inspecter aussi les protections externes avant de revendiquer une enforcement complète. |
+| **A1 — Un candidat final, un cycle staging** | Préparer merge, version et changelogs avant les validations de release. Conserver T1 CI complet de référence sur le candidat final, local à la demande, build/deploy staging, T2 et C1–C5 + delta humain. RC et preuves désignent ce candidat. Prévoir reprise des pushs partiels, pas d'écrasement de tag. | Évite un cycle staging : ordre de grandeur **13–15 min actives** observées, parfois davantage ; ne pas prendre l'incident Chromium de 8 min comme gain récurrent. | Abandon de la validation de l'état intermédiaire sans version finale. Moins d'observations répétées des défauts intermittents ; couverture du candidat final conservée. Nouveau séquencement Git à sécuriser. | Démontrer un seul cycle staging, mêmes suites/assertions/conditions de skip documentées sur candidat final ; version, notes et métadonnées présentes pendant la recette ; validation finale attachée au RC ; aucun besoin de redéployer pour ajouter sa version. |
+| **A2 — Faire référence à la CI complète** | Remplacer les deux préflights E2E locaux obligatoires de release par la vérification de la CI complète du candidat final ; local à la demande. Réutiliser cette preuve à la promotion si elle reste valide. T2 et C1–C5 + delta restent requis. Une preuve CI manquante/invalide exige une nouvelle CI complète. | Jusqu’à deux suites locales obligatoires évitées ; **durée locale non mesurée**. Ne pas confondre durée CI et gain local. | Perte de diversité poste/runner, de retour avant push et d’observations répétées. CI avec deux workers/un retry versus un worker/sans retry en local : disposition explicite requise. | Parité de sélection vérifiée : 110 cas/18 projets, aucun cas local exclusif au 2026-10-23. Refus de preuve CI absente/périmée, candidat ou entrées incompatibles ; suivi des skips/retries ; politique Q-3 à décider. Le local ne remplace pas implicitement la CI manquante. |
+| **A3 — Chevaucher build et tests, maîtriser les installations** | Construire l'image staging en parallèle de T1 ; deploy après succès des deux. Ajouter les caches justifiés par les mesures et des clés liées aux entrées ; conserver le même navigateur/version et les mêmes tests. | Jusqu'à **environ 3 min** de chevauchement dans l'échantillon ; caches : gain non chiffré, réduction de variance espérée. | Calcul gaspillé si les tests échouent ; coût et maintenance des caches, risque d'artefact périmé à prévenir. | Deploy impossible avec tests ou build rouges ; comparaison d'identité et de résultats avec/sans cache ; mesure à cache froid et chaud ; aucun déploiement spéculatif. |
+
+**Bilan du volet A sur 2–3 releases autorisées :** vérifier que les preuves
+requises restent présentes, que le cycle staging intermédiaire a disparu et
+que les suites locales ne sont plus obligatoires. Mesurer candidat prêt → prod
+vérifiée et décision → prod, en séparant exécution des gates, attente runner,
+préparation locale, travail et attente humains, déploiement et contrôle final.
+Relever les relances, skips/retries, incidents et retours arrière ; rapprocher
+les durées de l’audit sans inventer une baseline locale/humaine non mesurée.
+
+Patrice juge ensuite si le coût et le délai restants sont acceptables. Si oui,
+rester sur A. Si c’est encore trop lourd, décider explicitement de rouvrir
+l’étude de B ; aucune activation ni reprise automatique à l’issue du pilote.
+Deux ou trois releases ne prouvent pas l’absence de régression. Si les preuves
+ne peuvent pas être validées, refuser la promotion jusqu’à vérification
+complète du candidat par le chemin supporté ; aucun contournement implicite.
+
+Ne pas annoncer la somme des gains comme une garantie : le chevauchement,
+les caches et les attentes interagissent. Le gain A1 est le mieux étayé ; le
+gain A2 doit être chronométré. Aucun objectif global « décision → prod » n'est
+fixé tant que le temps humain et local n'est pas mesuré.
+
+#### Volet B — cible d’évaluation et de sélection ; règles non activées
+
+**Décision de concurrence staging :** un nouveau candidat autorisé annule les
+tests différés de l’ancien au lieu d’attendre leur fin. Arrêter leurs opérations
+avant de remplacer staging ; conserver résultats partiels, échecs connus et
+statut annulé/incomplet. Aucun verrou jusqu’à fin de régression. Le nouveau
+candidat garde sa propre évaluation et ses contrôles obligatoires.
+
+**Étude rétrospective autorisée le 2026-10-23 :** examiner la nature des
+changements de maintenance après l’arrivée des utilisateurs en septembre,
+avec sensibilité octobre seul. Distinguer changements bornés et lots réellement
+livrés ; ne pas comparer les durées historiques de build/test/release, dont la
+mécanique évoluait. [Rapport et sources](_bmad-output/planning-artifacts/research/technical-post-opening-v2-release-paths-2026-10-23/research.md).
+Cette étude n’autorise aucune implémentation ou activation. La cible est
+désormais, après clôture et intégration de la story dans `v2`, de recommander
+« livrer maintenant » ou « attendre », puis préciser la vérification requise.
+Réutiliser l’intention `batch` / `release-now` d’Epic 21 sans la confondre avec
+un accord prod. **Décision Patrice : tout ou rien.** La recommandation porte sur tous les
+changements de `v2` non livrés depuis la production réellement servie. Attendre
+assume leur accumulation ; à la fin du développement suivant, réévaluer
+l’ensemble cumulé, y compris ses interactions. Aucun candidat extrait,
+cherry-pick de release ou circuit de hotfix isolé n’est souhaité. Si le delta
+évolue, la recommandation et la sélection doivent être réévaluées. Aucun
+automatisme de release n’est adopté par cette piste.
+
+Deux parcours et leurs critères sont validés : ciblé si tout le delta cumulé
+est démontré borné, complet sinon. Le parcours intermédiaire standard n’est
+pas retenu. Les modalités opérationnelles restent à fixer ; aucune sélection
+réduite n’est activée. Même une bonne
+classification ne promet pas une réduction des tests « sans risque ».
+
+| Étape | Livraison | Gain attendu | Risque / coût accepté | Critère de validation |
+|---|---|---|---|---|
+| **B1 — Classifier sans alléger** | Établir la grille faible/moyen/élevé sur tout le delta prod→candidat, les dépendances partagées, données, effets externes et réversibilité. Cartographier contrôles et parcours voisins ; mode d'observation qui propose un niveau mais garde toutes les gates. | Aucun gain immédiat ; évite les classifications opportunistes ou fondées sur le nombre de lignes. | Entretien de la cartographie et erreurs de classification encore possibles. Inconnu = renforcé ; l'urgence ne réduit pas le niveau. | Exemples contradictoires testés : CSS local versus tokens globaux, récupération de vue versus auth partagée, petit delta cumulé versus release multi-domaines ; classification justifiée et lisible par l'opérateur. |
+| **B2 — Évaluer un fast path sur le delta cumulé** | Tout le delta prod servie → candidat v2 doit être éligible ; aucun correctif extrait ni candidat isolé. Review, régression du bug, tests ciblés des appelants, build, staging, auth/navigation/API et recette persistée du delta livré. Accord prod distinct, contrôles après deploy et repli préparé. | Objectif exploratoire **10–15 min candidat prêt → prod vérifiée**, hors correction et attentes humaines non bornées ; à mesurer, pas un engagement. Évite les suites complètes et le C1–C5 intégral sur le chemin bloquant. | Régression hors périmètre potentiellement livrée puis détectée plus tard ; moins de diversité de vérification qu'en A. Couverture bloquante/différée/omise explicite ; des tests peuvent suivre la MEP sur staging à la bonne révision. Échec = diagnostic puis décision Patrice, sans rollback automatique. Interactions du delta cumulé susceptibles d’élargir le risque. | Éligibilité faible explicite ; pas de migration, auth/permissions, contrat partagé, dépendance, infra, effet externe ou PWA/cache global. Fixtures sûres, assertions persistées ; exercice de repli ; échec ciblé bloque prod. Aucune extraction si une partie du delta est inéligible ; attendre ou choisir la vérification complète. |
+| **B3 — Valider les deux parcours en usage** | Ciblé : sélection et recette justifiées sur tout le delta cumulé. Complet : régression complète, API si requise, E1 complet, C1–C5 + delta et risques spécifiques. | Gain à mesurer sur la mécanique alors en place ; aucune comparaison des durées historiques. | Erreur de périmètre ou dépendance inconnue ; complet si doute. Pas de troisième parcours standard sans besoin futur démontré. | Vérifier la reproductibilité des classifications, la validité des preuves, les omissions déclarées et les contrôles de livraison en lecture seule. |
+
+**Activation des parcours :** chaque passage d'une couverture complète vers
+une sélection exige l'adoption explicite de son contrat et de ses exclusions.
+Un échec connu ne devient pas un contrôle omis parce qu'on choisit fast.
+Toute modification du candidat invalide les preuves concernées. Notes de
+release, secrets/configuration, contrôles de version/révision et accord prod
+restent requis ; aucune recette mutante sur données de production.
+
+**Hors de cette proposition initiale :** promotion d'un digest unique (contrat
+de configuration/PWA à repenser), substitution de T2/humain par T1,
+sharding aveugle et suppression par simple filtre de chemins des
+workflows déclenchés par la sync dev. Ces options ont des arbitrages propres ;
+leurs gains ne sont pas inclus dans les chiffres ci-dessus. Réduire les runs
+dev parallèles économiserait surtout du calcul, pas nécessairement du temps
+avant prod.
+
+---
+
 ### Slice 0: Normative docs baseline (current)
 
 - [x] AGENTS.md created
@@ -901,3 +1030,45 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 - PRD **FR48–FR52** (agenda, routing, navigation) ; **FR20–FR28** (composition).
 - UX : [ux-design-journey-league-agenda.md](_bmad-output/planning-artifacts/ux-design-journey-league-agenda.md) (**amended 2026-05-25**, UX-DR13–21, Epic 17) ; [ux-design-hatcast-v2.md](_bmad-output/planning-artifacts/ux-design-hatcast-v2.md) (onglets événement — dispos, équipe ; complète Screen 6).
 - Correct Course stats/déplacements (post-MVP) : [sprint-change-proposal-2026-05-24-league-views-stats-deplacement.md](_bmad-output/planning-artifacts/sprint-change-proposal-2026-05-24-league-views-stats-deplacement.md).
+
+## Proposition — sécurisation des tests Avent avant livraison
+
+**Statut : proposé le 1er novembre 2026, non commencé.** Ce plan découle de la [cartographie des risques et des preuves](_bmad-output/test-artifacts/cartographie-risques-avent-2026-11-01.md), établie sur `d160769d` par analyse statique. Il ne modifie ni les règles produit, ni le tracker des stories, ni les autorisations de release. Les étapes A et B peuvent avancer en parallèle ; C dépend de B, puis D rassemble les preuves sur le candidat. Les scénarios prioritaires sont les risques P0 de la cartographie ; les P1 sont à couvrir avant livraison ou à soumettre à un arbitrage explicite.
+
+| Ordre | Action | Résultat vérifiable |
+|---|---|---|
+| **A — Rendre les tests existants visibles en CI** | Vérifier les workflows et protections réellement actifs ; faire exécuter les tests Angular pertinents et les tests PostgreSQL Avent sur une base jetable locale, si aucune exécution équivalente ne les couvre déjà. Préserver les suites API et Playwright existantes ; inspecter aussi la sélection des tests d'isolation, motion et service worker. | Rapports attachés au SHA : suites et nombres de tests exécutés, échecs, skips et retries visibles ; aucun succès attribué à une sélection vide ; une régression pertinente fait échouer le contrôle concerné. |
+| **B — Préparer une recette automatisée isolée** | Préparer des comptes et quiz fictifs, une base isolée, une vraie API membre et une heure serveur maîtrisée. Vérifier les possibilités existantes avant tout changement ; si une nouvelle injection d'horloge est nécessaire, la limiter à l'environnement de test et prouver que production ignore/refuse toute simulation. Prévoir des contextes navigateur séparés et un état reproductible. | Un test peut fixer l'heure de Paris, avancer au lendemain et distinguer deux membres et deux appareils, sans commande de test exposée en production ni modification de données réelles. Le parcours exercé utilise l'API membre ordinaire. |
+| **C1 — Histoires P0 de bout en bout** | Depuis la navigation membre : (1) fermeture, retour même jour sur deux appareils, autre membre, accès volontaire et lendemain ; (2) première découverte interrompue puis achevée ; (3) réponse, avant/après minuit, révélation effectivement affichée puis retour sur l'autre appareil ; (4) double confirmation et réponse réseau perdue, avec réconciliation. | Chaque histoire vérifie écrans et état persistant via vraie API/base, avec assertions positives et négatives ; échec si ouverture, révélation, confidentialité ou réponse unique est incorrecte. Les interruptions avant affichage et l'acquittement incertain sont distingués d'un affichage confirmé. |
+| **C2 — Compléter les risques métier et API** | Confronter d'abord les tests existants aux risques : plusieurs jours sautés et non-joueur ; résultat révélable le plus récent ; 24/25 décembre et 15 janvier ; score, série et réponse tardive ; accès et payloads de deux membres ; concurrence et refus des commandes de test. Ajouter les cas réellement manquants au niveau métier/API ou PostgreSQL approprié. | Assertions sur les limites exactes à Paris, les données retournées et les transactions ; aucun indice avant révélation ; zéro point pour les réponses tardives ; protections de production et isolation testées. Ne pas compter un test du seul parcours opérateur comme preuve du parcours membre. |
+| **D — Recette et décision sur candidat** | Exécuter les suites retenues sur le SHA candidat, relever échecs/skips/retries et traiter BUG-062 ; contrôler le catalogue validé et les portraits sur l'environnement cible ; effectuer une recette mobile/PWA, clavier, zoom, mouvement réduit et parcours multi-appareils. Identifier la révision réellement servie et conserver les résultats. | Dossier de preuves reliant SHA, environnements, suites, résultats et recette humaine ; tous les P0 passent, aucun échec critique non résolu, P1 manquants et risque résiduel explicitement arbitrés avant décision. Une preuve manquante est « non vérifié », jamais « réussi ». |
+
+Les contenus privés restent hors dépôt ; seules des données fictives servent aux tests automatisés. La promotion des quiz validés reste distincte des réponses et de l'état de jeu. Ce plan ne lance ni synchronisation de données, ni déploiement.
+
+### Organisation des tests et retrait éventuel de l'Avent
+
+L'Avent est une animation temporaire. Concevoir les ajouts de A à C pour qu'ils puissent être identifiés, exécutés et retirés avec la fonctionnalité, sans prévoir sa suppression automatique ni en fixer la date. Maintenir les protections complètes tant que l'Avent est présent et accessible.
+
+- **Périmètre identifiable** : regrouper les scénarios, jeux de données fictifs, préparations d'horloge et utilitaires propres à l'Avent sous des chemins ou projets clairement nommés ; réutiliser les conventions déjà présentes plutôt que disperser des conditions Avent dans les suites générales. Documenter une commande et une sélection CI explicites par niveau, ainsi que les dépendances et les fichiers concernés.
+- **Frontières partagées** : laisser dans les suites HatCast les tests des capacités générales (authentification, navigation, stockage, PWA) ; isoler les assertions et scénarios propres à l'Avent. Tester l'interaction entre l'entrée membre et l'Avent sans rendre les tests généraux tributaires des données ou de l'horloge Avent.
+- **Exécution et coût** : mesurer durée et sélection réelle par suite et par CI. Une sélection ciblée doit rester non vide et justifiée ; le regroupement ne réduit pas les contrôles requis sur les changements qui peuvent affecter l'Avent. Garder les tests rapides distincts des parcours intégrés plus coûteux et conserver les gates de release applicables.
+- **Retrait futur explicite** : conserver un inventaire des suites, fixtures, commandes, jobs, protections et dépendances Avent pour faciliter une suppression cohérente lorsque celle-ci sera demandée. À ce moment-là, décider séparément du traitement et de la conservation des données, migrations et contenus privés ; ne pas déduire une autorisation de suppression de ce plan. Vérifier que les tests généraux nécessaires restent actifs et que la CI ne signale pas un succès sur une suite vide.
+
+## Refonte de la direction artistique Advent Quiz
+
+La DA du kit du 30 octobre est approuvée. Les [contrats UX](./_bmad-output/planning-artifacts/ux-designs/ux-hatcast-avent-2026-10-28/DESIGN.md), l'[architecture Avent](./_bmad-output/planning-artifacts/architecture/architecture-hatcast-avent-2026-10-29/ARCHITECTURE-SPINE.md), l'[Epic 25](./_bmad-output/planning-artifacts/hatcast-avent/epics.md) et le [plan de tests](./_bmad-output/test-artifacts/test-design-advent-visual-isolation.md) portent les décisions et vérifications. La 25.1 et la 25.2 sont terminées ; leur reprise visuelle ne réécrit pas leur historique ni leurs comportements.
+
+1. **Inventorier et réconcilier** : confronter les écrans et états réellement implémentés, le replay personnel de test 25.2, les stories futures et le kit ; distinguer les illustrations d'intention des fonctionnalités prévues.
+2. **Fixer le contrat durable** : finaliser les rôles de tokens, typographies, composants et états, responsive, illustrations, règles de confidentialité et frontière d'isolation ; mettre à jour l'architecture, la spec et la cartographie des stories sans changer les règles métier.
+3. **Compléter le socle isolé** : rendre les styles et primitives propres à l'Avent réutilisables, sans modification de l'identité HatCast ni exposition d'images protégées. Vérifier les styles et overlays hors racine si utilisés.
+4. **Aligner l'existant** : adapter découverte et cadeau (25.1), question, confirmation et tous les états y compris replay personnel (25.2) ; respecter les mécanismes d'accès, de focus, de simulation, de réconciliation et de confidentialité existants.
+5. **Préparer les futures stories** : pour 25.2a et 25.3–25.6, ajouter des critères visuels et d'isolation adaptés aux seuls écrans qu'elles prévoient ; 25.7 et 25.9 n'acquièrent aucun écran sur la foi des maquettes.
+6. **Vérifier et transmettre** : tests unitaires et navigateur, comportement et non-divulgation, contraste, clavier et mouvement réduit, 320/375/390/430 px, tablette et desktop ; comparaison visuelle de l'Avent aux références et d'un écran HatCast avant/après. Garder les captures et résultats reproductibles et signaler toute limite.
+
+**Routage BMAD vérifié dans le catalogue installé :** `bmad-ux` pour les contrats visuels et d’expérience ; `bmad-architecture` pour AD-7 ; `bmad-spec` pour les contrats fonctionnels ; `bmad-create-epics-and-stories` pour les critères des stories ; `bmad-sprint-planning` pour la validation du suivi et les nouvelles entrées ; `bmad-testarch-test-design` pour les risques ; `bmad-build` pour la réalisation et sa revue. L’architecture, les stories, le sprint planning et build sont les étapes requises du catalogue ; UX, spec et test design sont mobilisés ici selon le besoin. Une présence de fichier ne prouve pas à elle seule la finalisation de son workflow.
+
+La planification détaillée et les statuts utilisent le contrôleur prévu : ne pas éditer manuellement le tracker ni modifier les entrées historiques hors périmètre. Les tests et la réalisation progressent par surface réellement disponible, sans ajouter de partage, de compte à rebours ou de fin au 24 décembre issus de l'illustration.
+
+## Avent — préparation des quiz en base
+
+À planifier après la correction de trajectoire approuvée : définir la procédure de préparation et de transfert des seuls quiz entre les bases distinctes, puis adapter l’application et vérifier l’isolation, les parcours de réponse et de révélation et les protections de confidentialité. Préserver l’historique des stories 25.1, 25.2, 25.2a et 25.3 ainsi que le travail non committé du catalogue. Le mécanisme de transfert et les éventuelles migrations restent à préciser avant mise en œuvre ; aucune opération sur les données de production n’est autorisée par ce plan.

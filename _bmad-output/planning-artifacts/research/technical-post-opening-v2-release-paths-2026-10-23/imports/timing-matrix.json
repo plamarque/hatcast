@@ -1,0 +1,79 @@
+[
+  {
+    "tag": "v2.4.6",
+    "run": 35029786955,
+    "t1_job_seconds": 348,
+    "t1_execution_seconds": 286,
+    "build_seconds": 172,
+    "deploy_seconds": 13,
+    "t2_job_seconds": 302,
+    "t2_execution_seconds": 243,
+    "t1_t2_execution_seconds": 529
+  },
+  {
+    "tag": "v2.5.0",
+    "run": 35457004106,
+    "t1_job_seconds": 317,
+    "t1_execution_seconds": 256,
+    "build_seconds": 192,
+    "deploy_seconds": 69,
+    "t2_job_seconds": 242,
+    "t2_execution_seconds": 182,
+    "t1_t2_execution_seconds": 438
+  },
+  {
+    "tag": "v2.6.0",
+    "run": 36632131306,
+    "t1_job_seconds": 330,
+    "t1_execution_seconds": 263,
+    "build_seconds": 186,
+    "deploy_seconds": 59,
+    "t2_job_seconds": 249,
+    "t2_execution_seconds": 185,
+    "t1_t2_execution_seconds": 448
+  },
+  {
+    "tag": "v2.6.1",
+    "run": 38422836152,
+    "t1_job_seconds": 351,
+    "t1_execution_seconds": 265,
+    "build_seconds": 191,
+    "deploy_seconds": 70,
+    "t2_job_seconds": 260,
+    "t2_execution_seconds": 192,
+    "t1_t2_execution_seconds": 457
+  },
+  {
+    "tag": "v2.6.2",
+    "run": 38865736869,
+    "t1_job_seconds": 313,
+    "t1_execution_seconds": 238,
+    "build_seconds": 174,
+    "deploy_seconds": 58,
+    "t2_job_seconds": 278,
+    "t2_execution_seconds": 200,
+    "t1_t2_execution_seconds": 438
+  },
+  {
+    "tag": "v2.6.3",
+    "run": 39105565455,
+    "t1_job_seconds": 243,
+    "t1_execution_seconds": 190,
+    "build_seconds": 175,
+    "deploy_seconds": 70,
+    "t2_job_seconds": 240,
+    "t2_execution_seconds": 179,
+    "t1_t2_execution_seconds": 369
+  },
+  {
+    "tag": "v2.7.0",
+    "run": 39906512847,
+    "t1_job_seconds": 346,
+    "t1_execution_seconds": 283,
+    "build_seconds": 142,
+    "deploy_seconds": 70,
+    "t2_job_seconds": 244,
+    "t2_execution_seconds": 185,
+    "t1_t2_execution_seconds": 468
+  }
+]

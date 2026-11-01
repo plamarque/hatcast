@@ -76,6 +76,7 @@ class AuthController(
         SecurityContextHolder.setContext(context)
         authSessionPolicy.applyToSession(request, body.rememberMe)
         securityContextRepository.saveContext(context, request, response)
+        request.getSession(false)?.setAttribute("hatcast.auth.verified-email", jwt.getClaimAsBoolean("email_verified") == true && email != null && email.equals(user.email, ignoreCase = true))
 
         if (!picture.isNullOrBlank()) {
             request.session.setAttribute(GooglePictureSessionKeys.PICTURE_URL, picture)
@@ -127,6 +128,14 @@ class AuthController(
                 throw JwtException("Invalid Identity Platform ID token", ex)
             }
 
+        // Refuse to bind the dedicated development testers from an unverified identity.
+        if (environment.getProperty("K_SERVICE") == "hatcast-v2-dev" &&
+            environment.getProperty("GOOGLE_CLOUD_PROJECT") == "impro-selector" &&
+            payload.email?.trim()?.lowercase() in setOf("patrice.lamarque@gmail.com", "brousseau.ant@gmail.com") &&
+            !payload.emailVerified) {
+            throw ResponseStatusException(HttpStatus.FORBIDDEN, "Adresse e-mail non vérifiée")
+        }
+
         val user =
             authUserLinkService.resolveIdpSignInUser(
                 idpUid = payload.uid,
@@ -152,6 +161,7 @@ class AuthController(
         SecurityContextHolder.setContext(context)
         authSessionPolicy.applyToSession(request, body.rememberMe)
         securityContextRepository.saveContext(context, request, response)
+        request.getSession(false)?.setAttribute("hatcast.auth.verified-email", payload.emailVerified && payload.email != null && payload.email.equals(user.email, ignoreCase = true))
 
         return ResponseEntity.ok(
             toAuthSessionResponse(

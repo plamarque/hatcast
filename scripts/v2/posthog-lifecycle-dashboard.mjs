@@ -43,6 +43,36 @@ export function promotionPayload(token, release, date) {
     properties: { ...release, distinct_id: randomUUID(), $process_person_profile: false } }
 }
 
+export async function capturePromotion(payload, { request = fetch, report = () => {} } = {}) {
+  let response
+  try {
+    response = await request('https://eu.i.posthog.com/i/v0/e/', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload), signal: AbortSignal.timeout(20_000),
+    })
+  } catch {
+    // Transport errors can contain URLs or request details. Never print them.
+    throw new Error('PostHog promotion capture transport failed')
+  }
+  const http = response.status
+  if (!response.ok) throw new Error(`PostHog promotion capture failed (http=${http})`)
+  let result
+  try { result = await response.json() } catch {
+    throw new Error(`PostHog promotion capture returned invalid JSON (http=${http})`)
+  }
+  // EU capture serializes the Rust enum as "Ok"; retain legacy numeric success.
+  // https://posthog.com/docs/api#responses
+  const status = result?.status === 'Ok' ? 'ok' : result?.status === 1 ? 'legacy_ok' : 'unexpected'
+  const quota = result?.quota_limited
+  const quotaState = quota === undefined ? 'absent' : Array.isArray(quota) ? `count:${quota.length}` : 'invalid'
+  // Only fixed classifications/counts: never echo body, status text, quota values or tokens.
+  const diagnostic = `http=${http}, status=${status}, quota_limited=${quotaState}`
+  report(`PostHog promotion capture: ${diagnostic}`)
+  if (quotaState === 'invalid') throw new Error(`PostHog promotion capture returned invalid quota metadata (${diagnostic})`)
+  if (Array.isArray(quota) && quota.length) throw new Error(`PostHog promotion capture quota limited (${diagnostic})`)
+  if (status === 'unexpected') throw new Error(`PostHog promotion capture returned unexpected status (${diagnostic})`)
+}
+
 export async function provision({ projectId, key, request = fetch, validate = false, report = () => {} }) {
   if (!/^\d+$/.test(projectId ?? '') || !key) throw new Error('Missing PostHog project ID or private API key')
   const root = `https://eu.posthog.com/api/projects/${projectId}/`
@@ -104,12 +134,7 @@ export async function main(args = process.argv.slice(2)) {
   if (!token) throw new Error('Missing PostHog project token')
   // CI records the release only after successful Cloud Run deployment. Stable UUID dedupes reruns.
   const payload = promotionPayload(token, release, process.env.HATCAST_PROMOTED_AT ?? new Date().toISOString())
-  const response = await fetch('https://eu.i.posthog.com/i/v0/e/', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: AbortSignal.timeout(20_000),
-  })
-  if (!response.ok) throw new Error(`PostHog promotion capture failed (${response.status})`)
-  const result = await response.json()
-  if (result.status !== 1 || result.quota_limited?.length) throw new Error('PostHog promotion capture was not accepted without quota limits')
+  await capturePromotion(payload, { report: console.log })
   const id = await provision({ projectId: process.env.HATCAST_POSTHOG_PROJECT_ID, key: process.env.HATCAST_POSTHOG_PERSONAL_API_KEY })
   console.log(`PostHog lifecycle dashboard: https://eu.posthog.com/project/${process.env.HATCAST_POSTHOG_PROJECT_ID}/dashboard/${id}`)
 }

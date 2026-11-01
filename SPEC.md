@@ -462,3 +462,50 @@ Toute réponse disponible enregistrée pour un événement proposant des places 
 ## V2 — Accueil task confirmation
 
 Accueil verifies the inbox on each entry and always displays newly received tasks. An empty cache or failed request is not a fresh confirmation. A first confirmed empty inbox may show “Tout est à jour”; with an upcoming event, it remains readable briefly, fades, then its space collapses. An unchanged empty state does not replay the confirmation or recreate its placeholder across navigation. Observed tasks rearm the confirmation so resolving them can show it again; newly received tasks take precedence over every dismissal timer. Pending verification uses a skeleton with the eventual banner dimensions when that confirmation is still eligible. Without an upcoming event, the useful empty explanation and “Mes troupes” destination remain visible. Confirmation is announced without moving focus; reduced-motion preferences disable animated dismissal. Presentation memory is scoped to the authenticated user and reset on logout or user switch.
+
+### Parcours Avent partagé
+
+Les membres actifs autorisés accèdent au même parcours, aux mêmes quiz et aux mêmes réponses dans leur environnement. La confirmation reste neutre jusqu’à la révélation et une réponse incertaine est vérifiée avant un nouvel essai. Après sa réponse, le membre peut ouvrir le classement. En développement isolé uniquement, les deux opérateurs vérifiés disposent en plus des commandes de date, de rejeu personnel et de réinitialisation explicite de la partie commune ; leur classement inclut les réponses enregistrées avant révélation. Le calendrier personnel présente les 25 jours sous forme de cadeaux : les réponses enregistrées restent neutres jusqu’à leur révélation, puis leur justesse est indiquée.
+
+### Identité visuelle Advent Quiz
+
+Les interfaces Advent Quiz adoptent la direction artistique propre approuvée décrite dans [DESIGN.md](_bmad-output/planning-artifacts/ux-designs/ux-hatcast-avent-2026-10-28/DESIGN.md) et les parcours et états de [EXPERIENCE.md](_bmad-output/planning-artifacts/ux-designs/ux-hatcast-avent-2026-10-28/EXPERIENCE.md). Leur identité est distincte de celle de HatCast ; les autres surfaces conservent leur apparence. Les maquettes sont des références graphiques et ne créent pas de fonctionnalités ni ne modifient les règles de révélation.
+
+
+In verified isolated Advent development, an authorized operator can restart the shared test session. Reset clears the shared development game; prepared quiz content, historical test data and unrelated data remain. Existing clients must refresh their session before further test mutations.
+
+Dans l’aperçu isolé, un membre autorisé découvre son résultat après le début du jour suivant à Paris. Le résultat révélable non vu le plus récent est prioritaire au retour ; son affichage est suivi d’un accusé persistant. Une interruption ou des appareils concurrents peuvent entraîner une nouvelle présentation. Les flèches changent la date simulée du seul onglet opérateur sans l’enregistrer ni effacer les réponses ; le serveur valide ce contexte à chaque requête. La date des autres membres reste inchangée. Le reset ciblé redémarre la partie.
+
+An authorized operator can compare and synchronize selected validated characters and quizzes independently to a verified local, development, staging or production target. A fixed day remains assigned to its character; a reservation without a complete quiz is unavailable to members. An explicitly confirmed targeted deletion is available only on verified local, development or staging targets and removes the selected days and their game state while preserving other days, global state, canonical assignments and shared portraits. Production deletion is forbidden.
+
+The isolated Advent preview reads prepared database quizzes; an unavailable or invalid quiz cannot be answered. Optional explanations are disclosed only with eligible results. Le parcours membre direct est disponible pour les membres actifs de la troupe configurée pendant la période autorisée ; son API est conçue pour la production, sans déploiement implicite.
+
+Après confirmation, les deux opérateurs vérifiés en développement isolé peuvent consulter le classement courant et leur score personnel ; ils incluent toutes les réponses enregistrées même si la date simulée précède leur révélation. La révélation prioritaire reste présentée avant l’accès au classement. Les membres ordinaires ne reçoivent que les scores révélables.
+
+### Parcours membre Avent
+
+Avant le 1er décembre 2026 à 00 h Europe/Paris, la navigation ordinaire ne révèle pas l’Avent, y compris en cas d’échec réseau ou serveur. Par URL directe, Patrice et Toinou, authentifiés, vérifiés et membres actifs, peuvent prévisualiser les quiz et portraits futurs de production, enregistrer une réponse personnelle définitive et consulter immédiatement leur résultat et son explication. Ce parcours distinct du mode test ne change ni l’horloge ni l’état des autres ; les contrôles de simulation, suppression et rejeu restent interdits en production. Les réponses restent privées et les deux comptes sont exclus du classement.
+
+
+La route directe partagée propose le quiz du jour et le classement ; seuls les deux opérateurs vérifiés en développement isolé disposent des commandes de test. Une réponse du jour est définitive et son accusé reste neutre jusqu’au lendemain à Paris. Une case passée non jouée peut être découverte et répondue une seule fois pour le plaisir ; son résultat immédiat vaut zéro et ne modifie ni score ni série. Après la première découverte du calendrier, la révélation non vue la plus récente précède le parcours et son accusé suit l’affichage effectif. Le classement et le score personnel ne prennent en compte que les réponses révélables à un même instant serveur. Les comptes exclus restent hors liste mais voient leur score. Le classement est final dès le 25 décembre ; l’accès est autorisé jusqu’au 15 janvier inclus et les résultats restent conservés. Le calendrier présente les jours 1 à 25 et permet de revoir les découvertes passées, avec réponse tardive sans point sur les cases non jouées. Le 25 décembre, une présentation de Noël donne accès au calendrier et au classement final, y compris sans participation ; du 26 décembre au 15 janvier, le classement est présenté. Les notifications ne sont pas comprises.
+
+### Entrée dans le calendrier Avent
+
+Pendant la période autorisée, un cadeau près du compte permet aux membres éligibles de retrouver le parcours. Du 1er au 24 décembre, un quiz disponible et non répondu ouvre automatiquement le parcours lors de la visite, sauf fermeture explicite enregistrée pour ce membre et ce jour à Paris. L’absence de quiz ne consomme pas cette ouverture. Une réponse empêche également sa réouverture automatique. Après la première découverte, le résultat non vu le plus récent reste prioritaire ; un quiz déjà répondu conduit au classement. Une fermeture qui ne peut être enregistrée est signalée et peut être réessayée.
+
+
+### Première découverte du calendrier
+
+À la première visite, une invitation précède le parcours. Son action explicite ouvre le calendrier personnel et enregistre durablement la découverte ; fermer avant cette action ne l’enregistre pas. Une révélation existante reste non vue et reprend sa priorité aux visites suivantes.
+
+The shared private Advent bucket stores the canonical catalogue under `catalogue/` and elf images under `portraits/`. Cloud runtime resolves simple database portrait references under `portraits/`; offline uses the local private directory. Environments retain distinct databases. Migration and deployment require separate authorization; existing objects and game state are preserved.
+
+### Rappels du quiz Avent
+
+Sur l’attente après réponse et les résultats, chaque membre peut choisir un rappel Avent partagé entre ses appareils. L’activation sur un appareil nécessite son autorisation et un abonnement de cet appareil ; un autre appareil peut nécessiter sa propre activation. La désactivation du rappel Avent ne modifie pas les autres notifications. Du 1er au 24 décembre 2026, un traitement à partir de 10 h à Paris tente au plus une invitation par membre et quiz disponible si le membre actif n’a pas répondu. Les invitations ne contiennent ni anecdote ni résultat ; elles ne sont ni reprises ni garanties. Le parcours conserve la découverte et les révélations prioritaires.
+
+Dans le mode test Avent autorisé, la case de rappel peut être manipulée en simulation sans activer un rappel réel ni modifier les abonnements.
+
+### Retour sur une réponse Avent en attente
+
+Le membre qui rouvre depuis le calendrier une réponse normale du jour encore en attente retrouve une scène d’attente et le temps restant jusqu’à la disponibilité de son résultat à minuit, heure de Paris. La confirmation immédiatement après la réponse reste distincte. La révélation dépend de l’état autorisé par le serveur ; en cas d’erreur, le membre peut réessayer. Le 25 décembre ne comporte pas de quiz.

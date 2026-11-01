@@ -41,3 +41,69 @@
     padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
   }
 }
+
+.member-shell__advent-entry {
+  --mat-icon-button-state-layer-color: transparent;
+  position: fixed;
+  z-index: 1100;
+  top: max(0.25rem, env(safe-area-inset-top, 0px));
+  inset-inline-end: calc(max(0.5rem, env(safe-area-inset-right, 0px)) + 3rem);
+  width: 3rem;
+  height: 3rem;
+  img { width: 2.5rem; height: 2.5rem; object-fit: contain; }
+  &:focus-visible { outline: 3px solid var(--mat-sys-primary); outline-offset: 2px; }
+}
+.member-shell__gift-effect {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0.25rem;
+    background: linear-gradient(110deg, transparent 25%, rgba(255, 244, 181, 0.9) 50%, transparent 75%);
+    background-size: 250% 100%;
+    mask: url('/advent/gifts/gift-closed-v1.png') center / contain no-repeat;
+    opacity: 0;
+  }
+
+  &::after {
+    content: '✦';
+    position: absolute;
+    top: 0;
+    right: 0.15rem;
+    color: #ffe7a1;
+    font-size: 0.75rem;
+    line-height: 1;
+    text-shadow: -1.8rem 0.45rem 0 #ffe7a1, 0 0 0.3rem #f6bc3f;
+    opacity: 0;
+  }
+}
+.member-shell__advent-entry--sparkle .member-shell__gift-effect::before {
+  animation: advent-gift-shine 2.5s ease-out 1;
+}
+.member-shell__advent-entry--sparkle .member-shell__gift-effect::after {
+  animation: advent-gift-stars 2.5s ease-out 1;
+}
+@keyframes advent-gift-shine {
+  0% { background-position: 100% 0; opacity: 0; }
+  12% { opacity: 0.85; }
+  60% { background-position: 0 0; opacity: 0.85; }
+  75%, 100% { background-position: 0 0; opacity: 0; }
+}
+@keyframes advent-gift-stars {
+  0%, 25%, 100% { opacity: 0; transform: scale(0.5); }
+  45%, 65% { opacity: 1; transform: scale(1); }
+  85% { opacity: 0; transform: scale(1.15); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .member-shell__advent-entry--sparkle .member-shell__gift-effect::before,
+  .member-shell__advent-entry--sparkle .member-shell__gift-effect::after { animation: none; }
+}
+
+.member-shell__advent-entry--desktop {
+  position: relative;
+  display: block;
+  margin: 0 auto;
+}

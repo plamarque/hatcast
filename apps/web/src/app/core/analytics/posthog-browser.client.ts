@@ -48,6 +48,8 @@ export async function initPostHogBrowser(config: PostHogBrowserConfig): Promise<
     person_profiles: 'identified_only',
     // SPA (Angular router) — required for PostHog web analytics $pageview health check.
     capture_pageview: 'history_change',
+    // Keep private Advent content out of session replay as well as autocapture.
+    session_recording: { blockClass: 'ph-no-capture' },
     persistence: 'localStorage+cookie',
   })
   posthogInstance = posthog

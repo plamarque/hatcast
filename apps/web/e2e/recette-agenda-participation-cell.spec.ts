@@ -176,9 +176,9 @@ test.describe('Recette — agenda participation status cell (APC-E2E)', () => {
       await dialog.getByRole('button', { name: 'Enregistrer', exact: true }).click()
       await expect(dialog).toHaveCount(0)
       await expect(homeCard.locator('.participation-event-cell--unavailable')).toBeVisible()
+      await page.unrouteAll({ behavior: 'wait' })
       await homeCard.locator('.agenda-card__clickable').click()
       await expect(page).toHaveURL(saisonEventPath(fx.troupeSlug, fx.seasonSlug, fx.eventUnknownDispoSlug))
-      await page.unrouteAll({ behavior: 'wait' })
     })
   }
 

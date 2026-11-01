@@ -8,9 +8,9 @@ Describes the system architecture **as-is** and principles for evolving safely. 
 
 **V2 stale-route recovery:** `withNavigationErrorHandler` delegates recognized lazy-module errors to the eager `ChunkRecoveryService` and a standard Material `ChunkRecoveryDialog`; the router still reports the original error. All configured lazy routes share this hook. Without a previously rendered usable route, the modal only offers update/retry and cannot be dismissed; the `/` AuthRedirect loading placeholder does not count as a usable route. The root hides install/update banners while the modal is active without destroying their instances. Recovery does not replace `ErrorHandler`, subscribe to worker-only failure events, persist pending destinations, or alter route guards. On explicit consent, actual `navigator.serviceWorker.controller` selects a bounded `SwUpdate.checkForUpdate()` (new version or `NO_NEW_VERSION_DETECTED`) before full navigation; recovery never calls `activateUpdate()`. Failed/late checks do not navigate. Same-document/hash-only targets use history replacement followed by reload. nginx returns 404 for absent root JS/MJS/CSS and revalidates index/worker manifest while retaining navigation fallback and API proxying. The existing normal update path retains activation-on-click, with its optional changelog storage isolated so it cannot prevent the subsequent reload.
 
-### Évolution V2 (contrats — prod utilisateur V1 inchangée)
+### Architecture V2 et déploiement
 
-La cible documentée (Angular SPA sous [`apps/web/`](apps/web/), API Kotlin/Spring sous [`services/api/`](services/api/), PostgreSQL sur **Neon**, Cloud Run) est décrite dans [`docs/shared/technical/MONOREPO.md`](docs/shared/technical/MONOREPO.md) et les artefacts `_bmad-output/planning-artifacts/`. **Déploiement V2 validé** sur l’environnement **development** (branche `v2`) ; staging/production Cloud Run sont **reportés** (voir [`docs/shared/technical/BRANCH_ENVIRONMENTS.md`](docs/shared/technical/BRANCH_ENVIRONMENTS.md)). Persistance V2 : **ADR-0009** ([docs/adr/0009-neon-postgres-environments.md](docs/adr/0009-neon-postgres-environments.md)). Authentification V2 :
+La V2 utilise Angular sous [`apps/web/`](apps/web/), une API Kotlin/Spring sous [`services/api/`](services/api/), PostgreSQL sur **Neon** et Cloud Run. La chaîne existante cible development depuis `v2`, staging depuis `staging-v2` et la production depuis un tag `vX.Y.Z` ; voir le [workflow de déploiement V2](docs/v2/technical/DEPLOYMENT_WORKFLOW.md) et la [configuration Cloud Run](docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md). Persistance V2 : **ADR-0009** ([docs/adr/0009-neon-postgres-environments.md](docs/adr/0009-neon-postgres-environments.md)). Authentification V2 :
 
 - **Décision cible :** [docs/adr/0010-v2-auth-identity-platform.md](docs/adr/0010-v2-auth-identity-platform.md) (**Google Cloud Identity Platform** — pas Firebase comme backend V1 ; confort proche de l’auth managée historique : Google + email/mot de passe, reset, multi-appareils ; Postgres reste le référentiel métier).
 - **Implémentation actuelle (slice historique, en attendant migration) :** [docs/adr/0008-v2-spa-auth-google-session.md](docs/adr/0008-v2-spa-auth-google-session.md) — **Deprecated** ; OIDC Google direct + session serveur.
@@ -27,7 +27,21 @@ La cible documentée (Angular SPA sous [`apps/web/`](apps/web/), API Kotlin/Spri
 - **Notifications V2 (Stories 8.1–8.6) :** module `com.hatcast.api.notification` — **`NotificationDispatcher`** après commit transaction domaine (listeners Spring sur `EventAvailabilityOpenedEvent`, validate composition, **proxy dispo/participation** (`ProxyAvailabilityRecordedEvent` / `ProxyParticipationRecordedEvent`), etc.) ; intents membre **`PROXY_AVAILABILITY_RECORDED`** / **`PROXY_CONFIRMATION_RECORDED`** (story **8.6**, accusé orga→sujet lié uniquement) ; canaux **Web Push** (`nl.martijndwars:web-push` + provider JCE **BouncyCastle** obligatoire) et **email** (Spring Mail auto-config, pas de `pushQueue` Firestore V1) ; journal `notification_delivery_log` ; abonnements push en Postgres (`user_push_subscriptions`, story 8.1). Opt-in client : `/compte` + service worker (`custom-sw.js`). Recette locale push / PWA / auth email prod-like : `./scripts/start-dev.sh --with-push` (injecte `environment.ts` depuis `.env` puis build Angular production + watch + serve `dist/` HTTPS). **Catalogue intents, copy, prefs et backlog :** [docs/v2/technical/NOTIFICATIONS_CATALOG.md](docs/v2/technical/NOTIFICATIONS_CATALOG.md). Cloud Run : secrets `HATCAST_WEB_PUSH_VAPID_*`, `HATCAST_FIREBASE_*`, `HATCAST_NOTIFICATION_*`, `SPRING_MAIL_*` — voir [DEPLOY_V2_CLOUD_RUN.md](docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md). Handoff impl. : [_bmad-output/implementation-artifacts/8-3-notifications-mep-dispos-et-confirmation-assignes.md](_bmad-output/implementation-artifacts/8-3-notifications-mep-dispos-et-confirmation-assignes.md).
 - **Routes saison V2 (canonique, ADR 0013 amend. 2026-06-03) :** workspace **`/saison/:troupeSlug/:seasonSlug`** (+ sous-routes admin et **`/event/:eventSlug`**) ; slug saison unique **par troupe** ; alias legacy **`/saison/:seasonSlug`** → composant **`SaisonLegacyRedirect`** ; builders et parseurs : **`apps/web/src/app/core/navigation/troupe-routes.ts`** ; visibilité du chrome membre (rail Accueil · Agenda · Stats) : **`member-shell-nav-visibility.ts`** — motifs legacy **et** canoniques requis.
 
-Le client V1 sous [`legacy/`](legacy/) reste la référence runtime actuelle pour la production Firebase décrite ci-dessous jusqu’à bascule explicite.
+Les sections Firebase et Vue ci-dessous décrivent la V1 historique sous [`legacy/`](legacy/), et non le runtime V2 sur Cloud Run.
+
+---
+
+### Parcours Avent partagé
+
+La prévisualisation de production est demandée par `/avent?preview=1` et par l’en-tête `X-Advent-Preview: true` ; l’API vérifie à chaque requête l’appartenance active, l’identité, l’adresse vérifiée et les deux identifiants exclus configurés. La possession de l’URL ou de l’en-tête ne suffit pas. Les projections et résultats restent personnels et `private, no-store` ; la date de révélation normale reste enregistrée, sans modifier l’horloge ni le classement ordinaire. Le mode test et une date simulée ne peuvent être combinés à cet aperçu.
+
+La route authentifiée `/avent` et l’API `/v1/advent` servent une seule partie par environnement ; `/avent-test` redirige vers cette route et l’ancienne API de test est refusée. L’adhésion active à la troupe configurée, la date Paris et le `no-store` s’appliquent aux lectures et mutations. Le verrou de `advent_member_lock` sérialise réponses, révélations, classement et contrôles ; les réservations et générations protègent les confirmations incertaines. Les portraits restent privés et passent par l’API autorisée. Les rappels push sont tentés selon les conditions décrites dans la section « Rappels Avent ».
+
+Les projections `/v1/advent/calendar` et `/v1/advent/doors/{day}/history` utilisent le verrou de la partie, la date Paris et la session pour filtrer les états et contenus. Le calendrier projette pour le seul membre une réponse en attente ou sa justesse après `reveal_at`, sans choix ni points ; les jours futurs ne reçoivent aucun résultat en parcours ordinaire. En développement isolé vérifié, la fermeture du cadeau du jour simulé depuis la barre de test du calendrier réutilise le contrôle de rejeu avec un mode explicite, sous le même verrou et avec jeton de réponse : elle retire seulement la réponse personnelle et les autorisations associées, sans créer d’autorisation de rejeu noté. Une révélation prioritaire reste présentée avant la mutation. Ces lectures ordinaires renvoient une révélation prioritaire avant les vues de consultation ; la projection retournée par l’action initiale de découverte fait exception ; une génération et une réservation identifient explicitement une découverte tardive, persistée avec `late` et exclue des scores et séries ; les portraits restent intégrés aux réponses privées `no-store`.
+
+En développement isolé vérifié, deux identités configurées et vérifiées reçoivent une capacité serveur pour simuler une date dans leur onglet, rejouer leur propre réponse ou réinitialiser explicitement la partie partagée. Leur classement comprend toutes les réponses normales enregistrées ; celui des autres membres se limite aux réponses révélables. La date simulée est transmise à chaque requête, validée côté serveur et jamais enregistrée ; elle ne change pas le temps des autres membres. Le décalage de base configuré en développement reste distinct. La colonne historique `test_offset_seconds` reste conservée mais n’influence plus les décisions temporelles. Le reset conserve les quiz et les anciennes tables `advent_test_*`, renouvelle la session et invalide les opérations retardées. Les deux jeux historiques ne sont ni fusionnés ni supprimés automatiquement ; la partie commune utilise les tables `advent_member_*`. En production les contrôles restent refusés et l’horloge réelle fait autorité.
+
+L’aperçu utilise le mixin de tokens `apps/web/src/app/shared/advent/_foundation.scss` dans sa racine `.advent` ; les adaptations Material sont limitées à cette racine. La règle existante de bannière PWA est ciblée sur l’aperçu. La décision [AD-7](_bmad-output/planning-artifacts/architecture/architecture-hatcast-avent-2026-10-29/ARCHITECTURE-SPINE.md) définit l’isolation à maintenir pour les futures surfaces Avent ; les preuves de non-régression sont décrites dans la stratégie de tests dédiée.
 
 ---
 
@@ -51,13 +65,13 @@ V2 organizer analytics (Story 11.4) is centralized in `ProductAnalyticsService`,
 | **Firestore (server)** | Triggers (audit, mail, reminder, push); admin DB access | [functions/](functions/) using `admin.firestore()` |
 | **Hosting** | Serve static `legacy/dist`; SPA fallback | [firebase.json](firebase.json) hosting, [.github/workflows/](.github/workflows/) |
 
-**Monorepo:** V1 client lives under [`legacy/`](legacy/); future V2 client under [`apps/web/`](apps/web/); API V2 under [`services/api/`](services/api/). See [docs/shared/technical/MONOREPO.md](docs/shared/technical/MONOREPO.md).
+**Monorepo:** V1 client lives under [`legacy/`](legacy/); V2 client under [`apps/web/`](apps/web/); API V2 under [`services/api/`](services/api/). See [docs/shared/technical/MONOREPO.md](docs/shared/technical/MONOREPO.md).
 
-No separate API server; backend is Firebase (Firestore + Auth + Functions).
+For V1, there is no separate API server; its backend is Firebase (Firestore + Auth + Functions).
 
 ---
 
-## Runtime topology
+## Runtime topology — V1 legacy
 
 ```
 [Browser / PWA]
@@ -115,14 +129,14 @@ No separate API server; backend is Firebase (Firestore + Auth + Functions).
 - **CI:** `test:ci` uses `BASE_URL=http://localhost:5173`; Playwright typically starts the dev server unless disabled.
 - **Unit (Vitest):** Logic tests in [`legacy/tests/unit/*.spec.js`](legacy/tests/unit/). Run with `npm run test:unit`. Playwright ignores `tests/unit/**` via `testIgnore`.
 
-### V2 (Angular + Spring — cible)
+### V2 (Angular + Spring)
 
 - **Unit (Vitest):** `apps/web` — `ng test` / Vitest component tests (`*.spec.ts`).
 - **API integration (H2):** `services/api` — `./gradlew test`, profil Spring `test`, CI [`api-test.yml`](.github/workflows/api-test.yml) (palier 1 PR).
 - **Availability reminder dispatch:** `share-recipients` builds a preference-aware preview for `availability_nudge`; its confirmation fingerprint is required by POST, which revalidates it before using the existing email/push dispatcher. The response records request acceptance, not provider delivery.
 - **E2E (Playwright):** `apps/web/e2e/` + [`playwright.config.ts`](apps/web/playwright.config.ts). Playwright démarre l’API en profil **`e2e`** (H2 + seeds Flyway, **CSRF désactivé**, auth Google mockée via `E2eGoogleIdTokenService`, fixtures hybrides `POST /v1/e2e/fixtures/story-3-19/reset`) et le front `ng serve` (TLS). Auth Playwright : `storageState` (`e2e/.auth/admin.json`). Recette 3.19 : `recette-3.19.spec.ts` (S1–S9, hors M1/M2 manuels). CI palier 2 : [`.github/workflows/e2e-smoke.yml`](.github/workflows/e2e-smoke.yml). Voir [`apps/web/e2e/README.md`](apps/web/e2e/README.md) et `services/api/README.md` § Profil `e2e`.
 - **Hors scope E2E V2 :** porter `legacy/tests/` tel quel ; exécuter E2E contre Neon prod / troupe La Malice (données migration réelles).
-- **Gate deploy staging Cloud Run :** sur branche `staging-v2` uniquement, [`deploy-v2-cloud-run.yml`](.github/workflows/deploy-v2-cloud-run.yml) appelle [`e2e-smoke.yml`](.github/workflows/e2e-smoke.yml) (`workflow_call`) avant le déploiement ; **pas** de gate E2E sur `v2` (dev cloud) ni `production-v2`. Le workflow standalone `e2e-smoke.yml` reste actif sur PR / push `v2` (palier 2 CI).
+- **Gate deploy staging Cloud Run :** sur branche `staging-v2`, [`deploy-v2-cloud-run.yml`](.github/workflows/deploy-v2-cloud-run.yml) appelle [`e2e-smoke.yml`](.github/workflows/e2e-smoke.yml) (`workflow_call`) avant le déploiement ; ce gate n'est pas appelé pour `v2` (dev cloud) ni pour les tags de production. Le workflow standalone `e2e-smoke.yml` reste actif sur PR / push `v2` (palier 2 CI).
 
 - **Improvements (minimal, non-invasive):** Keep a single "smoke" suite that loads home and one season route; avoid disabling tests to fix CI; document test:with-server and env requirements in DEVELOPMENT.md. No refactor of test architecture required for v0.1.
 
@@ -136,3 +150,49 @@ No separate API server; backend is Firebase (Firestore + Auth + Functions).
 - **Queue-based side effects:** Mail, reminders, push go through Firestore queues + triggers. To add a new kind of notification, add a collection (and rules), a trigger, and client code that writes to the queue.
 - **Routes:** Add new routes in [`legacy/src/main.js`](legacy/src/main.js) (routes array and guards). Admin routes under `/season/:slug/admin` are already guarded; replicate the pattern for other protected areas.
 - **PWA:** Manifest and service worker are configured in `vite.config.js` and `legacy/src/service-worker.js`. Changes to offline behaviour or push subscription touch these and possibly `notifications.js`.
+
+
+Advent test reset uses the singleton clock row as its transactional serialization and session-generation fence. All answer operations carry the current session identifier and fail on a stale generation. The operator endpoint requires the existing isolated-environment, verified-email, allowlist and membership checks, plus the configured operator identity.
+
+The private catalogue is the preparation source; a workstation operator compares and synchronizes characters or quizzes independently into a verified local, development, staging or production target. V82 stores private fixed-day reservations separately from complete quizzes, which remain the API runtime source. A separately confirmed operation deletes selected days and linked game state only on verified test targets; it locks both game serialization rows, recalculates legacy scoring and preserves shared portraits and global state. H2 is exclusively held. No administration API or game-state transfer is introduced.
+
+L’aperçu lit `advent_quizzes` pour le nom, les trois affirmations ordonnées, la référence privée du portrait et la clé de scoring. Une explication facultative n’est renvoyée qu’au résultat révélable. Cette table est indépendante du reset ; sa préparation et la promotion des seuls quiz sont décrites dans [AVENT_CATALOGUE.md](docs/v2/technical/AVENT_CATALOGUE.md).
+
+Les anciens états de jeu de test et les états membres existants restent conservés séparément, sans fusion automatique. La partie commune utilise les états membres et ne modifie pas les anciennes tables de test. Un résultat dont le quiz est absent ne bloque pas les autres révélations.
+
+Le classement utilise `GET /v1/advent/ranking` sous le verrou partagé. Le calcul inclut toutes les réponses enregistrées uniquement pour les opérateurs autorisés en développement isolé ; pour les autres membres, il filtre sur l’instant de révélation prélevé sous ce même verrou.
+
+Les deux exclusions du classement sont configurées par UUID de compte (`hatcast.advent-test.excluded-user-ids`) et non par nom ou adresse modifiable. La configuration est vérifiée avant le calcul ; si elle est absente ou incohérente, le classement échoue sans exposer de rang incorrect. Les UUID sont propres à chaque base et ne sont pas publiés dans le dépôt.
+
+### Parcours membre Avent
+
+La route directe `/avent` utilise `/v1/advent` et la partie commune décrite ci-dessus. En offline, la partie utilise les quiz déjà préparés dans `advent_quizzes` et leurs portraits locaux privés ; les fixtures ne remplissent que les jours manquants sans réponse historique. Les anciennes réponses restent préservées. Une réponse membre liée à un ancien quiz fictif différent du catalogue bloque le jour concerné et le classement en offline jusqu’à résolution explicite.
+
+Un décalage de l’horloge Avent est réservé à la base H2 offline vérifiée du worktree ou au service `hatcast-v2-dev` et à sa base Neon de développement vérifiés. Le service de production utilise toujours l’heure réelle ; une configuration ambiguë refuse le décalage. Cette horloge ne modifie ni les dates stockées ni les autres fonctions HatCast. Aucun déploiement ni notification n’est implicite.
+
+### Advent test mode selection
+
+Advent testers enter with normal member behavior. The client can request the isolated test mode explicitly; the API validates the tester and environment on each privileged request and rejects simulated dates and test commands without an authorized active request. Switching mode reloads the projection without resetting the shared game. See the Advent architecture spine, AD-2 and AD-4.
+
+### Entrée et fermeture quotidienne Avent
+
+La projection privée `GET /v1/advent/entry` autorise le membre et évalue sous le verrou de partie la fenêtre et le jour de Paris, la disponibilité du quiz, la réponse et la fermeture. Elle ne renvoie aucun contenu, choix ni score. `POST /v1/advent/entry/dismiss` enregistre une fermeture idempotente dans `advent_member_dismissals`, clé membre et date, sous ce même verrou et avec la session courante. La table est effacée par le reset de développement isolé avec le reste de la partie ; elle ne modifie pas les quiz. Les deux routes conservent les contrôles d’identité, de mode et `private, no-store`. Le shell recharge la projection lors de la navigation et invalide les réponses en cas de changement de compte.
+
+
+### Première découverte du calendrier
+
+La découverte est stockée par membre dans `advent_member_discoveries`. Les lectures et écritures `/v1/advent/discovery` appliquent autorisation, mode, session et temps serveur sous le verrou commun. Le serveur attribue une tentative à chaque accueil consulté avant découverte ; chaque action ainsi autorisée et ses reprises restituent le calendrier initial sans accuser une révélation, même sur deux appareils concurrents. Une tentative non attribuée et les lectures ordinaires conservent la priorité. La réinitialisation de la partie de développement isolée efface aussi cet état sans toucher aux quiz.
+
+Les tentatives de découverte expirent 24 heures après leur émission selon l’horloge réelle du serveur, indépendamment de la date simulée. Les lectures et actions de découverte purgent les tentatives expirées sous le verrou. Après expiration, une invitation encore affichée doit être rechargée ; si la découverte est déjà enregistrée, la priorité normale de révélation s’applique.
+
+The shared private Advent bucket stores the canonical catalogue under `catalogue/` and elf images under `portraits/`. Cloud runtime resolves simple database portrait references under `portraits/`; offline uses the local private directory. Environments retain distinct databases. Migration and deployment require separate authorization; existing objects and game state are preserved.
+
+### Rappels Avent
+
+`advent_reminder_preferences` stocke le choix partagé, `advent_reminder_devices` les appareils Avent et `advent_reminder_attempts` réserve une tentative unique par jour et membre. Les routes privées `/v1/advent/reminder-preference` et `/v1/advent/reminder-device` appliquent les contrôles d’identité, de membre, de session et de date réelle ; l’activation vérifie l’endpoint et les clés. Après un changement de compte, l’enregistrement Avent peut être réattribué si l’endpoint et les deux clés correspondent, sans transférer ni modifier l’abonnement HatCast. Décocher le rappel modifie uniquement la préférence Avent, sans désinscrire le navigateur ni modifier les notifications HatCast. L’abonnement navigateur étant partagé, désactiver les notifications HatCast peut aussi arrêter les rappels Avent : ce sens de dépendance est accepté. Le traitement planifié lit l’heure réelle de Paris, sérialise l’éligibilité avec les réponses sous `advent_member_lock`, puis valide les réservations avant l’envoi push sans événement associé. Il ne s’exécute pas dans les profils de test ou de développement et ne reprend pas les tentatives manquées.
+
+Le traitement Avent utilise son propre ordonnanceur afin que ses envois réseau n’occupent pas le thread des notifications HatCast. Les inscriptions d’un même endpoint sont sérialisées sur PostgreSQL entre les deux parcours. Le contrôle authentifié `POST /v1/me/push/subscription/status` permet à l’écran HatCast de distinguer son propre abonnement d’un abonnement du navigateur enregistré uniquement pour Avent.
+
+Avant chaque tentative Avent, l’émetteur vérifie à nouveau que l’appareil appartient au destinataire, sans verrouiller l’inscription HatCast pendant l’envoi réseau. Une notification déjà transmise au fournisseur push ne peut pas être rappelée lors d’un changement de compte ; son contenu reste neutre et ne contient ni question ni résultat.
+
+En mode test Avent autorisé, la case de rappel est une simulation limitée à la page : elle ne modifie aucune préférence ni aucun abonnement et ne déclenche aucun envoi.

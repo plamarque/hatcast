@@ -15,15 +15,32 @@ historical registry below.
 
 ### Open defects and limitations
 
+BUG-071 (Advent catalogue PostgreSQL integration test loses its connection in CI).
+
+BUG-072 (V2 Playwright smoke suite fails on commit b560afa4).
+
+BUG-069 (late Advent answer confirmation incorrectly asks the player to return tomorrow).
+
+BUG-067 (failed ranking load leaves a past result).
+
+BUG-062 (intermittent Advent loading failure; bounded read retry implemented locally, root cause unknown).
+
+BUG-054 (PWA banner overflows at 200% text size on a narrow screen).
+
+BUG-049 (production scheduled reminder encountered a database connection timeout).
+
+LIMIT-011 (repeated release validation and deployment cycles), and LIMIT-012
+(release evidence is not fully bound to the promoted candidate).
+
 BUG-041 (manual PWA application-version check), and BUG-042 (analytics bootstrap import failure).
 
 BUG-039 (PR #15: denied sessionStorage access escapes chunk recovery handler).
 
-BUG-POSTHOG-002 (production promotion observability rejected by capture acceptance guard).
-
 BUG-038 (intermittent composition smoke assertions observed on v2.6.3-rc.2).
 
 BUG-BMAD-001 (accented versus ASCII story keys in sprint controller).
+
+BUG-BMAD-002 (sprint tracker timestamp rejected by BMAD validator).
 
 BUG-031 (format cancellation),
 BUG-028 (mobile season chart), BUG-023 (stale Home badge), LIMIT-009 (Dispos
@@ -34,11 +51,335 @@ integration database).
 
 ### Pending verification or operational follow-up
 
+BUG-081 is closed as an accepted shared-browser-subscription behavior; the Advent opt-out isolation is covered by targeted tests.
+
+BUG-082 is corrected locally in the unintegrated story 25.7 worktree; integration remains pending.
+
+BUG-083 is deferred at Patrice's request; the intended quiz use is one phone per member.
+
+BUG-084 is deferred at Patrice's request; real-device push verification is planned separately.
+
+BUG-086 is corrected and verified locally in story 25.7; integration remains pending.
+
+BUG-085 is corrected and verified locally in story 25.7; integration remains pending.
+
+BUG-073 is corrected locally and verified with the live Cloud Run configuration; integration remains pending.
+
+BUG-056 is corrected locally in story 25.2; integration and real-browser isolation verification remain pending.
+
+BUG-POSTHOG-002 is closed locally with its reviewed fix integrated into v2 and regression tests passing; corrected CI execution remains pending.
+
 BUG-033 needs an authorised production data repair. BUG-027, BUG-026, BUG-025,
 BUG-024, and BUG-021 have local fixes but still require their stated review,
 human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
+
+### BUG-084 — In-flight Advent reminder can follow an account switch
+- **Status**: Deferred on 2026-11-01 at Patrice's request; identified by code review, not reproduced on a real push service.
+- **Severity**: Medium.
+- **Affected area**: A reminder being sent while the same browser endpoint is transferred to another account.
+- **Observed behavior**: The sender can read the previous account's Avent device immediately before the normal HatCast registration transfers the endpoint; its already prepared push may then reach the newly signed-in account. The endpoint ownership lock serializes registrations, but does not cover network delivery.
+- **Expected behavior**: A reminder for the former account does not reach a browser after its endpoint has been transferred to another account, without making HatCast notification operations wait on an Avent network send.
+- **Notes/context**: The sender now rechecks device ownership immediately before each attempt without locking HatCast during network delivery. A notification already handed to a push provider cannot be recalled; the neutral payload contains no quiz or result. This residual delivery window remains to be reported accurately; the issue number must be reconciled with the integration branch.
+
+### BUG-083 — Advent device remains associated with a previous account
+- **Status**: Deferred on 2026-11-01 at Patrice's request; intended usage is one phone per member.
+- **Severity**: Medium.
+- **Affected area**: Activating Advent reminders after changing accounts on one browser.
+- **Observed behavior**: An endpoint registered to a previous account is rejected for a second account. A HatCast account switch can transfer a general subscription, but Avent alone provides no equivalent reassignment or release.
+- **Expected behavior**: A member can activate the reminder after an account change without sending the previous member's reminder to the new member or changing the other account's HatCast notifications.
+- **Notes/context**: An endpoint and matching subscription keys transfer only the Avent registration; the other account's HatCast subscription and preferences are unchanged. Concurrent registrations are serialized on PostgreSQL. If another member signs in without registering the device for either service, the former member's Avent device record is not updated. A session-reconciliation approach was reviewed and removed because stale requests could remove or recreate a newer association. The issue number must be reconciled with the current integration branch.
+
+### BUG-082 — Advent activation can misreport and delay HatCast notifications
+- **Status**: Corrected locally in the unintegrated story 25.7 worktree; integration pending.
+- **Severity**: High.
+- **Affected area**: HatCast notification status and scheduling after adding Avent reminders.
+- **Observed behavior**: An Avent-only browser subscription could appear as an enabled HatCast device when the account had another HatCast device. Advent network sends also shared HatCast's single scheduler thread.
+- **Expected behavior**: HatCast reports the current device's actual HatCast registration, and Avent sends do not delay HatCast scheduled tasks.
+- **Notes/context**: The current device registration is checked on the authenticated server; Advent uses a separate scheduler. Targeted frontend and API tests pass. The issue number must be reconciled with the current integration branch before integration.
+
+### BUG-081 — Advent and HatCast share a browser push subscription
+- **Status**: Closed on 2026-11-01 following the user's clarification.
+- **Affected area**: Advent reminders and HatCast browser push notifications.
+- **Observed behavior**: Both features reuse the browser's service-worker subscription, so turning off HatCast notifications may also stop Avent reminders.
+- **Decision**: This direction of dependency is accepted. Unchecking the Advent reminder must only change the Advent preference and must not unsubscribe the browser or alter HatCast notifications.
+- **Notes/context**: Targeted frontend and API tests cover Advent opt-out and preservation of HatCast subscriptions and category dispatch. Real-device delivery remains to be verified.
+
+### BUG-086 — Advent reminder appears active before save completes
+- **Status**: Corrected locally in the unintegrated 25.7 worktree; integration pending.
+- **Severity**: Medium.
+- **Affected area**: Advent reminder checkbox while an activation request is pending.
+- **Observed behavior**: A browser initially displayed the checkbox as checked before device registration and the shared preference save had completed.
+- **Expected behavior**: The previous choice remains visible until the server confirms the new preference.
+- **Notes/context**: The control now restores the previous state during the request. A deferred-response unit test and an isolated browser scenario verify the state and operation order.
+
+### BUG-085 — Advent reminder permission message splits a word at enlarged text size
+- **Status**: Corrected locally in the unintegrated 25.7 worktree; integration pending.
+- **Severity**: Low.
+- **Affected area**: Advent reminder permission error on narrow screens.
+- **Observed behavior**: At a 320 px viewport and 200% root text size, the French word « notifications » breaks between letters across lines.
+- **Expected behavior**: The message remains readable at enlarged text sizes without awkward word breaks.
+- **Notes/context**: Observed in Chromium with notification permission denied; the reminder remains within its container. The message was shortened and checked in Chromium at 320 px / 200% text size; automated checks verify the word remains on one line and the text contrast is at least 4.5:1. Other accessibility checks remain open.
+
+### BUG-087 — Advent catalogue deployment regression test uses a stale anchor
+- **Status**: Corrected; catalogue CI passed on commit a49a453d.
+- **Severity**: High (catalogue CI fails).
+- **Affected area**: Advent deployment configuration regression test.
+- **Observed behavior**: The test cannot locate a conditional removed from the deployment workflow and stops before validating the shared portrait configuration.
+- **Expected behavior**: The test exercises the current deployment block for development, staging and production without omitting its existing safety checks.
+- **Notes/context**: CI run 41357887230 failed one of 56 catalogue tests.
+
+### BUG-088 — Advent full-stack scenarios race server shutdown
+- **Status**: Corrected locally; GitHub verification pending.
+- **Severity**: High (required release gate can fail).
+- **Affected area**: Isolated Advent full-stack privacy smoke test.
+- **Observed behavior**: The next date-boundary scenario can start while the preceding API still holds port 18080, failing with EADDRINUSE.
+- **Expected behavior**: Each scenario starts only once the previous isolated servers have released their ports, or fails if they do not stop.
+- **Notes/context**: GitHub run 41357887231 passed the first scenario before failing to start the next one. All three scenarios passed locally after the correction.
+
+### BUG-080 — Availability E2E interception races with navigation
+- **Status**: Mitigation verified locally; CI verification pending.
+- **Severity**: High (required release gate fails).
+- **Affected area**: Playwright availability save-and-reopen regression.
+- **Observed behavior**: The GitHub release suite failed twice with an already-handled inbox route while the test was changing pages.
+- **Expected behavior**: Network interception completes before navigation and the real save, persistence and navigation checks remain active.
+- **Notes/context**: CI run 41350700737; the exact source of the already-handled route has not been proven.
+
+### BUG-079 — Advent gift intercepts desktop navigation
+- **Status**: Corrected locally; deployment verification pending.
+- **Severity**: High (desktop member navigation blocked while the gift is visible).
+- **Affected area**: Desktop member navigation rail.
+- **Observed behavior**: The gift's Material focus indicator spans the rail and intercepts clicks on navigation links.
+- **Expected behavior**: The gift and navigation remain independently clickable and keyboard accessible.
+
+### BUG-078 — Advent release checks fail in local and CI environments
+- **Status**: Corrected locally; full delivery verification pending.
+- **Severity**: High (staging release blocked).
+- **Affected area**: Advent visual-isolation fixture and privacy regression workflow.
+- **Observed behavior**: Six visual-isolation tests receive an incomplete discovery response; the CI PWA build requires an ignored local environment file unavailable on clean runners.
+- **Expected behavior**: The fixture reflects the discovery contract and the CI build uses tracked, non-secret configuration with the production service worker.
+
+### BUG-077 — Advent content is not marked private for analytics capture
+- **Status**: Corrected locally; remote replay configuration and integration remain to verify.
+- **Severity**: High (potential disclosure of private quiz content).
+- **Affected area**: Advent UI and PostHog autocapture/session replay.
+- **Observed behavior**: The Advent root lacked the exclusion class recognized by the installed PostHog SDK, while autocapture and replay may be enabled in production.
+- **Expected behavior**: Quiz choices, explanations and personal results are excluded from automatic analytics and session recordings.
+- **Notes/context**: The Advent root now uses `ph-no-capture`; the SDK initialization explicitly sets the replay block class. Local tests verify the marker. The effective remote configuration and production behavior have not been inspected or tested.
+
+### BUG-076 — Advent stylesheet exceeds the production build budget
+- **Status**: Corrected locally; integration pending.
+- **Severity**: High (production-local build blocked).
+- **Affected area**: Advent Angular component stylesheet.
+- **Observed behavior**: The production-local build failed because the component stylesheet compiled to 12.53 kB, exceeding its 12 kB error budget.
+- **Expected behavior**: The production-local build succeeds within the existing error budget while preserving the Advent visual contract.
+- **Notes/context**: Removed generated scenery pseudo-elements already hidden by the illustrated design and an unused selector. The build now succeeds at 11.74 kB; the existing 9 kB warning remains. No budget was increased.
+
+### BUG-075 — Late test replay is closed on its simulated day
+- **Status**: Closed on 2026-11-01 at Patrice's request; deployed and verified in development.
+- **Severity**: Medium.
+- **Affected area**: Advent isolated test replay.
+- **Observed behavior**: After a late December 1 answer was erased and the clock moved back to December 1, its quiz displayed as closed. Development database read-only inspection found the retained day 1 replay marker was late.
+- **Expected behavior**: The authorized tester can replay on that simulated day without points or premature revelation; ordinary late answers retain their existing rules.
+- **Notes/context**: Reproduced in Chrome on 2026-11-01. Only the operator's December 1 and 2 answers were erased; no global reset was performed. Fix `d56eca5c` was deployed to revision `hatcast-v2-dev-00260-klz`; browser verification confirmed the quiz opened with the zero-point warning. No answer was submitted in the live check; confirmation, score, and reveal behavior were covered by automated tests.
+
+### BUG-074 — Advent test mode opens ranking instead of current day's state
+- **Status**: Closed on 2026-11-01 at Patrice's request; further correction deployed and verified in development.
+- **Severity**: Medium.
+- **Affected area**: Advent test-mode entry in development.
+- **Observed behavior**: On 2026-11-01, activating test mode at simulated December 1 displayed the ranking instead of the day's lutin, available result, or pending-result state.
+- **Expected behavior**: Show the appropriate current-day state, while preserving priority for an unseen result.
+- **Notes/context**: Fix `b9c14575` addressed activation but not the date arrows. In Chrome on development revision `hatcast-v2-dev-00258-2lg`, returning from December 3 to an already-answered December 2 opened the ranking, where the date arrows were unavailable. Follow-up `fa000926` was deployed and browser-verified: answered days kept their navigation controls and the available December 3 quiz opened.
+
+### BUG-073 — Advent catalogue synchronization refuses an additional zero-traffic revision
+- **Status**: Corrected locally; live verification passed; integration pending.
+- **Severity**: Medium (content synchronization blocked).
+- **Affected area**: Advent private catalogue operator, Cloud Run target verification.
+- **Observed behavior**: The operator refuses synchronization when the development service reports a current revision receiving 100% of traffic alongside another traffic status with no percentage, because the verifier requires exactly one status. This also blocks verification of the other environments.
+- **Expected behavior**: Safely verify the active revision and environment isolation when Cloud Run reports additional zero-traffic statuses, or provide an actionable diagnosis if they prevent verification.
+- **Notes/context**: Observed on 2026-11-01 while preparing a production character sync. The zero-traffic revision has a direct tagged URL and uses the development database. The local correction verifies databases of tagged revisions and refuses ambiguous traffic; targeted tests and live read-only checks passed.
+
+### BUG-071 — Advent catalogue PostgreSQL integration test loses connection in CI
+- **Status**: Open.
+- **Severity**: Medium (CI verification).
+- **Affected area**: Advent catalogue database integration tests.
+- **Observed behavior**: On commit `b560afa4`, the disposable PostgreSQL integration step ends with `Connection terminated unexpectedly`; the preceding catalogue unit tests pass and the subsequent H2 step is skipped.
+- **Expected behavior**: The PostgreSQL and H2 integration checks run to completion reliably.
+- **Notes/context**: [CI run 41316036008](https://github.com/plamarque/hatcast/actions/runs/41316036008). The script checks `pg_isready` before connecting, but the log does not establish the cause of the disconnect.
+
+### BUG-072 — V2 Playwright smoke suite fails
+- **Status**: Open.
+- **Severity**: Medium (CI verification).
+- **Affected area**: V2 Playwright E2E suite.
+- **Observed behavior**: On commit `b560afa4`, 9 tests fail, 2 are flaky, 4 are skipped, 5 do not run and 106 pass. Failures include Advent home isolation at six viewport widths, two home feedback cases and one agenda participation case.
+- **Expected behavior**: The smoke suite completes successfully and consistently.
+- **Notes/context**: [CI run 41316035842](https://github.com/plamarque/hatcast/actions/runs/41316035842). The prior `677d7e55` smoke run also failed; the relationship and individual causes require investigation.
+
+### BUG-069 — Late Advent answer confirmation misstates reveal timing
+- **Status**: Open.
+- **Severity**: Low.
+- **Affected area**: Advent member quiz, late-play confirmation.
+- **Observed behavior**: After answering the December 5 quiz on simulated December 11 in development, the confirmation says “Reviens demain pour découvrir le résultat !” although the result is already available through the calendar.
+- **Expected behavior**: The confirmation accurately indicates when the result is available for a late answer.
+- **Notes**: Observed on 2026-11-01 in development; the result itself showed the correct answer and zero points for late play. No clock or other member's answers were modified.
+
+### BUG-070 — Advent catalogue rejects healthy Cloud Run configuration
+- **Status**: Corrected locally; live read-only verification passed; synchronization still requires operator authorization.
+- **Severity**: Medium.
+- **Affected area**: Advent private catalogue operator, Cloud Run V2 target verification.
+- **Observed behavior**: Development synchronization refused a healthy revision because Cloud Run v2 omitted default false reconciliation fields, returned a short revision ID in traffic status and used a default Compute Engine service-account address.
+- **Expected behavior**: Accept the equivalent verified healthy v2 representations while still rejecting reconciliation, wrong revisions and ambiguous environments.
+- **Notes/context**: Observed on development revision `hatcast-v2-dev-00254-rat`; verified using read-only API calls and synthetic regression tests. This configuration check does not prove effective runtime access to private objects.
+
+### BUG-068 — Advent CI tests target obsolete behavior
+- **Status**: Corrected locally; CI verification pending.
+- **Severity**: Medium.
+- **Affected area**: API integration and browser smoke suites.
+- **Observed behavior**: An offline API test calls retired test routes, while the browser test expects the former ranking presentation and a removed test-mode message.
+- **Expected behavior**: Tests exercise the supported member API and the current ranking while retaining security and keyboard coverage.
+
+### BUG-067 — Missing Advent cases resemble unplayed cases
+- **Status**: Corrected locally; awaiting human verification.
+- **Severity**: Low.
+- **Affected area**: Advent calendar.
+- **Observed behavior**: Missing content and past unplayed cases had the same visual treatment.
+- **Expected behavior**: The missing case has a visible symbol as well as its accessible label.
+
+### BUG-067 — Failed ranking load leaves a past result
+- **Status**: Open.
+- **Severity**: Low.
+- **Affected area**: Advent past-result navigation.
+- **Observed behavior**: Opening the ranking from a past result clears the result before the ranking request succeeds; a failure returns to the calendar with an error.
+- **Expected behavior**: The member can retry without losing the result being read.
+- **Notes/context**: The calendar and its ranking control remain available; the result can be reopened.
+
+### BUG-066 — Christmas score failure lacks recovery
+- **Status**: Corrected locally; awaiting human verification.
+- **Severity**: Medium.
+- **Affected area**: Advent calendar Christmas case.
+- **Observed behavior**: A failed score request after selecting the 25th closed the calendar without a clear retry.
+- **Expected behavior**: The calendar stays visible and offers a retry.
+
+### BUG-065 — Priority result hidden by calendar or ranking
+- **Status**: Corrected locally; awaiting human verification.
+- **Severity**: High.
+- **Affected area**: Advent priority revelation.
+- **Observed behavior**: If a priority result became available during navigation, the previous calendar or ranking view could remain visible above it.
+- **Expected behavior**: The priority result replaces the previous view before navigation continues.
+
+### BUG-064 — Advent test mutations fail through Tailscale Serve
+- **Status**: Corrected locally; awaiting human verification.
+- **Severity**: High for the local mobile test journey.
+- **Affected area**: Offline API CORS configuration and mobile test access via Tailscale Serve.
+- **Observed behavior**: On the HTTPS Tailscale origin without an explicit port, the answer reconciliation request returns 403 and the quiz reports that it cannot verify the answer. The equivalent request from localhost and the Tailscale origin on port 4200 succeeds.
+- **Expected behavior**: Authorized offline test requests work from the Tailscale Serve HTTPS origin, with existing authentication and CSRF protections.
+- **Notes/context**: The offline profile allowed only the Tailscale origin pattern with port 4200; the standard HTTPS port is now included. No production CORS configuration is changed.
+
+### BUG-063 — Played Advent doors resemble the current day
+- **Status**: Corrected locally; awaiting human verification.
+- **Severity**: Low.
+- **Affected area**: Advent calendar.
+- **Observed behavior**: Multiple played doors used the same dark green as the current day, making past played cases appear to be today when navigating simulated dates.
+- **Expected behavior**: Only the current day uses the dark green emphasis; earlier played doors retain their open shape and a distinct light treatment.
+- **Notes/context**: The current date is determined from the existing server-derived or authorized simulated date; a played current day remains identifiable as both played and today.
+
+### BUG-062 — Advent quiz intermittently fails to load in development
+- **Status**: Mitigation implemented locally; root cause not established.
+- **Severity**: Undetermined.
+- **Affected area**: Advent member journey in the development environment.
+- **Observed behavior**: On 2026-10-31, navigating to the 2 December quiz displayed “Le lutin est indisponible. Réessaie.”; a later retry loaded the quiz successfully.
+- **Expected behavior**: An available quiz loads reliably, with a retry offered if a transient failure occurs.
+- **Notes/context**: The client uses one generic error for network, HTTP, and timeout failures. A priority result lookup at 11:32:36 UTC took 40.7 seconds and returned HTTP 200, beyond the client’s 10-second deadline; another lookup completed in 0.19 seconds. This is consistent with, but does not conclusively identify, the failure. Subsequent quiz requests succeeded. A single retry of transient GET failures is implemented locally; prolonged or repeated failures can still occur. Do not infer that the portrait or database was missing.
+
+### BUG-061 — Advent test controls wrap on mobile
+- **Status**: Corrected locally; awaiting human verification.
+- **Severity**: Low.
+- **Affected area**: Advent test header on mobile.
+- **Observed behavior**: Test controls wrap onto a second line and push the quiz content down.
+- **Expected behavior**: Test controls stay on one line on mobile, using the space occupied by the quiz title.
+- **Notes/context**: Reported with a phone screenshot during story 25.4. Chromium checks passed at widths from 320 to 430 px with all controls visible and 44 px touch targets.
+
+### BUG-060 — Advent test reveal obscures the simulated day
+- **Status**: Corrected locally; human verification accepted on 2026-10-31.
+- **Severity**: Low.
+- **Affected area**: V2 isolated Advent test navigation.
+- **Observed behavior**: A reveal shows the quiz date while the shared simulated date is not displayed, making the day and the effect of Continue ambiguous.
+- **Expected behavior**: The simulated day is visible between the test arrows; Continue opens the current day without advancing the clock.
+- **Notes/context**: Reported during story 25.3a human testing. The existing continuation reads the shared clock; no extra clock-advance request was found in the code. Regression coverage verifies the 8-to-9 journey; Patrice accepted the UX after testing.
+
+### BUG-059 — Revisiting an answered Advent test day shows a closed gift
+- **Status**: Corrected locally; awaiting human verification.
+- **Affected area**: V2 isolated Advent test navigation.
+- **Observed behavior**: Navigating back to an answered day redisplayed the unopened gift until it was tapped again.
+- **Expected behavior**: An answered day opens directly to its recorded state without reopening the gift.
+- **Notes/context**: Reported with a mobile recording. Angular tests and a real Tailscale browser navigation check passed. Detailed result reveal remains part of story 25.3.
+
+### BUG-058 — Offline seed accounts cannot access Advent test
+- **Status**: Corrected locally; verified with an offline seed session through the Tailscale proxy.
+- **Affected area**: V2 offline Advent test access.
+- **Observed behavior**: The development seed identity verifier leaves `emailVerified` false, while the Advent test controller requires a verified email session even offline. Thus the documented seed sign-in cannot access the Advent preview.
+- **Expected behavior**: An eligible offline seed account can access the isolated Advent test while verified-email protection remains appropriate for real identities.
+- **Notes/context**: Validated seed credentials now produce a verified synthetic identity; real identities retain the provider verification result. The offline seed sign-in, protected Advent read, and CSRF-protected reconciliation were verified through Tailscale. `DEVELOPMENT.md` documents offline seed access to the preview.
+
+### BUG-057 — Advent test can wait indefinitely on a stalled request
+- **Status**: Fixed locally in the unintegrated story 25.2 implementation; integration and browser network-stall verification remain pending.
+- **Affected area**: V2 isolated Advent test interface.
+- **Observed behavior**: A fetch that never settles leaves the interface loading, checking, or submitting without a timeout or retry; relevant test-day controls remain disabled. The close link remains available.
+- **Expected behavior**: A stalled request can be recovered without an indefinite wait while preserving safe answer reconciliation.
+- **Notes/context**: Requests and response parsing now time out after 10 seconds. A timed-out confirmation is reconciled before retry; a timed-out reconciliation remains uncertain. Component tests cover stalled preview, reconciliation and confirmation. No network-stall browser test has yet been run.
+
+### BUG-056 — Uncertain Advent submission may allow a conflicting retry
+- **Status**: Corrected locally; integration pending.
+- **Affected area**: V2 isolated Advent test answer confirmation.
+- **Observed behavior**: After a failed confirmation response, the state check can return available while the initial confirmation is still being processed. A member may change their choice and retry, while the original selection can still be recorded.
+- **Expected behavior**: An uncertain confirmation must be reconciled without allowing a conflicting choice to be submitted.
+- **Notes/context**: A server-side reservation and reconciliation generation invalidate delayed confirmations and reservations. The targeted H2 integration tests cover both confirmation/reconciliation orders, delayed reservation and member isolation; Angular tests cover a lost response and reopening. Offline API tests check verified-email access. Browser tests use mocked API responses and do not establish real API/CSRF or service-worker cache isolation; PostgreSQL concurrency and integration remain to be verified.
+
+### BUG-055 — Late Advent test answer alters a revealable bonus
+- **Status**: Corrected locally; integration pending.
+- **Severity**: High (result data can change after it is eligible for reveal).
+- **Affected area**: V2 isolated Advent test answer scoring.
+- **Observed behavior**: A quiz response received earlier but persisted after later responses can cause their stored streak bonuses to be recalculated, including after their reveal time.
+- **Expected behavior**: Pending confirmations close at midnight and scoring data remains stable when results become revealable.
+- **Notes/context**: The late-lock and simulated-clock reproductions now pass locally after the 2026-10-30 decision. A transaction paused after its deadline check and before commit remains unverified; the issue stays open pending a complete guarantee. The feature has not been integrated or deployed.
+
+### BUG-054 — PWA banner overflows at increased text size
+- **Status**: Corrected locally; integration pending.
+- **Severity**: Medium (content may require horizontal scrolling at increased text size).
+- **Affected area**: V2 PWA system banner on `/avent-test`.
+- **Observed behavior**: In Chromium at a 320 px viewport with the root text size at 200%, the banner actions extend beyond the viewport and the document scrolls horizontally. The Advent quiz fits after dismissing the banner.
+- **Expected behavior**: The banner and its actions remain within the viewport and readable at increased text size.
+- **Notes/context**: Observed with fictional quiz content and intercepted API responses during story 25.2 browser verification. This is distinct from BUG-050, which concerned a banner covering the test label. On 2026-10-31, the same overflow was observed on `/avent` in a mocked Chromium member-ranking test at 320 px and 200% text size: banner actions reached approximately 343–347 px. Real devices have not been checked. On 2026-11-01, the issue was also reproduced on `/accueil`; the navigation and an agenda badge also overflowed at 320 px with browser zoom at 200%. Responsive fixes were applied locally and the same browser check no longer reports document overflow.
+
+### BUG-053 — Development Google sign-in rejected the Cloud Run origin
+- **Status**: OAuth configuration updated; awaiting end-to-end user verification.
+- **Affected area**: V2 development Google sign-in on the Cloud Run `-od.a.run.app` hostname.
+- **Observed behavior**: Google returned HTTP 400 `origin_mismatch` because the development service origin was missing from the OAuth client’s authorized JavaScript origins.
+- **Expected behavior**: The development URL can initiate Google sign-in and return to the requested test page.
+- **Notes**: The missing origin was added on 2026-10-30. Google reports that propagation may take from five minutes to several hours.
+
+### BUG-052 — Unverified identity email can link an existing account
+- **Status**: Mitigated for the two development testers; the general account-linking behavior remains open.
+- **Affected area**: Identity Platform sign-in and email-based account linking.
+- **Observed behavior**: The Identity Platform token payload does not carry email verification state, and a sign-in may link an existing user by email without checking that the email was verified. The proposed Advent test allowlist relies on that session email.
+- **Expected behavior**: Access to the Advent preview must establish possession of the allowed address using the current authenticated identity; an unverified identity must not claim an existing tester account.
+- **Notes**: The actual exploitability depends on Identity Platform account configuration; do not deploy the email-based preview until the boundary is verified and protected.
+
+### BUG-051 — Advent preview diverged from approved design
+- **Status**: Reopened for the approved 2026-10-30 visual direction; alignment in progress.
+- **Affected area**: V2 Advent stories 25.1 and 25.2 test preview.
+- **Observed behavior**: The original preview lacked the festive palette, decorated full-page door, floating ornaments and visible opening with light from the approved UX direction.
+- **Expected behavior**: The preview reflects the approved door and quiz direction, including an equivalent reduced-motion experience.
+- **Notes**: Automatic entry on eligible visits belongs to story 25.6 and is not implemented in this preview. The 2026-10-30 approved design handoff is the current visual reference. A 390 px capture of the current confirmation shows a closer hierarchy but lacks the full festive setting of the reference; remaining work is recorded in the Advent visual foundation spec.
+
+### BUG-050 — PWA banner masked the Advent test label
+- **Status**: Fixed locally in story 25.1; integration and deployment not yet verified.
+- **Severity**: Medium (the test-only label was hidden on mobile).
+- **Affected area**: V2 `/avent-test`, PWA install/update banners.
+- **Observed behavior**: The fixed install banner covered the test label and part of the title at 320–375 px.
+- **Expected behavior**: The test label and page content remain visible below banners, including at increased zoom.
+- **Notes**: The Advent route places the existing banners in normal flow. Local Chromium captures used fictional data and intercepted all network requests; browser checks cover one or two banners and 200% zoom. Other routes were not changed.
 
 ### PERF-003 — Accueil shifts when an empty-inbox confirmation appears after revalidation
 - **Status**: Fixed locally — human smoke accepted; real-device and production CLS checks pending
@@ -50,6 +391,56 @@ BUG-037 and BUG-029 have fixture-only corrections verified by the complete API s
 - **Evidence**: [PR #14](https://github.com/plamarque/hatcast/pull/14); local source analysis. Production frequency remains unquantified.
 
 ### Historical registry
+
+### BUG-049 — Scheduled reminder failed to acquire a database connection
+- **Status**: Open — observed in production logs; impact and recurrence not established.
+- **Severity**: Undetermined.
+- **Affected area**: V2 API `AssigneePresenceReminderJob`, datasource connection acquisition.
+- **Observed behavior**: On 2026-10-28 at approximately 08:00 Paris time, the scheduled job logged `CannotCreateTransactionException` following a Hikari connection acquisition timeout. Whether any eligible reminder was missed is unknown.
+- **Expected behavior**: Scheduled reminder processing can access its database or recover from a transient failure.
+- **Notes/context**: Observed during a read-only Cloud Run log inspection on 2026-10-29; no production data or infrastructure was changed. Root cause, retry behavior and relation to CPU allocation remain unverified.
+
+### BUG-DOC-002 — ARCH retains a deferred V2 release topology
+- **Status**: Fixed locally — ARCH now distinguishes the existing V2 Cloud Run release topology from the historical V1 Firebase description.
+- **Severity**: Medium (conflicting architecture inputs).
+- **Affected area**: `ARCH.md`, section « Évolution V2 »; V2 release-delivery architecture planning.
+- **Observed behavior**: `ARCH.md` says staging/production Cloud Run are deferred and production remains V1. The V2 deployment runbook, release skill and 2026-10-23 release audit describe the staging/prod chain; `.github/workflows/deploy-v2-cloud-run.yml` configures staging branch and production-tag targets.
+- **Expected behavior**: Normative as-is architecture and release documentation agree on the deployed product line and release topology.
+- **Notes/context**: Found during planning-only `bmad-architecture` activation on 2026-10-23. Corrected on 2026-10-27 with Patrice's approval using the existing workflow and deployment runbook; no runtime change or fresh cloud inspection.
+
+### BUG-048 — Event details fail when a new troupe has unseeded categories
+- **Status**: Open — correction deferred; explicitly accepted as non-blocking for release 2.7.0 by Patrice on 2026-10-23. Reproduced on staging `v2.7.0-rc.2`, revision `hatcast-v2-staging-00129-pr4`. Not fixed.
+- **Severity**: High (opening an event can fail for a newly created troupe).
+- **Affected area**: `EventPageService.loadPageById/loadPageBySlug` → `TroupeCategoryService.ensureDeplacementsSeed`.
+- **Observed behavior**: The isolated E2E troupe `e2e-rc2-accueil-20261023` has six visible agenda events and one active MEMBER_SYNC participant. Clicking event 04 from Accueil navigates to its detail URL then returns to `/agenda`. Authenticated GET of the event itself and `/page?tab=dispos` succeed; `/page?tab=infos` returns HTTP 403. Cloud Run logs show `cannot execute INSERT in a read-only transaction` while inserting into `troupe_categories`, through `ensureDeplacementsSeed` inside the read-only event-page transaction.
+- **Expected behavior**: Opening a visible event in a new troupe loads its information without failing category initialization.
+- **Release disposition (2026-10-23)**: Patrice confirms production currently has a single, already initialized troupe, so the missing-category trigger does not apply to the intended production scope. He explicitly accepts deferring this fix without blocking production validation for 2.7.0. This is a scoped acceptance of the defect, not a passing reproduction or authorization to deploy. Reassess before introducing a new or uninitialized troupe; production initialization was stated by the owner, not independently queried for this disposition.
+- **Evidence and limits**: `/private/tmp/hatcast-2.7.0-rc2-proof/event-detail-error.txt` and RC2 browser report. Five-card display, full-agenda navigation, and persisted availability from card 04 passed. CI/E1 green does not cover this fresh-troupe case. No category seeding workaround, code change, production reproduction or production promotion performed; no regression attribution to the Accueil delta established.
+
+### LIMIT-011 — V2 release repeats full validation and staging deployment
+- **Status**: Open — audited 2026-10-23; no gate changed.
+- **Severity**: Medium (delivery latency and repeated CI work).
+- **Affected area**: V2 staging/release/prod scripts and GitHub Actions.
+- **Observed behavior**: `deploy_staging.sh` runs the full local E2E suite, then pushes staging (full CI E2E, image build/deploy, E1 T2). `release_version.sh` changes release metadata and pushes staging again, triggering another full cycle, then syncs to `v2` and triggers its matching workflows. `deploy_prod.sh` runs the full local E2E suite again. On 23 October, staging runs [39897194431](https://github.com/plamarque/hatcast/actions/runs/39897194431) and [39899222776](https://github.com/plamarque/hatcast/actions/runs/39899222776) took 13:47 and 22:18; their intervening Git diff contains only six version/changelog files. The latter includes 8:01 installing Chromium, not executing tests.
+- **Expected behavior**: Make repeated work and actual coverage explicit; any removal or risk-based selection requires an approved release contract. Existing gates remain applicable.
+- **Evidence**: [Release chain audit](docs/v2/technical/RELEASE_CHAIN_AUDIT_2026-10-23.md). Local and human times were not measured; no one-hour end-to-end timing is claimed from CI alone.
+
+### LIMIT-012 — Release checks do not mechanically attest all candidate evidence
+- **Status**: Open — source audit 2026-10-23; no invalid production promotion established.
+- **Severity**: Medium (confidence and provenance of release validation).
+- **Affected area**: `scripts/v2/promote-tag-to-prod.sh`, `promote-to-staging.sh`, and E1 preprod workflow/specs.
+- **Observed behavior**: Local pre-push E2E runs on the current checkout, without explicitly checking out the promoted RC (prod) or the final merged candidate (staging). The prod script checks tag identity and staging ancestry, but does not itself read CI/T2 results or human smoke disposition; the release skill delegates those checks to the operator. E1 uses a mutable staging URL; its YAML has no explicit expected-SHA assertion. Missing Malice probe results skip Playwright with a warning. E1-MEM-031/032 skip persistence writes on staging, and E1-ORG-001–002 can return after visibility alone when drawing is unavailable.
+- **Expected behavior**: Treat these as distinct, bounded proofs; a green E1 result must not be described as complete persisted C2/C3 validation. Any future fast path must bind required evidence to its exact candidate and record omitted/waived coverage.
+- **Notes/context**: Detailed T2 runs inspected did execute Playwright (34 passed, 2 skipped). The human smoke contract already requires persisted outcomes. External GitHub environment/branch protection was not inspected. No gate bypass, data corruption or deployed regression is inferred from this limitation.
+- **Evidence**: [Release chain audit](docs/v2/technical/RELEASE_CHAIN_AUDIT_2026-10-23.md); [E1 run](https://github.com/plamarque/hatcast/actions/runs/39897194431).
+
+### BUG-047 — Google sign-in reports an unapproved V2 staging origin
+- **Status**: Observed during the 2.7.0-rc.1 browser smoke; Google sign-in itself was not exercised.
+- **Severity**: Low (staging-only console finding; impact on Google sign-in requires verification).
+- **Affected area**: Google Identity Services on `https://hatcast-v2-staging-gz5evlelnq-od.a.run.app/connexion`.
+- **Observed behavior**: The login page emits `[GSI_LOGGER]: The given origin is not allowed for the given client ID.` Browser extensions emit separate unrelated warnings.
+- **Expected behavior**: A supported staging login origin is accepted by the configured Google OAuth web client.
+- **Evidence and limits**: Browser console during the 2026-10-23 RC smoke, revision `hatcast-v2-staging-00127-r66`; email/password login passed for both configured E2E roles. No Google login attempt, client configuration change, or production impact is established.
 
 ### BUG-046 — Guest navigation E2E expects an incomplete fixture title
 - **Status**: Fixed locally — complete E2E suite passed (100 passed, 4 skipped); CI verification pending.
@@ -137,12 +528,28 @@ BUG-037 and BUG-029 have fixture-only corrections verified by the complete API s
 
 ### BUG-POSTHOG-002 — Production promotion capture fails its acceptance guard
 - **ID**: BUG-POSTHOG-002
-- **Status**: Open — observed after successful v2.6.3 production deployment on 2026-10-18
+- **Status**: Closed locally (2026-10-23) — reviewed correction integrated into local v2; regression tests pass; corrected CI execution pending. Historical deployment workflows remain unchanged.
+- **Recurrence (2026-10-23)**: Production 2.7.0 [workflow 39910450325](https://github.com/plamarque/hatcast/actions/runs/39910450325), commit `37e1bfd27c9107aaca3d44dd796255de1ed70187`: deploy succeeded; revision `hatcast-v2-00026-wn2` serves 100% of traffic. The PostHog job fails with the same acceptance-guard message. Public version 2.7.0 / production channel, health UP and PWA smoke passed in the historical release evidence. This observability failure did not undo deployment. No quota/billing/credential change or retry performed; the message alone does not prove quota exhaustion.
 - **Severity**: Medium (release observability incomplete; deployment remains successful)
 - **Affected area**: `scripts/v2/posthog-lifecycle-dashboard.mjs`, production workflow `posthog-lifecycle` job.
 - **Observed behavior**: [Workflow 39130429450](https://github.com/plamarque/hatcast/actions/runs/39130429450), commit `a5fb7f487d73672a3388e4b32ef200c4f314d1aa`: deployment succeeded, revision `hatcast-v2-00024-5n9` serves 100% of traffic, but lifecycle synchronization failed with `PostHog promotion capture was not accepted without quota limits`. Overall workflow is red despite its successful deployment job. Read-only checks returned version 2.6.3, production channel, and health UP.
 - **Expected behavior**: Promotion capture is accepted without quota limitation and lifecycle dashboard synchronization completes.
 - **Notes/context**: The guard raises for either `status !== 1` or a nonempty `quota_limited` list; the redacted log does not distinguish those cases, so a quota exhaustion diagnosis is not established. Dashboard provisioning is not reached after this error. No retry, quota/billing change, credential change, or production rollback was performed. The prior staging E1 gate was green; user approved production using the existing human recipe and requested no repeat tests.
+- **Established defect**: The guard requires numeric `1`, whereas the EU capture success contract returns the string `"Ok"` ([official response contract](https://posthog.com/docs/api#responses)). The [capture implementation](https://github.com/PostHog/posthog/blob/master/rust/capture/src/api.rs) derives Serde serialization for enum `CaptureResponseCode::Ok`: its Rust discriminant `= 1` does not make its JSON serialization numeric. Thus even an accepted, non-limited response is rejected before dashboard provisioning. HTTP success alone remains insufficient because quota-limited captures also return HTTP 200.
+- **Remote evidence (read-only, 2026-10-23)**: In EU project `193437`, the SQL below returned exactly two rows: `2.7.0:20d972b0`, count `1`, first promotion `2026-10-23T06:20:55Z`; `2.6.3:c93d2c81`, count `1`, first promotion `2026-10-18T13:16:04Z`. The 2.7.0 timestamp equals the successful `deploy` job's completion in the saved `ci-final.json`. Both real promotion events were ingested despite failed observability jobs; no new capture was required. The existing lifecycle dashboard `1032942` also reads 2.7.0 as its latest release reference. GitHub production environment metadata confirms the three expected secrets exist (`HATCAST_POSTHOG_PROJECT_API_KEY`, `HATCAST_POSTHOG_PERSONAL_API_KEY`, `HATCAST_POSTHOG_PROJECT_ID`), with no project-ID variable override. Secret values were neither fetched nor logged; existence alone does not attest current private-key permissions.
+- **Production identity cross-check (2026-10-23)**: A fresh read of `https://hatcast.app/version.txt` returns `2.7.0`, `Production build - 2026-10-23`, `Git: 20d972b0`. `parseRelease` therefore derives exactly the ingested reference `2.7.0:20d972b0`, not an RC version. Local tags `v2.7.0` and `v2.7.0-rc.2` both resolve to promotion commit `37e1bfd27c9107aaca3d44dd796255de1ed70187`; the event identity uses the embedded version-file Git field, not the tag commit SHA. Docker patches the channel line for production without changing this identity. No backfill is necessary for this release reference. This does not attest every client event or execution of the corrected synchronization job.
+- **Correction**: Extract capture acceptance into `capturePromotion`; accept exact `"Ok"` and legacy numeric `1`, only with absent or empty-array quota metadata. Nonempty quota arrays, malformed quota metadata, unknown status, HTTP failure, invalid JSON and transport failure remain errors and stop provisioning. Diagnostics contain only HTTP code, a fixed status classification, and quota absence/invalidity/count; no raw body, status value, resource names, token or authentication headers. Payload identity, promotion date, ownership and deployment gates are unchanged.
+- **Verification**: `node --test scripts/v2/posthog-lifecycle-dashboard.test.mjs` passes all 8 tests, including EU/legacy success, quota rejection, malformed replies, HTTP/JSON/transport errors, sensitive diagnostic redaction, and `--apply` ordering (provision after acceptance; no provisioning after rejection). Existing ownership/idempotent-provisioning and no-ingestion validation tests remain green. Manifest preview and `git diff --check` pass.
+- **Limits / delivery**: The historical response bodies and quota fields were not recorded and cannot be reconstructed; do not claim a captured historical `quota_limited=[]` or a full billing audit. The protocol mismatch is established by the official contract/source and the real ingested release references. No isolated `--validate` run was needed: it would mutate managed dashboard objects and would not exercise capture. No remote mutation, event, workflow rerun, release/promotion script, tag, traffic change, credentials/permissions/billing change, or push was performed for this fix. Local integration into v2 was authorized separately at closure. Current private API access and end-to-end success of the corrected CI job remain unverified. Historical reports under `/private/tmp/hatcast-2.7.0-prod-proof/` were read only and are not evidence that this correction has shipped.
+
+Read-only diagnostic query (no People fields, distinct IDs or raw properties):
+
+```sql
+SELECT properties.release_id AS release_id, count() AS occurrences,
+       min(timestamp) AS first_promoted_at
+FROM events WHERE event = 'hatcast_release_promoted'
+GROUP BY release_id ORDER BY first_promoted_at DESC LIMIT 10
+```
 
 ### BUG-038 — Composition smoke tests intermittently require retry
 - **ID**: BUG-038
@@ -151,6 +558,7 @@ BUG-037 and BUG-029 have fixture-only corrections verified by the complete API s
 - **Affected area**: `apps/web/e2e/e1/orga-composition.desktop.spec.ts` and `apps/web/e2e/draw-formula-choice.spec.ts`.
 - **Observed behavior (2026-10-18)**: [RC2 workflow 39105565455](https://github.com/plamarque/hatcast/actions/runs/39105565455), commit `a5fb7f487d73672a3388e4b32ef200c4f314d1aa`: E1-ORG-001–002 first failed waiting for the dialog after publication (15 s); E2E-WD-05 first failed pool preview with HTTP 400 `Rôle inconnu pour cet événement`. Both passed on automatic retry. Final local-profile CI smoke: 92 passed, 2 flaky, 4 skipped; job succeeded. This is not evidence of a clean first-attempt run.
 - **Expected behavior**: Composition smoke journeys pass without retry, with deterministic fixture state and assertions aligned to supported behavior.
+- **Audit follow-up (2026-10-23)**: [RC workflow 39899222776](https://github.com/plamarque/hatcast/actions/runs/39899222776) again reports E1-ORG-001–002 passing only on retry after a missing publication dialog; final T1 result is 99 passed, 1 flaky, 4 skipped. This recurrence does not establish a production defect or the root cause.
 - **Notes/context**: Local preflight passed 94 tests with four skips. The separate deployed-staging E1 gate passed 34 tests with two skips, without reported retries. No tests were disabled or changed for these observations. Investigation and any fix remain separate from the API fixture correction; the production promotion and human staging smoke are not authorized by these green automated jobs.
 
 ### BUG-037 — API regression fixtures assume unsynchronized shared memberships
@@ -181,6 +589,15 @@ BUG-037 and BUG-029 have fixture-only corrections verified by the complete API s
 - **Proposed remediation:** Isolate fixture troupes/seasons and database state, update setup to explicitly create the intended membership/roster scope, provide required-slot needs in the statistics fixtures, and generate a date-independent future-event set for the performance test. Preserve the business rules and assertions; do not waive or disable tests. No test or production implementation changed during this investigation.
 - **Notes/context:** The CI result arrived after `v2.6.3-rc.1` was pushed (`c2a6a4c2`) and its artifacts synchronized to `v2` (`fa1a27b2`). No production promotion was performed. Do not infer runtime regression or waive the failures from green E2E alone.
 - **RC operational evidence:** [Run 39100935125](https://github.com/plamarque/hatcast/actions/runs/39100935125) completed successfully: staging E2E 93 passed / 4 skipped, Cloud Run revision `hatcast-v2-staging-00123-nz4` serving 100% traffic, E1 preprod 33 passed / 2 skipped. The staging `version.txt` reports `2.6.3`. Automated gates do not replace human staging smoke or disposition of the API failures.
+
+### BUG-BMAD-002 — Sprint tracker timestamp rejected by BMAD validator
+
+- **Status:** Open
+- **Severity:** Low
+- **Affected area:** `sprint-status.yaml` and `bmad-sprint-planning` validation.
+- **Observed behavior:** On 2026-10-30, `sprint_plan.py validate` returned `valid: false` because `last_updated` is `2026-10-30T00:31:05+01:00` while the validator expects `%m-%d-%Y %H:%M`.
+- **Expected behavior:** The tracker produced by the supported controller and its validator agree on the timestamp format.
+- **Notes/context:** Validation was read-only. The tracker was not edited or regenerated; the source of the format mismatch has not been investigated.
 
 ### BUG-BMAD-001 — Sprint controller disagrees with registered ASCII story keys
 

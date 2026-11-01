@@ -1,0 +1,34 @@
+/* A small festive invitation, shared by the confirmation and results. */
+.advent__reminder {
+  position: relative;
+  margin: .8rem auto 1.2rem;
+  padding: .15rem .4rem;
+  max-width: 25rem;
+  border: 0;
+  border-radius: 1rem;
+  background: linear-gradient(90deg, #fff6e4, #fffdf5, #fff6e4);
+  background-color: #fff6e4;
+  color: var(--hatcast-avent-green);
+  text-align: left;
+}
+.advent__reminder-label {
+  display: flex; align-items: center; gap: .8rem; min-height: 4rem;
+  padding: .45rem .5rem; cursor: pointer;
+}
+.advent__reminder-label input {
+  appearance: none; position: relative; flex: 0 0 2.6rem; width: 2.6rem; height: 2.6rem; margin: 0;
+  border: 2px solid var(--hatcast-avent-green); border-radius: .55rem; background: #fffdf7;
+  box-shadow: inset 0 .1rem .2rem #70464222, 0 .1rem .15rem #70464233;
+  cursor: pointer;
+}
+.advent__reminder-label input:checked { background: var(--hatcast-avent-green); }
+.advent__reminder-label input:checked::after {
+  content: ''; position: absolute; left: .55rem; top: .5rem; width: 1.1rem; height: .55rem;
+  border: solid white; border-width: 0 0 .22rem .22rem; transform: rotate(-45deg);
+}
+.advent__reminder-label input:focus-visible { outline: 3px solid var(--hatcast-avent-green); outline-offset: 3px; }
+.advent__reminder-label input:disabled { opacity: .6; }
+.advent__reminder-copy { display: flex; min-width: 0; flex-direction: column; gap: .1rem; padding-right: .45rem; }
+.advent__reminder-copy strong { color: var(--hatcast-avent-red); font: 700 1.2rem/1.2 var(--advent-heading-font); }
+.advent__reminder-copy span { font: 600 .95rem/1.3 var(--advent-body-font); }
+.advent__reminder p { margin: .35rem .5rem .55rem; font-size: .9rem; line-height: 1.35; }

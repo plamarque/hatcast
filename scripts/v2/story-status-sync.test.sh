@@ -53,6 +53,29 @@ output="$(python3 "${controller}" --project-root "${accented}" --story-key 21-6-
 accented_after="$(shasum -a 256 "${accented_file}" | awk '{print $1}')"
 [[ "${output}" == *$'TRACKING=present'* && "${accented_before}" == "${accented_after}" ]] || fail "accented canonical key was not recognized unchanged"
 
+reconcile="$(make_project reconcile)"
+reconcile_file="${reconcile}/_bmad-output/implementation-artifacts/sprint-status.yaml"
+awk '
+  /  epic-21: backlog/ { print "  epic-21: in-progress"; next }
+  /^action_items:/ { print "  21-6-github-review-decision-controller: backlog" }
+  { print }
+' "${reconcile_file}" >"${reconcile_file}.tmp"
+mv "${reconcile_file}.tmp" "${reconcile_file}"
+before_legacy="$(grep -Fx '  legacy-key: done  # must remain' "${reconcile_file}")"
+output="$(python3 "${controller}" --project-root "${reconcile}" --set-status epic-21=done --set-status 21-6-github-review-decision-controller=done)"
+[[ "${output}" == *$'TRACKING=updated'* ]] || fail "status reconciliation result missing"
+grep -Fx '  epic-21: done' "${reconcile_file}" >/dev/null || fail "epic status was not updated"
+grep -Fx '  21-6-github-review-decision-controller: done' "${reconcile_file}" >/dev/null || fail "story status was not updated"
+[[ "$(grep -Fx '  legacy-key: done  # must remain' "${reconcile_file}")" == "${before_legacy}" ]] || fail "historical entry changed"
+before="$(shasum -a 256 "${reconcile_file}" | awk '{print $1}')"
+python3 "${controller}" --project-root "${reconcile}" --set-status epic-21=done --set-status 21-6-github-review-decision-controller=done >/dev/null
+[[ "${before}" == "$(shasum -a 256 "${reconcile_file}" | awk '{print $1}')" ]] || fail "status reconciliation idempotency changed bytes"
+expect_fail python3 "${controller}" --project-root "${reconcile}" --set-status 21-9-unknown=done
+[[ "${before}" == "$(shasum -a 256 "${reconcile_file}" | awk '{print $1}')" ]] || fail "unknown reconciliation changed bytes"
+
+python3 "${controller}" --project-root "${accented}" --set-status 21-6-github-review-decision-controller=done >/dev/null
+grep -Fx '  21-6-github-réview-decision-controller: done' "${accented_file}" >/dev/null || fail "accented status update lost key"
+
 historical="$(make_project historical)"
 historical_file="${historical}/_bmad-output/implementation-artifacts/sprint-status.yaml"
 historical_entries="$(for number in $(seq 1 238); do printf '  historical-%s: done\\n' "${number}"; done)"
@@ -96,5 +119,42 @@ printf 'development_status:\n' >>"${malformed_file}"
 malformed_before="$(shasum -a 256 "${malformed_file}" | awk '{print $1}')"
 expect_fail python3 "${controller}" --project-root "${malformed}" --story-key 21-6-github-review-decision-controller
 [[ "${malformed_before}" == "$(shasum -a 256 "${malformed_file}" | awk '{print $1}')" ]] || fail "malformed tracking changed bytes"
+
+association="$(make_project association)"
+mkdir -p "${association}/_bmad-output/planning-artifacts/association-groups"
+association_epics="${association}/_bmad-output/planning-artifacts/association-groups/epics.md"
+association_status="${association}/_bmad-output/implementation-artifacts/sprint-status.yaml"
+cat >"${association_epics}" <<'EOF'
+## Epic 23 : Associations
+### Story 23.3a : Préparer les catalogues de rôles par groupe
+### Story 23.6 : Organiser une sélection sans tirage et régler la priorité des rôles
+```
+### Story 23.9 : Example ignored
+```
+EOF
+output="$(python3 "${controller}" --project-root "${association}" --story-key 23-3a-preparer-les-catalogues-de-roles-par-groupe)"
+[[ "${output}" == *$'TRACKING=added'* ]] || fail "association story not added"
+grep -Fx '  23-3a-préparer-les-catalogues-de-rôles-par-groupe: backlog' "${association_status}" >/dev/null || fail "planner key not preserved"
+python3 "${controller}" --project-root "${association}" --story-key 23-6-organiser-une-selection-sans-tirage-et-regler-la-priorite-de >/dev/null || fail "long planner key not recognized"
+expect_fail python3 "${controller}" --project-root "${association}" --story-key 23-9-example-ignored
+before="$(shasum -a 256 "${association_status}" | awk '{print $1}')"
+printf '%s\n' '### Story 23.3a : Preparer les catalogues de roles par groupe' >>"${association_epics}"
+expect_fail python3 "${controller}" --project-root "${association}" --story-key 23-3a-preparer-les-catalogues-de-roles-par-groupe
+[[ "${before}" == "$(shasum -a 256 "${association_status}" | awk '{print $1}')" ]] || fail "ambiguous association changed tracking"
+
+legacy_long="$(make_project legacy-long)"
+printf '%s\n' '#### Story 21.8 : A deliberately very long historical story title that exceeds sixty characters in total' >>"${legacy_long}/_bmad-output/planning-artifacts/epics.md"
+python3 "${controller}" --project-root "${legacy_long}" --story-key 21-8-a-deliberately-very-long-historical-story-title-that-exceeds-sixty-characters-in-total >/dev/null || fail "legacy long key refused"
+
+fences="$(make_project fences)"
+cat >>"${fences}/_bmad-output/planning-artifacts/epics.md" <<'EOF'
+```
+``` not a closing fence
+#### Story 21.9 : Hidden example
+```
+## Epic 21.3 is not an epic heading
+EOF
+expect_fail python3 "${controller}" --project-root "${fences}" --story-key 21-9-hidden-example
+python3 "${controller}" --project-root "${fences}" --story-key 21-6-github-review-decision-controller >/dev/null || fail "non-epic heading disrupted existing epic"
 
 echo "PASS: story status synchronization"

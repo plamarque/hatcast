@@ -1,0 +1,473 @@
+{
+  "source": "https://api.github.com/repos/plamarque/hatcast/actions/runs/38865736869/jobs?per_page=100",
+  "accessed": "2026-10-23",
+  "data": {
+    "total_count": 4,
+    "jobs": [
+      {
+        "id": 116859090795,
+        "run_id": 38865736869,
+        "workflow_name": "Deploy V2 (Cloud Run)",
+        "head_branch": "staging-v2",
+        "run_url": "https://api.github.com/repos/plamarque/hatcast/actions/runs/38865736869",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOPCM1tM8AAAAbNVg3aw",
+        "head_sha": "7792f8e7709564434d1838d30d96889616fcacfb",
+        "url": "https://api.github.com/repos/plamarque/hatcast/actions/jobs/116859090795",
+        "html_url": "https://github.com/plamarque/hatcast/actions/runs/38865736869/job/116859090795",
+        "status": "completed",
+        "conclusion": "success",
+        "created_at": "2026-10-16T07:15:35Z",
+        "started_at": "2026-10-16T07:15:37Z",
+        "completed_at": "2026-10-16T07:15:42Z",
+        "name": "classify-ref",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-16T07:15:38Z",
+            "completed_at": "2026-10-16T07:15:38Z"
+          },
+          {
+            "name": "Classify ref and enforce semver policy",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-16T07:15:39Z",
+            "completed_at": "2026-10-16T07:15:39Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-16T07:15:39Z",
+            "completed_at": "2026-10-16T07:15:39Z"
+          }
+        ],
+        "check_run_url": "https://api.github.com/repos/plamarque/hatcast/check-runs/116859090795",
+        "labels": [
+          "ubuntu-latest"
+        ],
+        "runner_id": 1000003556,
+        "runner_name": "GitHub Actions 1000003556",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions"
+      },
+      {
+        "id": 116859131922,
+        "run_id": 38865736869,
+        "workflow_name": "Deploy V2 (Cloud Run)",
+        "head_branch": "staging-v2",
+        "run_url": "https://api.github.com/repos/plamarque/hatcast/actions/runs/38865736869",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOPCM1tM8AAAAbNVjYEg",
+        "head_sha": "7792f8e7709564434d1838d30d96889616fcacfb",
+        "url": "https://api.github.com/repos/plamarque/hatcast/actions/jobs/116859131922",
+        "html_url": "https://github.com/plamarque/hatcast/actions/runs/38865736869/job/116859131922",
+        "status": "completed",
+        "conclusion": "success",
+        "created_at": "2026-10-16T07:15:42Z",
+        "started_at": "2026-10-16T07:15:44Z",
+        "completed_at": "2026-10-16T07:20:57Z",
+        "name": "e2e-smoke / e2e-smoke",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-16T07:15:45Z",
+            "completed_at": "2026-10-16T07:15:47Z"
+          },
+          {
+            "name": "Run actions/checkout@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-16T07:15:47Z",
+            "completed_at": "2026-10-16T07:15:50Z"
+          },
+          {
+            "name": "Run actions/setup-java@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-16T07:15:50Z",
+            "completed_at": "2026-10-16T07:15:55Z"
+          },
+          {
+            "name": "Run actions/setup-node@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-10-16T07:15:55Z",
+            "completed_at": "2026-10-16T07:16:03Z"
+          },
+          {
+            "name": "Install monorepo dependencies",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5,
+            "started_at": "2026-10-16T07:16:03Z",
+            "completed_at": "2026-10-16T07:16:29Z"
+          },
+          {
+            "name": "Install Playwright Chromium",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6,
+            "started_at": "2026-10-16T07:16:29Z",
+            "completed_at": "2026-10-16T07:16:55Z"
+          },
+          {
+            "name": "Run Playwright E2E suite",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7,
+            "started_at": "2026-10-16T07:16:55Z",
+            "completed_at": "2026-10-16T07:20:53Z"
+          },
+          {
+            "name": "Upload Playwright report on failure",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 8,
+            "started_at": "2026-10-16T07:20:53Z",
+            "completed_at": "2026-10-16T07:20:53Z"
+          },
+          {
+            "name": "Post Run actions/setup-node@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 14,
+            "started_at": "2026-10-16T07:20:53Z",
+            "completed_at": "2026-10-16T07:20:53Z"
+          },
+          {
+            "name": "Post Run actions/setup-java@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 15,
+            "started_at": "2026-10-16T07:20:53Z",
+            "completed_at": "2026-10-16T07:20:53Z"
+          },
+          {
+            "name": "Post Run actions/checkout@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 16,
+            "started_at": "2026-10-16T07:20:53Z",
+            "completed_at": "2026-10-16T07:20:53Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 17,
+            "started_at": "2026-10-16T07:20:53Z",
+            "completed_at": "2026-10-16T07:20:53Z"
+          }
+        ],
+        "check_run_url": "https://api.github.com/repos/plamarque/hatcast/check-runs/116859131922",
+        "labels": [
+          "ubuntu-latest"
+        ],
+        "runner_id": 1000003557,
+        "runner_name": "GitHub Actions 1000003557",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions"
+      },
+      {
+        "id": 116860875265,
+        "run_id": 38865736869,
+        "workflow_name": "Deploy V2 (Cloud Run)",
+        "head_branch": "staging-v2",
+        "run_url": "https://api.github.com/repos/plamarque/hatcast/actions/runs/38865736869",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOPCM1tM8AAAAbNXNyAQ",
+        "head_sha": "7792f8e7709564434d1838d30d96889616fcacfb",
+        "url": "https://api.github.com/repos/plamarque/hatcast/actions/jobs/116860875265",
+        "html_url": "https://github.com/plamarque/hatcast/actions/runs/38865736869/job/116860875265",
+        "status": "completed",
+        "conclusion": "success",
+        "created_at": "2026-10-16T07:20:57Z",
+        "started_at": "2026-10-16T07:21:00Z",
+        "completed_at": "2026-10-16T07:25:21Z",
+        "name": "deploy",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-16T07:21:01Z",
+            "completed_at": "2026-10-16T07:21:02Z"
+          },
+          {
+            "name": "Checkout",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-16T07:21:02Z",
+            "completed_at": "2026-10-16T07:21:03Z"
+          },
+          {
+            "name": "Deployment context",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-16T07:21:03Z",
+            "completed_at": "2026-10-16T07:21:04Z"
+          },
+          {
+            "name": "Check required secrets",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-10-16T07:21:04Z",
+            "completed_at": "2026-10-16T07:21:04Z"
+          },
+          {
+            "name": "Enforce OPS-8 production invariants",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 5,
+            "started_at": "2026-10-16T07:21:04Z",
+            "completed_at": "2026-10-16T07:21:04Z"
+          },
+          {
+            "name": "Authenticate to Google Cloud",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6,
+            "started_at": "2026-10-16T07:21:04Z",
+            "completed_at": "2026-10-16T07:21:04Z"
+          },
+          {
+            "name": "Set up Cloud SDK",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7,
+            "started_at": "2026-10-16T07:21:04Z",
+            "completed_at": "2026-10-16T07:21:25Z"
+          },
+          {
+            "name": "Configure Docker for Artifact Registry",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8,
+            "started_at": "2026-10-16T07:21:25Z",
+            "completed_at": "2026-10-16T07:21:26Z"
+          },
+          {
+            "name": "Build and push image",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9,
+            "started_at": "2026-10-16T07:21:26Z",
+            "completed_at": "2026-10-16T07:24:20Z"
+          },
+          {
+            "name": "Deploy to Cloud Run",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 10,
+            "started_at": "2026-10-16T07:24:20Z",
+            "completed_at": "2026-10-16T07:25:18Z"
+          },
+          {
+            "name": "Post Authenticate to Google Cloud",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 19,
+            "started_at": "2026-10-16T07:25:18Z",
+            "completed_at": "2026-10-16T07:25:18Z"
+          },
+          {
+            "name": "Post Checkout",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 20,
+            "started_at": "2026-10-16T07:25:18Z",
+            "completed_at": "2026-10-16T07:25:18Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 21,
+            "started_at": "2026-10-16T07:25:18Z",
+            "completed_at": "2026-10-16T07:25:18Z"
+          }
+        ],
+        "check_run_url": "https://api.github.com/repos/plamarque/hatcast/check-runs/116860875265",
+        "labels": [
+          "ubuntu-latest"
+        ],
+        "runner_id": 1000003558,
+        "runner_name": "GitHub Actions 1000003558",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions"
+      },
+      {
+        "id": 116862357515,
+        "run_id": 38865736869,
+        "workflow_name": "Deploy V2 (Cloud Run)",
+        "head_branch": "staging-v2",
+        "run_url": "https://api.github.com/repos/plamarque/hatcast/actions/runs/38865736869",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOPCM1tM8AAAAbNYoQCw",
+        "head_sha": "7792f8e7709564434d1838d30d96889616fcacfb",
+        "url": "https://api.github.com/repos/plamarque/hatcast/actions/jobs/116862357515",
+        "html_url": "https://github.com/plamarque/hatcast/actions/runs/38865736869/job/116862357515",
+        "status": "completed",
+        "conclusion": "success",
+        "created_at": "2026-10-16T07:25:21Z",
+        "started_at": "2026-10-16T07:25:25Z",
+        "completed_at": "2026-10-16T07:30:03Z",
+        "name": "e1-preprod-gate / e1-preprod-gate",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-16T07:25:25Z",
+            "completed_at": "2026-10-16T07:25:26Z"
+          },
+          {
+            "name": "Check required configuration",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-16T07:25:26Z",
+            "completed_at": "2026-10-16T07:25:26Z"
+          },
+          {
+            "name": "Run actions/checkout@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-16T07:25:26Z",
+            "completed_at": "2026-10-16T07:25:29Z"
+          },
+          {
+            "name": "Run actions/setup-node@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-10-16T07:25:29Z",
+            "completed_at": "2026-10-16T07:25:37Z"
+          },
+          {
+            "name": "Install monorepo dependencies",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5,
+            "started_at": "2026-10-16T07:25:37Z",
+            "completed_at": "2026-10-16T07:26:03Z"
+          },
+          {
+            "name": "Staging health check (E1-SAN §0)",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6,
+            "started_at": "2026-10-16T07:26:03Z",
+            "completed_at": "2026-10-16T07:26:04Z"
+          },
+          {
+            "name": "PWA smoke (E1 §7 partial)",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7,
+            "started_at": "2026-10-16T07:26:04Z",
+            "completed_at": "2026-10-16T07:26:07Z"
+          },
+          {
+            "name": "Probe Malice season on Neon (skip E1 if replay in progress)",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8,
+            "started_at": "2026-10-16T07:26:07Z",
+            "completed_at": "2026-10-16T07:26:08Z"
+          },
+          {
+            "name": "Malice not ready — skip E1 Playwright",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 9,
+            "started_at": "2026-10-16T07:26:08Z",
+            "completed_at": "2026-10-16T07:26:08Z"
+          },
+          {
+            "name": "Bootstrap isolated staging reminder fixture",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 10,
+            "started_at": "2026-10-16T07:26:08Z",
+            "completed_at": "2026-10-16T07:26:12Z"
+          },
+          {
+            "name": "Install Playwright Chromium",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 11,
+            "started_at": "2026-10-16T07:26:12Z",
+            "completed_at": "2026-10-16T07:26:40Z"
+          },
+          {
+            "name": "Run E1 Playwright gate (member, organizer reminder, and desktop admin)",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 12,
+            "started_at": "2026-10-16T07:26:40Z",
+            "completed_at": "2026-10-16T07:30:00Z"
+          },
+          {
+            "name": "Upload Playwright report on failure",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 13,
+            "started_at": "2026-10-16T07:30:00Z",
+            "completed_at": "2026-10-16T07:30:00Z"
+          },
+          {
+            "name": "Post Run actions/setup-node@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 25,
+            "started_at": "2026-10-16T07:30:00Z",
+            "completed_at": "2026-10-16T07:30:00Z"
+          },
+          {
+            "name": "Post Run actions/checkout@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 26,
+            "started_at": "2026-10-16T07:30:00Z",
+            "completed_at": "2026-10-16T07:30:00Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 27,
+            "started_at": "2026-10-16T07:30:00Z",
+            "completed_at": "2026-10-16T07:30:00Z"
+          }
+        ],
+        "check_run_url": "https://api.github.com/repos/plamarque/hatcast/check-runs/116862357515",
+        "labels": [
+          "ubuntu-latest"
+        ],
+        "runner_id": 1000003559,
+        "runner_name": "GitHub Actions 1000003559",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions"
+      }
+    ]
+  }
+}

@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 10-14-2026 17:55
-last_updated: 10-18-2026
+last_updated: "2026-10-30T00:31:05+01:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -274,3 +274,37 @@ development_status:
   11-4-observabilite-parcours-organisateur-posthog: done
   11-5-observabilite-installation-pwa-posthog: done
   11-7-observabilite-des-panneaux-de-chances-posthog: done  # Manual closure: BUG-BMAD-001 accent mismatch prevents BMad planner transition
+
+  epic-23: backlog
+  23-1-employer-un-vocabulaire-commun-aux-associations: backlog
+  23-2-reconnaître-son-groupe-dans-la-navigation: backlog
+  23-3a-préparer-les-catalogues-de-rôles-par-groupe: backlog
+  23-3-gérer-les-rôles-de-son-groupe: backlog
+  23-4-choisir-ses-rôles-préférés-pour-chaque-groupe: backlog
+  23-5-définir-les-types-d-événements-de-son-groupe: backlog
+  23-6-organiser-une-sélection-sans-tirage-et-régler-la-priorité-de: backlog
+  23-7-rendre-le-bénévolat-facultatif: backlog
+  23-8a-préparer-la-compatibilité-de-l-état-sélectionné: backlog
+  23-8-sélectionner-sans-demander-de-confirmation: backlog
+  23-9-adapter-le-vocabulaire-à-son-groupe: backlog
+  epic-23-retrospective: optional
+
+  epic-25: in-progress
+  25-1-open-an-advent-door-in-isolated-development: done
+  25-2-answer-the-quiz-after-opening-a-door: done
+  25-2a-restart-an-isolated-test-session: done
+  25-3-discover-and-recover-the-quiz-result: done
+  25-4-see-the-friendly-ranking: done
+  25-5-browse-the-calendar-and-past-content: done
+  25-6-enter-the-advent-experience-from-hatcast: done
+  25-7-invite-members-to-the-daily-quiz: done
+  25-9-measure-actual-participation: backlog
+  epic-25-retrospective: optional
+  25-3a-prepare-and-play-validated-quizzes: done
+  25-8-refine-the-advent-art-direction: done
+
+  25-10-decouvrir-le-calendrier-de-lavent: done
+  25-11-generer-un-classement-fictif-pour-les-tests: backlog
+  25-3b-manage-and-synchronize-the-private-advent-catalogue: done
+  25-12-retrouver-le-lutin-endormi-apres-avoir-joue: done
+  25-15-preserve-the-advent-surprise-and-preview-production-content: review

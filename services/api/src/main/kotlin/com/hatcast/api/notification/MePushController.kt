@@ -10,6 +10,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
+import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -21,6 +22,12 @@ import org.springframework.web.bind.annotation.RestController
 class MePushController(
     private val pushSubscriptionService: UserPushSubscriptionService,
 ) {
+    data class SubscriptionStatusRequest(val endpoint: String)
+
+    @PostMapping("/subscription/status")
+    fun subscriptionStatus(@AuthenticationPrincipal principal: SessionUserPrincipal, @RequestBody body: SubscriptionStatusRequest): Map<String, Boolean> =
+        mapOf("owned" to pushSubscriptionService.ownsSubscription(principal.userId, body.endpoint))
+
     @GetMapping
     fun getMyPushStatus(
         @AuthenticationPrincipal principal: SessionUserPrincipal,

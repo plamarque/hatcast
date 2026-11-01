@@ -50,6 +50,7 @@ class DevIdpIdTokenVerifier(
             uid = DevSeedAuthSupport.syntheticIdpUid(user),
             email = email,
             displayName = user.displayName,
+            emailVerified = true, // Validated synthetic identity for the local seed roster.
         )
     }
 

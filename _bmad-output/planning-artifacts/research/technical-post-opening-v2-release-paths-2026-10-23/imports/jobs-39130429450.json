@@ -1,0 +1,354 @@
+{
+  "source": "https://api.github.com/repos/plamarque/hatcast/actions/runs/39130429450/jobs?per_page=100",
+  "accessed": "2026-10-23",
+  "data": {
+    "total_count": 6,
+    "jobs": [
+      {
+        "id": 117684295090,
+        "run_id": 39130429450,
+        "workflow_name": "Deploy V2 (Cloud Run)",
+        "head_branch": "v2.6.3",
+        "run_url": "https://api.github.com/repos/plamarque/hatcast/actions/runs/39130429450",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOPCM1tM8AAAAbZofVsg",
+        "head_sha": "a5fb7f487d73672a3388e4b32ef200c4f314d1aa",
+        "url": "https://api.github.com/repos/plamarque/hatcast/actions/jobs/117684295090",
+        "html_url": "https://github.com/plamarque/hatcast/actions/runs/39130429450/job/117684295090",
+        "status": "completed",
+        "conclusion": "success",
+        "created_at": "2026-10-18T13:11:08Z",
+        "started_at": "2026-10-18T13:11:10Z",
+        "completed_at": "2026-10-18T13:11:12Z",
+        "name": "classify-ref",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-18T13:11:11Z",
+            "completed_at": "2026-10-18T13:11:11Z"
+          },
+          {
+            "name": "Classify ref and enforce semver policy",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-18T13:11:11Z",
+            "completed_at": "2026-10-18T13:11:11Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-18T13:11:11Z",
+            "completed_at": "2026-10-18T13:11:11Z"
+          }
+        ],
+        "check_run_url": "https://api.github.com/repos/plamarque/hatcast/check-runs/117684295090",
+        "labels": [
+          "ubuntu-latest"
+        ],
+        "runner_id": 1000003601,
+        "runner_name": "GitHub Actions 1000003601",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions"
+      },
+      {
+        "id": 117684296249,
+        "run_id": 39130429450,
+        "workflow_name": "Deploy V2 (Cloud Run)",
+        "head_branch": "v2.6.3",
+        "run_url": "https://api.github.com/repos/plamarque/hatcast/actions/runs/39130429450",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOPCM1tM8AAAAbZofaOQ",
+        "head_sha": "a5fb7f487d73672a3388e4b32ef200c4f314d1aa",
+        "url": "https://api.github.com/repos/plamarque/hatcast/actions/jobs/117684296249",
+        "html_url": "https://github.com/plamarque/hatcast/actions/runs/39130429450/job/117684296249",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-18T13:11:08Z",
+        "started_at": "2026-10-18T13:11:08Z",
+        "completed_at": "2026-10-18T13:11:08Z",
+        "name": "posthog-check",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/plamarque/hatcast/check-runs/117684296249",
+        "labels": [
+          "ubuntu-latest"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      },
+      {
+        "id": 117684312102,
+        "run_id": 39130429450,
+        "workflow_name": "Deploy V2 (Cloud Run)",
+        "head_branch": "v2.6.3",
+        "run_url": "https://api.github.com/repos/plamarque/hatcast/actions/runs/39130429450",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOPCM1tM8AAAAbZogYJg",
+        "head_sha": "a5fb7f487d73672a3388e4b32ef200c4f314d1aa",
+        "url": "https://api.github.com/repos/plamarque/hatcast/actions/jobs/117684312102",
+        "html_url": "https://github.com/plamarque/hatcast/actions/runs/39130429450/job/117684312102",
+        "status": "completed",
+        "conclusion": "success",
+        "created_at": "2026-10-18T13:11:13Z",
+        "started_at": "2026-10-18T13:11:15Z",
+        "completed_at": "2026-10-18T13:16:04Z",
+        "name": "deploy",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-18T13:11:16Z",
+            "completed_at": "2026-10-18T13:11:17Z"
+          },
+          {
+            "name": "Checkout",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-18T13:11:17Z",
+            "completed_at": "2026-10-18T13:11:19Z"
+          },
+          {
+            "name": "Deployment context",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-18T13:11:19Z",
+            "completed_at": "2026-10-18T13:11:19Z"
+          },
+          {
+            "name": "Check required secrets",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-10-18T13:11:19Z",
+            "completed_at": "2026-10-18T13:11:19Z"
+          },
+          {
+            "name": "Enforce OPS-8 production invariants",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5,
+            "started_at": "2026-10-18T13:11:19Z",
+            "completed_at": "2026-10-18T13:11:19Z"
+          },
+          {
+            "name": "Authenticate to Google Cloud",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6,
+            "started_at": "2026-10-18T13:11:19Z",
+            "completed_at": "2026-10-18T13:11:19Z"
+          },
+          {
+            "name": "Set up Cloud SDK",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7,
+            "started_at": "2026-10-18T13:11:19Z",
+            "completed_at": "2026-10-18T13:11:39Z"
+          },
+          {
+            "name": "Configure Docker for Artifact Registry",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8,
+            "started_at": "2026-10-18T13:11:39Z",
+            "completed_at": "2026-10-18T13:11:40Z"
+          },
+          {
+            "name": "Build and push image",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9,
+            "started_at": "2026-10-18T13:11:40Z",
+            "completed_at": "2026-10-18T13:14:36Z"
+          },
+          {
+            "name": "Deploy to Cloud Run",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 10,
+            "started_at": "2026-10-18T13:14:36Z",
+            "completed_at": "2026-10-18T13:16:01Z"
+          },
+          {
+            "name": "Post Authenticate to Google Cloud",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 19,
+            "started_at": "2026-10-18T13:16:01Z",
+            "completed_at": "2026-10-18T13:16:01Z"
+          },
+          {
+            "name": "Post Checkout",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 20,
+            "started_at": "2026-10-18T13:16:01Z",
+            "completed_at": "2026-10-18T13:16:02Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 21,
+            "started_at": "2026-10-18T13:16:02Z",
+            "completed_at": "2026-10-18T13:16:02Z"
+          }
+        ],
+        "check_run_url": "https://api.github.com/repos/plamarque/hatcast/check-runs/117684312102",
+        "labels": [
+          "ubuntu-latest"
+        ],
+        "runner_id": 1000003602,
+        "runner_name": "GitHub Actions 1000003602",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions"
+      },
+      {
+        "id": 117684312901,
+        "run_id": 39130429450,
+        "workflow_name": "Deploy V2 (Cloud Run)",
+        "head_branch": "v2.6.3",
+        "run_url": "https://api.github.com/repos/plamarque/hatcast/actions/runs/39130429450",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOPCM1tM8AAAAbZogbRQ",
+        "head_sha": "a5fb7f487d73672a3388e4b32ef200c4f314d1aa",
+        "url": "https://api.github.com/repos/plamarque/hatcast/actions/jobs/117684312901",
+        "html_url": "https://github.com/plamarque/hatcast/actions/runs/39130429450/job/117684312901",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-18T13:11:13Z",
+        "started_at": "2026-10-18T13:11:13Z",
+        "completed_at": "2026-10-18T13:11:13Z",
+        "name": "e2e-smoke",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/plamarque/hatcast/check-runs/117684312901",
+        "labels": [],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      },
+      {
+        "id": 117685349957,
+        "run_id": 39130429450,
+        "workflow_name": "Deploy V2 (Cloud Run)",
+        "head_branch": "v2.6.3",
+        "run_url": "https://api.github.com/repos/plamarque/hatcast/actions/runs/39130429450",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOPCM1tM8AAAAbZpfuRQ",
+        "head_sha": "a5fb7f487d73672a3388e4b32ef200c4f314d1aa",
+        "url": "https://api.github.com/repos/plamarque/hatcast/actions/jobs/117685349957",
+        "html_url": "https://github.com/plamarque/hatcast/actions/runs/39130429450/job/117685349957",
+        "status": "completed",
+        "conclusion": "failure",
+        "created_at": "2026-10-18T13:16:05Z",
+        "started_at": "2026-10-18T13:16:08Z",
+        "completed_at": "2026-10-18T13:16:23Z",
+        "name": "posthog-lifecycle",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-18T13:16:09Z",
+            "completed_at": "2026-10-18T13:16:09Z"
+          },
+          {
+            "name": "Run actions/checkout@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-18T13:16:09Z",
+            "completed_at": "2026-10-18T13:16:12Z"
+          },
+          {
+            "name": "Run actions/setup-node@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-18T13:16:12Z",
+            "completed_at": "2026-10-18T13:16:20Z"
+          },
+          {
+            "name": "Synchronize release reference and lifecycle dashboard",
+            "status": "completed",
+            "conclusion": "failure",
+            "number": 4,
+            "started_at": "2026-10-18T13:16:20Z",
+            "completed_at": "2026-10-18T13:16:21Z"
+          },
+          {
+            "name": "Post Run actions/setup-node@v4",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 7,
+            "started_at": "2026-10-18T13:16:21Z",
+            "completed_at": "2026-10-18T13:16:21Z"
+          },
+          {
+            "name": "Post Run actions/checkout@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8,
+            "started_at": "2026-10-18T13:16:21Z",
+            "completed_at": "2026-10-18T13:16:22Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9,
+            "started_at": "2026-10-18T13:16:22Z",
+            "completed_at": "2026-10-18T13:16:22Z"
+          }
+        ],
+        "check_run_url": "https://api.github.com/repos/plamarque/hatcast/check-runs/117685349957",
+        "labels": [
+          "ubuntu-latest"
+        ],
+        "runner_id": 1000003603,
+        "runner_name": "GitHub Actions 1000003603",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions"
+      },
+      {
+        "id": 117685350842,
+        "run_id": 39130429450,
+        "workflow_name": "Deploy V2 (Cloud Run)",
+        "head_branch": "v2.6.3",
+        "run_url": "https://api.github.com/repos/plamarque/hatcast/actions/runs/39130429450",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOPCM1tM8AAAAbZpfxug",
+        "head_sha": "a5fb7f487d73672a3388e4b32ef200c4f314d1aa",
+        "url": "https://api.github.com/repos/plamarque/hatcast/actions/jobs/117685350842",
+        "html_url": "https://github.com/plamarque/hatcast/actions/runs/39130429450/job/117685350842",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-18T13:16:05Z",
+        "started_at": "2026-10-18T13:16:05Z",
+        "completed_at": "2026-10-18T13:16:05Z",
+        "name": "e1-preprod-gate",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/plamarque/hatcast/check-runs/117685350842",
+        "labels": [],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      }
+    ]
+  }
+}

@@ -45,12 +45,15 @@
     "test:migrate": "node --test scripts/v1/*.test.js scripts/v2/migrate-lib/*.test.mjs scripts/v2/e1-staging-migration-assert.test.mjs scripts/v2/e1-staging-reminder-fixture.test.mjs scripts/v2/migrate-post-smoke.test.mjs scripts/v2/notification-volume/simulator.test.js scripts/v2/audit-db-latency.test.mjs",
     "generate:improbots-dev-seed": "node scripts/v2/generate-improbots-seed-sql.js",
     "generate:improbots-seed": "npm run generate:improbots-dev-seed",
-    "generate:malice-seed": "npm run generate:improbots-dev-seed"
+    "generate:malice-seed": "npm run generate:improbots-dev-seed",
+    "test:advent-catalogue": "node --test scripts/v2/advent-catalogue-*.test.mjs"
   },
   "engines": {
     "node": ">=20"
   },
   "devDependencies": {
-    "pg": "^8.21.0"
+    "pg": "^8.21.0",
+    "@google-cloud/storage": "7.17.0",
+    "google-auth-library": "9.15.1"
   }
 }

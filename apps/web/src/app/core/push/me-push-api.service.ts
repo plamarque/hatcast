@@ -16,6 +16,18 @@ export type ApiResult<T> = { ok: boolean; status: number; data?: T }
 
 @Injectable({ providedIn: 'root' })
 export class MePushApiService {
+  async ownsSubscription(endpoint: string): Promise<ApiResult<{ owned: boolean }>> {
+    try {
+      const res = await fetch('/v1/me/push/subscription/status', {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
+        body: JSON.stringify({ endpoint }),
+      })
+      if (!res.ok) return { ok: false, status: res.status }
+      return { ok: true, status: res.status, data: await res.json() as { owned: boolean } }
+    } catch { return { ok: false, status: 0 } }
+  }
+
   async getPublicConfig(): Promise<ApiResult<PublicConfig>> {
     try {
       const res = await fetch('/v1/config/public')

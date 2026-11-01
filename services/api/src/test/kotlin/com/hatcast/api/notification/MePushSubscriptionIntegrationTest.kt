@@ -25,6 +25,10 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPat
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.hamcrest.Matchers.nullValue
 import java.util.UUID
+import com.hatcast.api.notification.dto.RegisterPushSubscriptionRequest
+import com.hatcast.api.notification.dto.PushSubscriptionKeysDto
+import org.junit.jupiter.api.assertThrows
+import org.springframework.web.server.ResponseStatusException
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -45,6 +49,12 @@ class MePushSubscriptionIntegrationTest {
     @Autowired
     private lateinit var subscriptionRepository: UserPushSubscriptionRepository
 
+    @Autowired
+    private lateinit var pushService: UserPushSubscriptionService
+
+    @Autowired
+    private lateinit var adventDevices: AdventReminderDeviceRepository
+
     @MockBean
     private lateinit var googleIdTokenService: GoogleIdTokenService
 
@@ -52,6 +62,34 @@ class MePushSubscriptionIntegrationTest {
     private lateinit var idpIdTokenVerifier: IdpIdTokenVerifier
 
     private val seedTroupeId: UUID = UUID.fromString("a0000001-0000-4000-8000-000000000001")
+
+    @Test
+    fun `advent device changes account only with matching keys and preserves HatCast`() {
+        signInAndJoin("advent-device-a", "advent-device-a@example.com", "Device A")
+        signInAndJoin("advent-device-b", "advent-device-b@example.com", "Device B")
+        val a = userRepository.findByGoogleSub("advent-device-a")!!
+        val b = userRepository.findByGoogleSub("advent-device-b")!!
+        val first = RegisterPushSubscriptionRequest("https://push.example.com/advent-${a.id}-1", PushSubscriptionKeysDto("key", "auth"))
+        val second = first.copy(endpoint = "https://push.example.com/advent-${a.id}-2")
+        pushService.registerAdventDevice(a.id, first, null)
+        pushService.registerAdventDevice(a.id, second, null)
+        assertFalse(userRepository.findById(a.id).orElseThrow().pushNotificationsEnabled)
+        assertEquals(2, adventDevices.findByUserId(a.id).size)
+        assertEquals(0, subscriptionRepository.findByUserId(a.id).size)
+        assertThrows<ResponseStatusException> { pushService.registerAdventDevice(b.id, first.copy(keys = PushSubscriptionKeysDto("wrong", "auth")), null) }
+        pushService.registerAdventDevice(b.id, second, null)
+        assertEquals(setOf(second.endpoint), adventDevices.findByUserId(b.id).map { it.endpoint }.toSet())
+        pushService.registerAdventDevice(a.id, second, null)
+        pushService.registerSubscription(a.id, first, null)
+        val before = pushService.getStatus(a.id)
+        pushService.registerAdventDevice(b.id, first, null)
+        assertEquals(1, adventDevices.findByUserId(a.id).size)
+        assertEquals(1, adventDevices.findByUserId(b.id).size)
+        assertEquals(before, pushService.getStatus(a.id))
+        assertEquals(first.endpoint, subscriptionRepository.findByUserId(a.id).single().endpoint)
+        assertEquals(0, subscriptionRepository.findByUserId(b.id).size)
+        assertFalse(userRepository.findById(b.id).orElseThrow().pushNotificationsEnabled)
+    }
 
     private fun registerBodyFor(endpoint: String) =
         """
