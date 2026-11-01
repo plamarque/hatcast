@@ -342,6 +342,8 @@ En développement isolé, les flèches changent uniquement la date simulée de l
 
 ### Advent quiz content
 
+The private catalogue is the canonical preparation source; only validated contributions are selected for synchronization. Each character has a stable identity and fixed day, represented by a private reservation independently of its optional quiz. Prepared complete quizzes in the target database are the runtime content. Deletion from a test target removes its selected reservations and preserves assignments in the canonical source.
+
 A prepared quiz identifies a day, a display name, three ordered statements and the index of the false statement, with an optional private portrait reference and explanation. The explanation is disclosed only with an eligible result. Test game state is separate from quiz content. An exceptional edit during play may produce an inconsistent result.
 
 Dans le classement des deux opérateurs vérifiés en développement isolé, toutes les réponses normales enregistrées participent au score courant quelle que soit la date simulée ; les membres ordinaires voient seulement les réponses révélables. Les membres actifs classables sans réponse figurent avec zéro point ; les ex æquo obtiennent le dernier rang de leur groupe. Le score personnel des comptes exclus reste visible sans rang.
@@ -360,3 +362,5 @@ La fermeture explicite du parcours est propre à un membre et à une date civile
 ### Première découverte du calendrier
 
 La découverte du calendrier est un état propre à chaque membre, durable et partagé entre ses appareils. Elle résulte exclusivement de l’action explicite d’ouverture du calendrier ; elle est distincte des fermetures quotidiennes et des réponses.
+
+The shared private Advent bucket stores the canonical catalogue under `catalogue/` and elf images under `portraits/`. Cloud runtime resolves simple database portrait references under `portraits/`; offline uses the local private directory. Environments retain distinct databases. Migration and deployment require separate authorization; existing objects and game state are preserved.

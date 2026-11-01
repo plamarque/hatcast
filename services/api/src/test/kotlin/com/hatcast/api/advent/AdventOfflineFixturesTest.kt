@@ -10,6 +10,10 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource
 import org.springframework.jdbc.datasource.init.ScriptUtils
 import org.springframework.core.io.ClassPathResource
 import org.springframework.mock.env.MockEnvironment
+import org.springframework.context.annotation.AnnotationConfigApplicationContext
+import org.springframework.boot.SpringApplication
+import org.springframework.boot.context.event.ApplicationReadyEvent
+import java.time.Duration
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -21,6 +25,8 @@ class AdventOfflineFixturesTest {
         val ds = DriverManagerDataSource("jdbc:h2:file:${dir.resolve("hatcast")};MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE", "sa", "")
         val jdbc = JdbcTemplate(ds)
         jdbc.execute("CREATE TABLE advent_quizzes (quiz_day INTEGER PRIMARY KEY, display_name TEXT, portrait_ref TEXT, statement_0 TEXT, statement_1 TEXT, statement_2 TEXT, false_choice INTEGER, explanation TEXT)")
+        jdbc.execute("CREATE TABLE advent_local_deleted_days (quiz_day INTEGER PRIMARY KEY)")
+        jdbc.execute("CREATE TABLE advent_character_reservations (quiz_day INTEGER PRIMARY KEY)")
         jdbc.execute("CREATE TABLE advent_test_answers (quiz_day INTEGER, marker VARCHAR(20))")
         jdbc.execute("CREATE TABLE advent_member_demo_quizzes (quiz_day INTEGER PRIMARY KEY, display_name TEXT, statement_0 TEXT, statement_1 TEXT, statement_2 TEXT, false_choice INTEGER)")
         jdbc.execute("CREATE TABLE advent_member_answers (quiz_day INTEGER, marker VARCHAR(20))")
@@ -78,6 +84,31 @@ class AdventOfflineFixturesTest {
             assertEquals(expectedKeys[index], key)
             assertEquals(expectedFalseStatements[index], quiz["statement_$key"])
         }
+    }
+
+    @Test fun `offline restart does not recreate a deleted day`() {
+        val (ds, jdbc) = database()
+        fun startAndStop() {
+            val context = AnnotationConfigApplicationContext()
+            context.registerBean(AdventOfflineFixtures::class.java, java.util.function.Supplier { fixtures(arrayOf("offline"), ds, jdbc) })
+            context.refresh()
+            context.publishEvent(ApplicationReadyEvent(SpringApplication(), emptyArray(), context, Duration.ZERO))
+            context.close()
+        }
+        startAndStop()
+        jdbc.update("DELETE FROM advent_quizzes WHERE quiz_day = 5")
+        jdbc.update("INSERT INTO advent_local_deleted_days VALUES (5)")
+        startAndStop()
+        assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM advent_quizzes WHERE quiz_day = 5", Int::class.java))
+        assertEquals(23, jdbc.queryForObject("SELECT COUNT(*) FROM advent_quizzes", Int::class.java))
+    }
+
+    @Test fun `reserved days remain unavailable when offline fixtures are prepared`() {
+        val (ds, jdbc) = database()
+        jdbc.update("INSERT INTO advent_character_reservations VALUES (1), (5)")
+        fixtures(arrayOf("offline"), ds, jdbc).prepare()
+        assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM advent_quizzes WHERE quiz_day IN (1, 5)", Int::class.java))
+        assertEquals(22, jdbc.queryForObject("SELECT COUNT(*) FROM advent_quizzes", Int::class.java))
     }
 
     @Test fun `existing quizzes and answers are preserved and missing answered day is not invented`() {
