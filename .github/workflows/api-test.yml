@@ -7,15 +7,33 @@ on:
     paths:
       - 'services/api/**'
       - '.github/workflows/api-test.yml'
+      - 'scripts/v2/advent-ci/**'
   push:
     branches: [v2, main]
     paths:
       - 'services/api/**'
       - '.github/workflows/api-test.yml'
+      - 'scripts/v2/advent-ci/**'
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      advent-postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: advent_ci
+          POSTGRES_USER: advent_ci
+          POSTGRES_PASSWORD: advent_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U advent_ci -d advent_ci"
+          --health-interval 10s --health-timeout 5s --health-retries 10
+    env:
+      ADVENT_TEST_POSTGRES_URL: jdbc:postgresql://127.0.0.1:5432/advent_ci
+      ADVENT_TEST_POSTGRES_USER: advent_ci
+      ADVENT_TEST_POSTGRES_PASSWORD: advent_ci
     defaults:
       run:
         working-directory: services/api
@@ -30,4 +48,24 @@ jobs:
             services/api/build.gradle.kts
             services/api/gradle/wrapper/gradle-wrapper.properties
       - name: Run Gradle test suite
-        run: ./gradlew test --no-daemon
+        run: |
+          : "${ADVENT_TEST_POSTGRES_URL:?}" "${ADVENT_TEST_POSTGRES_USER:?}" "${ADVENT_TEST_POSTGRES_PASSWORD:?}"
+          echo "Candidate SHA: $GITHUB_SHA"
+          ./gradlew cleanTest test --no-daemon
+      - name: Validate Advent PostgreSQL evidence
+        if: always()
+        working-directory: .
+        run: >-
+          python3 scripts/v2/advent-ci/check_reports.py 'services/api/build/test-results/test/TEST-*.xml'
+          com.hatcast.api.advent.AdventMemberPostgresTest
+          com.hatcast.api.advent.AdventRankingPostgresTest
+          com.hatcast.api.advent.AdventResultPostgresTest
+      - name: Upload Gradle test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-test-results
+          path: |
+            services/api/build/test-results/test/
+            services/api/build/reports/tests/test/
+          if-no-files-found: warn

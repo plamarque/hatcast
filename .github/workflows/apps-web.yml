@@ -7,12 +7,16 @@ on:
       - 'apps/web/**'
       - 'package.json'
       - 'package-lock.json'
+      - '.github/workflows/apps-web.yml'
+      - 'scripts/v2/advent-ci/**'
   push:
     branches: [v2, main]
     paths:
       - 'apps/web/**'
       - 'package.json'
       - 'package-lock.json'
+      - '.github/workflows/apps-web.yml'
+      - 'scripts/v2/advent-ci/**'
 
 jobs:
   build-placeholder:
@@ -27,3 +31,25 @@ jobs:
         run: npm ci
       - name: Run apps/web build script (placeholder until Angular scaffold)
         run: npm run build -w @hatcast/web
+
+      # Advent-specific evidence; the existing build remains independent.
+      - name: Check Advent report validator
+        run: python3 -m unittest discover -s scripts/v2/advent-ci -p 'test_*.py'
+      - name: Run Advent and member shell Angular tests
+        working-directory: apps/web
+        run: |
+          echo "Candidate SHA: $GITHUB_SHA"
+          npm test -- --watch=false --include=src/app/pages/advent-test/advent-test.spec.ts --include=src/app/layout/member-shell/member-shell.spec.ts --reporters=junit --output-file=advent-angular-results.xml
+      - name: Validate Angular evidence
+        if: always()
+        run: >-
+          python3 scripts/v2/advent-ci/check_reports.py apps/web/advent-angular-results.xml
+          src/app/pages/advent-test/advent-test.spec.ts
+          src/app/layout/member-shell/member-shell.spec.ts
+      - name: Upload Angular evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: advent-angular-results
+          path: apps/web/advent-angular-results.xml
+          if-no-files-found: warn
