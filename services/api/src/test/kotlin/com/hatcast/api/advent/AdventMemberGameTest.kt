@@ -46,6 +46,26 @@ class AdventMemberGameTest {
         jdbc.update("INSERT INTO advent_quizzes (quiz_day, display_name, statement_0, statement_1, statement_2, false_choice) VALUES (1, 'Personnage fictif', 'A', 'B', 'C', 0)")
         at("2026-12-01T12:00:00Z")
     }
+    @Test fun `clock projection samples Paris midnight coherently in real and simulated modes`() {
+        at("2026-12-24T22:59:59Z")
+        val before = game.clockProjection()
+        assertEquals(LocalDate.of(2026, 12, 24), before.date)
+        assertEquals(Instant.parse("2026-12-24T22:59:59Z"), before.effectiveInstant)
+        assertEquals(Instant.parse("2026-12-24T23:00:00Z"), before.nextMidnight)
+        assertFalse(before.simulated)
+        at("2026-12-24T23:00:00Z")
+        val after = game.clockProjection()
+        assertEquals(LocalDate.of(2026, 12, 25), after.date)
+        assertEquals(Instant.parse("2026-12-25T23:00:00Z"), after.nextMidnight)
+        `when`(clock.isolatedControlsAllowed()).thenReturn(true)
+        val session = game.session()
+        val simulated = game.clockProjection(session, LocalDate.of(2026, 12, 2))
+        assertEquals(Instant.parse("2026-12-01T23:00:00Z"), simulated.effectiveInstant)
+        assertEquals(Instant.parse("2026-12-02T23:00:00Z"), simulated.nextMidnight)
+        assertTrue(simulated.simulated)
+        `when`(clock.isolatedControlsAllowed()).thenReturn(false)
+        assertThrows(ResponseStatusException::class.java) { game.clockProjection(session, LocalDate.of(2026, 12, 2)) }
+    }
     private fun reserve(day: Int = 1): UUID {
         val generation = game.reconcile(member, day).generation!!
         val attempt = UUID.randomUUID()

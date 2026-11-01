@@ -83,3 +83,7 @@ La première visite présente une scène hivernale avec lutin, cadeau, village e
 ### Accueil de découverte — ajustement validé
 
 Le panneau crème présente le logo de La Malice centré, le titre « Le Quizz de l’Avent » et le sous-titre « Chaque jour, les lutins malicieux te confient leurs secrets ! ». Le lutin est placé juste au-dessus. Sous le panneau, le bouton principal enneigé « Commencer à jouer » ouvre le calendrier ; le bouton secondaire crème bordé de vert « Revenir à HatCast » ferme l’expérience comme la croix.
+
+### Retour à une réponse en attente
+
+La consultation ultérieure de la case du jour déjà jouée présente un lutin endormi dans la neige, au bonnet vert et à la clochette, dans une nuit éclairée. « Reviens demain ! », l’explication et le décompte jusqu’au résultat restent des textes adaptables ; la confirmation immédiatement après réponse conserve sa composition.

@@ -185,3 +185,7 @@ La première visite affiche une invitation avant tout résultat ou quiz. L’act
 Le titre « Quiz de l’Avent » dans la barre supérieure permet à chaque membre de revoir l’accueil sans modifier l’état de découverte ni les réponses. Il est indisponible pendant une révélation prioritaire ou une opération en cours. L’action de l’accueil ouvre le calendrier selon les contrôles habituels, notamment la priorité de révélation.
 
 En mode test autorisé, une commande du calendrier permet également de prévisualiser l’accusé de réponse avec un lutin fictif, sans enregistrer ni effacer de réponse.
+
+### Retour à la case jouée du jour
+
+Depuis le calendrier, revenir sur une réponse normale enregistrée et encore en attente affiche une scène distincte de la confirmation immédiate. Un décompte indique le temps avant le résultat, jusqu’au prochain minuit parisien. Une vérification serveur est nécessaire avant toute révélation ; une erreur reste récupérable. En mode test, la date simulée reste explicite et seul son changement déclenche la révélation correspondante. Le 25 décembre est un bilan, sans nouveau quiz.
