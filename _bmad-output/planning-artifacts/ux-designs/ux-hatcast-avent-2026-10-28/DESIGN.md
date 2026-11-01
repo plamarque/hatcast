@@ -35,7 +35,7 @@ Panneaux chaleureux, contours dorés, neige et ombres douces inspirés des réf�
 
 ## Shapes
 
-La grille livrée évoque des portes. Pour son évolution, Patrice et Toinou retiennent des cadeaux ouverts ou fermés ; un cadeau s’ouvre dès qu’une réponse est enregistrée. Les futures restent verrouillées. La grande porte comporte des étoiles et flocons flottants et une bordure animée ; une lumière douce apparaît à l’ouverture, avec alternative sans mouvement. Dans la grille livrée, la case du jour est fermée et numérotée, sans cadenas ; une couleur distincte peut attirer discrètement l’attention. Chaque case conserve un numéro visible.
+La grille livrée évoque des portes. Pour son évolution, Patrice et Toinou retiennent des cadeaux ouverts ou fermés ; un cadeau s’ouvre dès qu’une réponse est enregistrée. Les cases futures restent verrouillées en parcours ordinaire. La grande porte comporte des étoiles et flocons flottants et une bordure animée ; une lumière douce apparaît à l’ouverture, avec alternative sans mouvement. Dans la grille livrée, la case du jour est fermée et numérotée, sans cadenas ; une couleur distincte peut attirer discrètement l’attention. Chaque case conserve un numéro visible.
 
 ## Components
 
@@ -87,3 +87,8 @@ Le panneau crème présente le logo de La Malice centré, le titre « Le Quizz d
 ### Retour à une réponse en attente
 
 La consultation ultérieure de la case du jour déjà jouée présente un lutin endormi dans la neige, au bonnet vert et à la clochette, dans une nuit éclairée. « Reviens demain ! », l’explication et le décompte jusqu’au résultat restent des textes adaptables ; la confirmation immédiatement après réponse conserve sa composition.
+
+
+### Prévisualisation privée de production
+
+La route directe réservée aux deux personnes autorisées ouvre le calendrier et ses cases futures ; une réponse est définitive, son résultat personnel et son explication sont immédiatement consultables et récupérables. Identifier clairement la prévisualisation sans afficher de contrôles de simulation ou d’effacement. Préserver clavier, focus, mouvement réduit, lisibilité mobile et isolation visuelle Advent. Dans la navigation ordinaire, aucune erreur ne révèle l’Avent avant son ouverture.

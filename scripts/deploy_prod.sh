@@ -80,6 +80,12 @@ if [[ "${REDEPLOY}" == true ]]; then
     exit 1
   fi
 
+  if ! git cat-file -e "${PROD_TAG}:.github/workflows/advent-regression.yml" 2>/dev/null ||
+     ! git show "${PROD_TAG}:.github/workflows/deploy-v2-cloud-run.yml" 2>/dev/null | rg "needs.advent-regression.result == 'success'" >/dev/null; then
+    echo "❌ ${PROD_TAG} ne contient pas la porte de régression Avent ; redéploiement refusé." >&2
+    exit 1
+  fi
+
   echo "📦 deploy_prod — redeploy ${PROD_TAG}"
   if [[ "${DRY_RUN}" == true ]]; then
     echo "🧪 DRY RUN: gh workflow run deploy-v2-cloud-run.yml --ref ${PROD_TAG}"

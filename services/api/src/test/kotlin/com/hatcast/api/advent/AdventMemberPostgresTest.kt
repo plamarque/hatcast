@@ -23,6 +23,46 @@ import java.util.concurrent.TimeoutException
 
 @EnabledIfEnvironmentVariable(named = "ADVENT_TEST_POSTGRES_URL", matches = ".+")
 class AdventMemberPostgresTest {
+    @Test fun `preview reads only its owners future result on PostgreSQL`() {
+        val url = System.getenv("ADVENT_TEST_POSTGRES_URL")
+        require(url.startsWith("jdbc:postgresql://127.0.0.1:"))
+        val root = JdbcTemplate(DriverManagerDataSource(url, System.getenv("ADVENT_TEST_POSTGRES_USER"), System.getenv("ADVENT_TEST_POSTGRES_PASSWORD")))
+        val schema = "advent_preview_" + UUID.randomUUID().toString().replace("-", "")
+        root.execute("CREATE SCHEMA $schema")
+        try {
+            val ds = DriverManagerDataSource(url + (if (url.contains('?')) "&" else "?") + "currentSchema=$schema", System.getenv("ADVENT_TEST_POSTGRES_USER"), System.getenv("ADVENT_TEST_POSTGRES_PASSWORD"))
+            val jdbc = JdbcTemplate(ds)
+            listOf(
+                "CREATE TABLE advent_member_lock (id INTEGER PRIMARY KEY, test_session_id UUID)", "INSERT INTO advent_member_lock VALUES (1, NULL)",
+                "CREATE TABLE advent_member_answers (user_id UUID, quiz_day INTEGER, answer_id UUID, choice INTEGER, correct_choice INTEGER, answered_at TIMESTAMPTZ, reveal_at TIMESTAMPTZ, seen_at TIMESTAMPTZ, late BOOLEAN NOT NULL DEFAULT FALSE)",
+                "CREATE TABLE advent_member_attempts (id UUID PRIMARY KEY, user_id UUID, quiz_day INTEGER, late BOOLEAN NOT NULL DEFAULT FALSE, cancelled BOOLEAN NOT NULL DEFAULT FALSE)",
+                "CREATE TABLE advent_member_generations (user_id UUID, quiz_day INTEGER, generation UUID, late BOOLEAN NOT NULL DEFAULT FALSE)",
+                "CREATE TABLE advent_member_replays (user_id UUID, quiz_day INTEGER, late BOOLEAN NOT NULL DEFAULT FALSE)",
+                "CREATE TABLE advent_quizzes (quiz_day INTEGER, display_name TEXT, portrait_ref TEXT, statement_0 TEXT, statement_1 TEXT, statement_2 TEXT, false_choice INTEGER, explanation TEXT)",
+                "INSERT INTO advent_quizzes VALUES (23, 'Fictif', NULL, 'A', 'B', 'C', 1, 'Explication fictive')"
+            ).forEach(jdbc::execute)
+            val owner = UUID.randomUUID(); val other = UUID.randomUUID()
+            jdbc.update("INSERT INTO advent_member_answers VALUES (?, 23, ?, 1, 1, ?, ?, ?, FALSE)", owner, UUID.randomUUID(), Timestamp.from(Instant.parse("2026-11-30T12:00:00Z")), Timestamp.from(Instant.parse("2026-12-23T23:00:00Z")), Timestamp.from(Instant.parse("2026-11-30T12:00:00Z")))
+            val clock = mock(AdventMemberClock::class.java)
+            `when`(clock.instant()).thenReturn(Instant.parse("2026-11-30T22:59:59Z"))
+            val game = AdventMemberGame(jdbc, clock, AdventTestAnswers(jdbc), MockEnvironment())
+            val tx = TransactionTemplate(DataSourceTransactionManager(ds))
+            tx.executeWithoutResult {
+                assertEquals("Explication fictive", game.result(owner, 23, preview = true)!!.explanation)
+                assertNull(game.result(other, 23, preview = true))
+                assertThrows(org.springframework.web.server.ResponseStatusException::class.java) { game.result(owner, 23) }
+                assertEquals("correct", game.calendar(owner, preview = true).days!!.single { it.day == 23 }.outcome)
+                val generation = game.reconcile(other, 23, preview = true).generation!!
+                val attempt = UUID.randomUUID()
+                assertEquals("available", game.reserve(other, 23, attempt, generation, preview = true).status)
+                assertEquals("recorded", game.confirm(other, 23, 1, attempt, preview = true).status)
+                val result = game.result(other, 23, preview = true)!!
+                assertEquals("Explication fictive", result.explanation)
+                game.acknowledge(other, 23, UUID.fromString(result.answerId), preview = true)
+                assertNull(game.latestUnseen(other, preview = true))
+            }
+        } finally { root.execute("DROP SCHEMA $schema CASCADE") }
+    }
     @Test fun `offline transition migration preserves data and identifies ambiguous days`() {
         val url = System.getenv("ADVENT_TEST_POSTGRES_URL")
         require(url.startsWith("jdbc:postgresql://127.0.0.1:"))

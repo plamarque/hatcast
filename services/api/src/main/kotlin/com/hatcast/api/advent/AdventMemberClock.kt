@@ -13,9 +13,25 @@ import javax.sql.DataSource
 /** Only a proven isolated local or named development runtime may use the configured offset. */
 @Component
 class AdventMemberClock(private val environment: Environment, private val dataSource: DataSource, private val offlineRoot: AdventOfflineRoot) {
+    @Volatile private var fixtureOverride: Instant? = null
+
+    fun setFixtureInstant(value: Instant) {
+        if (!fixtureAllowed()) throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        fixtureOverride = value
+    }
+
+    private fun fixtureAllowed(): Boolean = environment.activeProfiles.toSet() == setOf("e2e") &&
+        environment.getProperty("hatcast.advent.e2e-fixed-instant") != null && environment.getProperty("K_SERVICE") == null &&
+        dataSource.connection.use { it.metaData.url.startsWith("jdbc:h2:mem:hatcast_e2e") }
+
     fun instant(): Instant {
         val actual = Instant.now()
         val profiles = environment.activeProfiles.toSet()
+        // A fixed clock is available only to the dedicated in-memory browser fixture.
+        val fixtureTime = environment.getProperty("hatcast.advent.e2e-fixed-instant")
+        if (fixtureTime != null && fixtureAllowed()) {
+            return fixtureOverride ?: Instant.parse(fixtureTime)
+        }
         val service = environment.getProperty("K_SERVICE")
         // Explicit production never applies an offset, even if one was accidentally configured.
         if ("prod" in profiles || (profiles == setOf("cloud") && service == "hatcast-v2")) return actual

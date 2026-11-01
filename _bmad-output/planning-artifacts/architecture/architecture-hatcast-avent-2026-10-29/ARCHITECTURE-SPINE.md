@@ -37,17 +37,26 @@ flowchart LR
 
 ### AD-1 — Accès et confidentialité [ADOPTED]
 
+**Exception de prévisualisation approuvée :** L’exception d’aperçu autorise seulement les deux identités vérifiées et actives à lire leurs contenus et résultats futurs ; elle ne rend rien accessible aux autres personnes.
+
+
 - **Binds:** FR-1, FR-4, FR-6, FR-10, FR-11, FR-13 ; contenus, API et caches.
 - **Prevents:** Accès hors troupe et divulgation des contenus futurs ou de la justesse avant révélation.
-- **Rule:** L’API vérifie à chaque lecture et mutation l’appartenance active à la troupe configurée et les dates et modes autorisés ; l’administration plateforme ne dispense pas de cette appartenance. Les contenus futurs, réponses correctes et compléments révélateurs ne figurent ni dans les bundles, assets publics, caches partagés, notifications ou analytics, ni dans une réponse API anticipée. Pour un quiz jouable, l’API ne fournit que portrait et trois anecdotes ; en production, jusqu’à minuit Paris suivant son jour, aucune réponse, erreur, métadonnée ou donnée dérivée accessible ne révèle sa justesse ou ses points, y compris pour d’autres membres. Les réponses et scores en attente restent côté serveur en production. En test isolé, seule l’exception de classement d’AD-4 permet un indice par le score ; les réponses détaillées et résultats restent soumis à leur révélation simulée. Les portraits sensibles et leurs URL directes sont soumis aux mêmes contrôles. Les lectures sensibles sont privées et non mises en cache (`Cache-Control: no-store`) ; service worker, stockage client et intermédiaires ne doivent pas conserver ou servir des données Avent sensibles périmées ou destinées à un autre compte. La protection ne couvre pas le partage volontaire par une personne ayant découvert un contenu.
+- **Rule:** L’API vérifie à chaque lecture et mutation l’appartenance active à la troupe configurée et les dates et modes autorisés ; l’administration plateforme ne dispense pas de cette appartenance. Hors prévisualisation autorisée, les contenus futurs, réponses correctes et compléments révélateurs ne figurent ni dans les bundles, assets publics, caches partagés, notifications ou analytics, ni dans une réponse API anticipée. Pour un quiz jouable, l’API ne fournit que portrait et trois anecdotes ; en production, hors prévisualisation personnelle autorisée, jusqu’à minuit Paris suivant son jour, aucune réponse, erreur, métadonnée ou donnée dérivée accessible ne révèle sa justesse ou ses points, y compris pour d’autres membres. Les réponses et scores en attente restent côté serveur en production. En test isolé, seule l’exception de classement d’AD-4 permet un indice par le score ; les réponses détaillées et résultats restent soumis à leur révélation simulée. Les portraits sensibles et leurs URL directes sont soumis aux mêmes contrôles. Les lectures sensibles sont privées et non mises en cache (`Cache-Control: no-store`) ; service worker, stockage client et intermédiaires ne doivent pas conserver ou servir des données Avent sensibles périmées ou destinées à un autre compte. La protection ne couvre pas le partage volontaire par une personne ayant découvert un contenu.
 
 ### AD-2 — Essais isolés et configuration [ADOPTED]
+
+**Exception de prévisualisation approuvée :** La prévisualisation de production est distincte du mode test et ne permet aucun reset, rejeu ou changement de date ; la production utilise l’heure réelle.
+
 
 - **Binds:** FR-13 ; développement, simulation et opérations.
 - **Prevents:** Accès au mode test en production ou contamination de la partie réelle.
 - **Rule:** Le mode test existe exclusivement en développement isolé, jamais en production ; il est visible et accessible aux membres actifs de la troupe configurée figurant sur la liste dédiée des testeurs. Cette liste ne confère aucun rôle d’administration de troupe ou de plateforme. Chaque testeur peut effacer sa propre réponse et rejouer la case, même passée, sans modifier la date ni les réponses des autres. Le contenu de développement est libre pour les besoins de test ; protéger les données personnelles et les portraits privés utilisés. Isoler effectivement données, notifications et analytics de production et interdire côté serveur toute commande de simulation ou de reset en production. Chaque onglet opérateur conserve sa date simulée en mémoire et la transmet à chaque requête ; le serveur la valide après vérification de l’environnement et de l’identité puis prélève le temps sous le verrou. Cette date ne modifie jamais le temps des autres membres. La remise à zéro ciblée redémarre la partie, sans modifier le décalage de base. Le classement de test présente le score courant de toutes les réponses normales enregistrées dans la base isolée, même non révélées et indépendamment de la date simulée ; il peut ainsi donner un indice sur des points en attente. L’ancien barème et la simulation de 25 quiz ne sont plus applicables. Tester séparément les vraies limites temporelles de production sans autoriser une horloge simulée en production.
 
 ### AD-3 — Réponses et état partagés [ADOPTED]
+
+**Exception de prévisualisation approuvée :** Une réponse future de prévisualisation est unique, définitive et personnelle ; son résultat est immédiatement visible par son auteur, tandis que sa date normale de révélation reste conservée.
+
 
 - **Binds:** FR-2, FR-4 à FR-7, FR-10, FR-11.
 - **Prevents:** Double réponse, calcul incohérent à contenu inchangé, perte ou divulgation du résultat entre appareils ; le risque lié à une modification exceptionnelle du contenu est accepté.
@@ -56,6 +65,9 @@ flowchart LR
 La fermeture de l’ouverture automatique est persistée par membre et jour, y compris si le contenu apparaît plus tard ; une visite sans contenu ne la consomme pas. La réponse enregistrée empêche l’ouverture automatique sur tous les appareils. Après la première découverte du calendrier, pour le retour, présenter en priorité le résultat non vu de la réponse révélable la plus récente, même si une réponse plus récente attend encore sa révélation ; les résultats plus anciens restent consultables dans leurs cases. Ne marquer vu qu’après affichage effectif de l’écran via un accusé explicite du client, idempotent et persisté côté serveur ; une réponse HTTP perdue avant affichage ne suffit pas. Une interruption ou deux appareils concurrents peuvent afficher le même résultat avant que l’accusé soit reçu : ne pas prétendre garantir un affichage unique distribué ; après enregistrement du vu, les accès suivants en tiennent compte. La consultation d’une case révélée ne rejoue pas la célébration.
 
 ### AD-4 — Classement et conservation [ADOPTED]
+
+**Exception de prévisualisation approuvée :** Les réponses de Patrice et Toinou restent hors classement ; l’aperçu ne modifie ni les rangs ni les scores des autres membres.
+
 
 - **Binds:** FR-5, FR-8 à FR-10 ; conservation après l’animation.
 - **Prevents:** Indices via score ou rang, classements incohérents et perte des résultats.
@@ -68,6 +80,9 @@ La fermeture de l’ouverture automatique est persistée par membre et jour, y c
 - **Rule:** Réutiliser le planificateur Spring et les mécanismes habituels de rappels HatCast, sans infrastructure, reprise ni garantie supplémentaires propres à l’Avent. Viser 10 h Europe/Paris du 1er au 24 décembre ; à son exécution effective, vérifier la disponibilité du quiz du jour, l’absence de réponse et les préférences habituelles. Un quiz publié après 10 h peut être invité si le traitement démarre après sa publication ; une notification manquée est acceptée. Aucun horodatage dédié ni reprise spécifique. Après la première découverte du calendrier, le lien ouvre le parcours avec priorité à la révélation ; aucun spectacle fictif. Le circuit actuel associe notifications et déduplication à un spectacle : l’adapter à une identité de quiz et de destinataire, sans créer de spectacle factice. Les limites de disponibilité et de déclenchement des rappels existants restent applicables ; le mécanisme choisi ne garantit pas un envoi à heure exacte.
 
 ### AD-6 — Mesure de participation [ADOPTED]
+
+**Exception de prévisualisation approuvée :** Les réponses de production des deux comptes exclus peuvent être comptées ; exclure les données de développement isolé et tout contenu ou résultat sensible des analytics.
+
 
 - **Binds:** Réussite ; PostHog.
 - **Prevents:** Mélange des essais et du jeu réel, exposition de contenus et confusion entre personnes et réponses.

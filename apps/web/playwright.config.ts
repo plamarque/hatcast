@@ -180,7 +180,7 @@ export default defineConfig({
           timeout: 240_000,
         },
         {
-          command: 'npm run dev -- --port 4200 --host 127.0.0.1',
+          command: `npm run dev -- --port ${Number(process.env.PLAYWRIGHT_WEB_PORT ?? 4200)} --host 127.0.0.1`,
           url: baseURL,
           reuseExistingServer: reuseServers,
           timeout: 180_000,

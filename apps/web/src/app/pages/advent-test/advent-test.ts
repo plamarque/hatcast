@@ -71,7 +71,7 @@ export class AdventTest {
       this.loading.set(false); this.submitting.set(false); this.closingDay.set(null)
       this.error.set(false); this.rankingError.set(false); this.christmasError.set(false); this.calendarActionMessage.set('')
       this.generation = null; this.replayToken = null; this.sessionId = null; this.recordedLate = false
-      this.choice.set(null); this.answerState.set('checking'); this.testControls.set(false); this.testMode.set(false); this.sessionChanged.set(false)
+      this.choice.set(null); this.answerState.set('checking'); this.testControls.set(false); this.testMode.set(false); this.productionPreview.set(false); this.sessionChanged.set(false)
       if (identity) void this.start()
     })
   }
@@ -83,6 +83,7 @@ export class AdventTest {
   @ViewChild("welcomeHeading") private welcomeHeading?: ElementRef<HTMLElement>
   readonly testControls = signal(false)
   readonly testMode = signal(false)
+  readonly productionPreview = signal(false)
   readonly pendingMutations = signal(0)
   readonly resetConfirm = signal(false)
   readonly personalResetConfirm = signal<'calendar' | 'replay' | null>(null)
@@ -286,9 +287,12 @@ export class AdventTest {
     this.generation = null; this.replayToken = null; this.choice.set(null)
     this.clockDate.set(null)
     try {
-      const session = await this.requestJson<{ testControls: boolean; sessionId: string; transitionRequired?: boolean }>('/v1/advent/session', { credentials: 'include', cache: 'no-store' })
+      const session = await this.requestJson<{ testControls: boolean; productionPreview?: boolean; sessionId: string; transitionRequired?: boolean }>('/v1/advent/session', { credentials: 'include', cache: 'no-store' })
       if (!session.sessionId) throw new Error('Invalid session')
-      this.testControls.set(session.testControls === true)
+      const previewRequested = this.router.parseUrl(this.router.url).queryParams['preview'] === '1'
+      this.productionPreview.set(previewRequested && session.productionPreview === true)
+      this.testControls.set(!this.productionPreview() && session.testControls === true)
+      if (this.productionPreview()) { this.testMode.set(false); this.simulatedDate.set(null) }
       if (!session.testControls) { this.testMode.set(false); this.simulatedDate.set(null) }
       this.sessionId = session.sessionId
       if (session.transitionRequired) { this.transitionRequired.set(true); this.loading.set(false); return }
@@ -303,7 +307,8 @@ export class AdventTest {
         setTimeout(() => this.welcomeHeading?.nativeElement.focus())
         return
       }
-      await this.enterAt(clock.date, openTestDay && this.testMode())
+      if (this.productionPreview()) { this.loading.set(false); await this.openCalendar() }
+      else await this.enterAt(clock.date, openTestDay && this.testMode())
     } catch (error) { if (!(error instanceof StaleRequestError)) { this.error.set(true); this.loading.set(false) } }
   }
 
@@ -447,6 +452,7 @@ export class AdventTest {
 
   calendarLabel(day: CalendarDay): string {
     if (day.state === 'played') return ({ pending: 'Réponse enregistrée, résultat en attente', correct: 'Bonne réponse', incorrect: 'Mauvaise réponse' })[day.outcome ?? 'pending']
+    if (this.productionPreview() && day.state === 'today' && !this.isCalendarToday(day)) return 'Cadeau disponible'
     return ({ locked: 'Verrouillé', played: 'Réponse enregistrée', today: 'Aujourd’hui', 'past-unplayed': 'Cadeau fermé', missing: 'Sans contenu', christmas: 'Résumé de Noël' })[day.state]
   }
 
@@ -698,7 +704,7 @@ export class AdventTest {
       if (state.status === 'recorded') {
         const result = await this.requestJson<AdventResult | null>(`/v1/advent-test/doors/${day}/result`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() }, true)
         if (result) {
-          await this.showResult(result)
+          await this.showResult(result, this.productionPreview())
           return
         }
         this.replayToken = state.replayToken ?? null
@@ -766,7 +772,10 @@ export class AdventTest {
       if (data.status === 'available' && data.late === true) this.lateDiscovery.set(true)
       this.answerState.set(data.status)
       this.recordedLate = data.late === true
-      if (data.status === 'recorded' && this.recordedLate && !this.submitting()) await this.showLateResult()
+      if (data.status === 'recorded' && !this.submitting()) {
+        if (this.productionPreview()) await this.showPreviewResult()
+        else if (this.recordedLate) await this.showLateResult()
+      }
     } catch (error) { if (!(error instanceof StaleRequestError)) { this.generation = null; this.answerState.set('uncertain') } }
   }
 
@@ -835,6 +844,12 @@ export class AdventTest {
     finally {
       if (!this.contextCurrent(epoch, identity)) return
       this.submitting.set(false)
+      if (this.answerState() === 'recorded' && this.productionPreview()) {
+        try { await this.showPreviewResult(); return } catch (error) {
+          if (error instanceof StaleRequestError || !this.contextCurrent(epoch, identity)) return
+          this.answerState.set('uncertain'); return
+        }
+      }
       if (this.answerState() === 'recorded' && this.recordedLate) {
         try { await this.showLateResult(); return } catch (error) {
       if (error instanceof StaleRequestError || !this.contextCurrent(epoch, identity)) return
@@ -853,6 +868,12 @@ export class AdventTest {
       return
     }
     if (!result || !result.late) throw new Error('Late result unavailable')
+    await this.showResult(result, true)
+  }
+
+  private async showPreviewResult(): Promise<void> {
+    const result = await this.requestJson<AdventResult | null>(`/v1/advent-test/doors/${this.selectedDay()}/result`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() }, true)
+    if (!result) throw new Error('Preview result unavailable')
     await this.showResult(result, true)
   }
 
@@ -913,6 +934,7 @@ export class AdventTest {
   private sessionHeaders(): Record<string, string> {
     return {
       ...(this.sessionId ? { 'X-Advent-Test-Session': this.sessionId } : {}),
+      ...(this.productionPreview() ? { 'X-Advent-Preview': 'true' } : {}),
       ...(this.testMode() ? { 'X-Advent-Test-Mode': 'true' } : {}),
       ...(this.testMode() && this.simulatedDate() ? { 'X-Advent-Simulated-Date': this.simulatedDate()! } : {}),
     }

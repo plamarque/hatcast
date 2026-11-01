@@ -1,4 +1,4 @@
-<main class="advent">
+<main class="advent ph-no-capture">
   <header class="advent__header">
     @if (testControls()) { <button mat-icon-button type="button" (click)="toggleTestMode()" [disabled]="loading() || submitting() || closingDay() !== null || pendingMutations() > 0" [attr.aria-pressed]="testMode()" [attr.aria-label]="testMode() ? 'Désactiver le mode test' : 'Activer le mode test'" title="Mode test"><mat-icon aria-hidden="true">science</mat-icon></button> }
     <button #entryHeading mat-button type="button" class="advent__header-title" (click)="previewWelcome()" [disabled]="welcome() || loading() || submitting() || closingDay() !== null || pendingMutations() > 0 || result() !== null || sessionChanged() || transitionRequired() || unavailable()" aria-label="Revoir l’accueil du Quiz de l’Avent">Quiz de l’Avent</button>
@@ -6,6 +6,7 @@
     <button mat-icon-button type="button" (click)="navigateRanking()" [disabled]="welcome() || loading() || submitting() || closingDay() !== null || (result() !== null && !historicalResult())" [attr.aria-current]="rankingOpen() ? 'page' : null" aria-label="Classement" title="Classement"><mat-icon aria-hidden="true">emoji_events</mat-icon></button>
     <button mat-icon-button type="button" (click)="closeExperience()" [disabled]="closingExperience() || loading() || submitting() || pendingMutations() > 0 || closingDay() !== null" aria-label="Fermer le quiz" title="Fermer"><mat-icon aria-hidden="true">close</mat-icon></button>
   </header>
+  @if (productionPreview()) { <p class="advent__state" role="status">Prévisualisation : tes réponses sont définitives.</p> }
   @if (!memberMode) {
     <div class="advent__test-actions" [class.advent__test-actions--calendar]="calendarOpen()" aria-label="Commandes de test">
       <span class="advent__test-label"><span class="advent__test-label-full">Mode test</span><span class="advent__test-label-short">Test</span></span>
@@ -73,7 +74,7 @@
             <li>{{ statement }} @if ($index === past.falseChoice) { <strong> — anecdote fausse</strong> } @if (past.result && $index === past.result.selectedChoice) { <strong> — ton choix</strong> }</li>
           }
         </ul>
-        @if (past.result; as result) { <p>Tu as gagné {{ result.responsePoints + result.participationPoints + result.bonusPoints }} points pour ce jour.</p> }
+        @if (past.result; as result) { @if (productionPreview()) { <p>Ce score est provisoire : répondre à des jours précédents peut modifier le bonus de série.</p> } <p>Tu as gagné {{ result.responsePoints + result.participationPoints + result.bonusPoints }} points pour ce jour.</p> }
       </section>
     } @else if (calendarOpen()) {
       <section id="advent-calendar-panel" aria-labelledby="calendar-title">
@@ -132,6 +133,7 @@
             <span class="advent__banner-star" aria-hidden="true">✦</span>
             <div>
               <h1 #resultHeading id="advent-result-title" tabindex="-1">{{ reveal.correct ? 'Bravo, tu as trouvé !' : 'Bien tenté !' }}</h1>
+              @if (productionPreview()) { <p>Ce score est provisoire : répondre à des jours précédents peut modifier le bonus de série.</p> }
               <p class="advent__result-points"><strong>+{{ reveal.responsePoints + reveal.participationPoints + reveal.bonusPoints }}</strong> {{ reveal.responsePoints + reveal.participationPoints + reveal.bonusPoints === 1 ? 'point gagné' : 'points gagnés' }} @if (reveal.late) { <span> · réponse après le jour du quiz</span> }</p>
             </div>
             <span class="advent__banner-star" aria-hidden="true">✦</span>

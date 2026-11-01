@@ -28,6 +28,82 @@ describe('AdventTest', () => {
     fixture.detectChanges()
   })
   afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks() })
+  it('marks all Advent content as excluded from analytics capture and replay', () => {
+    const root = fixture.nativeElement.querySelector('main.advent') as HTMLElement
+    expect(root.classList.contains('ph-no-capture')).toBe(true)
+  })
+  it('opens the authorized direct preview, records a final answer and recovers it', async () => {
+    const component = fixture.componentInstance
+    vi.spyOn(TestBed.inject(Router), 'url', 'get').mockReturnValue('/avent?preview=1')
+    let recorded = false
+    const answer = { answerId: 'answer', day: 23, selectedChoice: 1, falseChoice: 1, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: true, explanation: 'Explication fictive' }
+    vi.mocked(fetch).mockImplementation(async (input, options) => {
+      const url = String(input)
+      if (url.endsWith('/session')) return new Response(JSON.stringify({ sessionId: 'session', testControls: false, productionPreview: true }))
+      expect(options?.headers).toMatchObject({ 'X-Advent-Preview': 'true', 'X-Advent-Test-Session': 'session' })
+      if (url.endsWith('/clock')) return new Response(JSON.stringify({ date: '2026-11-30' }))
+      if (url.endsWith('/discovery')) return new Response(JSON.stringify({ discovered: true }))
+      if (url.endsWith('/calendar')) return new Response(JSON.stringify({ days: [{ day: 23, state: recorded ? 'played' : 'today', outcome: recorded ? 'correct' : null }], priorityResult: null }))
+      if (url.endsWith('/doors/23')) return new Response(JSON.stringify({ day: 23, name: 'Lutin fictif', portrait: '', statements: ['un', 'deux', 'trois'] }))
+      if (url.endsWith('/answer/reconcile')) return new Response(JSON.stringify({ status: 'available', generation: 'generation' }))
+      if (url.endsWith('/answer/reserve')) return new Response(JSON.stringify({ status: 'available' }))
+      if (url.endsWith('/answer') && options?.method === 'POST') { recorded = true; return new Response(JSON.stringify({ status: 'recorded' })) }
+      if (url.endsWith('/answer')) return new Response(JSON.stringify({ status: recorded ? 'recorded' : 'available' }))
+      if (url.endsWith('/result')) return recorded ? new Response(JSON.stringify(answer)) : new Response('', { status: 404 })
+      if (url.endsWith('/history')) return new Response(JSON.stringify({ quiz: { day: 23, name: 'Lutin fictif', portrait: '', statements: [] }, result: answer }))
+      if (url.endsWith('/acknowledge')) return new Response('')
+      throw new Error(url)
+    })
+    await component.start()
+    fixture.detectChanges()
+    expect(component.productionPreview()).toBe(true)
+    expect(component.testMode()).toBe(false)
+    expect(component.calendarOpen()).toBe(true)
+    expect(fixture.nativeElement.textContent).toContain('tes réponses sont définitives')
+    await component.openCalendarDay(component.calendarDays()[0])
+    await component.openDoor()
+    component.choice.set(1)
+    await component.confirm()
+    expect(component.result()?.explanation).toBe('Explication fictive')
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('score est provisoire')
+    await component.returnToCalendar()
+    await component.openCalendarDay(component.calendarDays()[0])
+    expect(component.result()?.selectedChoice).toBe(1)
+  })
+  it('does not activate preview from the URL without server authorization', async () => {
+    const component = fixture.componentInstance
+    vi.spyOn(TestBed.inject(Router), 'url', 'get').mockReturnValue('/avent?preview=1')
+    vi.mocked(fetch).mockImplementation(async (input, options) => {
+      if (String(input).endsWith('/session')) return new Response(JSON.stringify({ sessionId: 'session', testControls: false, productionPreview: false }))
+      expect(options?.headers).not.toHaveProperty('X-Advent-Preview')
+      return new Response('', { status: 404 })
+    })
+    await component.start()
+    expect(component.productionPreview()).toBe(false)
+    expect(component.unavailable()).toBe(true)
+    expect(component.calendarDays()).toEqual([])
+  })
+  it('discards an in-flight private preview when the account changes', async () => {
+    const component = fixture.componentInstance
+    const auth = TestBed.inject(AuthApiService) as unknown as { sessionUserSignal: WritableSignal<UserSummary | null> }
+    component.testMode.set(false); component.productionPreview.set(true)
+    let resolveCalendar!: (response: Response) => void
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      if (String(input).endsWith('/calendar')) return new Promise<Response>(resolve => { resolveCalendar = resolve })
+      if (String(input).endsWith('/session')) return new Response(JSON.stringify({ sessionId: 'other-session', testControls: false, productionPreview: false }))
+      return new Response('', { status: 404 })
+    })
+    const pending = component.openCalendar()
+    await vi.waitFor(() => expect(resolveCalendar).toBeDefined())
+    auth.sessionUserSignal.set({ id: 'other-preview-user', slug: 'other', email: null, displayName: 'Autre' })
+    fixture.detectChanges()
+    resolveCalendar(new Response(JSON.stringify({ days: [{ day: 23, state: 'played', outcome: 'correct' }], priorityResult: null })))
+    await pending
+    expect(component.productionPreview()).toBe(false)
+    expect(component.calendarDays()).toEqual([])
+    expect(component.result()).toBeNull()
+  })
   it('shows a server-timed waiting scene only when revisiting a pending calendar answer', async () => {
     const component = fixture.componentInstance
     component.testMode.set(false); component.clockDate.set('2026-12-01'); component.calendarOpen.set(true)

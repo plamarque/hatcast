@@ -128,6 +128,11 @@ if ! git rev-parse --verify "${RC_TAG}^{commit}" >/dev/null 2>&1; then
 fi
 
 RC_COMMIT="$(git rev-list -n 1 "${RC_TAG}")"
+if ! git cat-file -e "${RC_COMMIT}:.github/workflows/advent-regression.yml" 2>/dev/null ||
+   ! git show "${RC_COMMIT}:.github/workflows/deploy-v2-cloud-run.yml" 2>/dev/null | rg "needs.advent-regression.result == 'success'" >/dev/null; then
+  echo "❌ Le candidat ${RC_TAG} ne contient pas la porte de régression Avent ; promotion refusée." >&2
+  exit 1
+fi
 TAG_MESSAGE="Release V2 ${BASE_VERSION} promoted from ${RC_TAG}"
 
 REMOTE_RC_COMMIT="$(git ls-remote --tags origin "refs/tags/${RC_TAG}^{}" | awk '{print $1}' | sed -n '1p')"

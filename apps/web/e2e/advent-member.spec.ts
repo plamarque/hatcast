@@ -419,3 +419,93 @@ test('first welcome is responsive and opens the personal calendar', async ({ pag
   await expect(page.getByRole('heading', { name: 'Calendrier de l’Avent' })).toBeFocused()
   await expect(page.getByRole('button', { name: /1 décembre/ })).toBeVisible()
 })
+
+test('direct preview opens a future gift and recovers its final personal result', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 800 })
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  let recorded = false
+  const result = { answerId: 'fictif', day: 23, selectedChoice: 1, falseChoice: 1, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: true, explanation: 'Explication fictive' }
+  const quiz = { day: 23, name: 'Lutin fictif', portrait: '', genericElf: true, statements: ['Un', 'Deux', 'Trois'] }
+  await page.route('**/v1/**', async route => {
+    const request = route.request(), path = new URL(request.url()).pathname
+    if (path === '/v1/auth/me') return route.fulfill({ json: { user: { id: 'preview', slug: 'preview', displayName: 'Fictif', email: 'fixture@example.test', avatarUrl: null }, platformAdmin: false } })
+    if (path === '/v1/troupes') return route.fulfill({ json: [] })
+    if (path === '/v1/me/preferences') return route.fulfill({ json: { memberDisplayName: 'Fictif', preferredRoleKeys: [] } })
+    if (path === '/v1/advent/session') return route.fulfill({ json: { testControls: false, productionPreview: true, sessionId: 'fixture-session' } })
+    if (path === '/v1/advent/entry') return route.fulfill({ status: 404 })
+    if (!path.startsWith('/v1/advent/')) return route.fulfill({ json: {} })
+    expect(request.headers()['x-advent-preview']).toBe('true')
+    expect(request.headers()['x-advent-test-mode']).toBeUndefined()
+    if (path.endsWith('/clock')) return route.fulfill({ json: { date: '2026-11-30' } })
+    if (path.endsWith('/discovery')) return route.fulfill({ json: { discovered: true } })
+    if (path.endsWith('/calendar')) return route.fulfill({ json: { days: [{ day: 23, state: recorded ? 'played' : 'today', outcome: recorded ? 'correct' : null }], priorityResult: null } })
+    if (path.endsWith('/doors/23')) return route.fulfill({ json: quiz })
+    if (path.endsWith('/history')) return route.fulfill({ json: { quiz, result, priorityResult: null } })
+    if (path.endsWith('/answer/reconcile')) return route.fulfill({ json: { status: 'available', generation: 'fixture' } })
+    if (path.endsWith('/answer/reserve')) return route.fulfill({ json: { status: 'available' } })
+    if (path.endsWith('/answer') && request.method() === 'POST') { recorded = true; return route.fulfill({ json: { status: 'recorded' } }) }
+    if (path.endsWith('/answer')) return route.fulfill({ json: { status: recorded ? 'recorded' : 'available' } })
+    if (path.endsWith('/result')) return route.fulfill({ json: result })
+    return route.fulfill({ json: {} })
+  })
+  await page.goto('/avent?preview=1')
+  await expect(page.getByText('Prévisualisation : tes réponses sont définitives.')).toBeVisible()
+  const gift = page.getByRole('button', { name: '23 décembre : Cadeau disponible' })
+  await gift.focus()
+  await page.keyboard.press('Enter')
+  await page.getByRole('button', { name: 'Ouvrir le cadeau du jour 23' }).click()
+  await page.getByRole('radio').nth(1).check()
+  await page.getByRole('button', { name: 'Confirmer ma réponse' }).click()
+  await expect(page.getByText('Explication fictive')).toBeVisible()
+  await expect(page.getByText('Mode test')).toHaveCount(0)
+  const size = await page.locator('main.advent').evaluate(el => ({ client: el.clientWidth, scroll: el.scrollWidth }))
+  expect(size.scroll).toBeLessThanOrEqual(size.client)
+  await page.reload()
+  await page.locator('.advent__calendar-door[data-day="23"]').click()
+  await expect(page.getByText('Explication fictive')).toBeVisible()
+})
+
+test('ordinary navigation stays silent when the entry request fails', async ({ page }) => {
+  let failure: '404' | '500' | 'network' | 'timeout' = '404'
+  let checks = 0
+  await page.addInitScript(() => {
+    const original = AbortSignal.timeout.bind(AbortSignal)
+    AbortSignal.timeout = ms => {
+      const signal = original(ms === 10_000 ? 100 : ms)
+      if (ms === 10_000) signal.addEventListener('abort', () => { document.documentElement.dataset.adventTimedOut = 'true' })
+      return signal
+    }
+  })
+  await page.route('**/v1/**', async route => {
+    const path = new URL(route.request().url()).pathname
+    if (path === '/v1/auth/me') return route.fulfill({ json: { user: { id: 'member', slug: 'member', displayName: 'Membre fictif', email: 'fixture@example.test', avatarUrl: null }, platformAdmin: false } })
+    if (path === '/v1/advent/entry') {
+      checks++
+      if (failure === 'network') return route.abort('failed')
+      if (failure === 'timeout') {
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        try { await route.fulfill({ status: 500 }) } catch { /* The client aborted its timed-out request. */ }
+        return
+      }
+      return route.fulfill({ status: Number(failure) })
+    }
+    if (path === '/v1/troupes') return route.fulfill({ json: [] })
+    if (path === '/v1/me/preferences') return route.fulfill({ json: { memberDisplayName: 'Membre fictif', preferredRoleKeys: [] } })
+    return route.fulfill({ json: [] })
+  })
+  for (const width of [320, 1280]) {
+    await page.setViewportSize({ width, height: 800 })
+    for (const state of ['404', '500', 'network', 'timeout'] as const) {
+      failure = state
+      const previous = checks
+      await page.goto('/accueil')
+      await expect.poll(() => checks).toBeGreaterThan(previous)
+      if (state === 'timeout') await expect(page.locator('html')).toHaveAttribute('data-advent-timed-out', 'true')
+      await expect(page.locator('#advent-entry-mobile, #advent-entry-desktop')).toHaveCount(0)
+      await expect(page.getByText(/quiz de l’avent|calendrier de l’avent/i)).toHaveCount(0)
+      await expect(page).not.toHaveURL(/\/avent/)
+      await page.reload()
+      await expect(page.locator('#advent-entry-mobile, #advent-entry-desktop')).toHaveCount(0)
+    }
+  }
+})

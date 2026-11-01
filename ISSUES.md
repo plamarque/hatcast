@@ -63,6 +63,22 @@ human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
 
+### BUG-077 — Advent content is not marked private for analytics capture
+- **Status**: Corrected locally; remote replay configuration and integration remain to verify.
+- **Severity**: High (potential disclosure of private quiz content).
+- **Affected area**: Advent UI and PostHog autocapture/session replay.
+- **Observed behavior**: The Advent root lacked the exclusion class recognized by the installed PostHog SDK, while autocapture and replay may be enabled in production.
+- **Expected behavior**: Quiz choices, explanations and personal results are excluded from automatic analytics and session recordings.
+- **Notes/context**: The Advent root now uses `ph-no-capture`; the SDK initialization explicitly sets the replay block class. Local tests verify the marker. The effective remote configuration and production behavior have not been inspected or tested.
+
+### BUG-076 — Advent stylesheet exceeds the production build budget
+- **Status**: Corrected locally; integration pending.
+- **Severity**: High (production-local build blocked).
+- **Affected area**: Advent Angular component stylesheet.
+- **Observed behavior**: The production-local build failed because the component stylesheet compiled to 12.53 kB, exceeding its 12 kB error budget.
+- **Expected behavior**: The production-local build succeeds within the existing error budget while preserving the Advent visual contract.
+- **Notes/context**: Removed generated scenery pseudo-elements already hidden by the illustrated design and an unused selector. The build now succeeds at 11.74 kB; the existing 9 kB warning remains. No budget was increased.
+
 ### BUG-075 — Late test replay is closed on its simulated day
 - **Status**: Closed on 2026-11-01 at Patrice's request; deployed and verified in development.
 - **Severity**: Medium.

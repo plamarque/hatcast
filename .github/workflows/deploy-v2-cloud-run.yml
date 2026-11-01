@@ -115,12 +115,17 @@ jobs:
       needs.classify-ref.outputs.requires_smoke == 'true'
     uses: ./.github/workflows/e2e-smoke.yml
 
+  advent-regression:
+    needs: classify-ref
+    uses: ./.github/workflows/advent-regression.yml
+
   deploy:
-    needs: [classify-ref, e2e-smoke]
+    needs: [classify-ref, e2e-smoke, advent-regression]
     # always(): prod tags skip e2e-smoke; without it, deploy is skipped when the dependency is skipped.
     if: |
       always() &&
       needs.classify-ref.result == 'success' &&
+      needs.advent-regression.result == 'success' &&
       (
         needs.classify-ref.outputs.requires_smoke != 'true' ||
         needs.e2e-smoke.result == 'success'
@@ -311,12 +316,12 @@ jobs:
               echo "::warning::HATCAST_NOTIFICATION_EMAIL_ENABLED=true but neither CLOUDFLARE_* (OPS-10) nor SPRING_MAIL_* complete — email send will be skipped (see DEPLOY_V2_CLOUD_RUN.md §7.6)"
             fi
           fi
-          if [ "${TARGET_ENV}" = "development" ]; then
-            for key in ADVENT_TROUPE_ID ADVENT_EXCLUDED_USER_IDS ADVENT_CLOCK_OFFSET_SECONDS; do
-              if [ -n "${!key}" ]; then
-                append_env "HATCAST_${key}" "${!key}"
-              fi
-            done
+          python3 scripts/v2/validate-advent-config.py
+          for key in ADVENT_TROUPE_ID ADVENT_EXCLUDED_USER_IDS; do
+            append_env "HATCAST_${key}" "${!key}"
+          done
+          if [ "${TARGET_ENV}" = "development" ] && [ -n "${ADVENT_CLOCK_OFFSET_SECONDS}" ]; then
+            append_env HATCAST_ADVENT_CLOCK_OFFSET_SECONDS "${ADVENT_CLOCK_OFFSET_SECONDS}"
           fi
           append_env HATCAST_ADVENT_PORTRAIT_LAYOUT portraits-default-v2
           append_env JAVA_TOOL_OPTIONS -XX:MaxRAMPercentage=75.0

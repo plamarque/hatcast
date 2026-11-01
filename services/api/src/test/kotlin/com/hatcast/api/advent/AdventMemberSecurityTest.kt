@@ -34,6 +34,78 @@ class AdventMemberSecurityTest {
     @Autowired lateinit var jdbc: JdbcTemplate
     @Autowired lateinit var json: ObjectMapper
     @Autowired lateinit var environment: ConfigurableEnvironment
+    @Test fun `preview capability requires both verified identity and active membership`() {
+        val troupe = UUID.fromString("a0000001-0000-4000-8000-000000000001")
+        jdbc.update("INSERT INTO troupes (id, name, slug, created_at) SELECT ?, 'Fictif', 'advent-security', CURRENT_TIMESTAMP WHERE NOT EXISTS (SELECT 1 FROM troupes WHERE id = ?)", troupe, troupe)
+        val first = TestAuthSupport.sessionCookieFromGoogleSignIn(mvc, google, "preview-capability-one", "patrice.lamarque@gmail.com", emailVerified = true)
+        val second = TestAuthSupport.sessionCookieFromGoogleSignIn(mvc, google, "preview-capability-two", "brousseau.ant@gmail.com", emailVerified = true)
+        val third = TestAuthSupport.sessionCookieFromGoogleSignIn(mvc, google, "preview-capability-third", "third@example.com", emailVerified = true)
+        val ids = listOf("preview-capability-one", "preview-capability-two", "preview-capability-third").map { sub ->
+            val id = jdbc.queryForObject("SELECT id FROM users WHERE google_sub = ?", UUID::class.java, sub)!!
+            jdbc.update("INSERT INTO troupe_memberships (id, troupe_id, user_id, status, baseline_role, display_name, created_at, updated_at) VALUES (?, ?, ?, 'ACTIVE', 'MEMBER', 'Fictif', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", UUID.randomUUID(), troupe, id)
+            id
+        }
+        environment.propertySources.addFirst(MapPropertySource("advent-preview-test", mapOf("hatcast.advent.excluded-user-ids" to "${ids[0]},${ids[1]}")))
+        try {
+            `when`(clock.instant()).thenReturn(Instant.parse("2026-11-30T22:59:59Z"))
+            for (day in listOf(7, 23)) {
+                jdbc.update("DELETE FROM advent_quizzes WHERE quiz_day = ?", day)
+                jdbc.update("INSERT INTO advent_quizzes (quiz_day, display_name, statement_0, statement_1, statement_2, false_choice, explanation) VALUES (?, 'Fictif', 'A', 'B', 'C', 1, 'Explication fictive')", day)
+            }
+            for (cookie in listOf(first, second)) mvc.perform(get("/v1/advent/session").cookie(cookie))
+                .andExpect(status().isOk).andExpect(jsonPath("$.productionPreview").value(true))
+                .andExpect(jsonPath("$.testControls").value(false))
+            mvc.perform(get("/v1/advent/session").cookie(third)).andExpect(jsonPath("$.productionPreview").value(false))
+            val token = json.readTree(mvc.perform(get("/v1/advent/session").cookie(first)).andReturn().response.contentAsString)["sessionId"].asText()
+            mvc.perform(get("/v1/advent/entry").cookie(third)).andExpect(status().isNotFound)
+            `when`(clock.instant()).thenReturn(Instant.parse("2026-11-30T23:00:00Z"))
+            mvc.perform(get("/v1/advent/entry").cookie(third)).andExpect(status().isOk)
+            val rankingBefore = json.readTree(mvc.perform(get("/v1/advent/ranking").cookie(third).header("X-Advent-Test-Session", token)).andExpect(status().isOk).andReturn().response.contentAsString)
+            `when`(clock.instant()).thenReturn(Instant.parse("2026-11-30T22:59:59Z"))
+            for ((cookie, day) in listOf(first to 23, first to 7, second to 7)) {
+                val prefix = "/v1/advent/doors/$day"
+                mvc.perform(get(prefix).cookie(cookie).header("X-Advent-Test-Session", token)).andExpect(status().isNotFound)
+                mvc.perform(get(prefix).cookie(cookie).header("X-Advent-Test-Session", token).header("X-Advent-Preview", "true"))
+                    .andExpect(status().isOk).andExpect(jsonPath("$.statements[0]").value("A"))
+                val reconciliation = mvc.perform(post("$prefix/answer/reconcile").cookie(cookie).with(csrf()).header("X-Advent-Test-Session", token).header("X-Advent-Preview", "true"))
+                    .andExpect(status().isOk).andExpect(jsonPath("$.status").value("available")).andReturn()
+                val generation = json.readTree(reconciliation.response.contentAsString)["generation"].asText()
+                val attempt = UUID.randomUUID()
+                mvc.perform(post("$prefix/answer/reserve").cookie(cookie).with(csrf()).header("X-Advent-Test-Session", token).header("X-Advent-Preview", "true").contentType(MediaType.APPLICATION_JSON).content("""{"attemptId":"$attempt","generation":"$generation"}"""))
+                    .andExpect(status().isOk)
+                mvc.perform(post("$prefix/answer").cookie(cookie).with(csrf()).header("X-Advent-Test-Session", token).header("X-Advent-Preview", "true").contentType(MediaType.APPLICATION_JSON).content("""{"attemptId":"$attempt","choice":1}"""))
+                    .andExpect(status().isOk).andExpect(jsonPath("$.status").value("recorded"))
+                mvc.perform(post("$prefix/answer").cookie(cookie).with(csrf()).header("X-Advent-Test-Session", token).header("X-Advent-Preview", "true").contentType(MediaType.APPLICATION_JSON).content("""{"attemptId":"$attempt","choice":0}"""))
+                    .andExpect(status().isOk).andExpect(jsonPath("$.status").value("recorded"))
+                mvc.perform(get("$prefix/result").cookie(cookie).header("X-Advent-Test-Session", token).header("X-Advent-Preview", "true"))
+                    .andExpect(status().isOk).andExpect(jsonPath("$.correct").value(true)).andExpect(jsonPath("$.explanation").value("Explication fictive"))
+            }
+            mvc.perform(get("/v1/advent/doors/23/result").cookie(first).header("X-Advent-Test-Session", token).header("X-Advent-Preview", "true"))
+                .andExpect(status().isOk).andExpect(jsonPath("$.selectedChoice").value(1))
+            mvc.perform(get("/v1/advent/doors/23/history").cookie(first).header("X-Advent-Test-Session", token).header("X-Advent-Preview", "true"))
+                .andExpect(status().isOk).andExpect(jsonPath("$.priorityResult.selectedChoice").value(1))
+            mvc.perform(get("/v1/advent/doors/23/history").cookie(third).header("X-Advent-Test-Session", token).header("X-Advent-Preview", "true"))
+                .andExpect(status().isNotFound)
+            mvc.perform(get("/v1/advent/doors/23/history").cookie(second).header("X-Advent-Test-Session", token).header("X-Advent-Preview", "true"))
+                .andExpect(status().isOk).andExpect(jsonPath("$.priorityResult.day").value(7))
+            mvc.perform(post("/v1/advent/session/reset").cookie(first).with(csrf()).header("X-Advent-Test-Session", token).header("X-Advent-Preview", "true")).andExpect(status().isNotFound)
+            mvc.perform(post("/v1/advent/doors/23/answer/replay").cookie(first).with(csrf()).header("X-Advent-Test-Session", token).header("X-Advent-Preview", "true").contentType(MediaType.APPLICATION_JSON).content("""{"replayToken":"${UUID.randomUUID()}"}""")).andExpect(status().isNotFound)
+            mvc.perform(get("/v1/advent/doors/23/result").cookie(second).header("X-Advent-Test-Session", token).header("X-Advent-Preview", "true")).andExpect(status().isNotFound)
+            mvc.perform(get("/v1/advent/doors/23").cookie(third).header("X-Advent-Test-Session", token).header("X-Advent-Preview", "true")).andExpect(status().isNotFound)
+            mvc.perform(get("/v1/advent/doors/23").cookie(first).header("X-Advent-Test-Session", token).header("X-Advent-Preview", "true").header("X-Advent-Simulated-Date", "2026-12-23")).andExpect(status().isNotFound)
+            `when`(clock.instant()).thenReturn(Instant.parse("2026-11-30T23:00:00Z"))
+            val rankingAfter = json.readTree(mvc.perform(get("/v1/advent/ranking").cookie(third).header("X-Advent-Test-Session", token)).andExpect(status().isOk).andReturn().response.contentAsString)
+            assert(rankingBefore == rankingAfter)
+            mvc.perform(get("/v1/advent/doors/23/result").cookie(third).header("X-Advent-Test-Session", token)).andExpect(status().isNotFound)
+            val unverified = TestAuthSupport.sessionCookieFromGoogleSignIn(mvc, google, "preview-capability-one", "patrice.lamarque@gmail.com", emailVerified = false)
+            mvc.perform(get("/v1/advent/session").cookie(unverified)).andExpect(status().isOk).andExpect(jsonPath("$.productionPreview").value(false))
+            mvc.perform(get("/v1/advent/doors/23").cookie(unverified).header("X-Advent-Test-Session", token).header("X-Advent-Preview", "true")).andExpect(status().isNotFound)
+            jdbc.update("UPDATE troupe_memberships SET status = 'INACTIVE' WHERE troupe_id = ? AND user_id = ?", troupe, ids[0])
+            mvc.perform(get("/v1/advent/session").cookie(first)).andExpect(status().isForbidden)
+        } finally {
+            environment.propertySources.remove("advent-preview-test")
+        }
+    }
     @Test fun `anonymous and unrelated user cannot access member data and errors are not cached`() {
         val cookie = TestAuthSupport.sessionCookieFromGoogleSignIn(mvc, google, "outsider-advent-member")
         for (path in listOf("/v1/advent/discovery", "/v1/advent/entry", "/v1/advent/clock", "/v1/advent/doors/1", "/v1/advent/doors/1/answer", "/v1/advent/doors/1/result", "/v1/advent/results/latest-unseen", "/v1/advent/ranking", "/v1/advent/calendar", "/v1/advent/doors/1/history")) {

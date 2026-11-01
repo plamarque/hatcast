@@ -1,0 +1,3 @@
+INSERT INTO advent_quizzes (quiz_day, display_name, portrait_ref, statement_0, statement_1, statement_2, false_choice, explanation) VALUES (7, 'Lutin fictif sept', NULL, 'Fiction un', 'Fiction deux', 'Fiction trois', 1, 'Explication fictive sept');
+INSERT INTO advent_quizzes (quiz_day, display_name, portrait_ref, statement_0, statement_1, statement_2, false_choice, explanation) VALUES (23, 'Lutin fictif vingt-trois', NULL, 'Fiction un', 'Fiction deux', 'Fiction trois', 1, 'Explication fictive vingt-trois');
+INSERT INTO advent_quizzes (quiz_day, display_name, portrait_ref, statement_0, statement_1, statement_2, false_choice, explanation) VALUES (1, 'Lutin fictif un', NULL, 'Fiction un', 'Fiction deux', 'Fiction trois', 1, 'Explication fictive un');

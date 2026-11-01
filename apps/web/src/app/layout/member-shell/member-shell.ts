@@ -31,9 +31,9 @@ export class MemberShell implements OnInit {
 
   protected readonly adventVisible = signal(false)
   protected readonly adventSparkle = signal(true)
-  protected readonly adventError = signal(false)
   private adventIdentity: string | null = null
   private adventEpoch = 0
+  private adventAccess: boolean | null = null
 
   constructor() {
     effect(() => {
@@ -41,29 +41,29 @@ export class MemberShell implements OnInit {
       if (identity === this.adventIdentity) return
       if (this.adventIdentity) sessionStorage.removeItem("hatcast-advent-return")
       this.adventIdentity = identity
+      this.adventAccess = null
       const epoch = ++this.adventEpoch
       this.adventVisible.set(false)
-      this.adventError.set(false)
       if (identity) void this.checkAdvent(identity, epoch)
     })
   }
 
-  private async checkAdvent(identity: string, epoch: number, allowAutoOpen = true): Promise<void> {
+  private async checkAdvent(identity: string, epoch: number, allowAutoOpen = true, transitionOnly = false): Promise<void> {
     try {
       const response = await fetch('/v1/advent/entry', { credentials: 'include', cache: 'no-store', signal: AbortSignal.timeout(10_000) })
       if (epoch !== this.adventEpoch || identity !== this.auth.sessionUser()?.id) return
-      if (!response.ok) { this.adventVisible.set(false); this.adventError.set(![401, 403, 404].includes(response.status)); return }
+      if (!response.ok) {
+        if (response.status === 404 || response.status === 403) this.adventAccess = false
+        this.adventVisible.set(false)
+        return
+      }
       const state = await response.json() as { autoOpen: boolean }
       if (epoch !== this.adventEpoch || identity !== this.auth.sessionUser()?.id) return
+      const openingTransition = this.adventAccess !== true
+      this.adventAccess = true
       this.adventVisible.set(true)
-      this.adventError.set(false)
-      if (allowAutoOpen && state.autoOpen && shouldShowMemberNav(this.router.url)) await this.openAdvent()
-    } catch { if (epoch === this.adventEpoch && identity === this.auth.sessionUser()?.id) { this.adventVisible.set(false); this.adventError.set(true) } }
-  }
-
-  protected retryAdvent(): void {
-    const identity = this.auth.sessionUser()?.id
-    if (identity) { this.adventError.set(false); void this.checkAdvent(identity, ++this.adventEpoch) }
+      if (allowAutoOpen && (!transitionOnly || openingTransition) && state.autoOpen && shouldShowMemberNav(this.router.url)) await this.openAdvent()
+    } catch { if (epoch === this.adventEpoch && identity === this.auth.sessionUser()?.id) this.adventVisible.set(false) }
   }
 
   protected async openAdvent(): Promise<void> {
@@ -81,6 +81,12 @@ export class MemberShell implements OnInit {
   protected readonly isMobileViewport = signal(isMemberMobileShellViewport())
 
   ngOnInit(): void {
+    // Refresh server authorization even while the member stays on one page.
+    const refresh = setInterval(() => {
+      const identity = this.auth.sessionUser()?.id
+      if (identity && shouldShowMemberNav(this.router.url)) void this.checkAdvent(identity, ++this.adventEpoch, true, true)
+    }, 60_000)
+    this.destroyRef.onDestroy(() => clearInterval(refresh))
     const initialPath = pathFromUrl(this.router.url)
     // Accueil todo owns a forced inbox fetch for list + badge (PERF-02).
     if (initialPath !== '/accueil') {

@@ -30,6 +30,9 @@ class E2eGoogleIdTokenService(
 
     private val personas =
         mapOf(
+            // Synthetic, in-memory preview identities; this verifier exists only in the e2e profile.
+            "advent-preview-one" to Persona("seed-improbots-22", "patrice.lamarque@gmail.com", "Fictif 1"),
+            "advent-preview-two" to Persona("seed-improbots-03", "brousseau.ant@gmail.com", "Fictif 2"),
             "e2e-admin" to
                 Persona(
                     googleSub = "seed-improbots-22",
@@ -89,6 +92,7 @@ class E2eGoogleIdTokenService(
             .header("alg", "none")
             .claim("sub", persona.googleSub)
             .claim("email", persona.email)
+            .claim("email_verified", idToken.startsWith("advent-preview-"))
             .claim("name", persona.name)
             .issuedAt(Instant.now())
             .expiresAt(Instant.now().plusSeconds(3600))

@@ -192,6 +192,30 @@ class AdventMemberGameTest {
         assertEquals("pending", game.calendar(member).days!![0].outcome)
     }
 
+    @Test fun `out of order preview recalculates only the owners provisional streak bonus`() {
+        at("2026-12-01T12:00:00Z")
+        for (day in 2..3) {
+            jdbc.update("INSERT INTO advent_quizzes (quiz_day, display_name, statement_0, statement_1, statement_2, false_choice) SELECT ?, 'Fictif', 'A', 'B', 'C', 0 WHERE NOT EXISTS (SELECT 1 FROM advent_quizzes WHERE quiz_day = ?)", day, day)
+            jdbc.update("UPDATE advent_quizzes SET false_choice = 0 WHERE quiz_day = ?", day)
+        }
+        val owner = excluded.first()
+        val before = game.ranking(other, troupe, excluded).ranking!!
+        fun answer(day: Int) {
+            val generation = game.reconcile(owner, day, preview = true).generation!!
+            val attempt = UUID.randomUUID()
+            assertEquals("available", game.reserve(owner, day, attempt, generation, preview = true).status)
+            assertEquals("recorded", game.confirm(owner, day, 0, attempt, preview = true).status)
+        }
+        answer(3)
+        assertEquals(0, game.result(owner, 3, preview = true)!!.bonusPoints)
+        answer(2); answer(1)
+        assertEquals(2, game.result(owner, 3, preview = true)!!.bonusPoints)
+        assertNull(game.result(other, 3, preview = true))
+        val after = game.ranking(other, troupe, excluded).ranking!!
+        assertEquals(before.score, after.score)
+        assertEquals(before.rank, after.rank)
+    }
+
     @Test fun `explicit late answer persists without affecting ranking participation or streak`() {
         at("2026-12-02T12:00:00Z")
         assertEquals("closed", game.reconcile(member, 1).status)
