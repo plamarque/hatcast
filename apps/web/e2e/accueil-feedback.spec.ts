@@ -123,6 +123,29 @@ async function navigate(page: Page, target: '/accueil' | '/agenda') {
   await expect(page).toHaveURL(new RegExp(`${target}$`))
 }
 
+test('desktop navigation stays clickable and keyboard accessible with the Advent gift', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 })
+  const state = await prepare(page)
+  await page.goto('/accueil')
+  await release(state)
+  const gift = page.getByRole('button', { name: 'Ouvrir le quiz de l’Avent' })
+  await expect(gift).toBeVisible()
+  await gift.focus()
+  await expect(gift).toBeFocused()
+  await navigate(page, '/agenda')
+  await expect(page.getByRole('link', { name: 'Mon agenda' }).filter({ visible: true })).toBeFocused()
+  await page.keyboard.press('Tab')
+  await page.keyboard.press('Tab')
+  await page.keyboard.press('Tab')
+  await expect(gift).toBeFocused()
+  await page.keyboard.press('Enter')
+  await expect(page).toHaveURL(/\/avent$/)
+  await page.goBack()
+  await expect(gift).toBeVisible()
+  await gift.click()
+  await expect(page).toHaveURL(/\/avent$/)
+})
+
 for (const viewport of [
   { width: 375, height: 766 },
   { width: 1280, height: 900 },

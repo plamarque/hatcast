@@ -63,6 +63,13 @@ human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
 
+### BUG-079 — Advent gift intercepts desktop navigation
+- **Status**: Corrected locally; deployment verification pending.
+- **Severity**: High (desktop member navigation blocked while the gift is visible).
+- **Affected area**: Desktop member navigation rail.
+- **Observed behavior**: The gift's Material focus indicator spans the rail and intercepts clicks on navigation links.
+- **Expected behavior**: The gift and navigation remain independently clickable and keyboard accessible.
+
 ### BUG-078 — Advent release checks fail in local and CI environments
 - **Status**: Corrected locally; full delivery verification pending.
 - **Severity**: High (staging release blocked).
