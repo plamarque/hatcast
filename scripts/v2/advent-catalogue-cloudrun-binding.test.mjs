@@ -102,3 +102,41 @@ test('accepts target stable active revision after an inactive later revision',as
  const f=fixture();f.state.service.latestCreatedRevision='failed-later-revision';
  assert.equal((await verifyDevelopmentBinding(f.options)).revision,rev);
 });
+
+test('checks tagged inactive revisions on target and other services',async()=>{
+ for(const target of [true,false]) {
+  const f=fixture(),base=f.options.client.request;
+  const name=target?serviceName:'projects/impro-selector/locations/europe-west9/services/hatcast-v2-staging';
+  const old=`${name}/revisions/old`;
+  let host=target?'ep-fiction.neon.tech':'ep-stage.neon.tech',database='synthetic';
+  f.options.client.request=async req=>{
+   if(req.url.endsWith('/revisions/old'))return {data:{name:old,containers:[{env:[{name:'HATCAST_DATASOURCE_URL',value:`jdbc:postgresql://${host}/${database}`}]}]}};
+   const result=structuredClone(await base(req));
+   if(req.url.endsWith(name)) result.data.trafficStatuses.unshift({revision:'old',tag:'previous'});
+   return result;
+  };
+  await verifyDevelopmentBinding(f.options);
+  if(target){host='ep-fiction-pooler.neon.tech';await verifyDevelopmentBinding(f.options);database='different';await assert.rejects(verifyDevelopmentBinding(f.options));database='synthetic';}
+  host=target?'ep-other.neon.tech':'ep-fiction.neon.tech';
+  await assert.rejects(verifyDevelopmentBinding(f.options));
+ }
+});
+
+test('rejects a changed other-service etag after checking its tagged revision',async()=>{
+ const f=fixture(),base=f.options.client.request;let reads=0;
+ const name='projects/impro-selector/locations/europe-west9/services/hatcast-v2-staging',old=`${name}/revisions/old`;
+ f.options.client.request=async req=>{
+  if(req.url.endsWith('/revisions/old'))return {data:{name:old,containers:[{env:[{name:'HATCAST_DATASOURCE_URL',value:'jdbc:postgresql://ep-stage.neon.tech/synthetic'}]}]}};
+  const result=structuredClone(await base(req));
+  if(req.url.endsWith('/hatcast-v2-staging')){result.data.trafficStatuses.push({revision:'old',tag:'previous'});if(++reads===2)result.data.etag='changed';}
+  return result;
+ };
+ await assert.rejects(verifyDevelopmentBinding(f.options));
+});
+
+test('refuses ambiguous traffic and accepts explicit zero without a tag',async()=>{
+ for(const status of [{revision:'old',percent:1},{revision:'old',percent:null},{revision:'old',percent:-1},{revision:'old',percent:0,tag:''},{revision:'old',percent:100}]) {
+  const f=fixture();f.state.service.trafficStatuses.push(status);await assert.rejects(verifyDevelopmentBinding(f.options));
+ }
+ const f=fixture();f.state.service.trafficStatuses.push({revision:'old',percent:0});await verifyDevelopmentBinding(f.options);
+});

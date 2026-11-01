@@ -15,8 +15,6 @@ historical registry below.
 
 ### Open defects and limitations
 
-BUG-073 (Advent catalogue synchronization refuses an additional zero-traffic revision).
-
 BUG-071 (Advent catalogue PostgreSQL integration test loses its connection in CI).
 
 BUG-072 (V2 Playwright smoke suite fails on commit b560afa4).
@@ -53,6 +51,8 @@ integration database).
 
 ### Pending verification or operational follow-up
 
+BUG-073 is corrected locally and verified with the live Cloud Run configuration; integration remains pending.
+
 BUG-074 is corrected locally; development deployment and human verification remain pending.
 
 BUG-056 is corrected locally in story 25.2; integration and real-browser isolation verification remain pending.
@@ -74,12 +74,12 @@ BUG-037 and BUG-029 have fixture-only corrections verified by the complete API s
 - **Notes/context**: The previous local `enterAt` opened the ranking when the current day's answer was recorded; `toggleTestMode` could also restore a previously open ranking. Targeted component tests exercise both paths. The actual trigger in development remains unverified.
 
 ### BUG-073 — Advent catalogue synchronization refuses an additional zero-traffic revision
-- **Status**: Open.
+- **Status**: Corrected locally; live verification passed; integration pending.
 - **Severity**: Medium (content synchronization blocked).
 - **Affected area**: Advent private catalogue operator, Cloud Run target verification.
 - **Observed behavior**: The operator refuses synchronization when the development service reports a current revision receiving 100% of traffic alongside another traffic status with no percentage, because the verifier requires exactly one status. This also blocks verification of the other environments.
 - **Expected behavior**: Safely verify the active revision and environment isolation when Cloud Run reports additional zero-traffic statuses, or provide an actionable diagnosis if they prevent verification.
-- **Notes/context**: Observed on 2026-11-01 while preparing a production character sync. No production write occurred. The additional status and its purpose require investigation before changing the guard.
+- **Notes/context**: Observed on 2026-11-01 while preparing a production character sync. The zero-traffic revision has a direct tagged URL and uses the development database. The local correction verifies databases of tagged revisions and refuses ambiguous traffic; targeted tests and live read-only checks passed.
 
 ### BUG-071 — Advent catalogue PostgreSQL integration test loses connection in CI
 - **Status**: Open.
