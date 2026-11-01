@@ -18,12 +18,15 @@ Give eligible La Malice members a seasonal way to discover each other through 24
 - Story 25.5: Browse the calendar and past content
 - Story 25.6: Enter the Advent experience from HatCast
 - Story 25.7: Invite members to the daily quiz
+- Story 25.8: Refine the Advent art direction
 - Story 25.9: Measure actual participation
+- Story 25.10: Discover the Advent calendar
 
 ## Requirements & Constraints
 
 - Active members of the configured troupe may play each day's available quiz, including their own, by confirming which of three statements is false. A normal answer is final and unique; a past unplayed quiz permits one explicit late answer with immediate feedback and zero points. Server-side Paris civil time governs availability, deadlines and revelation.
 - A correct answer earns 10 points, an incorrect answer zero, and each normal recorded answer one participation point. Each non-overlapping group of three consecutive correct answers earns two bonus points; a wrong answer breaks the streak and a missed day does not. Production ranking and scores expose only revealed points.
+- First-time members see a welcome before their personal calendar. Discovery is recorded on the explicit action opening that calendar and follows the member across devices; interruption before that action leaves the welcome available. Later visits follow the existing reveal and daily-entry rules.
 - Before the next Paris midnight an answer receives neutral acknowledgment without disclosing correctness, false statement, points or derived clues. After revelation the result includes the member's choice, false statement, correctness, daily points and optional content. The most recent unseen revealable result takes priority on return and is marked seen only after actual display and explicit acknowledgment; older results remain available in the calendar.
 - A quiz may be absent or published late. Content published during its day is playable until midnight; past unplayed content can be answered once for no points after revelation. Future production content stays locked. From 25 December through 15 January eligible members can consult the final ranking and calendar even without playing; no quiz takes place on the 25th. Retain answers and results after member access ends.
 - Rank all classable members including zero scores, assigning tied members the lowest position of their group. Patrice and Toinou see their own scores but do not appear in the ranking. Invitations respect existing preferences and eligibility; late or missed delivery is acceptable. Measure real participation without sensitive quiz content.
@@ -40,6 +43,7 @@ Give eligible La Malice members a seasonal way to discover each other through 24
 
 ## UX & Interaction Patterns
 
+- The welcome keeps the Advent top bar and evokes the approved illustrated winter reference with real adaptable text and an accessible action; the decorative scene excludes numbered doors. Coordinate shared visual elements with the ongoing art-direction work.
 - Advent has its own approved visual identity, scoped styles, tokens, typography and components; preserve HatCast's appearance. Apply accessible Material behavior and the established discovery, question, neutral confirmation, revelation, calendar and ranking journeys.
 - Make states understandable without color alone. Support keyboard use, visible focus, announcements, meaningful portrait alternatives, single-choice semantics, responsive layout, enlarged text, contrast, touch targets and reduced-motion equivalents. Do not truncate content. Verify visual isolation from HatCast.
 - The priority revelation offers no calendar navigation until displayed. Persist its acknowledgment only after display; simultaneous devices may both show it before acknowledgment. In the calendar, past played cases show revealed results without repeating celebration; past unplayed cases offer a single zero-point answer with immediate feedback. Christmas presents a festive message and personal score with final ranking and calendar.
@@ -48,4 +52,4 @@ Give eligible La Malice members a seasonal way to discover each other through 24
 ## Cross-Story Dependencies
 
 - Discovery, answering, isolated reset, revelation, quiz content and ranking establish foundations for calendar, entry, invitation and participation work. The private catalogue is a separate operator workflow; preserve its dedicated worktree and contributions.
-- Calendar and ranking share date, membership, content confidentiality and revealed-score boundaries. Entry follows priority revelation before daily or seasonal destinations; invitations and participation measurement depend on production/test separation.
+- Calendar and ranking share date, membership, content confidentiality and revealed-score boundaries. After initial discovery, entry follows priority revelation before daily or seasonal destinations; invitations and participation measurement depend on production/test separation.

@@ -58,10 +58,11 @@ export class AdventTest {
       const identity = this.auth.sessionUser()?.id ?? null
       if (identity === this.identity) return
       this.identity = identity
+      this.discoveryAttempt = null
       this.identityEpoch++
       this.personalResetConfirm.set(null)
       this.projectionEpoch++
-      this.calendarDays.set([]); this.calendarOpen.set(false)
+      this.calendarDays.set([]); this.calendarOpen.set(false); this.welcome.set(false); this.discoveryError.set(false)
       this.result.set(null); this.resultContent.set(null); this.history.set(null)
       this.ranking.set(null); this.rankingOpen.set(false); this.christmasScore.set(null)
       this.quiz.set(null); this.preview.set(null); this.clearVisibilityListener()
@@ -72,6 +73,10 @@ export class AdventTest {
       if (identity) void this.start()
     })
   }
+  readonly welcome = signal(false)
+  readonly discoveryError = signal(false)
+  private discoveryAttempt: string | null = null
+  @ViewChild("welcomeHeading") private welcomeHeading?: ElementRef<HTMLElement>
   readonly testControls = signal(false)
   readonly testMode = signal(false)
   readonly pendingMutations = signal(0)
@@ -90,7 +95,7 @@ export class AdventTest {
     this.personalResetConfirm.set(null)
     this.simulatedDate.set(enabled ? (this.clockDate() && this.clockDate()! >= '2026-12-01' && this.clockDate()! <= '2027-01-15' ? this.clockDate() : '2026-12-01') : null)
     await this.start()
-    if (identityEpoch === this.identityEpoch && identity === (this.auth.sessionUser()?.id ?? null) && !this.error() && !this.unavailable() && !this.result() && !this.transitionRequired()) {
+    if (identityEpoch === this.identityEpoch && identity === (this.auth.sessionUser()?.id ?? null) && !this.error() && !this.unavailable() && !this.result() && !this.transitionRequired() && !this.welcome()) {
       if (previousScreen === 'calendar') await this.openCalendar()
       if (previousScreen === 'ranking') await this.openRanking()
     }
@@ -158,6 +163,7 @@ export class AdventTest {
 
   async start(): Promise<void> {
     this.projectionEpoch++
+    this.welcome.set(false); this.discoveryError.set(false)
     this.calendarOpen.set(false); this.calendarDays.set([]); this.history.set(null); this.christmasScore.set(null); this.lateDiscovery.set(false)
     this.rankingOpen.set(false)
     this.ranking.set(null)
@@ -180,8 +186,35 @@ export class AdventTest {
       if (session.transitionRequired) { this.transitionRequired.set(true); this.loading.set(false); return }
       const clock = await this.requestJson<{ date: string } | null>('/v1/advent-test/clock', { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() }, true)
       if (!clock) { this.showUnavailable(); return }
+      this.clockDate.set(clock.date)
+      const discovery = await this.requestJson<{ discovered: boolean; attemptId?: string | null }>('/v1/advent/discovery', { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
+      if (!discovery.discovered) {
+        if (!discovery.attemptId) throw new Error('Discovery attempt unavailable')
+        this.discoveryAttempt = discovery.attemptId
+        this.welcome.set(true); this.loading.set(false)
+        setTimeout(() => this.welcomeHeading?.nativeElement.focus())
+        return
+      }
       await this.enterAt(clock.date)
     } catch (error) { if (!(error instanceof StaleRequestError)) { this.error.set(true); this.loading.set(false) } }
+  }
+
+  async discoverCalendar(): Promise<void> {
+    if (!this.welcome() || this.loading()) return
+    const epoch = this.projectionEpoch
+    const identity = this.auth.sessionUser()?.id ?? null
+    this.loading.set(true); this.discoveryError.set(false)
+    try {
+      if (!this.discoveryAttempt) throw new Error('Discovery attempt unavailable')
+      const response = await this.requestJson<{ days: CalendarDay[] | null; priorityResult?: AdventResult | null }>('/v1/advent/discovery', { method: 'POST', credentials: 'include', cache: 'no-store', headers: { ...this.csrfHeaders(), ...this.sessionHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({ attemptId: this.discoveryAttempt }) })
+      if (response.priorityResult) { await this.showResult(response.priorityResult); this.welcome.set(false); return }
+      if (!response.days) throw new Error('Calendar unavailable')
+      this.discoveryAttempt = null
+      this.calendarDays.set(response.days); this.welcome.set(false); this.calendarOpen.set(true)
+      setTimeout(() => this.calendarHeading?.nativeElement.focus())
+    } catch (error) {
+      if (!(error instanceof StaleRequestError) && this.contextCurrent(epoch, identity)) this.discoveryError.set(true)
+    } finally { if (this.contextCurrent(epoch, identity)) this.loading.set(false) }
   }
 
   private async showResult(result: AdventResult, historical = false): Promise<void> {
