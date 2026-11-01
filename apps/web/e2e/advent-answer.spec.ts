@@ -14,6 +14,7 @@ test('keyboard answers on a narrow enlarged screen with reduced motion', async (
     if (path === '/v1/troupes') return route.fulfill({ json: [] })
     if (path === '/v1/me/preferences') return route.fulfill({ json: { memberDisplayName: 'Test', preferredRoleKeys: [] } })
     if (path === '/v1/advent/clock') return route.fulfill({ json: { date: '2026-12-01' } })
+    if (path === '/v1/advent/discovery') return route.fulfill({ json: { discovered: true } })
     if (path === '/v1/advent/results/latest-unseen') return route.fulfill({ json: { result: null } })
     if (path === '/v1/advent/session') return route.fulfill({ json: { sessionId: 'test-session', testControls: true } })
     if (path === '/v1/advent/ranking') return route.fulfill({ json: { priorityResult: null, ranking: { score: 11, rank: 2, entries: [
@@ -164,6 +165,7 @@ test('keyboard recovery after the shared test session is reset', async ({ page }
     if (path === '/v1/troupes') return route.fulfill({ json: [] })
     if (path === '/v1/me/preferences') return route.fulfill({ json: { memberDisplayName: 'Test', preferredRoleKeys: [] } })
     if (path === '/v1/advent/clock') return route.fulfill({ json: { date: '2026-12-01' } })
+    if (path === '/v1/advent/discovery') return route.fulfill({ json: { discovered: true } })
     if (path === '/v1/advent/results/latest-unseen') return route.fulfill({ json: { result: null } })
     if (path === '/v1/advent/session') return route.fulfill({ json: { sessionId: session, testControls: true } })
     if (path === '/v1/advent/doors/1') return route.fulfill({ json: { day: 1, name: 'Lutin', portrait: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a2ioAAAAASUVORK5CYII=', genericElf: true, statements: ['Une', 'Deux', 'Trois'] } })

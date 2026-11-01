@@ -30,6 +30,8 @@
 .advent__simulated-day { min-width: 1.5rem; text-align: center; font: 700 1rem/1 var(--advent-body-font); }
 .advent__header button, .advent__header a { flex: 0 0 48px; width: 48px; height: 48px; color: var(--hatcast-avent-white) !important; }
 .advent__header button:disabled { opacity: .5; }
+.advent__header button.advent__header-title { flex: 1 1 auto; width: auto; min-width: 0; justify-content: flex-start; padding-inline: .25rem; text-align: left; }
+.advent__header button.advent__header-title:focus-visible { outline: 3px solid var(--advent-snow); outline-offset: -3px; }
 .advent__heading { text-align: center; }
 .advent__date { margin: .2rem 0; text-align: center; font: 700 1rem/1.4 var(--advent-body-font); color: var(--advent-text-muted); text-transform: uppercase; letter-spacing: .07em; }
 .advent__title { margin: .3rem 0; }
@@ -134,15 +136,3 @@
   box-shadow: 1px 2px 2px #4a190f80, inset 0 1px 1px #fff8e6aa;
 }
 .advent__santa-logo { position: absolute; width: 110%; height: 110%; bottom: -1%; object-fit: contain; mix-blend-mode: multiply; }
-
-/* Opt-in controls occupy their own Advent-only row. */
-.advent__test-actions, .advent__test-actions.advent__test-actions--calendar { display: flex; flex-wrap: nowrap; width: 100%; max-width: 100%; min-height: 3rem; box-sizing: border-box; gap: .125rem; border-radius: 0; overflow-x: visible; padding: 0 .5rem; }
-.advent__test-actions button { flex: 0 0 48px; width: 48px; height: 48px; color: var(--hatcast-avent-green) !important; }
-.advent__test-label { font: var(--mat-sys-label-large); }
-.advent__test-label-short { display: none; }
-.advent__simulated-day { min-width: 3.5rem; white-space: nowrap; }
-
-@media (max-width: 360px) {
-  .advent__test-label { display: none; }
-  .advent__simulated-day { min-width: 0; flex: 1 1 auto; }
-}

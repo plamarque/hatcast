@@ -19,7 +19,7 @@ Animation intégrée à HatCast, mobile-first et utilisable sur desktop ; Angula
 
 | Surface | Accès et rôle |
 |---|---|
-| Révélation prioritaire | Au retour, résultat révélable non vu le plus récent, même si une réponse plus récente attend encore sa révélation, avant le parcours du jour ; aucun accès au calendrier sur cet écran. |
+| Révélation prioritaire | Après la première découverte, au retour, résultat révélable non vu le plus récent, même si une réponse plus récente attend encore sa révélation, avant le parcours du jour ; aucun accès au calendrier sur cet écran. |
 | Porte et quiz du jour | Du 1er au 24, quiz disponible et non répondu : ouverture automatique selon FR-2, ou accès par icône et notification ; une fermeture supprime l’ouverture automatique du jour sur tous les appareils. |
 | Confirmation | Accusé sans résultat ni points, invitation à revenir demain et action vers le classement. |
 | Classement | Dans la story 25.4, l’accusé après réponse donne accès par « Voir le classement » au score personnel, à la position et à la liste, sous réserve de la révélation prioritaire. En production les scores sont révélés ; en test isolé ils incluent toutes les réponses notées enregistrées, y compris celles en attente. |
@@ -75,7 +75,7 @@ Grille de quatre colonnes ordonnées, défilement accepté ; téléphone d’abo
 
 ### UJ-1 — Camille joue
 
-1. Camille ouvre HatCast ou suit la notification de 10 h ; la révélation prioritaire éventuelle passe d’abord.
+1. Après sa première découverte du calendrier, Camille ouvre HatCast ou suit la notification de 10 h ; la révélation prioritaire éventuelle passe d’abord.
 2. Elle ouvre la porte, découvre le portrait et les trois anecdotes et choisit celle qu’elle croit fausse.
 3. **Confirmation :** sa réponse est enregistrée ; l’accusé lui donne rendez-vous demain et accès au classement sans indice sur le résultat. En cas d’échec, elle peut réessayer avant minuit ; après clôture, la réponse est refusée et elle peut consulter classement et calendrier.
 
@@ -157,7 +157,7 @@ La barre de l’Avent comporte à droite les icônes calendrier, classement et f
 
 **Confidentialité :** avant l’heure de révélation autorisée, aucun état visuel, libellé accessible ou donnée du calendrier ne donne d’indice sur la justesse ou les points. L’heure et les droits sont déterminés côté serveur selon l’architecture Avent. La priorité de révélation et les règles de test existantes restent applicables : l’exception de classement en test isolé ne crée aucune exception pour les cases. Les résultats des autres personnes ne figurent pas dans ce récapitulatif personnel.
 
-**États précisés par Patrice :** un cadeau est ouvert dès que la réponse est enregistrée. Avant l’heure autorisée il reste neutre, sans indice de justesse ; dès que le résultat devient révélable, il devient vert ou rouge avec un indice accessible, même si le résultat n’a pas encore été consulté. La révélation prioritaire continue de s’appliquer. Ouvrir la scène de découverte ne change pas à lui seul la silhouette de la case : celle-ci ne s’ouvre qu’à l’enregistrement de la réponse. Un jour passé non joué reste fermé et neutre, sans indication « jour manqué » ; lorsqu’un quiz existe, il peut être joué une fois sans point. Les jours sans contenu doivent rester distincts des jours manqués par un indice accessible ; sa forme visuelle reste à valider. Une réponse tardive donne un résultat immédiat sans point ni effet sur la série ou le classement. Vert signifie bonne réponse et rouge mauvaise réponse ; les formes exactes des indices non chromatiques restent à valider. Le 25 accessible mène au bilan et ne représente aucun résultat de quiz ; sa silhouette précise reste à valider.
+**États précisés par Patrice :** un cadeau est ouvert dès que la réponse est enregistrée. Avant l’heure autorisée il reste neutre, sans indice de justesse ; dès que le résultat devient révélable, il devient vert ou rouge avec un indice accessible, même si le résultat n’a pas encore été consulté. Après la première découverte, la révélation prioritaire continue de s’appliquer. Ouvrir la scène de découverte ne change pas à lui seul la silhouette de la case : celle-ci ne s’ouvre qu’à l’enregistrement de la réponse. Un jour passé non joué reste fermé et neutre, sans indication « jour manqué » ; lorsqu’un quiz existe, il peut être joué une fois sans point. Les jours sans contenu doivent rester distincts des jours manqués par un indice accessible ; sa forme visuelle reste à valider. Une réponse tardive donne un résultat immédiat sans point ni effet sur la série ou le classement. Vert signifie bonne réponse et rouge mauvaise réponse ; les formes exactes des indices non chromatiques restent à valider. Le 25 accessible mène au bilan et ne représente aucun résultat de quiz ; sa silhouette précise reste à valider.
 
 **Vérifications :** grille ordonnée, lecture du numéro et de l’état au clavier, repère non chromatique, cibles tactiles et focus, contraste, mouvement réduit et zoom ; éprouver visuellement le cadeau ouvert à la taille réelle, y compris à 320 px. Vérifier les limites de révélation à minuit Paris, les résultats non consultés, le 25, les jours manqués et sans contenu, ainsi que l’isolation du thème Avent et des comptes. Le calendrier projette les résultats personnels autorisés avec un signe en complément de la couleur.
 
@@ -171,3 +171,13 @@ Un testeur autorisé commence en mode membre : le temps, les réponses et le cla
 ### Vérifications visuelles de la reprise 25.8
 
 Patrice privilégie la lisibilité des écritures et de grandes cibles tactiles. Pour le quiz Avent, le test au lecteur d’écran et un seuil chiffré de contraste ne sont pas des critères de validation obligatoires ; vérifier visuellement les textes, états et commandes. Conserver les comportements clavier, focus, sémantique et mouvement réduit existants lorsqu’ils sont compatibles avec la direction artistique.
+
+### Première découverte du calendrier
+
+La première visite affiche une invitation avant tout résultat ou quiz. L’action explicite « Découvrir mon calendrier de l’Avent » enregistre la découverte et ouvre le calendrier. Fermer avant cette action laisse l’invitation disponible ; une erreur permet de réessayer. Un résultat préexistant ne devient pas vu par la récupération du calendrier et reste prioritaire lors des visites suivantes.
+
+### Prévisualisation de l’accueil en test
+
+Le titre « Quiz de l’Avent » dans la barre supérieure permet à chaque membre de revoir l’accueil sans modifier l’état de découverte ni les réponses. Il est indisponible pendant une révélation prioritaire ou une opération en cours. L’action de l’accueil ouvre le calendrier selon les contrôles habituels, notamment la priorité de révélation.
+
+En mode test autorisé, une commande du calendrier permet également de prévisualiser l’accusé de réponse avec un lutin fictif, sans enregistrer ni effacer de réponse.

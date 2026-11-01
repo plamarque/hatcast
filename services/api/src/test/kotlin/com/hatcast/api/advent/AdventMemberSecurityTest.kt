@@ -36,10 +36,42 @@ class AdventMemberSecurityTest {
     @Autowired lateinit var environment: ConfigurableEnvironment
     @Test fun `anonymous and unrelated user cannot access member data and errors are not cached`() {
         val cookie = TestAuthSupport.sessionCookieFromGoogleSignIn(mvc, google, "outsider-advent-member")
-        for (path in listOf("/v1/advent/entry", "/v1/advent/clock", "/v1/advent/doors/1", "/v1/advent/doors/1/answer", "/v1/advent/doors/1/result", "/v1/advent/results/latest-unseen", "/v1/advent/ranking", "/v1/advent/calendar", "/v1/advent/doors/1/history")) {
+        for (path in listOf("/v1/advent/discovery", "/v1/advent/entry", "/v1/advent/clock", "/v1/advent/doors/1", "/v1/advent/doors/1/answer", "/v1/advent/doors/1/result", "/v1/advent/results/latest-unseen", "/v1/advent/ranking", "/v1/advent/calendar", "/v1/advent/doors/1/history")) {
             mvc.perform(get(path)).andExpect(status().isUnauthorized).andExpect(header().string("Cache-Control", "private, no-store"))
             mvc.perform(get(path).cookie(cookie)).andExpect(status().isForbidden).andExpect(header().string("Cache-Control", "private, no-store"))
         }
+        mvc.perform(post("/v1/advent/discovery").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("""{"attemptId":"${UUID.randomUUID()}"}""")).andExpect(status().isUnauthorized).andExpect(header().string("Cache-Control", "private, no-store"))
+        mvc.perform(post("/v1/advent/discovery").cookie(cookie).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("""{"attemptId":"${UUID.randomUUID()}"}""")).andExpect(status().isForbidden).andExpect(header().string("Cache-Control", "private, no-store"))
+    }
+    @Test fun `discovery requires current authorized session and enforces mode`() {
+        val troupe = UUID.fromString("a0000001-0000-4000-8000-000000000001")
+        jdbc.update("INSERT INTO troupes (id, name, slug, created_at) SELECT ?, 'Fictif', 'advent-security', CURRENT_TIMESTAMP WHERE NOT EXISTS (SELECT 1 FROM troupes WHERE id = ?)", troupe, troupe)
+        val cookie = TestAuthSupport.sessionCookieFromGoogleSignIn(mvc, google, "discovery-http-member")
+        val user = jdbc.queryForObject("SELECT id FROM users WHERE google_sub = ?", UUID::class.java, "discovery-http-member")!!
+        jdbc.update("INSERT INTO troupe_memberships (id, troupe_id, user_id, status, baseline_role, display_name, created_at, updated_at) VALUES (?, ?, ?, 'ACTIVE', 'MEMBER', 'Fictif', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", UUID.randomUUID(), troupe, user)
+        `when`(clock.instant()).thenReturn(Instant.parse("2026-12-01T12:00:00Z"))
+        val session = json.readTree(mvc.perform(get("/v1/advent/session").cookie(cookie)).andExpect(status().isOk).andReturn().response.contentAsString)["sessionId"].asText()
+        val issued = mvc.perform(get("/v1/advent/discovery").cookie(cookie).header("X-Advent-Test-Session", session))
+            .andExpect(status().isOk).andExpect(header().string("Cache-Control", "private, no-store")).andExpect(jsonPath("$.discovered").value(false)).andReturn()
+        val attempt = json.readTree(issued.response.contentAsString)["attemptId"].asText()
+        val body = """{"attemptId":"$attempt"}"""
+        mvc.perform(post("/v1/advent/discovery").cookie(cookie).with(csrf()).header("X-Advent-Test-Session", UUID.randomUUID().toString()).contentType(MediaType.APPLICATION_JSON).content(body))
+            .andExpect(status().isConflict).andExpect(header().string("Cache-Control", "private, no-store"))
+        mvc.perform(post("/v1/advent/discovery").cookie(cookie).with(csrf()).header("X-Advent-Test-Session", session).header("X-Advent-Simulated-Date", "2026-12-02").contentType(MediaType.APPLICATION_JSON).content(body))
+            .andExpect(status().isNotFound).andExpect(header().string("Cache-Control", "private, no-store"))
+        mvc.perform(post("/v1/advent/discovery").cookie(cookie).with(csrf()).header("X-Advent-Test-Session", session).header("X-Advent-Test-Mode", "true").contentType(MediaType.APPLICATION_JSON).content(body))
+            .andExpect(status().isNotFound)
+        jdbc.update("UPDATE advent_member_discovery_attempts SET expires_at = ? WHERE attempt_id = ?", java.sql.Timestamp.from(Instant.parse("2026-12-01T12:00:00Z")), UUID.fromString(attempt))
+        mvc.perform(post("/v1/advent/discovery").cookie(cookie).with(csrf()).header("X-Advent-Test-Session", session).contentType(MediaType.APPLICATION_JSON).content(body))
+            .andExpect(status().isConflict)
+        assert(jdbc.queryForObject("SELECT COUNT(*) FROM advent_member_discovery_attempts WHERE attempt_id = ?", Int::class.java, UUID.fromString(attempt)) == 0)
+        val renewed = mvc.perform(get("/v1/advent/discovery").cookie(cookie).header("X-Advent-Test-Session", session)).andExpect(status().isOk).andReturn()
+        val renewedAttempt = json.readTree(renewed.response.contentAsString)["attemptId"].asText()
+        val renewedBody = """{"attemptId":"$renewedAttempt"}"""
+        mvc.perform(post("/v1/advent/discovery").cookie(cookie).with(csrf()).header("X-Advent-Test-Session", session).contentType(MediaType.APPLICATION_JSON).content(renewedBody))
+            .andExpect(status().isOk).andExpect(header().string("Cache-Control", "private, no-store")).andExpect(jsonPath("$.days[0].day").value(1))
+        mvc.perform(get("/v1/advent/discovery").cookie(cookie).header("X-Advent-Test-Session", session))
+            .andExpect(status().isOk).andExpect(jsonPath("$.discovered").value(true))
     }
     @Test fun `late mode and history projection remain private across authenticated members`() {
         val troupe = UUID.fromString("a0000001-0000-4000-8000-000000000001")

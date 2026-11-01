@@ -42,6 +42,34 @@ class AdventMemberGame(private val jdbc: JdbcTemplate, private val clock: Advent
 
     data class EntryState(val autoOpen: Boolean)
 
+    data class DiscoveryState(val discovered: Boolean, val attemptId: UUID? = null)
+
+    @Transactional
+    fun discovery(user: UUID, expected: UUID, simulated: LocalDate? = null): DiscoveryState {
+        now(expected, simulated)
+        val actual = clock.instant()
+        jdbc.update("DELETE FROM advent_member_discovery_attempts WHERE expires_at <= ?", Timestamp.from(actual))
+        val discovered = jdbc.queryForObject("SELECT COUNT(*) FROM advent_member_discoveries WHERE user_id = ?", Int::class.java, user) != 0
+        if (discovered) return DiscoveryState(true)
+        val attempt = UUID.randomUUID()
+        jdbc.update("INSERT INTO advent_member_discovery_attempts (user_id, attempt_id, expires_at) VALUES (?, ?, ?)", user, attempt, Timestamp.from(actual.plusSeconds(24 * 60 * 60)))
+        return DiscoveryState(false, attempt)
+    }
+
+    /** Each welcome displayed before discovery has an idempotent initial-calendar action. */
+    @Transactional
+    fun discover(user: UUID, attempt: UUID, expected: UUID, simulated: LocalDate? = null): AdventCalendarResponse? {
+        val time = now(expected, simulated)
+        jdbc.update("DELETE FROM advent_member_discovery_attempts WHERE expires_at <= ?", Timestamp.from(clock.instant()))
+        val issued = jdbc.queryForObject("SELECT COUNT(*) FROM advent_member_discovery_attempts WHERE user_id = ? AND attempt_id = ?", Int::class.java, user, attempt) != 0
+        val existing = jdbc.queryForObject("SELECT COUNT(*) FROM advent_member_discoveries WHERE user_id = ?", Int::class.java, user) != 0
+        if (!existing) {
+            if (!issued) return null
+            jdbc.update("INSERT INTO advent_member_discoveries (user_id, discovered_at) VALUES (?, ?)", user, Timestamp.from(time))
+        }
+        return calendarAt(user, time, issued)
+    }
+
     /** This projection never contains quiz content, answers or scores. */
     @Transactional
     fun entry(user: UUID, expected: UUID? = null, simulated: LocalDate? = null): EntryState {
@@ -206,13 +234,16 @@ class AdventMemberGame(private val jdbc: JdbcTemplate, private val clock: Advent
     /** Calendar exposes state only, never unpublished content or scoring information. */
     @Transactional
     fun calendar(user: UUID, expected: UUID? = null, simulated: LocalDate? = null): AdventCalendarResponse {
-        val time = now(expected, simulated)
+        return calendarAt(user, now(expected, simulated), false)
+    }
+
+    private fun calendarAt(user: UUID, time: Instant, initialDiscovery: Boolean): AdventCalendarResponse {
         val today = date(time)
         val unseen = jdbc.query("SELECT quiz_day FROM advent_member_answers WHERE user_id = ? AND seen_at IS NULL AND reveal_at <= ? ORDER BY quiz_day DESC", { rs, _ -> rs.getInt(1) }, user, Timestamp.from(time)).firstOrNull { day ->
             val conflict = "offline" in environment.activeProfiles && jdbc.queryForObject("SELECT COUNT(*) FROM advent_offline_content_conflicts WHERE quiz_day = ?", Int::class.java, day) != 0
             !conflict && memberQuiz(day) != null
         }
-        if (unseen != null) return AdventCalendarResponse(priorityResult = resultAt(user, unseen, time))
+        if (unseen != null && !initialDiscovery) return AdventCalendarResponse(priorityResult = resultAt(user, unseen, time))
         val answered = jdbc.query("SELECT quiz_day, reveal_at, choice, correct_choice FROM advent_member_answers WHERE user_id = ?", { rs, _ ->
             val outcome = if (rs.getTimestamp(2).toInstant().isAfter(time)) "pending" else if (rs.getInt(3) == rs.getInt(4)) "correct" else "incorrect"
             rs.getInt(1) to outcome
@@ -263,7 +294,7 @@ class AdventMemberGame(private val jdbc: JdbcTemplate, private val clock: Advent
     @Transactional
     fun reset(expected: UUID) {
         requireSession(expected)
-        listOf("advent_member_dismissals", "advent_member_attempts", "advent_member_generations", "advent_member_replays", "advent_member_answers", "advent_offline_content_conflicts").forEach { jdbc.update("DELETE FROM $it") }
+        listOf("advent_member_discovery_attempts", "advent_member_discoveries", "advent_member_dismissals", "advent_member_attempts", "advent_member_generations", "advent_member_replays", "advent_member_answers", "advent_offline_content_conflicts").forEach { jdbc.update("DELETE FROM $it") }
         jdbc.update("UPDATE advent_member_lock SET test_session_id = ? WHERE id = 1", UUID.randomUUID())
     }
 
