@@ -52,11 +52,15 @@
       <section class="advent__welcome" aria-labelledby="welcome-title">
         <div class="advent__welcome-scene" aria-hidden="true"><img src="/advent/welcome-elf-v1.webp" alt=""></div>
         <div class="advent__welcome-panel">
-          <h1 #welcomeHeading id="welcome-title" tabindex="-1">Le Quiz de l’Avent</h1>
-          <p>Chaque jour, une surprise !</p>
+          <img class="advent__welcome-logo" src="/advent/logo-la-malice.png" alt="La Malice">
+          <h1 #welcomeHeading id="welcome-title" tabindex="-1">Le Quizz de l’Avent</h1>
+          <p>Chaque jour, les lutins malicieux te confient leurs secrets !</p>
           @if (discoveryError()) { <p role="alert">{{ sessionChanged() ? 'La partie ou l’invitation a changé. Recharge pour continuer.' : 'Impossible d’ouvrir ton calendrier. Réessaie.' }}</p> }
           @if (sessionChanged()) { <button mat-stroked-button type="button" (click)="start()">Recharger</button> }
-          <button mat-flat-button type="button" (click)="discoverCalendar()" [disabled]="loading() || sessionChanged()">Découvrir mon calendrier de l’Avent</button>
+        </div>
+        <div class="advent__welcome-actions">
+          <button class="advent__welcome-primary" mat-flat-button type="button" (click)="discoverCalendar()" [disabled]="closingExperience() || loading() || sessionChanged()">Commencer à jouer</button>
+          <button class="advent__welcome-return" mat-stroked-button type="button" (click)="closeExperience()" [disabled]="closingExperience() || loading() || submitting() || pendingMutations() > 0 || closingDay() !== null">← &nbsp;Revenir à HatCast</button>
         </div>
       </section>
     } @else if (history(); as past) {
