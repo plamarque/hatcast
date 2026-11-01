@@ -15,10 +15,6 @@ historical registry below.
 
 ### Open defects and limitations
 
-BUG-075 (late Advent test replay is closed on its simulated quiz day).
-
-BUG-074 (Advent test day navigation opens the ranking for answered days).
-
 BUG-071 (Advent catalogue PostgreSQL integration test loses its connection in CI).
 
 BUG-072 (V2 Playwright smoke suite fails on commit b560afa4).
@@ -68,20 +64,20 @@ human-smoke, integration, or validation gate.
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
 
 ### BUG-075 — Late test replay is closed on its simulated day
-- **Status**: Corrected locally; deployment and verification in development pending.
+- **Status**: Closed on 2026-11-01 at Patrice's request; deployed and verified in development.
 - **Severity**: Medium.
 - **Affected area**: Advent isolated test replay.
 - **Observed behavior**: After a late December 1 answer was erased and the clock moved back to December 1, its quiz displayed as closed. Development database read-only inspection found the retained day 1 replay marker was late.
 - **Expected behavior**: The authorized tester can replay on that simulated day without points or premature revelation; ordinary late answers retain their existing rules.
-- **Notes/context**: Reproduced in Chrome on 2026-11-01. Only the operator's December 1 and 2 answers were erased; no global reset was performed.
+- **Notes/context**: Reproduced in Chrome on 2026-11-01. Only the operator's December 1 and 2 answers were erased; no global reset was performed. Fix `d56eca5c` was deployed to revision `hatcast-v2-dev-00260-klz`; browser verification confirmed the quiz opened with the zero-point warning. No answer was submitted in the live check; confirmation, score, and reveal behavior were covered by automated tests.
 
 ### BUG-074 — Advent test mode opens ranking instead of current day's state
-- **Status**: Reopened and reproduced on development; further correction implemented locally, awaiting deployment and human verification.
+- **Status**: Closed on 2026-11-01 at Patrice's request; further correction deployed and verified in development.
 - **Severity**: Medium.
 - **Affected area**: Advent test-mode entry in development.
 - **Observed behavior**: On 2026-11-01, activating test mode at simulated December 1 displayed the ranking instead of the day's lutin, available result, or pending-result state.
 - **Expected behavior**: Show the appropriate current-day state, while preserving priority for an unseen result.
-- **Notes/context**: Fix `b9c14575` addressed activation but not the date arrows. In Chrome on development revision `hatcast-v2-dev-00258-2lg`, returning from December 3 to an already-answered December 2 opened the ranking, where the date arrows were unavailable. The calendar still allowed the day's recorded confirmation to be opened.
+- **Notes/context**: Fix `b9c14575` addressed activation but not the date arrows. In Chrome on development revision `hatcast-v2-dev-00258-2lg`, returning from December 3 to an already-answered December 2 opened the ranking, where the date arrows were unavailable. Follow-up `fa000926` was deployed and browser-verified: answered days kept their navigation controls and the available December 3 quiz opened.
 
 ### BUG-073 — Advent catalogue synchronization refuses an additional zero-traffic revision
 - **Status**: Corrected locally; live verification passed; integration pending.
