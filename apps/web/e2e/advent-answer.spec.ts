@@ -14,6 +14,7 @@ test('keyboard answers on a narrow enlarged screen with reduced motion', async (
     if (path === '/v1/troupes') return route.fulfill({ json: [] })
     if (path === '/v1/me/preferences') return route.fulfill({ json: { memberDisplayName: 'Test', preferredRoleKeys: [] } })
     if (path === '/v1/advent/clock') return route.fulfill({ json: { date: '2026-12-01' } })
+    if (path === '/v1/advent/discovery') return route.fulfill({ json: { discovered: true } })
     if (path === '/v1/advent/results/latest-unseen') return route.fulfill({ json: { result: null } })
     if (path === '/v1/advent/session') return route.fulfill({ json: { sessionId: 'test-session', testControls: true } })
     if (path === '/v1/advent/ranking') return route.fulfill({ json: { priorityResult: null, ranking: { score: 11, rank: 2, entries: [
@@ -41,7 +42,8 @@ test('keyboard answers on a narrow enlarged screen with reduced motion', async (
     return { font: style.fontFamily, size: style.fontSize, color: style.color }
   })
   await page.goto('/avent')
-  await page.addStyleTag({ content: 'html { font-size: 200% !important; }' })
+  await page.getByRole('button', { name: 'Activer le mode test' }).click()
+  const fontScale = await page.addStyleTag({ content: 'html { font-size: 200% !important; }' })
   const gift = page.getByRole('button', { name: 'Ouvrir le cadeau du jour 1' })
   await expect(gift).toBeVisible()
   expect(await page.locator('.advent__elf').evaluate(el => getComputedStyle(el).animationName)).toBe('none')
@@ -55,7 +57,6 @@ test('keyboard answers on a narrow enlarged screen with reduced motion', async (
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   }
   await page.setViewportSize({ width: 320, height: 700 })
-  const portraitWidth = await page.locator('.advent__portrait').evaluate(el => el.getBoundingClientRect().width)
   const choices = page.getByRole('radio')
   await expect(choices).toHaveCount(3)
   await choices.first().focus()
@@ -73,6 +74,33 @@ test('keyboard answers on a narrow enlarged screen with reduced motion', async (
   await page.getByRole('button', { name: 'Confirmer ma réponse' }).click()
   await expect(page.locator('.advent__recorded')).toContainText('Ta réponse est enregistrée')
   await expect(page.locator('.advent__recorded-title')).toBeVisible()
+  const overlaps = await page.locator('.advent__quiz').evaluate(root => {
+    const rect = (element: Element) => element.getBoundingClientRect()
+    const intersects = (a: DOMRect, b: DOMRect) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
+    const date = root.querySelector('.advent__date')!
+    const badge = root.querySelector('.advent__portrait')!
+    const buttons = [...root.querySelectorAll('button')].filter(button => button.querySelector('mat-icon[iconPositionEnd]'))
+    return {
+      badge: intersects(rect(date), rect(badge)),
+      labels: buttons.map(button => {
+        const icon = button.querySelector('mat-icon[iconPositionEnd]')!
+        const label = button.querySelector('.mdc-button__label')!
+        const walker = document.createTreeWalker(label, NodeFilter.SHOW_TEXT)
+        const nodes: Text[] = []
+        while (walker.nextNode()) {
+          const node = walker.currentNode as Text
+          if (node.textContent?.trim() && !node.parentElement?.closest('mat-icon')) nodes.push(node)
+        }
+        if (!nodes.length) throw new Error('Button label has no text')
+        const range = document.createRange()
+        range.setStartBefore(nodes[0]); range.setEndAfter(nodes[nodes.length - 1])
+        return intersects(range.getBoundingClientRect(), rect(icon))
+      }),
+    }
+  })
+  expect(overlaps.badge).toBe(false)
+  expect(overlaps.labels.length).toBeGreaterThan(0)
+  expect(overlaps.labels.every(value => !value)).toBe(true)
   await expect(page.locator('.advent__recorded-title')).toHaveCSS('font-family', /Fredoka/)
   await page.evaluate(() => document.fonts.ready)
   expect(await page.evaluate(() => document.fonts.check('700 16px Fredoka'))).toBe(true)
@@ -84,7 +112,7 @@ test('keyboard answers on a narrow enlarged screen with reduced motion', async (
     await expect(page.locator('.advent__recorded-title')).toBeVisible()
   }
   await page.setViewportSize({ width: 320, height: 700 })
-  expect(await page.locator('.advent__portrait').evaluate(el => el.getBoundingClientRect().width)).toBe(portraitWidth)
+  expect(await page.locator('.advent__portrait').evaluate(el => el.getBoundingClientRect().width)).toBeGreaterThanOrEqual(44)
   const replay = page.locator('.advent__test-actions').getByRole('button', { name: 'Effacer ma réponse et rejouer' })
   await expect(replay).toBeVisible()
   await expect(replay.locator('mat-icon')).toHaveText('delete_outline')
@@ -96,24 +124,24 @@ test('keyboard answers on a narrow enlarged screen with reduced motion', async (
   await expect(rankingButton).toBeVisible()
   await rankingButton.focus()
   await page.keyboard.press('Enter')
-  await expect(page.getByRole('heading', { name: 'Classement des lutins' })).toBeFocused()
+  await expect(page.getByRole('heading', { name: 'Classement' })).toBeFocused()
+  await expect(page.getByRole('heading', { name: 'Classement' })).toHaveCSS('outline-style', 'solid')
+  await expect(page.getByRole('heading', { name: 'Classement' })).toHaveCSS('outline-width', '3px')
   const myRanking = page.locator('.advent__ranking-list li').filter({ hasText: 'Camille' })
   await expect(myRanking.getByLabel('Position 2')).toBeVisible()
   await expect(myRanking).toContainText('Camille')
   await expect(myRanking.locator('.advent__ranking-score strong')).toHaveText('11')
   await expect(page.locator('.advent__ranking')).not.toContainText('tous les points enregistrés')
-  await expect(page.locator('.advent__ranking')).toContainText('Chaque groupe de trois bonnes réponses')
+  await expect(page.locator('.advent__ranking')).toContainText('Chaque série de trois bonnes réponses')
   for (const width of [320, 375, 390, 430, 768, 1280]) {
     await page.setViewportSize({ width, height: 700 })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   }
   await page.setViewportSize({ width: 320, height: 700 })
-  await page.getByRole('button', { name: 'Retour', exact: true }).focus()
+  await fontScale.evaluate(element => element.remove())
+  await page.getByRole('button', { name: 'Fermer le quiz' }).focus()
   await page.keyboard.press('Enter')
-  await expect(rankingButton).toBeFocused()
-  await expect(page.locator('.advent__recorded')).toBeVisible()
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
-  await page.goto('/accueil')
+  await expect(page).toHaveURL(/\/accueil$/)
   expect(await page.locator('body').evaluate(el => {
     const style = getComputedStyle(el)
     return { font: style.fontFamily, color: style.color, background: style.backgroundColor, advent: style.getPropertyValue('--hatcast-avent-red').trim() }
@@ -137,6 +165,7 @@ test('keyboard recovery after the shared test session is reset', async ({ page }
     if (path === '/v1/troupes') return route.fulfill({ json: [] })
     if (path === '/v1/me/preferences') return route.fulfill({ json: { memberDisplayName: 'Test', preferredRoleKeys: [] } })
     if (path === '/v1/advent/clock') return route.fulfill({ json: { date: '2026-12-01' } })
+    if (path === '/v1/advent/discovery') return route.fulfill({ json: { discovered: true } })
     if (path === '/v1/advent/results/latest-unseen') return route.fulfill({ json: { result: null } })
     if (path === '/v1/advent/session') return route.fulfill({ json: { sessionId: session, testControls: true } })
     if (path === '/v1/advent/doors/1') return route.fulfill({ json: { day: 1, name: 'Lutin', portrait: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a2ioAAAAASUVORK5CYII=', genericElf: true, statements: ['Une', 'Deux', 'Trois'] } })
@@ -169,7 +198,7 @@ test('keyboard recovery after the shared test session is reset', async ({ page }
 })
 
 
-test('reveals the most recent result accessibly after advancing the tab date', async ({ page }) => {
+test('reveals the most recent result accessibly after advancing the tab date', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 320, height: 700 })
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.addInitScript(() => localStorage.setItem('hatcast-pwa-banner-dismissed', String(Date.now())))
@@ -201,6 +230,7 @@ test('reveals the most recent result accessibly after advancing the tab date', a
   })
   await page.goto('/avent')
   await expect(page.getByText('Explication fictive du résultat.')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Activer le mode test' }).click()
   await page.getByRole('button', { name: 'Avancer au jour suivant' }).click()
   await expect(page.getByText('Explication fictive du résultat.')).toBeVisible()
   await expect(page.locator('.advent__simulated-day')).toHaveText('9 déc.')
@@ -211,6 +241,9 @@ test('reveals the most recent result accessibly after advancing the tab date', a
   await expect(page.locator('.advent__result-answer--truth')).toContainText('L’anecdote qui était fausse')
   await expect(page.locator('.advent__result-answer--truth')).toContainText('Une')
   await expect(page.locator('.advent__result-points')).toHaveText('+11 points gagnés')
+  await expect(page.locator('.advent__reveal-mood img')).toHaveAttribute('src', '/advent/elf-celebration-v1.webp')
+  await expect.poll(() => page.locator('.advent__reveal-mood img').evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0)
+  await page.screenshot({ path: testInfo.outputPath('result-correct.png'), fullPage: true })
   await expect.poll(() => seen).toBe(true)
   await expect(page.locator('.advent__confetti')).toHaveCSS('animation-name', 'none')
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)

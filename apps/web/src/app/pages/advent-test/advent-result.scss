@@ -57,3 +57,11 @@
 
 .advent__header:has(.advent__test-actions--calendar) { flex-wrap: wrap; }
 .advent__header .advent__test-actions .advent__clock-action { flex: 1 1 10rem; width: auto; height: auto; }
+
+
+/* Mood artwork is decorative; the member's authorized portrait stays visible. */
+.advent__reveal-mood { width: min(14rem, 70%); margin: 0 auto -.75rem; }
+.advent__reveal-mood img { display: block; width: 100%; height: auto; filter: drop-shadow(0 .25rem .35rem #70464255); }
+.advent__reveal-scene { position: absolute; top: 1.5rem; right: 0; z-index: 3; margin: 0; }
+.advent__reveal-scene .advent__reveal-star { display: none; }
+.advent__reveal-portrait { width: 3.75rem; height: 3.75rem; border-width: .2rem; }

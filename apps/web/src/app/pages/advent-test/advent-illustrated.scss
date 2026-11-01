@@ -1,0 +1,119 @@
+/* Illustrated Advent surfaces: scoped to this experience. */
+.advent__scene {
+  display: block; box-sizing: border-box; width: 100%; margin: 0;
+  background: #123d55 url('/advent/winter-village-v1.webp') center / cover no-repeat;
+}
+.advent__elf { display: block; }
+.advent__gift {
+  position: relative; inset: auto; height: auto; max-width: 26rem; margin-inline: auto;
+  padding: 0; gap: .75rem; flex-direction: column; align-items: stretch; border-radius: 1.2rem;
+}
+.advent__gift:focus-visible { outline-offset: 4px; }
+.advent__scene .advent__decoration { color: #ffdf78; text-shadow: 0 1px 5px #52350a; }
+.advent__scene .advent__elf img { filter: drop-shadow(0 .45rem .5rem #001b2e70); }
+/* The discovery artwork provides its own scenery; do not layer a second one. */
+.advent__scene::before, .advent__scene::after { display: none; }
+.advent:has(.advent__scene)::before { display: none; }
+.advent__hint,
+.advent__quiz button[mat-flat-button]:not(:disabled),
+.advent__ranking-action button[mat-flat-button]:not(:disabled),
+.advent__entry-actions button[mat-flat-button]:not(:disabled) {
+  min-height: 3.5rem; border: 1px solid #a20825; border-radius: 2rem;
+  position: relative;
+  --mat-button-filled-label-text-font: var(--advent-body-font);
+  --mat-button-filled-label-text-size: 1.125rem;
+  --mat-button-filled-label-text-weight: 800;
+  font: 800 1.125rem/1.2 var(--advent-body-font);
+  letter-spacing: 0;
+  background: radial-gradient(ellipse 1.4rem .45rem at 5% 0, #fffdf7 97%, transparent 100%),
+    radial-gradient(ellipse 1.15rem .38rem at 13% 0, #fffdf7 97%, transparent 100%),
+    radial-gradient(ellipse 1.4rem .45rem at 95% 0, #fffdf7 97%, transparent 100%),
+    radial-gradient(ellipse 1.15rem .38rem at 87% 0, #fffdf7 97%, transparent 100%),
+    linear-gradient(180deg, #f14e50, #cc1430 34%, #a50924 100%);
+  box-shadow: 0 .2rem 0 #79081d, 0 .4rem .75rem #70464255, inset 0 .25rem .25rem #ffffff88;
+  color: #fff;
+}
+.advent__hint {
+  box-sizing: border-box; display: flex; align-items: center; justify-content: center;
+  width: 100%; padding: .7rem 3rem; line-height: 1.2;
+}
+.advent__hint mat-icon { position: absolute; right: 1rem; margin: 0; }
+.advent__quiz button[mat-flat-button]:has(mat-icon[iconPositionEnd]),
+.advent__ranking-action button[mat-flat-button]:has(mat-icon[iconPositionEnd]),
+.advent__entry-actions button[mat-flat-button]:has(mat-icon[iconPositionEnd]),
+.advent__return-button:has(mat-icon[iconPositionEnd]) {
+  height: auto; padding: .7rem 3rem; white-space: normal;
+}
+.advent__quiz button[mat-flat-button] mat-icon[iconPositionEnd],
+.advent__ranking-action button[mat-flat-button] mat-icon[iconPositionEnd],
+.advent__entry-actions button[mat-flat-button] mat-icon[iconPositionEnd] {
+  position: absolute; right: 1rem; margin: 0;
+}
+.advent__recorded-art {
+  position: relative; z-index: 0; width: min(18rem, 82%); margin: -.25rem auto -1.3rem;
+  filter: drop-shadow(0 .3rem .3rem #70464255);
+}
+.advent__recorded-art img { display: block; width: 100%; height: auto; }
+.advent__recorded-panel {
+  z-index: 1; border-color: #d6aa65; border-width: 2px; border-radius: 2rem;
+  background: linear-gradient(175deg, #fffef6, #fff0d3);
+  box-shadow: 0 -.5rem 0 #fffef7, 0 -.65rem .1rem #d9e7ee, 0 .45rem .8rem #70464244;
+}
+.advent__recorded-message { font-family: var(--advent-heading-font); }
+
+
+/* Keep the snowy foreground at the viewport edge, behind scrolling content. */
+.advent { position: relative; isolation: isolate; }
+.advent::before {
+  content: '';
+  position: fixed;
+  inset: auto 0 0;
+  z-index: -1;
+  height: min(66.667vw, 34.667rem);
+  background: url('/advent/snowy-foliage-v1.webp') center bottom / min(100%, 52rem) auto no-repeat;
+  pointer-events: none;
+}
+.advent__content { padding-bottom: 7rem; }
+/* Keep unpanelled copy readable while it passes over the fixed illustration. */
+.advent__recorded-message, .advent__question, .advent__quiz > p,
+.advent__christmas > p, .advent__christmas > h1,
+.advent__heading > p, .advent__heading > h1 {
+  background: #fff6e4f2;
+  border-radius: .6rem;
+  box-shadow: 0 0 .35rem .25rem #fff6e4f2;
+}
+
+ .advent__portrait-scene--recorded { position: absolute; right: 0; top: 1.5rem; z-index: 2; padding: 0; }
+.advent__portrait-scene--recorded .advent__portrait { width: 3.75rem; height: 3.75rem; border-width: .2rem; }
+.advent__portrait-scene--recorded .advent__portrait-spark { display: none; }
+
+.advent__state-art { width: min(14rem, 70%); margin: .5rem auto -.25rem; }
+.advent__state-art img { display: block; width: 100%; height: auto; filter: drop-shadow(0 .25rem .35rem #70464255); }
+
+
+/* Secondary Advent action, matching the reference rather than the main CTA. */
+.advent__return-button:not(:disabled) {
+  position: relative; min-height: 3.5rem; border-radius: 2rem;
+  --mat-button-outlined-outline-color: var(--hatcast-avent-red);
+  --mat-button-outlined-label-text-color: var(--hatcast-avent-red);
+  --mat-button-outlined-label-text-font: var(--advent-body-font);
+  --mat-button-outlined-label-text-size: 1.125rem;
+  --mat-button-outlined-label-text-weight: 800;
+  border: 1.5px solid var(--hatcast-avent-red);
+  background: var(--hatcast-avent-cream);
+  color: var(--hatcast-avent-red);
+  font: 800 1.125rem/1.2 var(--advent-body-font);
+  letter-spacing: 0;
+}
+.advent__return-button mat-icon[iconPositionEnd] { position: absolute; right: 1rem; margin: 0; }
+
+@media (max-width: 24rem) {
+  .advent__quiz button[mat-flat-button]:has(mat-icon[iconPositionEnd]),
+  .advent__ranking-action button[mat-flat-button]:has(mat-icon[iconPositionEnd]),
+  .advent__entry-actions button[mat-flat-button]:has(mat-icon[iconPositionEnd]),
+  .advent__return-button:has(mat-icon[iconPositionEnd]) { padding: .7rem 1rem; }
+  .advent__quiz button[mat-flat-button] mat-icon[iconPositionEnd],
+  .advent__ranking-action button[mat-flat-button] mat-icon[iconPositionEnd],
+  .advent__entry-actions button[mat-flat-button] mat-icon[iconPositionEnd],
+  .advent__return-button mat-icon[iconPositionEnd] { position: static; margin-inline-start: .5rem; flex-shrink: 0; }
+}
