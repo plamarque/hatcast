@@ -269,6 +269,23 @@ As an eligible member, I want the usual invitation to the day's quiz so that I c
 
 **References:** FR-3, FR-12, FR-13; AD-1, AD-2, AD-5.
 
+### Story 25.8: Refine the Advent art direction
+
+As a member, I want the Advent experience to reflect its approved illustrated Christmas atmosphere so that each screen feels warm, expressive and cohesive.
+
+**Acceptance Criteria:**
+
+1. Compare the existing discovery, question, confirmation, reveal, ranking, calendar, Christmas and available error and empty states against the approved Advent board and confirmation reference; record the actual visual gaps.
+2. Bring the existing screens closer to the references using a cohesive Advent-only visual foundation: snowy red buttons, illustrated winter backgrounds and decorations, warm panels, expressive typography and character moods suited to each state. Preserve the identity and privacy of member portraits.
+3. Preserve the existing flows, answer secrecy, reveal timing, scoring, calendar permissions and test-mode isolation. Do not infer additional functionality from the illustrations.
+4. Keep Advent styles, resources and adaptations isolated in accordance with AD-7; verify that an unrelated HatCast screen is unaffected.
+5. Verify readable large text and generous touch targets on mobile, tablet and desktop, including long real content. Screen-reader testing and a numerical contrast threshold are not mandatory acceptance gates for this visual work, as directed by Patrice; retain existing accessible behavior where compatible.
+6. Update the Advent design and experience contracts with the implemented visual language and this testing decision. Demonstrate the real journey and compare representative screenshots with both approved references; identify any remaining gaps.
+
+**Dependencies:** Stories 25.1–25.6; preserve their completed history. Coordinate shared Advent components with subsequent stories.
+
+**References:** Advent DESIGN and EXPERIENCE, approved visual board and confirmation reference, AD-7.
+
 ### Story 25.9: Measure actual participation
 
 As an organizer, I want to know how many people played and how many answers were recorded without exposing quiz contents.
