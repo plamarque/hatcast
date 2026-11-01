@@ -79,3 +79,7 @@ Décision de Patrice : pour le quiz Avent, de grandes écritures lisibles et de 
 ### Première découverte du calendrier
 
 La première visite présente une scène hivernale avec lutin, cadeau, village et lumières, sans portes numérotées ; le texte incliné et l’action de découverte restent de vrais éléments accessibles.
+
+### Accueil de découverte — ajustement validé
+
+Le panneau crème présente le logo de La Malice centré, le titre « Le Quizz de l’Avent » et le sous-titre « Chaque jour, les lutins malicieux te confient leurs secrets ! ». Le lutin est placé juste au-dessus. Sous le panneau, le bouton principal enneigé « Commencer à jouer » ouvre le calendrier ; le bouton secondaire crème bordé de vert « Revenir à HatCast » ferme l’expérience comme la croix.

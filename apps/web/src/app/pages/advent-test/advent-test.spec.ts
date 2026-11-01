@@ -77,7 +77,7 @@ describe('AdventTest', () => {
     const component = fixture.componentInstance
     await component.start(); fixture.detectChanges()
     expect(component.welcome()).toBe(true)
-    expect(fixture.nativeElement.textContent).toContain('Découvrir mon calendrier de l’Avent')
+    expect(fixture.nativeElement.textContent).toContain('Commencer à jouer')
     await component.discoverCalendar()
     expect(component.welcome()).toBe(true)
     expect(component.discoveryError()).toBe(true)
@@ -126,8 +126,14 @@ describe('AdventTest', () => {
     component.welcome.set(true)
     const leave = vi.spyOn(component, 'leaveExperience').mockResolvedValue()
     vi.mocked(window.fetch).mockResolvedValueOnce(new Response(null, { status: 204 }))
-    await component.closeExperience()
+    fixture.detectChanges()
+    const returnButton = fixture.nativeElement.querySelector('.advent__welcome-return') as HTMLButtonElement
+    returnButton.click()
+    fixture.detectChanges()
+    expect((fixture.nativeElement.querySelector('.advent__welcome-primary') as HTMLButtonElement).disabled).toBe(true)
+    await fixture.whenStable()
     expect(vi.mocked(window.fetch).mock.calls.at(-1)?.[0]).toBe('/v1/advent/entry/dismiss')
+    expect(vi.mocked(window.fetch).mock.calls.some(([url], index) => String(url).endsWith('/discovery') && vi.mocked(window.fetch).mock.calls[index][1]?.method === 'POST')).toBe(false)
     expect(leave).toHaveBeenCalled()
   })
   it('starts opted out, enables controls outside the member window, then reloads without resetting', async () => {
