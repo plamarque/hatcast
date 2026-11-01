@@ -40,8 +40,7 @@
 .advent__hint mat-icon { position: absolute; right: 1rem; margin: 0; }
 .advent__quiz button[mat-flat-button]:has(mat-icon[iconPositionEnd]),
 .advent__ranking-action button[mat-flat-button]:has(mat-icon[iconPositionEnd]),
-.advent__entry-actions button[mat-flat-button]:has(mat-icon[iconPositionEnd]),
-.advent__return-button:has(mat-icon[iconPositionEnd]) {
+.advent__entry-actions button[mat-flat-button]:has(mat-icon[iconPositionEnd]) {
   height: auto; padding: .7rem 3rem; white-space: normal;
 }
 .advent__quiz button[mat-flat-button] mat-icon[iconPositionEnd],
@@ -105,15 +104,12 @@
   font: 800 1.125rem/1.2 var(--advent-body-font);
   letter-spacing: 0;
 }
-.advent__return-button mat-icon[iconPositionEnd] { position: absolute; right: 1rem; margin: 0; }
 
 @media (max-width: 24rem) {
   .advent__quiz button[mat-flat-button]:has(mat-icon[iconPositionEnd]),
   .advent__ranking-action button[mat-flat-button]:has(mat-icon[iconPositionEnd]),
-  .advent__entry-actions button[mat-flat-button]:has(mat-icon[iconPositionEnd]),
-  .advent__return-button:has(mat-icon[iconPositionEnd]) { padding: .7rem 1rem; }
+  .advent__entry-actions button[mat-flat-button]:has(mat-icon[iconPositionEnd]) { padding: .7rem 1rem; }
   .advent__quiz button[mat-flat-button] mat-icon[iconPositionEnd],
   .advent__ranking-action button[mat-flat-button] mat-icon[iconPositionEnd],
-  .advent__entry-actions button[mat-flat-button] mat-icon[iconPositionEnd],
-  .advent__return-button mat-icon[iconPositionEnd] { position: static; margin-inline-start: .5rem; flex-shrink: 0; }
+  .advent__entry-actions button[mat-flat-button] mat-icon[iconPositionEnd] { position: static; margin-inline-start: .5rem; flex-shrink: 0; }
 }

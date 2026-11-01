@@ -211,7 +211,7 @@
           @if (!sessionChanged()) {
             <button #rankingButton mat-flat-button type="button" (click)="openRanking()" [disabled]="loading() || submitting()">Voir le classement <mat-icon iconPositionEnd aria-hidden="true">arrow_forward</mat-icon></button>
           }
-          <button mat-stroked-button class="advent__return-button" type="button" (click)="closeExperience()" [disabled]="closingExperience()">Revenir à HatCast <mat-icon iconPositionEnd aria-hidden="true">arrow_forward</mat-icon></button>
+          <button mat-stroked-button class="advent__return-button" type="button" (click)="closeExperience()" [disabled]="closingExperience()"><mat-icon aria-hidden="true">arrow_back</mat-icon>Revenir à HatCast</button>
         } @else if (answerState() === 'closed') {
           <p class="advent__state" role="status">Ce quiz est fermé.</p><button mat-stroked-button type="button" (click)="openRanking()">Voir le classement</button>
         } @else if (answerState() === 'uncertain') {
