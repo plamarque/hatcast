@@ -52,6 +52,56 @@ class AdventMemberGameTest {
         assertEquals("available", game.reserve(member, day, attempt, generation).status)
         return attempt
     }
+    @Test fun `concurrent welcomes remain idempotent and ordinary requests preserve priority`() {
+        val session = game.session()
+        val first = game.discovery(member, session)
+        val second = game.discovery(member, session)
+        assertFalse(first.discovered); assertFalse(second.discovered)
+        assertNotEquals(first.attemptId, second.attemptId)
+        assertFalse(game.discovery(other, session).discovered)
+        assertNull(game.discover(other, first.attemptId!!, session))
+        game.confirm(member, 1, 0, reserve())
+        at("2026-12-01T23:00:00Z")
+        val answer = game.latestUnseen(member)!!
+        val tx = TransactionTemplate(txManager)
+        val pool = Executors.newFixedThreadPool(2)
+        try {
+            val calls = listOf(first.attemptId!!, second.attemptId!!).map { attempt ->
+                pool.submit(Callable { tx.execute { game.discover(member, attempt, session) }!! })
+            }
+            calls.forEach { assertNotNull(it.get(10, TimeUnit.SECONDS).days) }
+        } finally { pool.shutdownNow() }
+        assertTrue(game.discovery(member, session).discovered)
+        assertNotNull(game.discover(member, first.attemptId!!, session)!!.days)
+        assertNotNull(game.discover(member, second.attemptId!!, session)!!.days)
+        assertEquals(answer.answerId, game.discover(member, UUID.randomUUID(), session)!!.priorityResult!!.answerId)
+        assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM advent_member_discoveries WHERE user_id = ?", Int::class.java, member))
+        assertEquals(answer.answerId, game.latestUnseen(member)!!.answerId)
+        assertEquals(answer.answerId, game.calendar(member).priorityResult!!.answerId)
+    }
+    @Test fun `welcome attempts expire after 24 hours and are cleaned up`() {
+        val session = game.session()
+        val first = game.discovery(member, session).attemptId!!
+        val second = game.discovery(member, session).attemptId!!
+        val expiredOther = game.discovery(other, session).attemptId!!
+        game.confirm(member, 1, 0, reserve())
+        at("2026-12-02T11:59:59Z")
+        assertNotNull(game.discover(member, first, session)!!.days)
+        assertNotNull(game.discover(member, second, session)!!.days)
+        assertNotNull(game.discover(member, first, session)!!.days)
+        at("2026-12-02T12:00:00Z")
+        assertNotNull(game.discover(member, first, session)!!.priorityResult)
+        assertNull(game.discover(other, expiredOther, session))
+        assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM advent_member_discovery_attempts WHERE user_id IN (?, ?)", Int::class.java, member, other))
+        val fresh = game.discovery(other, session).attemptId!!
+        assertNotNull(game.discover(other, fresh, session)!!.days)
+    }
+    @Test fun `attempt lifetime follows real clock not simulated date`() {
+        `when`(clock.isolatedControlsAllowed()).thenReturn(true)
+        val session = game.session()
+        val attempt = game.discovery(member, session, LocalDate.of(2026, 12, 5)).attemptId!!
+        assertNotNull(game.discover(member, attempt, session, LocalDate.of(2026, 12, 10))!!.days)
+    }
     @Test fun `entry and dismissal are shared per member and Paris day`() {
         assertTrue(game.entry(member).autoOpen)
         game.dismiss(member)

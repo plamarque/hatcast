@@ -76,6 +76,18 @@ class AdventMemberController(
         return game.entry(principal.userId, null, simulated(principal, request))
     }
 
+    @GetMapping("/discovery")
+    fun discovery(@AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AdventMemberGame.DiscoveryState {
+        authorize(principal)
+        return game.discovery(principal.userId, sessionFor(principal, request), simulated(principal, request))
+    }
+
+    @PostMapping("/discovery")
+    fun discover(@RequestBody body: DiscoveryAttempt, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AdventCalendarResponse {
+        authorize(principal)
+        return game.discover(principal.userId, body.attemptId ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), sessionFor(principal, request), simulated(principal, request)) ?: throw ResponseStatusException(HttpStatus.CONFLICT)
+    }
+
     @PostMapping("/entry/dismiss")
     fun dismiss(@AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest) {
         authorize(principal)
@@ -208,3 +220,5 @@ data class MemberAnswer(val choice: Int?, val attemptId: UUID?)
 data class AdventHistoryResponse(val quiz: FictionalQuiz? = null, val falseChoice: Int? = null, val result: AdventResult? = null, val priorityResult: AdventResult? = null)
 
 data class LateAccess(val late: Boolean = false)
+
+data class DiscoveryAttempt(val attemptId: UUID?)

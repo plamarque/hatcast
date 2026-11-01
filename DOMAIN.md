@@ -355,3 +355,8 @@ Le calendrier Avent distingue les jours joués, non joués, disponibles, sans co
 ### Fermeture quotidienne Avent
 
 La fermeture explicite du parcours est propre à un membre et à une date civile de Paris. Elle est partagée entre ses appareils et empêche l’ouverture automatique pour cette journée ; elle ne supprime ni réponse ni résultat. Une visite sans quiz disponible ne constitue pas une fermeture. Une réponse enregistrée empêche également l’ouverture automatique du jour.
+
+
+### Première découverte du calendrier
+
+La découverte du calendrier est un état propre à chaque membre, durable et partagé entre ses appareils. Elle résulte exclusivement de l’action explicite d’ouverture du calendrier ; elle est distincte des fermetures quotidiennes et des réponses.

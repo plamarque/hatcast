@@ -3652,6 +3652,25 @@ As an organizer, I want to know how many people played and how many answers were
 
 **References:** AD-2, AD-6; PRD success signal.
 
+### Story 25.10 : Découvrir le calendrier de l’Avent
+
+En tant que membre découvrant le Quiz de l’Avent, je veux être accueilli dans un univers chaleureux avant d’ouvrir mon calendrier, afin de comprendre l’invitation et d’entrer dans l’expérience avec plaisir.
+
+**Critères d’acceptation :**
+
+1. **Première entrée :** à la première ouverture de l’expérience Avent par un membre, afficher l’accueil à la place de l’ouverture directe du quiz du jour. Le bouton « Découvrir mon calendrier de l’Avent » ouvre le calendrier personnel.
+2. **Découverte et interruption :** considérer l’accueil comme découvert lorsque le membre appuie sur ce bouton ; une fermeture avant cette action permet de revoir l’accueil. Associer cet état au membre pour le retrouver sur ses appareils.
+3. **Visites suivantes :** après découverte, ne plus afficher cet accueil. Appliquer les règles existantes : présenter en priorité le résultat révélable non vu, puis proposer le parcours du jour selon son état et sa disponibilité.
+4. **Direction artistique :** reprendre l’ambiance de la référence validée : lutin souriant, cadeau, village enneigé, lumières et panneau chaleureux. Conserver la barre supérieure de l’expérience Avent ; ne pas reprendre les petites cases numérotées de la référence.
+5. **Texte et bouton :** utiliser de vrais textes nets et adaptables, légèrement inclinés dans l’esprit de la référence. Le CTA est une commande accessible. Coordonner avec la story 25.8 et réutiliser le composant de bouton enneigé disponible s’il convient. L’image pour le décor est une piste, à vérifier pour la fidélité souhaitée.
+6. **Accessibilité et adaptation :** conserver texte et bouton lisibles et utilisables sur mobile, tablette et ordinateur, y compris avec agrandissement du texte. Prévoir clavier, focus visible, libellé explicite et expérience utilisable en mouvement réduit ; l’illustration décorative ne gêne pas la lecture.
+7. **Contrats et protections :** préserver accès, modes de test, confidentialité des quiz et résultats ainsi que l’identité de HatCast hors Avent. Réconcilier les contrats fonctionnels, UX et d’architecture concernés avec la nouvelle première visite, sans altérer l’historique des stories terminées.
+8. **Démonstration :** montrer le parcours réel première entrée → accueil → calendrier → cadeau du jour, puis un retour ultérieur avec révélation disponible. Comparer à la référence et signaler les écarts ; vérifier aussi interruption, appareils, états accessibles, responsive et isolation visuelle.
+
+**Dépendances :** calendrier et entrée Avent existants ; coordination avec la story 25.8 en cours pour les ressources et le bouton partagé.
+
+**Références :** contrats Avent DESIGN et EXPERIENCE, architecture AD-7, référence visuelle `imports/advent-quiz-design-system-reference.png`, story 25.8.
+
 ### Story 25.11: Générer un classement fictif pour les tests
 
 En tant que testeur, je veux une icône dans la barre de l’écran de classement pour générer des valeurs aléatoires, afin de pouvoir observer différents classements fictifs.

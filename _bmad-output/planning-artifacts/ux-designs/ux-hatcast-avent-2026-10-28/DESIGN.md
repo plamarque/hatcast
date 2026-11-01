@@ -68,3 +68,8 @@ Pour le 25, Patrice retient un Père Noël à tête classique, dessiné dans le 
 ### Mode test activé volontairement
 
 Pour les testeurs autorisés, une commande accessible placée à gauche de la barre rouge active ou désactive le mode test, initialement désactivé. La barre de commandes contextuelle apparaît sur une ligne sous la barre rouge et repousse le contenu ; elle reste présente dans le parcours tant que le mode est actif. Les actions sont adaptées à l’écran, avec des libellés accessibles et des cibles tactiles utilisables. Le style demeure isolé dans l’Avent.
+
+
+### Première découverte du calendrier
+
+La première visite présente une scène hivernale avec lutin, cadeau, village et lumières, sans portes numérotées ; le texte incliné et l’action de découverte restent de vrais éléments accessibles.
