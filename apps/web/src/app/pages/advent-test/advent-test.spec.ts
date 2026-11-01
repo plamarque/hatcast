@@ -45,6 +45,113 @@ describe('AdventTest', () => {
     expect(activate).not.toHaveBeenCalled()
     expect(vi.mocked(window.fetch).mock.calls.length).toBe(calls)
   })
+  it('sends a test reminder only after registering the current device', async () => {
+    const component = fixture.componentInstance
+    component.testControls.set(true); component.testMode.set(true)
+    ;(component as any).simulatedDate.set('2026-12-05')
+    const subscription = { endpoint: 'https://push.example/device', keys: { p256dh: 'key', auth: 'auth' } }
+    vi.spyOn(TestBed.inject(PushNotificationsService), 'activateAdventDevice').mockImplementation(async register => {
+      expect(await register(subscription)).toBe(true)
+      return { endpoint: subscription.endpoint }
+    })
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response('', { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'accepted' }), { status: 200 }))
+    await component.sendTestReminder()
+    const calls = vi.mocked(window.fetch).mock.calls.slice(-2)
+    expect(calls.map(call => call[0])).toEqual(['/v1/advent/test-reminder-device', '/v1/advent/test-reminder'])
+    expect((calls[1][1]?.headers as Record<string, string>)['X-Advent-Simulated-Date']).toBe('2026-12-05')
+    expect(component.testReminderMessage()).toContain('accepté')
+  })
+  it('does not send when the permission is absent or the simulated date is outside the quiz', async () => {
+    const component = fixture.componentInstance
+    component.testControls.set(true); component.testMode.set(true)
+    const activate = vi.spyOn(TestBed.inject(PushNotificationsService), 'activateAdventDevice').mockResolvedValue({ message: 'Autorise les alertes.' })
+    ;(component as any).simulatedDate.set('2026-12-25')
+    await component.sendTestReminder()
+    expect(activate).not.toHaveBeenCalled()
+    ;(component as any).simulatedDate.set('2026-12-05')
+    const before = vi.mocked(window.fetch).mock.calls.length
+    await component.sendTestReminder()
+    expect(component.testReminderMessage()).toContain('Autorise')
+    expect(vi.mocked(window.fetch).mock.calls.length).toBe(before)
+  })
+  it('restores notification test mode only after capability validation and only once', async () => {
+    const component = fixture.componentInstance
+    const router = TestBed.inject(Router)
+    vi.spyOn(router, 'url', 'get').mockReturnValue('/avent?jour=5&test=1')
+    ;(component as any).notificationParametersConsumed = false
+    component.testMode.set(false)
+    await component.start()
+    expect(component.testMode()).toBe(true)
+    expect((component as any).simulatedDate()).toBe('2026-12-05')
+    component.testMode.set(false)
+    await component.start()
+    expect(component.testMode()).toBe(false)
+  })
+  it('never restores notification test mode when the server denies the capability', async () => {
+    const component = fixture.componentInstance
+    vi.spyOn(TestBed.inject(Router), 'url', 'get').mockReturnValue('/avent?jour=5&test=1')
+    ;(component as any).notificationParametersConsumed = false
+    component.testMode.set(false)
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url = String(input)
+      if (url.endsWith('/session')) return new Response(JSON.stringify({ sessionId: 'test-session', testControls: false }))
+      if (url.endsWith('/clock')) return new Response(JSON.stringify({ date: '2026-12-05' }))
+      if (url.endsWith('/discovery')) return new Response(JSON.stringify({ discovered: true }))
+      if (url.endsWith('/results/latest-unseen')) return new Response(JSON.stringify({ result: null }))
+      if (url.includes('/answer')) return new Response(JSON.stringify({ status: 'available' }))
+      return new Response(JSON.stringify({ day: 5, name: 'Lutin', portrait: '', statements: [] }))
+    })
+    await component.start()
+    expect(component.testMode()).toBe(false)
+    expect((component as any).simulatedDate()).toBeNull()
+  })
+  it('offers the calendar with an explanation for a missing notification day', async () => {
+    const component = fixture.componentInstance
+    ;(component as any).notificationDay = 5
+    component.welcome.set(false); component.loading.set(false); component.result.set(null); component.error.set(false)
+    component.unavailable.set(true)
+    vi.spyOn(component, 'openCalendar').mockImplementation(async () => {
+      component.calendarOpen.set(true)
+      component.calendarDays.set([{ day: 5, state: 'missing' }])
+    })
+    await (component as any).openNotificationDay()
+    expect(component.calendarOpen()).toBe(true)
+    expect(component.calendarActionMessage()).toContain('pas disponible')
+  })
+  it('keeps the notification target after a calendar failure and opens it on retry', async () => {
+    const component = fixture.componentInstance
+    ;(component as any).notificationDay = 5
+    ;(component as any).simulatedDate.set('2026-12-05')
+    component.welcome.set(false); component.loading.set(false); component.result.set(null); component.error.set(false); component.unavailable.set(true)
+    const calendar = vi.spyOn(component, 'openCalendar')
+      .mockImplementationOnce(async () => { component.error.set(true); component.calendarOpen.set(true) })
+      .mockImplementationOnce(async () => { component.calendarOpen.set(true); component.calendarDays.set([{ day: 5, state: 'today' }]) })
+    const open = vi.spyOn(component, 'openCalendarDay').mockImplementation(async () => { component.unavailable.set(false) })
+    await (component as any).openNotificationDay()
+    expect((component as any).notificationDay).toBe(5)
+    vi.spyOn(component as any, 'enterAt').mockImplementation(async () => { component.loading.set(false) })
+    await component.retryEntry()
+    expect(calendar).toHaveBeenCalledTimes(2)
+    expect(open).toHaveBeenCalledWith(expect.objectContaining({ day: 5 }))
+    expect((component as any).notificationDay).toBeNull()
+  })
+  it('keeps the notification target while a priority result is displayed', async () => {
+    const component = fixture.componentInstance
+    ;(component as any).notificationDay = 5
+    component.welcome.set(false); component.loading.set(false); component.result.set(null); component.error.set(false); component.unavailable.set(true)
+    vi.spyOn(component, 'openCalendar')
+      .mockImplementationOnce(async () => { component.result.set({ day: 4 } as any); component.calendarOpen.set(false) })
+      .mockImplementationOnce(async () => { component.calendarOpen.set(true); component.calendarDays.set([{ day: 5, state: 'today' }]) })
+    const open = vi.spyOn(component, 'openCalendarDay').mockImplementation(async () => { component.unavailable.set(false) })
+    await (component as any).openNotificationDay()
+    expect((component as any).notificationDay).toBe(5)
+    expect(open).not.toHaveBeenCalled()
+    component.result.set(null)
+    await (component as any).openNotificationDay()
+    expect(open).toHaveBeenCalledWith(expect.objectContaining({ day: 5 }))
+    expect((component as any).notificationDay).toBeNull()
+  })
   it('hides the reminder when its initial preference cannot be loaded', async () => {
     const component = fixture.componentInstance
     component.testMode.set(false)

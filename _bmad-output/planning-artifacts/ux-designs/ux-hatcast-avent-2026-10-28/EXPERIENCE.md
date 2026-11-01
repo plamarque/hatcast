@@ -194,3 +194,7 @@ Depuis le calendrier, revenir sur une réponse normale enregistrée et encore en
 ### Prévisualisation privée de production
 
 La route directe réservée aux deux personnes autorisées ouvre le calendrier et ses cases futures ; une réponse est définitive, son résultat personnel et son explication sont immédiatement consultables et récupérables. Identifier clairement la prévisualisation sans afficher de contrôles de simulation ou d’effacement. Préserver clavier, focus, mouvement réduit, lisibilité mobile et isolation visuelle Advent. Dans la navigation ordinaire, aucune erreur ne révèle l’Avent avant son ouverture.
+
+### Rappel de test sur appareil
+
+Dans la barre du mode test autorisé, une commande distincte de la case simulée demande un rappel immédiat sur cet appareil. Elle explique le refus ou l’absence d’autorisation et distingue l’acceptation de l’envoi de la réception effective. La date simulée détermine la case ; l’ouverture respecte la découverte et la révélation prioritaire. Une case manquante ou inaccessible conduit au calendrier et à une explication.

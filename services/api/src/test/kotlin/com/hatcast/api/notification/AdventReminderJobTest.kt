@@ -50,7 +50,8 @@ class AdventReminderJobTest {
         production.run()
         val payload = argumentCaptor<NotificationPayload>()
         verify(sender, times(1)).sendAdventPush(eq(eligible), payload.capture())
-        org.junit.jupiter.api.Assertions.assertEquals("/avent", payload.firstValue.url)
+        org.junit.jupiter.api.Assertions.assertEquals("/avent?jour=1", payload.firstValue.url)
+        org.junit.jupiter.api.Assertions.assertEquals("advent", payload.firstValue.kind)
         verify(sender, never()).sendAdventPush(eq(answered), any())
     }
 }

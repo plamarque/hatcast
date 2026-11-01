@@ -39,6 +39,11 @@
         }
         if (payload.url) {
           options.data.url = sameOriginUrl(payload.url);
+          var destination = new URL(options.data.url);
+          if (payload.kind === 'advent' && destination.origin === self.location.origin && destination.pathname === '/avent') {
+            options.icon = '/advent/gifts/gift-closed-v1.png';
+            options.badge = '/advent/gifts/gift-closed-v1.png';
+          }
         }
       } catch (_err) {
         /* keep defaults */

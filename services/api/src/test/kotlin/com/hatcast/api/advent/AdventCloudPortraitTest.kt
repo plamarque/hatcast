@@ -23,7 +23,7 @@ class AdventCloudPortraitTest {
         whenever(storage.read("private-bucket", "portraits/example.png")).thenReturn(bytes)
         whenever(game.quiz(1, session)).thenReturn(AdventQuiz("Fictional", "example.png", listOf("A", "B", "C"), 0, null))
         val env = MockEnvironment().withProperty("hatcast.advent.troupe-id", troupe.toString()).withProperty("hatcast.advent.private-portrait-bucket", "private-bucket")
-        val controller = AdventMemberController(env, memberships, game, mock(), mock(), storage, mock())
+        val controller = AdventMemberController(env, memberships, game, mock(), mock(), storage, mock(), mock())
         val principal = TestAuthSupport.testPrincipal()
         val request = MockHttpServletRequest().apply { addHeader("X-Advent-Test-Session", session.toString()) }
         val result = controller.door(1, principal, request)
@@ -40,7 +40,7 @@ class AdventCloudPortraitTest {
         whenever(storage.read("impro-selector-avent-content-private", "portraits/example.png")).thenReturn(byteArrayOf(1))
         whenever(game.quiz(1, session)).thenReturn(AdventQuiz("Fictional", "example.png", listOf("A", "B", "C"), 0, null))
         val env = MockEnvironment().withProperty("hatcast.advent.troupe-id", troupe.toString())
-        val controller = AdventMemberController(env, mock(), game, mock(), mock(), storage, mock())
+        val controller = AdventMemberController(env, mock(), game, mock(), mock(), storage, mock(), mock())
         val request = MockHttpServletRequest().apply { addHeader("X-Advent-Test-Session", session.toString()) }
         assertFalse(controller.door(1, TestAuthSupport.testPrincipal(), request).genericElf)
         verify(storage).read("impro-selector-avent-content-private", "portraits/example.png")

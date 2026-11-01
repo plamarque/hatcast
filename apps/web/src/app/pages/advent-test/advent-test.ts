@@ -45,7 +45,37 @@ export class AdventTest {
   private async reminderRequest(path: string, method = 'GET', body?: unknown): Promise<any> {
     const response = await fetch(`${this.api}/${path}`, { method, credentials: 'include', cache: 'no-store', signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS), headers: { ...this.sessionHeaders(), 'X-Advent-User': this.identity ?? '', ...(method === 'GET' ? {} : { ...this.csrfHeaders(), 'Content-Type': 'application/json' }) }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) })
     if (!response.ok) throw new Error('Reminder request failed')
-    return response.status === 204 || path === 'reminder-device' ? null : response.json()
+    return response.status === 204 || path === 'reminder-device' || path === 'test-reminder-device' ? null : response.json()
+  }
+
+  readonly testReminderMessage = signal('')
+  readonly testReminderBusy = signal(false)
+  private notificationDay: number | null = null
+  private notificationParametersConsumed = false
+
+  async sendTestReminder(): Promise<void> {
+    const date = this.simulatedDate()
+    if (!this.testMode() || !this.testControls() || this.testReminderBusy() || !date || !/^2026-12-(0[1-9]|1[0-9]|2[0-4])$/.test(date)) {
+      this.testReminderMessage.set('Choisis un jour du 1er au 24 décembre pour tester le rappel.')
+      return
+    }
+    const identity = this.identityEpoch
+    const context = this.projectionEpoch
+    this.testReminderBusy.set(true); this.testReminderMessage.set('')
+    try {
+      let subscription: PushSubscriptionJSON | null = null
+      const device = await this.push.activateAdventDevice(async value => {
+        if (identity !== this.identityEpoch || context !== this.projectionEpoch || !this.testMode()) return false
+        await this.reminderRequest('test-reminder-device', 'PUT', value)
+        subscription = value
+        return identity === this.identityEpoch && context === this.projectionEpoch && this.testMode()
+      })
+      if (identity !== this.identityEpoch || context !== this.projectionEpoch || !this.testMode()) return
+      if (!device.endpoint || !subscription) { this.testReminderMessage.set(device.message ?? 'Active les notifications sur cet appareil.'); return }
+      await this.reminderRequest('test-reminder', 'POST', subscription)
+      if (identity === this.identityEpoch && context === this.projectionEpoch) this.testReminderMessage.set('Envoi accepté. Vérifie la réception sur cet appareil.')
+    } catch { if (identity === this.identityEpoch && context === this.projectionEpoch) this.testReminderMessage.set('Envoi non confirmé. Vérifie ton appareil avant de réessayer.') }
+    finally { this.testReminderBusy.set(false) }
   }
 
   async loadReminder(): Promise<void> {
@@ -363,7 +393,18 @@ export class AdventTest {
     try {
       const session = await this.requestJson<{ testControls: boolean; productionPreview?: boolean; sessionId: string; transitionRequired?: boolean }>('/v1/advent/session', { credentials: 'include', cache: 'no-store' })
       if (!session.sessionId) throw new Error('Invalid session')
-      const previewRequested = this.router.parseUrl(this.router.url).queryParams['preview'] === '1'
+      const params = this.router.parseUrl(this.router.url).queryParams
+      if (!this.notificationParametersConsumed) {
+        this.notificationParametersConsumed = true
+        const day = Number(params['jour'])
+        this.notificationDay = Number.isInteger(day) && day >= 1 && day <= 24 ? day : null
+        const notificationTest = params['test'] === '1' && this.notificationDay !== null && session.testControls === true
+        if (notificationTest) {
+          this.testMode.set(true)
+          this.simulatedDate.set(`2026-12-${String(this.notificationDay).padStart(2, '0')}`)
+        }
+      }
+      const previewRequested = params['preview'] === '1'
       this.productionPreview.set(previewRequested && session.productionPreview === true)
       this.testControls.set(!this.productionPreview() && session.testControls === true)
       if (this.productionPreview()) { this.testMode.set(false); this.simulatedDate.set(null) }
@@ -382,8 +423,33 @@ export class AdventTest {
         return
       }
       if (this.productionPreview()) { this.loading.set(false); await this.openCalendar() }
-      else await this.enterAt(clock.date, openTestDay && this.testMode())
+      else {
+        await this.enterAt(clock.date, (openTestDay && this.testMode()) || this.notificationDay !== null)
+        await this.openNotificationDay()
+      }
     } catch (error) { if (!(error instanceof StaleRequestError)) { this.error.set(true); this.loading.set(false) } }
+  }
+
+  private async openNotificationDay(): Promise<void> {
+    const day = this.notificationDay
+    if (day === null || this.welcome() || this.loading() || this.result() || this.error()) return
+    if (this.selectedDay() === day && !this.unavailable() && (this.preview() || this.quiz())) { this.notificationDay = null; return }
+    await this.openCalendar()
+    if (!this.calendarOpen() || this.error() || this.result()) return
+    const target = this.calendarDays().find(item => item.day === day)
+    if (!target || target.state === 'locked' || target.state === 'missing') {
+      this.calendarActionMessage.set('Ce quiz n’est pas disponible. Voici ton calendrier.')
+      this.notificationDay = null
+      return
+    }
+    await this.openCalendarDay(target)
+    if (this.error() || this.loading() || (this.result() && !this.historicalResult())) return
+    if (this.unavailable()) {
+      await this.openCalendar()
+      if (!this.calendarOpen() || this.error() || this.result()) return
+      this.calendarActionMessage.set('Ce quiz n’est pas disponible. Voici ton calendrier.')
+    }
+    this.notificationDay = null
   }
 
   previewWelcome(): void {
@@ -422,6 +488,7 @@ export class AdventTest {
     } catch (error) {
       if (!(error instanceof StaleRequestError) && this.contextCurrent(epoch, identity)) this.discoveryError.set(true)
     } finally { if (this.contextCurrent(epoch, identity)) this.loading.set(false) }
+    if (!this.discoveryError() && !this.result()) await this.openNotificationDay()
   }
 
   private async showResult(result: AdventResult, historical = false, waitingGeneration?: number): Promise<void> {
@@ -732,6 +799,7 @@ export class AdventTest {
       this.replayToken = null
       this.unavailable.set(false)
       this.loading.set(false)
+      if (this.notificationDay !== null) { await this.openNotificationDay(); return }
       if (clock.date === '2026-12-25') { await this.loadChristmasScore(); return }
       if (clock.date > '2026-12-25') { await this.openRanking(); return }
       const day = Math.min(24, Math.max(1, Number(clock.date.slice(-2))))
@@ -801,7 +869,7 @@ export class AdventTest {
     if (this.loading() || this.submitting()) return
     this.loading.set(true)
     this.error.set(false)
-    try { await this.enterAt(target, this.testMode()) }
+    try { await this.enterAt(target, this.testMode()); await this.openNotificationDay() }
     catch (error) { if (!(error instanceof StaleRequestError)) { this.error.set(true); this.loading.set(false) } }
   }
 
