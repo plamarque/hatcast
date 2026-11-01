@@ -21,6 +21,10 @@ Give eligible La Malice members a seasonal way to discover each other through 24
 - Story 25.8: Refine the Advent art direction
 - Story 25.9: Measure actual participation
 - Story 25.10: Discover the Advent calendar
+- Story 25.11: Generate a fictional ranking for tests
+- Story 25.12: Return to a sleeping elf after playing
+- Story 25.13: Run Advent regression tests in CI
+- Story 25.14: Give Advent CTA snow realistic volume
 
 ## Requirements & Constraints
 
@@ -40,6 +44,8 @@ Give eligible La Malice members a seasonal way to discover each other through 24
 - Test controls and replay are restricted to verified isolated development and must not affect production data, notifications or analytics. Eligible testers start in ordinary member mode and explicitly enable test mode; each operator tab has its own server-validated simulated date. Preserve content and unrelated data on targeted reset; verify real production boundaries separately.
 - Exceptional changes to contributions during play may cause inconsistencies; that risk is accepted. Do not introduce versioning, snapshots, stale-content rejection or edit locks solely for it. Preserve authorization, uniqueness and result secrecy.
 - Use existing reminder infrastructure. Database answers remain authoritative when measuring real participation if telemetry is missing or duplicated.
+
+- Keep Advent-specific tests, fixtures, CI selections and utilities identifiable and removable when the temporary feature is retired. Maintain shared HatCast tests independently and preserve necessary coverage while Advent is accessible. Evidence must identify the candidate revision and actual executed, skipped and failed tests; an empty selection is not a successful coverage claim.
 
 ## UX & Interaction Patterns
 
