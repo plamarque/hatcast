@@ -323,6 +323,16 @@ As an organizer, I want a private production preview while ordinary navigation s
 
 **References:** approved sprint change proposal and `spec-avent-surprise-production-preview.md`.
 
+### Story 25.16: Test Advent reminders on a real device
+
+As an authorized tester, I want to send myself the normal Advent push immediately from the test toolbar, so that I can check its appearance and destination on my own device without waiting for 10 a.m.
+
+**Acceptance criteria:** Restrict the action server-side to an authorized operator, isolated development, and their own registered device; never send to other accounts or devices. Send immediately without normal eligibility or daily reservation, using the simulated date for the destination and the same payload and delivery path as the scheduled reminder. Use Advent-specific notification artwork without changing other HatCast notifications. Opening it leads to the permitted day's elf, or the calendar with an explanation when unavailable, preserving discovery and reveal priority. Verify the real device journey separately from automated eligibility, isolation and non-regression checks. No deployment or real notification is authorized by this story alone.
+
+**Material 3 and Advent UI:** Apply DESIGN, EXPERIENCE, AD-7 and the frontend checklist; check mobile presentation, keyboard behavior and HatCast isolation. Screen-reader testing is not a required gate.
+
+**References:** `proposition-recette-push-reelle.md`; Story 25.7.
+
 ## Final validation
 
 
