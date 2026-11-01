@@ -5,7 +5,7 @@ baseline_commit:
 
 # Story 25.12 : Retrouver le lutin endormi après avoir joué
 
-Status: backlog
+Status: done
 
 ## Story
 
@@ -32,6 +32,8 @@ afin de **savoir quand je pourrai découvrir mon résultat**.
 - **M3-4.** Parcourir la [checklist M3](../../docs/v2/technical/FRONTEND_UI.md) et la [stratégie d’isolation visuelle](../test-artifacts/test-design-advent-visual-isolation.md) ; vérifier un écran HatCast hors Avent et signaler tout contrôle non effectué ou écart accepté.
 
 ## Tasks / Subtasks
+
+Liste initiale conservée pour mémoire ; le suivi de réalisation et les preuves figurent dans la spécification d'implémentation liée plus bas.
 
 - [ ] **Périmètre :** `apps/web/`, ressources visuelles Avent et contrats concernés ; évaluer une adaptation API minimale seulement si nécessaire à une référence horaire fiable. (AC 1–5)
 - [ ] Identifier de façon fiable une consultation ultérieure, distincte de la confirmation immédiate et du rejeu tardif ; préserver navigation, reprise, autorisation et protections. (AC 1, 4, 5)
@@ -66,16 +68,18 @@ Stories 25.2, 25.3, 25.5, 25.6, 25.8 et 25.10 livrées ; conserver leur historiq
 
 ### Agent Model Used
 
-À renseigner à l’implémentation.
+Non renseigné lors de l’implémentation.
 
 ### Completion Notes List
 
-- Story ajoutée au backlog à la demande de Patrice ; aucune implémentation réalisée.
+- Implémentation intégrée à `v2` par le commit de fusion `92b1bfb0`, après le commit de fonctionnalité `8dc53415` et la clôture du suivi `3432fcc5`.
+- Les résultats des tests, la comparaison visuelle et leurs limites sont consignés dans la [spécification d'implémentation](spec-25-12-retrouver-le-lutin-endormi-apres-avoir-joue.md#verification). La couverture clavier et contraste n'était pas exhaustive ; la vidéo du parcours complet précédait les derniers correctifs de revue.
 
 ### File List
 
-- À renseigner à l’implémentation.
+- Voir les fichiers du commit `8dc53415` et la spécification d'implémentation liée ci-dessus.
 
 ### Change Log
 
 - 2026-11-01 : création de la story.
+- 2026-11-01 : statut et notes alignés sur l'implémentation intégrée et le suivi du sprint.
