@@ -22,6 +22,7 @@ context: []
 
 - Activation selects the simulated day's recorded confirmation instead of restoring calendar or ranking; normal member entry and mode deactivation retain their behavior. Unseen results remain first.
 - Updated the Advent experience contract and BUG-074. Component suite: 112 passed. Production web build passed outside the sandbox, with existing Sass and CSS budget warnings. No live development verification.
+- Deployed `b9c14575` to development revision `hatcast-v2-dev-00258-2lg`; Patrice confirmed the fix works on 2026-11-01. BUG-074 is closed.
 
 ## Review Triage Log
 
