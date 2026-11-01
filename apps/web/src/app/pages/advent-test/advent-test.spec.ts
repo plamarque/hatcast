@@ -405,6 +405,22 @@ describe('AdventTest', () => {
     expect(fixture.nativeElement.querySelector('[aria-label="Voir le calendrier"]')).not.toBeNull()
   })
 
+  it.each([true, false])('opens the ranking from a past result (correct: %s)', async correct => {
+    const component = fixture.componentInstance
+    component.historicalResult.set(true)
+    component.resultContent.set({ day: 1, name: 'Fictif', portrait: '', genericElf: true, statements: ['A', 'B', 'C'] })
+    component.result.set({ answerId: 'past', day: 1, selectedChoice: 0, falseChoice: correct ? 0 : 1, correct, responsePoints: correct ? 10 : 0, participationPoints: 1, bonusPoints: 0, totalPoints: correct ? 11 : 1, seen: true })
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain(correct ? 'Bravo, tu as trouvé !' : 'Bien tenté !')
+    const button = fixture.nativeElement.querySelector('.advent__reveal button[mat-flat-button]') as HTMLButtonElement
+    expect(button.textContent).toContain('Voir le classement')
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ ranking: { score: 1, rank: 1, entries: [] }, priorityResult: null })))
+    button.click()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('#ranking-title')?.textContent).toContain('Classement')
+  })
+
   it('shows an immediately revealed zero point result after late confirmation', async () => {
     const component = fixture.componentInstance
     component.testControls.set(false); component.testMode.set(false)
@@ -426,6 +442,7 @@ describe('AdventTest', () => {
     fixture.detectChanges()
     expect(component.result()?.late).toBe(true)
     expect(fixture.nativeElement.textContent).toContain('réponse après le jour du quiz')
+    expect(fixture.nativeElement.querySelector('.advent__reveal button[mat-flat-button]')?.textContent).toContain('Voir le classement')
     expect(fixture.nativeElement.querySelector('.advent__confetti')).toBeNull()
   })
 

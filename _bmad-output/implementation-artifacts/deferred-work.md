@@ -25,3 +25,6 @@ status: open
 - source_spec: `_bmad-output/implementation-artifacts/spec-avent-loading.md`
   summary: Avoid waiting for a stalled answer-state read when the quiz is already missing.
   evidence: The parallel reads currently both finish before missing content is displayed; safely cancelling the remaining read requires cancellation handling.
+- source_spec: `_bmad-output/implementation-artifacts/spec-advent-past-result-ranking.md`
+  summary: Preserve the past result if loading the ranking fails (BUG-067).
+  evidence: Existing navigation clears the result before requesting the ranking; an error returns the member to the calendar.

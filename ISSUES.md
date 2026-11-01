@@ -15,6 +15,8 @@ historical registry below.
 
 ### Open defects and limitations
 
+BUG-067 (failed ranking load leaves a past result).
+
 BUG-062 (intermittent Advent loading failure; bounded read retry implemented locally, root cause unknown).
 
 BUG-054 (PWA banner overflows at 200% text size on a narrow screen).
@@ -66,6 +68,14 @@ BUG-037 and BUG-029 have fixture-only corrections verified by the complete API s
 - **Affected area**: Advent calendar.
 - **Observed behavior**: Missing content and past unplayed cases had the same visual treatment.
 - **Expected behavior**: The missing case has a visible symbol as well as its accessible label.
+
+### BUG-067 — Failed ranking load leaves a past result
+- **Status**: Open.
+- **Severity**: Low.
+- **Affected area**: Advent past-result navigation.
+- **Observed behavior**: Opening the ranking from a past result clears the result before the ranking request succeeds; a failure returns to the calendar with an error.
+- **Expected behavior**: The member can retry without losing the result being read.
+- **Notes/context**: The calendar and its ranking control remain available; the result can be reopened.
 
 ### BUG-066 — Christmas score failure lacks recovery
 - **Status**: Corrected locally; awaiting human verification.

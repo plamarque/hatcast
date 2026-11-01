@@ -139,7 +139,8 @@
             <div class="advent__result-answer advent__result-answer--truth"><span class="advent__answer-label">L’anecdote qui était fausse</span><p>{{ content.statements[reveal.falseChoice] }}</p></div>
             @if (reveal.explanation) { <p>{{ reveal.explanation }}</p> }
           </div>
-          @if (!historicalResult()) { <button mat-flat-button type="button" (click)="continueAfterResult()" [disabled]="loading()">Continuer <mat-icon iconPositionEnd aria-hidden="true">arrow_forward</mat-icon></button> }
+          @if (historicalResult()) { <button mat-flat-button type="button" (click)="navigateRanking()" [disabled]="loading()">Voir le classement <mat-icon iconPositionEnd aria-hidden="true">arrow_forward</mat-icon></button> }
+          @else { <button mat-flat-button type="button" (click)="continueAfterResult()" [disabled]="loading()">Continuer <mat-icon iconPositionEnd aria-hidden="true">arrow_forward</mat-icon></button> }
         </section>
       }
     } @else if (error() && !quiz() && !result()) {
