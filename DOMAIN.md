@@ -367,3 +367,7 @@ La fermeture explicite du parcours est propre à un membre et à une date civile
 La découverte du calendrier est un état propre à chaque membre, durable et partagé entre ses appareils. Elle résulte exclusivement de l’action explicite d’ouverture du calendrier ; elle est distincte des fermetures quotidiennes et des réponses.
 
 The shared private Advent bucket stores the canonical catalogue under `catalogue/` and elf images under `portraits/`. Cloud runtime resolves simple database portrait references under `portraits/`; offline uses the local private directory. Environments retain distinct databases. Migration and deployment require separate authorization; existing objects and game state are preserved.
+
+### Préférence et tentative de rappel Avent
+
+La préférence de rappel Avent appartient au membre et est commune à ses appareils. L’autorisation de notification et l’abonnement push sont propres à chaque appareil. Une tentative d’invitation est unique par membre et par jour de quiz ; elle ne prouve pas la livraison. Elle ne constitue pas un événement de spectacle ni une réponse au quiz.

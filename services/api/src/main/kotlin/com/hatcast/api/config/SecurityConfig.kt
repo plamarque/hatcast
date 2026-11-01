@@ -77,6 +77,7 @@ class SecurityConfig(
                     .requestMatchers(HttpMethod.PATCH, "/v1/me/notification-preferences").authenticated()
                     .requestMatchers(HttpMethod.GET, "/v1/me/push").authenticated()
                     .requestMatchers(HttpMethod.PUT, "/v1/me/push/subscription").authenticated()
+                    .requestMatchers(HttpMethod.POST, "/v1/me/push/subscription/status").authenticated()
                     .requestMatchers(HttpMethod.DELETE, "/v1/me/push/subscription").authenticated()
                     .requestMatchers(HttpMethod.PATCH, "/v1/me/push").authenticated()
                     .requestMatchers(HttpMethod.GET, "/v1/config/public").permitAll()

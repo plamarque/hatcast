@@ -46,6 +46,7 @@ test(`Advent preserves the HatCast home at ${width}px`, async ({ page }, testInf
     else if (path === '/v1/me/preferences') body = { memberDisplayName: 'Test', preferredRoleKeys: [] }
     else if (path === '/v1/me/inbox') body = { actions: [], nextEvent: null, noParticipation: true, shortcuts: { lastSeasonSlug: null, seasonGlanceQuery: {} } }
     else if (path === '/v1/me/agenda') body = { content: [], page: 0, size: 50, totalElements: 0, totalPages: 0, filterBarVisible: false, noParticipation: true }
+    else if (path === '/v1/advent/discovery') body = { discovered: true }
     else if (path === '/v1/advent/clock') body = { date: revealed ? '2026-12-02' : '2026-12-01' }
     else if (path === '/v1/advent/results/latest-unseen') body = { result: revealed ? result : null }
     else if (path === '/v1/advent/session') body = { sessionId: 'isolation-session', testControls: true }

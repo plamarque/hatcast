@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AdventTest } from './advent-test'
 import { AuthApiService, UserSummary } from '../../core/auth/auth-api.service'
 import { WritableSignal } from '@angular/core'
+import { PushNotificationsService } from '../../core/push/push-notifications.service'
 
 describe('AdventTest', () => {
   let fixture: ComponentFixture<AdventTest>
@@ -28,6 +29,99 @@ describe('AdventTest', () => {
     fixture.detectChanges()
   })
   afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks() })
+  it('shows a local-only reminder simulation without push or API writes in test mode', async () => {
+    const component = fixture.componentInstance
+    component.testControls.set(true); component.testMode.set(true); component.calendarOpen.set(true)
+    fixture.detectChanges()
+    const calls = vi.mocked(window.fetch).mock.calls.length
+    const activate = vi.spyOn(TestBed.inject(PushNotificationsService), 'activateAdventDevice')
+    ;(fixture.nativeElement.querySelector('button[aria-label="Revoir l’accusé de réponse"]') as HTMLButtonElement).click()
+    fixture.detectChanges()
+    const checkbox = fixture.nativeElement.querySelector('.advent__reminder input') as HTMLInputElement
+    expect(checkbox).not.toBeNull()
+    expect(checkbox.checked).toBe(false)
+    checkbox.click(); fixture.detectChanges()
+    expect(checkbox.checked).toBe(true)
+    expect(activate).not.toHaveBeenCalled()
+    expect(vi.mocked(window.fetch).mock.calls.length).toBe(calls)
+  })
+  it('hides the reminder when its initial preference cannot be loaded', async () => {
+    const component = fixture.componentInstance
+    component.testMode.set(false)
+    component.reminderEnabled.set(null)
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response('', { status: 503 }))
+    await component.loadReminder()
+    fixture.detectChanges()
+    expect(component.reminderEnabled()).toBeNull()
+    expect(fixture.nativeElement.textContent).not.toContain('Impossible de charger les rappels')
+    expect(fixture.nativeElement.querySelector('.advent__reminder')).toBeNull()
+  })
+  it('keeps the previous checkbox state until the preference save completes', async () => {
+    const component = fixture.componentInstance
+    component.testMode.set(false); component.reminderEnabled.set(false)
+    let finish!: (response: Response) => void
+    vi.spyOn(TestBed.inject(PushNotificationsService), 'activateAdventDevice').mockResolvedValue({ endpoint: 'https://push.example/device' })
+    vi.mocked(window.fetch).mockReturnValueOnce(new Promise<Response>(resolve => { finish = resolve }))
+    const input = document.createElement('input')
+    input.type = 'checkbox'; input.checked = true
+    const pending = component.onReminderChange({ target: input } as unknown as Event)
+    expect(input.checked).toBe(false)
+    await Promise.resolve()
+    expect(component.reminderBusy()).toBe(true)
+    expect(input.checked).toBe(false)
+    finish(new Response(JSON.stringify({ enabled: true }), { status: 200 }))
+    await pending
+    expect(input.checked).toBe(true)
+  })
+  it('enables the shared reminder only after device registration and preference save', async () => {
+    const component = fixture.componentInstance
+    component.testMode.set(false); component.reminderEnabled.set(false)
+    const subscription = { endpoint: 'https://push.example/device', keys: { p256dh: 'key', auth: 'auth' } }
+    vi.spyOn(TestBed.inject(PushNotificationsService), 'activateAdventDevice').mockImplementation(async register => {
+      expect(await register(subscription)).toBe(true)
+      return { endpoint: subscription.endpoint }
+    })
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response('', { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ enabled: true }), { status: 200 }))
+    await component.changeReminder(true)
+    const calls = vi.mocked(window.fetch).mock.calls.slice(-2)
+    expect(calls[0][0]).toBe('/v1/advent/reminder-device')
+    expect(calls[1][0]).toBe('/v1/advent/reminder-preference')
+    expect(component.reminderEnabled()).toBe(true)
+    expect(component.reminderDeviceOwned()).toBe(true)
+  })
+  it('keeps the reminder disabled when its preference cannot be saved', async () => {
+    const component = fixture.componentInstance
+    component.testMode.set(false); component.reminderEnabled.set(false)
+    vi.spyOn(TestBed.inject(PushNotificationsService), 'activateAdventDevice').mockResolvedValue({ endpoint: 'https://push.example/device' })
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response('', { status: 503 }))
+    await component.changeReminder(true)
+    expect(component.reminderEnabled()).toBe(false)
+    expect(component.reminderMessage()).toContain('Impossible')
+  })
+  it('keeps the shared reminder enabled when activation on this device fails', async () => {
+    const component = fixture.componentInstance
+    component.testMode.set(false); component.reminderEnabled.set(true); component.reminderDeviceOwned.set(false)
+    vi.spyOn(TestBed.inject(PushNotificationsService), 'activateAdventDevice').mockResolvedValue({ message: 'Refusé sur cet appareil.' })
+    const calls = vi.mocked(window.fetch).mock.calls.length
+    await component.changeReminder(true, true)
+    expect(component.reminderEnabled()).toBe(true)
+    expect(component.reminderDeviceOwned()).toBe(false)
+    expect(component.reminderMessage()).toContain('Refusé')
+    expect(vi.mocked(window.fetch).mock.calls.length).toBe(calls)
+  })
+  it('disables only the Advent preference and leaves the device subscribed', async () => {
+    const component = fixture.componentInstance
+    component.testMode.set(false); component.reminderEnabled.set(true); component.reminderDeviceOwned.set(true)
+    const push = TestBed.inject(PushNotificationsService)
+    const disable = vi.spyOn(push, 'disable')
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ enabled: false }), { status: 200 }))
+    await component.changeReminder(false)
+    expect(component.reminderEnabled()).toBe(false)
+    expect(component.reminderDeviceOwned()).toBe(true)
+    expect(disable).not.toHaveBeenCalled()
+    expect(vi.mocked(window.fetch).mock.calls.at(-1)?.[0]).toBe('/v1/advent/reminder-preference')
+  })
   it('marks all Advent content as excluded from analytics capture and replay', () => {
     const root = fixture.nativeElement.querySelector('main.advent') as HTMLElement
     expect(root.classList.contains('ph-no-capture')).toBe(true)
@@ -351,7 +445,7 @@ describe('AdventTest', () => {
     const calls = vi.mocked(window.fetch).mock.calls.length
     const button = fixture.nativeElement.querySelector('button[aria-label="Revoir l’accusé de réponse"]') as HTMLButtonElement
     expect(button).not.toBeNull(); button.click(); fixture.detectChanges()
-    expect(fixture.nativeElement.textContent).toContain('Aperçu de l’accusé')
+    expect(fixture.nativeElement.textContent).not.toContain('Aperçu de l’accusé')
     expect(fixture.nativeElement.textContent).toContain('est enregistrée !')
     expect(vi.mocked(window.fetch).mock.calls.length).toBe(calls)
     expect(fixture.nativeElement.querySelector('button[aria-label="Effacer ma réponse et rejouer"]')).toBeNull()
@@ -1342,17 +1436,17 @@ describe('AdventTest', () => {
     expect(fixture.nativeElement.querySelector('[role=alert]').textContent).toContain('réinitialisées par l’opérateur')
   })
 
-  it('keeps the recorded confirmation neutral and uses the authorized portrait', async () => {
+  it('keeps the recorded confirmation neutral with the generic elf', async () => {
     vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ status: 'recorded', replayToken: 'token' })))
     await fixture.componentInstance.openDoor()
     fixture.detectChanges()
     const status = fixture.nativeElement.querySelector('.advent__recorded') as HTMLElement
     expect(status.textContent).toContain('Ta réponse est enregistrée')
     expect(status.textContent).not.toMatch(/bonne réponse|mauvaise réponse|points|un|deux|trois/i)
-    expect(fixture.nativeElement.querySelector('.advent__portrait img').getAttribute('src')).toBe('data:image/png;base64,aGVsbG8=')
-    const illustration = fixture.nativeElement.querySelector('.advent__portrait img') as HTMLImageElement
-    expect(illustration.getAttribute('src')).toBe('data:image/png;base64,aGVsbG8=')
-    expect(illustration.getAttribute('alt')).toContain('Portrait du lutin')
+    expect(fixture.nativeElement.querySelector('.advent__portrait img')).toBeNull()
+    const illustration = fixture.nativeElement.querySelector('.advent__recorded-art img') as HTMLImageElement
+    expect(illustration.getAttribute('src')).toBe('/advent/confirmation-scene-v2.png')
+    expect(illustration.getAttribute('alt')).toBe('')
     expect(fixture.nativeElement.querySelector('mat-radio-group')).toBeNull()
   })
 

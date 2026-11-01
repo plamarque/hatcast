@@ -14,8 +14,33 @@ import java.util.UUID
 
 /** All member operations serialize on one row; the clock is sampled only after the lock. */
 @Service
-class AdventMemberGame(private val jdbc: JdbcTemplate, private val clock: AdventMemberClock, private val quizzes: AdventTestAnswers, private val environment: Environment) {
+class AdventMemberGame(private val jdbc: JdbcTemplate, private val clock: AdventMemberClock, private val quizzes: AdventTestAnswers, private val environment: Environment, private val realClock: AdventRealClock = AdventRealClock()) {
     private val paris = ZoneId.of("Europe/Paris")
+
+    @Transactional
+    fun reminderPreference(user: UUID, expected: UUID): Boolean {
+        if (!AdventParisTime.memberAccessOpen(realClock.instant())) throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        now(expected)
+        return jdbc.query("SELECT enabled FROM advent_reminder_preferences WHERE user_id = ?", { rs, _ -> rs.getBoolean(1) }, user).singleOrNull() ?: false
+    }
+
+    @Transactional
+    fun reminderDeviceOwned(user: UUID, expected: UUID, endpoint: String): Boolean {
+        reminderPreference(user, expected)
+        return jdbc.queryForObject("SELECT COUNT(*) FROM advent_reminder_devices WHERE user_id = ? AND endpoint = ?", Int::class.java, user, endpoint) == 1
+    }
+
+    @Transactional
+    fun setReminderPreference(user: UUID, expected: UUID, enabled: Boolean, endpoint: String?): Boolean {
+        if (!AdventParisTime.memberAccessOpen(realClock.instant())) throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        now(expected)
+        if (enabled && (endpoint.isNullOrBlank() || jdbc.queryForObject(
+                "SELECT COUNT(*) FROM advent_reminder_devices WHERE user_id = ? AND endpoint = ?", Int::class.java, user, endpoint
+            ) != 1)) throw ResponseStatusException(HttpStatus.CONFLICT)
+        if (jdbc.update("UPDATE advent_reminder_preferences SET enabled = ? WHERE user_id = ?", enabled, user) == 0)
+            jdbc.update("INSERT INTO advent_reminder_preferences (user_id, enabled) VALUES (?, ?)", user, enabled)
+        return enabled
+    }
 
     private fun memberQuiz(day: Int): AdventQuiz? {
         if ("offline" in environment.activeProfiles) {

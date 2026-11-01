@@ -500,6 +500,12 @@ Pendant la période autorisée, un cadeau près du compte permet aux membres él
 
 The shared private Advent bucket stores the canonical catalogue under `catalogue/` and elf images under `portraits/`. Cloud runtime resolves simple database portrait references under `portraits/`; offline uses the local private directory. Environments retain distinct databases. Migration and deployment require separate authorization; existing objects and game state are preserved.
 
+### Rappels du quiz Avent
+
+Sur l’attente après réponse et les résultats, chaque membre peut choisir un rappel Avent partagé entre ses appareils. L’activation sur un appareil nécessite son autorisation et un abonnement de cet appareil ; un autre appareil peut nécessiter sa propre activation. La désactivation du rappel Avent ne modifie pas les autres notifications. Du 1er au 24 décembre 2026, un traitement à partir de 10 h à Paris tente au plus une invitation par membre et quiz disponible si le membre actif n’a pas répondu. Les invitations ne contiennent ni anecdote ni résultat ; elles ne sont ni reprises ni garanties. Le parcours conserve la découverte et les révélations prioritaires.
+
+Dans le mode test Avent autorisé, la case de rappel peut être manipulée en simulation sans activer un rappel réel ni modifier les abonnements.
+
 ### Retour sur une réponse Avent en attente
 
 Le membre qui rouvre depuis le calendrier une réponse normale du jour encore en attente retrouve une scène d’attente et le temps restant jusqu’à la disponibilité de son résultat à minuit, heure de Paris. La confirmation immédiatement après la réponse reste distincte. La révélation dépend de l’état autorisé par le serveur ; en cas d’erreur, le membre peut réessayer. Le 25 décembre ne comporte pas de quiz.

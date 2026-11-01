@@ -12,6 +12,7 @@ import java.util.UUID
 class WebPushNotificationSender(
     private val webPushProperties: WebPushProperties,
     private val subscriptionRepository: UserPushSubscriptionRepository,
+    private val adventDevices: AdventReminderDeviceRepository,
 ) : NotificationDeliveryPort {
     private val log = LoggerFactory.getLogger(javaClass)
     private val mapper = jacksonObjectMapper()
@@ -21,7 +22,15 @@ class WebPushNotificationSender(
         payload: NotificationPayload,
         intent: NotificationIntent,
         eventId: UUID?,
-    ): NotificationDeliveryResult {
+    ): NotificationDeliveryResult = send(userId, payload, intent.name, eventId, false)
+
+    /** Advent has no associated event and does not belong to the event categories. */
+    fun sendAdventPush(userId: UUID, payload: NotificationPayload): NotificationDeliveryResult =
+        send(userId, payload, "ADVENT_REMINDER", null, true)
+
+    private data class PushTarget(val endpoint: String, val p256dhKey: String, val authKey: String)
+
+    private fun send(userId: UUID, payload: NotificationPayload, intent: String, eventId: UUID?, advent: Boolean): NotificationDeliveryResult {
         if (webPushProperties.vapidPrivateKey.isBlank()) {
             log.warn(
                 "notification_push_skipped reason=missing_vapid_private_key intent={} userId={} eventId={}",
@@ -36,7 +45,8 @@ class WebPushNotificationSender(
             )
         }
 
-        val subscriptions = subscriptionRepository.findByUserId(userId)
+        val subscriptions = if (advent) adventDevices.findByUserId(userId).map { PushTarget(it.endpoint, it.p256dhKey, it.authKey) }
+            else subscriptionRepository.findByUserId(userId).map { PushTarget(it.endpoint, it.p256dhKey, it.authKey) }
         if (subscriptions.isEmpty()) {
             return NotificationDeliveryResult(
                 channel = NotificationChannel.PUSH,
@@ -78,7 +88,14 @@ class WebPushNotificationSender(
 
         var lastError: String? = null
         var sentCount = 0
+        var ownershipChangedCount = 0
         for (subscription in subscriptions) {
+            // A browser may have changed accounts since the initial recipient lookup.
+            // Never hold a database lock over network I/O: HatCast must not wait for Advent.
+            if (advent && !adventDevices.existsByUserIdAndEndpoint(userId, subscription.endpoint)) {
+                ownershipChangedCount++
+                continue
+            }
             try {
                 val webPushSubscription =
                     Subscription(
@@ -100,7 +117,9 @@ class WebPushNotificationSender(
             }
         }
 
-        return if (sentCount > 0 && lastError == null) {
+        return if (sentCount == 0 && ownershipChangedCount == subscriptions.size) {
+            NotificationDeliveryResult(channel = NotificationChannel.PUSH, status = NotificationDeliveryStatus.SKIPPED, errorMessage = "device_owner_changed")
+        } else if (sentCount > 0 && lastError == null) {
             NotificationDeliveryResult(channel = NotificationChannel.PUSH, status = NotificationDeliveryStatus.SENT)
         } else if (sentCount > 0) {
             NotificationDeliveryResult(

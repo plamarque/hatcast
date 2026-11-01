@@ -6,10 +6,12 @@ test('keyboard answers on a narrow enlarged screen with reduced motion', async (
   await page.addInitScript(() => localStorage.setItem('hatcast-pwa-banner-dismissed', String(Date.now())))
   await page.setViewportSize({ width: 320, height: 700 })
   await page.emulateMedia({ reducedMotion: 'reduce' })
+  const reminderRequests: string[] = []
   let reservedAttempt: string | undefined
   let confirmed: { choice: number; attemptId: string } | undefined
   await page.route('**/v1/**', async route => {
     const path = new URL(route.request().url()).pathname
+    if (path.includes('/reminder-')) reminderRequests.push(path)
     if (path === '/v1/auth/me') return route.fulfill({ json: { user: { id: 'test-user', slug: 'test', displayName: 'Test', email: 'test@example.test', avatarUrl: null }, platformAdmin: false } })
     if (path === '/v1/troupes') return route.fulfill({ json: [] })
     if (path === '/v1/me/preferences') return route.fulfill({ json: { memberDisplayName: 'Test', preferredRoleKeys: [] } })
@@ -74,14 +76,16 @@ test('keyboard answers on a narrow enlarged screen with reduced motion', async (
   await page.getByRole('button', { name: 'Confirmer ma réponse' }).click()
   await expect(page.locator('.advent__recorded')).toContainText('Ta réponse est enregistrée')
   await expect(page.locator('.advent__recorded-title')).toBeVisible()
+  const reminder = page.getByRole('checkbox', { name: 'Ne rate aucun quiz !' })
+  await expect(reminder).not.toBeChecked()
+  await reminder.check()
+  await expect(reminder).toBeChecked()
+  expect(reminderRequests).toEqual([])
   const overlaps = await page.locator('.advent__quiz').evaluate(root => {
     const rect = (element: Element) => element.getBoundingClientRect()
     const intersects = (a: DOMRect, b: DOMRect) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
-    const date = root.querySelector('.advent__date')!
-    const badge = root.querySelector('.advent__portrait')!
     const buttons = [...root.querySelectorAll('button')].filter(button => button.querySelector('mat-icon[iconPositionEnd]'))
     return {
-      badge: intersects(rect(date), rect(badge)),
       labels: buttons.map(button => {
         const icon = button.querySelector('mat-icon[iconPositionEnd]')!
         const label = button.querySelector('.mdc-button__label')!
@@ -98,21 +102,20 @@ test('keyboard answers on a narrow enlarged screen with reduced motion', async (
       }),
     }
   })
-  expect(overlaps.badge).toBe(false)
   expect(overlaps.labels.length).toBeGreaterThan(0)
   expect(overlaps.labels.every(value => !value)).toBe(true)
   await expect(page.locator('.advent__recorded-title')).toHaveCSS('font-family', /Fredoka/)
   await page.evaluate(() => document.fonts.ready)
   expect(await page.evaluate(() => document.fonts.check('700 16px Fredoka'))).toBe(true)
-  await expect(page.locator('.advent__portrait img')).toBeVisible()
-  await expect(page.locator('.advent__portrait img')).toHaveAttribute('src', /^data:image\/png;base64,/)
+  await expect(page.locator('.advent__recorded-art img')).toBeVisible()
+  await expect(page.locator('.advent__recorded-art img')).toHaveAttribute('src', '/advent/confirmation-scene-v2.png')
   for (const width of [320, 375, 390, 430, 768, 1280]) {
     await page.setViewportSize({ width, height: 700 })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
     await expect(page.locator('.advent__recorded-title')).toBeVisible()
   }
   await page.setViewportSize({ width: 320, height: 700 })
-  expect(await page.locator('.advent__portrait').evaluate(el => el.getBoundingClientRect().width)).toBeGreaterThanOrEqual(44)
+  expect(await page.locator('.advent__recorded-art').evaluate(el => el.getBoundingClientRect().width)).toBeGreaterThanOrEqual(44)
   const replay = page.locator('.advent__test-actions').getByRole('button', { name: 'Effacer ma réponse et rejouer' })
   await expect(replay).toBeVisible()
   await expect(replay.locator('mat-icon')).toHaveText('delete_outline')
