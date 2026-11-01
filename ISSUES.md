@@ -15,6 +15,10 @@ historical registry below.
 
 ### Open defects and limitations
 
+BUG-071 (Advent catalogue PostgreSQL integration test loses its connection in CI).
+
+BUG-072 (V2 Playwright smoke suite fails on commit b560afa4).
+
 BUG-069 (late Advent answer confirmation incorrectly asks the player to return tomorrow).
 
 BUG-067 (failed ranking load leaves a past result).
@@ -56,6 +60,22 @@ BUG-024, and BUG-021 have local fixes but still require their stated review,
 human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
+
+### BUG-071 — Advent catalogue PostgreSQL integration test loses connection in CI
+- **Status**: Open.
+- **Severity**: Medium (CI verification).
+- **Affected area**: Advent catalogue database integration tests.
+- **Observed behavior**: On commit `b560afa4`, the disposable PostgreSQL integration step ends with `Connection terminated unexpectedly`; the preceding catalogue unit tests pass and the subsequent H2 step is skipped.
+- **Expected behavior**: The PostgreSQL and H2 integration checks run to completion reliably.
+- **Notes/context**: [CI run 41316036008](https://github.com/plamarque/hatcast/actions/runs/41316036008). The script checks `pg_isready` before connecting, but the log does not establish the cause of the disconnect.
+
+### BUG-072 — V2 Playwright smoke suite fails
+- **Status**: Open.
+- **Severity**: Medium (CI verification).
+- **Affected area**: V2 Playwright E2E suite.
+- **Observed behavior**: On commit `b560afa4`, 9 tests fail, 2 are flaky, 4 are skipped, 5 do not run and 106 pass. Failures include Advent home isolation at six viewport widths, two home feedback cases and one agenda participation case.
+- **Expected behavior**: The smoke suite completes successfully and consistently.
+- **Notes/context**: [CI run 41316035842](https://github.com/plamarque/hatcast/actions/runs/41316035842). The prior `677d7e55` smoke run also failed; the relationship and individual causes require investigation.
 
 ### BUG-069 — Late Advent answer confirmation misstates reveal timing
 - **Status**: Open.
