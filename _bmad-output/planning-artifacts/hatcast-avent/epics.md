@@ -20,7 +20,7 @@ Updated requirements inventory for the La Malice Advent calendar. The spec and c
 
 ### Functional Requirements
 
-- **FR-1:** En production, l’animation est invisible avant le 1er décembre pour les membres ; aucun mode test n’y est disponible. Du 1er décembre au 15 janvier 2027 inclus, une icône Père Noël près de Mon compte permet d’accéder à l’animation. Sa micro-animation est discrète et festive ; ses détails sont à définir en UX. L’accès disparaît à partir du 16 janvier.
+- **FR-1:** En production, l’animation est invisible avant le 1er décembre pour les membres ; aucun mode test n’y est disponible. Du 1er décembre au 15 janvier 2027 inclus, une icône cadeau près de Mon compte permet d’accéder à l’animation. Sa micro-animation est discrète et festive ; ses détails sont à définir en UX. L’accès disparaît à partir du 16 janvier.
 
 - **FR-2:** Du 1er au 24 décembre, lorsqu’un quiz du jour est disponible et que le membre n’y a pas répondu, il s’ouvre automatiquement lors de sa première ouverture pertinente de HatCast, après l’éventuelle révélation prioritaire prévue par FR-7. Le membre peut le fermer ; une fois fermé, il ne s’ouvre plus automatiquement ce jour-là sur aucun appareil du membre et reste accessible par l’icône. Une réponse enregistrée sur un autre appareil empêche aussi l’ouverture automatique. Une visite sans quiz disponible ne consomme pas cette ouverture : si le quiz paraît plus tard, il peut s’ouvrir lors d’une visite ultérieure, sauf si l’expérience a déjà été fermée ce jour-là.
 
@@ -73,7 +73,7 @@ Updated requirements inventory for the La Malice Advent calendar. The spec and c
 - **UX-DR4:** After a neutral acknowledgment, reveal the result from next midnight on the same surface; show the points earned that day, including participation and any bonus; celebrate only correct answers briefly and omit motion when requested. Revisited results show choice, correct answer and points without replaying celebration.
 - **UX-DR5:** Provide separate accessible Advent-styled Calendar and Ranking tabs, with the priority reveal, daily quiz and personal ranking summary defined in EXPERIENCE.md.
 - **UX-DR6:** Render 24 numbered quiz cases and a 25 December case in a four-column, left-to-right grid; distinguish played, past, today, future locked and missing-content cases without color alone; expose number and state accessibly without revealing future content.
-- **UX-DR7:** Show the Santa icon near account with a discreet movement once at HatCast opening, less than five seconds, and no movement under reduced-motion preference.
+- **UX-DR7:** Show the gift icon near account with a discreet movement once at HatCast opening, less than five seconds, and no movement under reduced-motion preference.
 - **UX-DR8:** Use French, tutoiement and encouraging festive tone; preserve the specified missing-content, bonus and Christmas messages and result variations.
 - **UX-DR9:** Support keyboard operation, visible focus, appropriate focus entry/restoration and announcements for door, result and errors without a keyboard trap; use meaningful portrait alternatives and single-choice semantics.
 - **UX-DR10:** Target 48 × 48 px touch targets, minimum 44 × 44 px. Verify small widths, zoom, text enlargement, contrast and no loss of content or action on mobile, tablet and desktop.
@@ -103,7 +103,7 @@ Members of La Malice discover each other through a daily festive quiz, review re
 
 **FRs covered:** FR-1–FR-13. **Architecture:** AD-1–AD-7. **UX:** UX-DR1–UX-DR11.
 
-Progressive human checkpoints follow the journey: door, quiz, result, ranking, calendar, Santa icon, then notifications. Show each partial experience to Patrice and Toinou as soon as it is safe and testable; explicitly identify unfinished parts. The first usable test requires development isolation and the protections relevant to what is exposed.
+Progressive human checkpoints follow the journey: door, quiz, result, ranking, calendar, gift icon, then notifications. Show each partial experience to Patrice and Toinou as soon as it is safe and testable; explicitly identify unfinished parts. The first usable test requires development isolation and the protections relevant to what is exposed.
 
 The experience and its security, scoring, ranking and state share one domain and are already designed together. One epic avoids artificial boundaries and repeated work on the same components; independently reviewable stories will be ordered inside it. The production entry must not expose an incomplete or unprotected experience. Epic 25 and its story identifiers remain stable; revised criteria and dependencies were validated with Patrice on 2026-10-29.
 
@@ -246,7 +246,7 @@ As an eligible member, I want to discover and reopen the experience without repe
 
 **Acceptance Criteria:**
 
-1. In production show the Santa icon near My Account from 1 December to 15 January inclusive Paris time; hide it outside that window and enforce the same server access. Its discreet motion lasts less than five seconds, once on opening, and respects reduced motion.
+1. In production show the gift icon near My Account from 1 December to 15 January inclusive Paris time; hide it outside that window and enforce the same server access. Its discreet motion lasts less than five seconds, once on opening, and respects reduced motion.
 2. From 1–24 December, automatically open an available unanswered daily quiz on the first eligible visit after any priority reveal. Persist dismissal by member and day across devices; a recorded answer also prevents opening. Visiting without available content does not consume the opening; closing the experience does.
 3. With no quiz, no automatic opening occurs; the icon offers the absence message and Calendar and Ranking after the priority reveal. When content appears later that day, it may auto-open on a later eligible visit unless already closed.
 4. After today's answer, the icon opens Ranking subject to reveal priority. On 25 December show the Christmas journey after any priority reveal; thereafter and through 15 January provide final Ranking and Calendar without new answers or automatic quiz opening.

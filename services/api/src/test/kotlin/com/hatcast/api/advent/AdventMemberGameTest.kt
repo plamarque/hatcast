@@ -52,6 +52,33 @@ class AdventMemberGameTest {
         assertEquals("available", game.reserve(member, day, attempt, generation).status)
         return attempt
     }
+    @Test fun `entry and dismissal are shared per member and Paris day`() {
+        assertTrue(game.entry(member).autoOpen)
+        game.dismiss(member)
+        game.dismiss(member)
+        assertFalse(game.entry(member).autoOpen)
+        assertTrue(game.entry(other).autoOpen)
+        assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM advent_member_dismissals WHERE user_id = ?", Int::class.java, member))
+        at("2026-12-01T23:00:00Z")
+        jdbc.update("DELETE FROM advent_quizzes WHERE quiz_day = 2")
+        jdbc.update("INSERT INTO advent_quizzes (quiz_day, display_name, statement_0, statement_1, statement_2, false_choice) VALUES (2, 'Fictif', 'A', 'B', 'C', 0)")
+        assertTrue(game.entry(member).autoOpen)
+    }
+
+    @Test fun `absent quiz does not consume entry and an answer prevents opening`() {
+        jdbc.update("DELETE FROM advent_quizzes WHERE quiz_day = 1")
+        assertFalse(game.entry(member).autoOpen)
+        assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM advent_member_dismissals WHERE user_id = ?", Int::class.java, member))
+        jdbc.update("INSERT INTO advent_quizzes (quiz_day, display_name, statement_0, statement_1, statement_2, false_choice) VALUES (1, 'Fictif', 'A', 'B', 'C', 0)")
+        assertTrue(game.entry(member).autoOpen)
+        game.confirm(member, 1, 0, reserve())
+        assertFalse(game.entry(member).autoOpen)
+        at("2026-11-30T22:59:59Z")
+        assertThrows(ResponseStatusException::class.java) { game.entry(member) }
+        at("2027-01-15T23:00:00Z")
+        assertThrows(ResponseStatusException::class.java) { game.entry(member) }
+    }
+
     @Test fun `calendar and history respect Paris dates personal answers and priority revelation`() {
         val attempt = reserve()
         game.confirm(member, 1, 0, attempt)

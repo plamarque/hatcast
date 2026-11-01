@@ -36,7 +36,7 @@ class AdventMemberSecurityTest {
     @Autowired lateinit var environment: ConfigurableEnvironment
     @Test fun `anonymous and unrelated user cannot access member data and errors are not cached`() {
         val cookie = TestAuthSupport.sessionCookieFromGoogleSignIn(mvc, google, "outsider-advent-member")
-        for (path in listOf("/v1/advent/clock", "/v1/advent/doors/1", "/v1/advent/doors/1/answer", "/v1/advent/doors/1/result", "/v1/advent/results/latest-unseen", "/v1/advent/ranking", "/v1/advent/calendar", "/v1/advent/doors/1/history")) {
+        for (path in listOf("/v1/advent/entry", "/v1/advent/clock", "/v1/advent/doors/1", "/v1/advent/doors/1/answer", "/v1/advent/doors/1/result", "/v1/advent/results/latest-unseen", "/v1/advent/ranking", "/v1/advent/calendar", "/v1/advent/doors/1/history")) {
             mvc.perform(get(path)).andExpect(status().isUnauthorized).andExpect(header().string("Cache-Control", "private, no-store"))
             mvc.perform(get(path).cookie(cookie)).andExpect(status().isForbidden).andExpect(header().string("Cache-Control", "private, no-store"))
         }
@@ -124,6 +124,10 @@ class AdventMemberSecurityTest {
             assert(token == json.readTree(memberSession.response.contentAsString).get("sessionId").asText())
             jdbc.update("DELETE FROM advent_quizzes WHERE quiz_day = 1")
             jdbc.update("INSERT INTO advent_quizzes (quiz_day, display_name, statement_0, statement_1, statement_2, false_choice) VALUES (1, 'Fictif', 'A', 'B', 'C', 0)")
+            mvc.perform(get("/v1/advent/entry").cookie(member)).andExpect(status().isOk).andExpect(header().string("Cache-Control", "private, no-store")).andExpect(jsonPath("$.autoOpen").value(true)).andExpect(jsonPath("$.answer").doesNotExist()).andExpect(jsonPath("$.score").doesNotExist())
+            mvc.perform(post("/v1/advent/entry/dismiss").cookie(member).with(csrf()).header("X-Advent-Test-Session", token)).andExpect(status().isOk).andExpect(header().string("Cache-Control", "private, no-store"))
+            mvc.perform(get("/v1/advent/entry").cookie(member)).andExpect(jsonPath("$.autoOpen").value(false))
+            mvc.perform(get("/v1/advent/entry").cookie(first)).andExpect(jsonPath("$.autoOpen").value(true))
             val reconciliation = mvc.perform(post("/v1/advent/doors/1/answer/reconcile").cookie(member).with(csrf()).header("X-Advent-Test-Session", token)).andExpect(status().isOk).andReturn()
             val generation = json.readTree(reconciliation.response.contentAsString).get("generation").asText()
             val attempt = UUID.randomUUID()

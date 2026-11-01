@@ -2,7 +2,7 @@ import { Component, ElementRef, ViewChild, signal, inject, effect } from '@angul
 import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
 import { MatRadioModule } from '@angular/material/radio'
-import { RouterLink } from '@angular/router'
+import { Router } from '@angular/router'
 import { AuthApiService } from '../../core/auth/auth-api.service'
 
 const REQUEST_TIMEOUT_MS = 10_000
@@ -22,12 +22,34 @@ interface FictionalQuiz { day: number; name: string; portrait: string; statement
 @Component({
   selector: 'app-advent-test',
   standalone: true,
-  imports: [MatButtonModule, MatIconModule, MatRadioModule, RouterLink],
+  imports: [MatButtonModule, MatIconModule, MatRadioModule],
   templateUrl: './advent-test.html',
   styleUrls: ['./advent-test.scss', './advent-result.scss', './advent-ranking.scss', './advent-calendar.scss'],
 })
 export class AdventTest {
   private readonly auth = inject(AuthApiService)
+  private readonly router = inject(Router)
+  readonly closeError = signal(false)
+  readonly closingExperience = signal(false)
+
+  async closeExperience(): Promise<void> {
+    if (this.closingExperience() || this.loading() || this.submitting() || this.pendingMutations() > 0 || this.closingDay() !== null) return
+    const identity = this.auth.sessionUser()?.id ?? null
+    this.closingExperience.set(true)
+    this.closeError.set(false)
+    try {
+      const response = await fetch(`${this.api}/entry/dismiss`, { method: 'POST', credentials: 'include', cache: 'no-store', signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS), headers: { ...this.csrfHeaders(), ...this.sessionHeaders() } })
+      if (!response.ok || identity !== (this.auth.sessionUser()?.id ?? null)) throw new Error('Dismissal failed')
+      await this.leaveExperience()
+    } catch { this.closeError.set(true) }
+    finally { this.closingExperience.set(false) }
+  }
+
+  async leaveExperience(): Promise<void> {
+      const target = sessionStorage.getItem('hatcast-advent-return') || '/accueil'
+      sessionStorage.removeItem('hatcast-advent-return')
+      await this.router.navigateByUrl(target.startsWith('/') && !target.startsWith('//') && !target.startsWith('/avent') ? target : '/accueil')
+  }
   private identity = this.auth.sessionUser()?.id ?? null
   private projectionEpoch = 0
   private identityEpoch = 0
@@ -117,6 +139,7 @@ export class AdventTest {
   private recordedLate = false
   readonly lateDiscovery = signal(false)
   private visibilityListener: (() => void) | null = null
+  @ViewChild('entryHeading') private entryHeading?: ElementRef<HTMLElement>
   @ViewChild('resultHeading') private resultHeading?: ElementRef<HTMLElement>
   @ViewChild('quizHeading') private quizHeading?: ElementRef<HTMLElement>
   @ViewChild('recordedStatus') private recordedStatus?: ElementRef<HTMLElement>
@@ -126,7 +149,7 @@ export class AdventTest {
     return /^[aeiouyàâéèêëîïôùûü]/i.test(name) ? `d’${name}` : `de ${name}`
   }
 
-  ngOnInit(): void { void this.start() }
+  ngOnInit(): void { void this.start(); setTimeout(() => this.entryHeading?.nativeElement.focus()) }
   ngOnDestroy(): void { this.projectionEpoch++; this.clearVisibilityListener() }
   private clearVisibilityListener(): void {
     if (this.visibilityListener) document.removeEventListener('visibilitychange', this.visibilityListener)
@@ -227,8 +250,14 @@ export class AdventTest {
       this.unavailable.set(false)
       this.loading.set(false)
       if (returnToCalendar) await this.openCalendar()
-      else if (date < '2026-12-25') await this.selectDay(Math.min(24, Math.max(1, Number(date.slice(-2)))))
-      else await this.loadChristmasScore()
+      else if (date < '2026-12-25') {
+        const day = Math.min(24, Math.max(1, Number(date.slice(-2))))
+        const state = await this.requestJson<{ status: string }>(`/v1/advent-test/doors/${day}/answer`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
+        if (state.status === 'recorded') await this.openRanking()
+        else await this.selectDay(day)
+      }
+      else if (date === '2026-12-25') await this.loadChristmasScore()
+      else await this.openRanking()
     }
   }
 
@@ -444,8 +473,11 @@ export class AdventTest {
       this.replayToken = null
       this.unavailable.set(false)
       this.loading.set(false)
-      if (clock.date >= '2026-12-25') { await this.loadChristmasScore(); return }
-      await this.selectDay(Math.min(24, Math.max(1, Number(clock.date.slice(-2)))))
+      if (clock.date === '2026-12-25') { await this.loadChristmasScore(); return }
+      if (clock.date > '2026-12-25') { await this.openRanking(); return }
+      const day = Math.min(24, Math.max(1, Number(clock.date.slice(-2))))
+      const state = await this.requestJson<{ status: string }>(`/v1/advent-test/doors/${day}/answer`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
+      if (state.status === 'recorded') await this.openRanking(); else await this.selectDay(day)
     } catch (error) {
       if (error instanceof StaleRequestError) return
       this.error.set(true)

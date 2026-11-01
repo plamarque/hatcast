@@ -169,6 +169,8 @@
 .member-nav__bottom {
   display: flex;
   position: fixed;
+  width: 100%;
+  min-width: 0;
   inset-inline: 0;
   bottom: 0;
   z-index: 20;
@@ -179,6 +181,11 @@
   border-block-start: 1px solid
     color-mix(in srgb, var(--mat-sys-outline-variant) 55%, transparent);
   overflow: visible;
+
+  .mat-mdc-tab-link-container {
+    min-width: 0;
+    overflow-x: auto;
+  }
 
   @media (min-width: 840px) {
     display: none;

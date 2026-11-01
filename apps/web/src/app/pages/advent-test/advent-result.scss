@@ -1,4 +1,5 @@
 @use '../../shared/advent/foundation' as advent;
+.advent__return-button { width: 100%; min-height: 3rem; margin-top: .75rem; border-radius: 1rem; font: 700 1rem var(--advent-body-font); }
 
 /* Keep the test controls in the app bar with 44px minimum touch targets. */
 .advent__header { display: flex; flex-wrap: nowrap; align-items: center; gap: 0; padding: 4px; min-height: 52px; }

@@ -33,7 +33,7 @@ Les sections Firebase et Vue ci-dessous décrivent la V1 historique sous [`legac
 
 ### Parcours Avent partagé
 
-La route authentifiée `/avent` et l’API `/v1/advent` servent une seule partie par environnement ; `/avent-test` redirige vers cette route et l’ancienne API de test est refusée. L’adhésion active à la troupe configurée, la date Paris et le `no-store` s’appliquent aux lectures et mutations. Le verrou de `advent_member_lock` sérialise réponses, révélations, classement et contrôles ; les réservations et générations protègent les confirmations incertaines. Les portraits restent privés et passent par l’API autorisée. Les notifications et l’entrée automatique ne sont pas livrées.
+La route authentifiée `/avent` et l’API `/v1/advent` servent une seule partie par environnement ; `/avent-test` redirige vers cette route et l’ancienne API de test est refusée. L’adhésion active à la troupe configurée, la date Paris et le `no-store` s’appliquent aux lectures et mutations. Le verrou de `advent_member_lock` sérialise réponses, révélations, classement et contrôles ; les réservations et générations protègent les confirmations incertaines. Les portraits restent privés et passent par l’API autorisée. Les notifications ne sont pas livrées.
 
 Les projections `/v1/advent/calendar` et `/v1/advent/doors/{day}/history` utilisent le verrou de la partie, la date Paris et la session pour filtrer les états et contenus. Le calendrier projette pour le seul membre une réponse en attente ou sa justesse après `reveal_at`, sans choix ni points ; les jours futurs ne reçoivent aucun résultat. En développement isolé vérifié, la fermeture du cadeau du jour simulé depuis la barre de test du calendrier réutilise le contrôle de rejeu avec un mode explicite, sous le même verrou et avec jeton de réponse : elle retire seulement la réponse personnelle et les autorisations associées, sans créer d’autorisation de rejeu noté. Une révélation prioritaire reste présentée avant la mutation. Elles renvoient une révélation prioritaire avant les vues de consultation ; une génération et une réservation identifient explicitement une découverte tardive, persistée avec `late` et exclue des scores et séries ; les portraits restent intégrés aux réponses privées `no-store`.
 
@@ -152,7 +152,7 @@ For V1, there is no separate API server; its backend is Firebase (Firestore + Au
 
 Advent test reset uses the singleton clock row as its transactional serialization and session-generation fence. All answer operations carry the current session identifier and fail on a stale generation. The operator endpoint requires the existing isolated-environment, verified-email, allowlist and membership checks, plus the configured operator identity.
 
-L’aperçu lit `advent_quizzes` pour le nom, les trois affirmations ordonnées, la référence privée du portrait et la clé de scoring. Une explication facultative n’est renvoyée qu’au résultat révélable. Cette table est indépendante du reset ; sa préparation et la promotion des seuls quiz sont décrites dans [AVENT_CATALOGUE.md](docs/v2/technical/AVENT_CATALOGUE.md). La route membre de production reste à réaliser.
+L’aperçu lit `advent_quizzes` pour le nom, les trois affirmations ordonnées, la référence privée du portrait et la clé de scoring. Une explication facultative n’est renvoyée qu’au résultat révélable. Cette table est indépendante du reset ; sa préparation et la promotion des seuls quiz sont décrites dans [AVENT_CATALOGUE.md](docs/v2/technical/AVENT_CATALOGUE.md).
 
 Les anciens états de jeu de test et les états membres existants restent conservés séparément, sans fusion automatique. La partie commune utilise les états membres et ne modifie pas les anciennes tables de test. Un résultat dont le quiz est absent ne bloque pas les autres révélations.
 
@@ -164,8 +164,12 @@ Les deux exclusions du classement sont configurées par UUID de compte (`hatcast
 
 La route directe `/avent` utilise `/v1/advent` et la partie commune décrite ci-dessus. En offline, la partie utilise les quiz déjà préparés dans `advent_quizzes` et leurs portraits locaux privés ; les fixtures ne remplissent que les jours manquants sans réponse historique. Les anciennes réponses restent préservées. Une réponse membre liée à un ancien quiz fictif différent du catalogue bloque le jour concerné et le classement en offline jusqu’à résolution explicite.
 
-Un décalage de l’horloge Avent est réservé à la base H2 offline vérifiée du worktree ou au service `hatcast-v2-dev` et à sa base Neon de développement vérifiés. Le service de production utilise toujours l’heure réelle ; une configuration ambiguë refuse le décalage. Cette horloge ne modifie ni les dates stockées ni les autres fonctions HatCast. Aucun déploiement, entrée automatique ou notification n’est implicite.
+Un décalage de l’horloge Avent est réservé à la base H2 offline vérifiée du worktree ou au service `hatcast-v2-dev` et à sa base Neon de développement vérifiés. Le service de production utilise toujours l’heure réelle ; une configuration ambiguë refuse le décalage. Cette horloge ne modifie ni les dates stockées ni les autres fonctions HatCast. Aucun déploiement ni notification n’est implicite.
 
 ### Advent test mode selection
 
 Advent testers enter with normal member behavior. The client can request the isolated test mode explicitly; the API validates the tester and environment on each privileged request and rejects simulated dates and test commands without an authorized active request. Switching mode reloads the projection without resetting the shared game. See the Advent architecture spine, AD-2 and AD-4.
+
+### Entrée et fermeture quotidienne Avent
+
+La projection privée `GET /v1/advent/entry` autorise le membre et évalue sous le verrou de partie la fenêtre et le jour de Paris, la disponibilité du quiz, la réponse et la fermeture. Elle ne renvoie aucun contenu, choix ni score. `POST /v1/advent/entry/dismiss` enregistre une fermeture idempotente dans `advent_member_dismissals`, clé membre et date, sous ce même verrou et avec la session courante. La table est effacée par le reset de développement isolé avec le reste de la partie ; elle ne modifie pas les quiz. Les deux routes conservent les contrôles d’identité, de mode et `private, no-store`. Le shell recharge la projection lors de la navigation et invalide les réponses en cas de changement de compte.

@@ -27,7 +27,7 @@ Animation intégrée à HatCast, mobile-first et utilisable sur desktop ; Angula
 | 25 décembre | Après l’éventuelle révélation prioritaire du 24 : message de joyeux Noël, invitation à profiter des fêtes, félicitations, rappel du score personnel et rendez-vous à la rentrée ; accès au classement et au calendrier. Père Noël et boîte au-dessus du message, puis score bien visible. |
 | Mode test | Développement isolé, indication visible ; rejeu personnel de sa propre réponse et remise à zéro ciblée. Date simulée propre à l’onglet opérateur, validée côté serveur : le numéro du jour simulé est visible et annoncé entre les flèches ; les flèches avancent ou reculent d’un jour sans effacer les réponses ni modifier la date des autres membres ; le résultat est révélé le lendemain simulé. Le classement affiche le score actuel de toutes les réponses notées enregistrées, indépendamment de la date simulée ; il peut donc donner un indice sur les points en attente. Le parcours et le CTA restent les mêmes. Un reset ciblé redémarre la partie. |
 
-L’icône Père Noël près de Mon compte donne accès du 1er décembre au 15 janvier inclus. Une visite sans quiz disponible ne consomme pas l’ouverture automatique ; la fermeture de l’expérience ce jour-là empêche une ouverture automatique ultérieure. Si le quiz manque, l’icône affiche « Il n’y a rien ici. Reviens plus tard ! » et permet d’accéder au classement ; la révélation prioritaire précède cet état. Après réponse, l’icône ouvre le classement sous la même réserve. Après le 24, aucun quiz ne s’ouvre automatiquement ; classement final et calendrier restent accessibles à tous jusqu’au 15 janvier inclus.
+L’icône cadeau près de Mon compte donne accès du 1er décembre au 15 janvier inclus. Une visite sans quiz disponible ne consomme pas l’ouverture automatique ; la fermeture de l’expérience ce jour-là empêche une ouverture automatique ultérieure. Si le quiz manque, l’icône affiche « Il n’y a rien ici. Reviens plus tard ! » et permet d’accéder au classement ; la révélation prioritaire précède cet état. Après réponse, l’icône ouvre le classement sous la même réserve. Après le 24, aucun quiz ne s’ouvre automatiquement ; classement final et calendrier restent accessibles à tous jusqu’au 15 janvier inclus.
 
 ## Voice and Tone
 
@@ -61,7 +61,7 @@ La représentation du 25 et le traitement des cases manquées restent à précis
 
 ## Interaction Primitives
 
-Toucher la porte ou une affirmation ; confirmer explicitement. Ouverture et célébration courtes ; l’icône Père Noël bouge une fois à l’ouverture de HatCast, moins de cinq secondes. Aucun mouvement n’est nécessaire pour accéder au contenu.
+Toucher la porte ou une affirmation ; confirmer explicitement. Ouverture et célébration courtes ; un reflet doré traverse l’icône cadeau puis deux étincelles apparaissent brièvement, une fois à l’ouverture de HatCast, pendant 2,5 secondes ; le mouvement réduit supprime cette animation. Aucun mouvement n’est nécessaire pour accéder au contenu.
 
 ## Accessibility Floor
 

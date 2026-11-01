@@ -35,7 +35,7 @@ Tous les membres de La Malice peuvent jouer, y compris les personnes présentée
 
 ### Découverte et accès
 
-**FR-1.** En production, l’animation est invisible avant le 1er décembre pour les membres ; aucun mode test n’y est disponible. Du 1er décembre au 15 janvier 2027 inclus, une icône Père Noël près de Mon compte permet d’accéder à l’animation. Sa micro-animation est discrète et festive ; ses détails sont à définir en UX. L’accès disparaît à partir du 16 janvier.
+**FR-1.** En production, l’animation est invisible avant le 1er décembre pour les membres ; aucun mode test n’y est disponible. Du 1er décembre au 15 janvier 2027 inclus, une icône cadeau près de Mon compte permet d’accéder à l’animation. Sa micro-animation est discrète et festive ; ses détails sont à définir en UX. L’accès disparaît à partir du 16 janvier.
 
 **FR-2.** Du 1er au 24 décembre, lorsqu’un quiz du jour est disponible et que le membre n’y a pas répondu, il s’ouvre automatiquement lors de sa première ouverture pertinente de HatCast, après l’éventuelle révélation prioritaire prévue par FR-7. Le membre peut le fermer ; une fois fermé, il ne s’ouvre plus automatiquement ce jour-là sur aucun appareil du membre et reste accessible par l’icône. Une réponse enregistrée sur un autre appareil empêche aussi l’ouverture automatique. Une visite sans quiz disponible ne consomme pas cette ouverture : si le quiz paraît plus tard, il peut s’ouvrir lors d’une visite ultérieure, sauf si l’expérience a déjà été fermée ce jour-là.
 
