@@ -157,6 +157,26 @@ describe('AdventTest', () => {
     expect(component.unavailable()).toBe(true)
     expect(component.testMode()).toBe(false)
     expect(vi.mocked(window.fetch).mock.calls.some(([url]) => String(url).endsWith('/session/reset'))).toBe(false)
+    expect(vi.mocked(window.fetch).mock.calls.some(([url, options]) => String(url).includes('/answer') && options?.method === 'POST')).toBe(false)
+  })
+
+  it('uses member entry when test controls are revoked during activation', async () => {
+    const component = fixture.componentInstance
+    component.testMode.set(false)
+    component.clockDate.set('2026-12-01')
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url = String(input)
+      if (url.endsWith('/session')) return new Response(JSON.stringify({ sessionId: 'same', testControls: false }))
+      if (url.endsWith('/clock')) return new Response(JSON.stringify({ date: '2026-12-01' }))
+      if (url.endsWith('/discovery')) return new Response(JSON.stringify({ discovered: true }))
+      if (url.endsWith('/latest-unseen')) return new Response(JSON.stringify({ result: null }))
+      if (url.endsWith('/answer')) return new Response(JSON.stringify({ status: 'recorded' }))
+      if (url.endsWith('/ranking')) return new Response(JSON.stringify({ priorityResult: null, ranking: { score: 0, rank: 1, entries: [] } }))
+      return new Response(JSON.stringify({ day: 1, name: 'Fictif', portrait: '', statements: ['A', 'B', 'C'] }))
+    })
+    await component.toggleTestMode()
+    expect(component.testMode()).toBe(false)
+    expect(component.rankingOpen()).toBe(true)
   })
 
   it('blocks a mode switch while a mutation is in flight', async () => {
@@ -172,6 +192,31 @@ describe('AdventTest', () => {
     resolve(new Response(JSON.stringify({ status: 'available', generation: 'next' })))
     await mutation
     expect(component.pendingMutations()).toBe(0)
+  })
+
+  it.each(['calendar', 'ranking'] as const)('opens the recorded day when enabling test mode from %s', async screen => {
+    const component = fixture.componentInstance
+    component.testMode.set(false)
+    component.clockDate.set('2026-12-01')
+    component.calendarOpen.set(screen === 'calendar')
+    component.rankingOpen.set(screen === 'ranking')
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url = String(input)
+      if (url.endsWith('/session')) return new Response(JSON.stringify({ sessionId: 'same', testControls: true }))
+      if (url.endsWith('/clock')) return new Response(JSON.stringify({ date: '2026-12-01' }))
+      if (url.endsWith('/discovery')) return new Response(JSON.stringify({ discovered: true }))
+      if (url.endsWith('/latest-unseen')) return new Response(JSON.stringify({ result: null }))
+      if (url.endsWith('/answer')) return new Response(JSON.stringify({ status: 'recorded', replayToken: 'own' }))
+      if (url.endsWith('/result')) return new Response('', { status: 404 })
+      return new Response(JSON.stringify({ day: 1, name: 'Fictif', portrait: '', statements: ['A', 'B', 'C'] }))
+    })
+    await component.toggleTestMode()
+    fixture.detectChanges()
+    expect(component.testMode()).toBe(true)
+    expect(component.answerState()).toBe('recorded')
+    expect(component.rankingOpen()).toBe(false)
+    expect(component.calendarOpen()).toBe(false)
+    expect(fixture.nativeElement.querySelector('.advent__recorded')).not.toBeNull()
   })
 
   it.each(['calendar', 'ranking'] as const)('reloads the %s projection when switching mode', async screen => {
@@ -215,6 +260,27 @@ describe('AdventTest', () => {
     expect(component.result()?.answerId).toBe('reveal')
     expect(component.rankingOpen()).toBe(false)
     expect(vi.mocked(window.fetch).mock.calls.some(([url]) => String(url).endsWith('/ranking'))).toBe(false)
+  })
+
+  it('keeps an unseen result ahead of the day when enabling test mode', async () => {
+    const component = fixture.componentInstance
+    component.testMode.set(false)
+    component.clockDate.set('2026-12-02')
+    component.rankingOpen.set(true)
+    const result = { answerId: 'reveal', day: 1, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false }
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url = String(input)
+      if (url.endsWith('/session')) return new Response(JSON.stringify({ sessionId: 'same', testControls: true }))
+      if (url.endsWith('/clock')) return new Response(JSON.stringify({ date: '2026-12-02' }))
+      if (url.endsWith('/discovery')) return new Response(JSON.stringify({ discovered: true }))
+      if (url.endsWith('/latest-unseen')) return new Response(JSON.stringify({ result }))
+      if (url.endsWith('/answer')) return new Response(JSON.stringify({ status: 'recorded', replayToken: 'own' }))
+      if (url.endsWith('/result')) return new Response(JSON.stringify(result))
+      return new Response(JSON.stringify({ day: 1, name: 'Fictif', portrait: '', statements: ['A', 'B', 'C'] }))
+    })
+    await component.toggleTestMode()
+    expect(component.result()?.answerId).toBe('reveal')
+    expect(component.rankingOpen()).toBe(false)
   })
 
   it('does not restore an old screen after identity changes during a mode switch', async () => {

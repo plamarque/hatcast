@@ -167,6 +167,8 @@ La barre de l’Avent comporte à droite les icônes calendrier, classement et f
 
 Un testeur autorisé commence en mode membre : le temps, les réponses et le classement suivent les règles normales. Il peut activer le mode test depuis la barre de l’Avent, y compris lorsque le parcours normal est indisponible ; une barre contextuelle affiche alors les actions applicables. Le choix reste actif pendant la navigation dans l’Avent. Le désactiver recharge la projection membre sans effacer de réponse ni réinitialiser la partie. Une mutation en cours se termine avant le changement ; les anciennes réponses réseau ne doivent pas remplacer la nouvelle projection. Le reset global reste confirmé ; refermer son cadeau indique que la réponse personnelle sera effacée.
 
+À l’activation du mode test, une révélation non vue reste prioritaire ; sinon, avant le 25 décembre, afficher l’état de la case du jour simulé, y compris l’accusé neutre si sa réponse est déjà enregistrée. Ce parcours remplace l’écran calendrier ou classement précédemment ouvert.
+
 
 ### Vérifications visuelles de la reprise 25.8
 

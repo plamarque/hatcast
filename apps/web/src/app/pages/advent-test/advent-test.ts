@@ -96,10 +96,10 @@ export class AdventTest {
     this.resetConfirm.set(false)
     this.personalResetConfirm.set(null)
     this.simulatedDate.set(enabled ? (this.clockDate() && this.clockDate()! >= '2026-12-01' && this.clockDate()! <= '2027-01-15' ? this.clockDate() : '2026-12-01') : null)
-    await this.start()
+    await this.start(enabled)
     if (identityEpoch === this.identityEpoch && identity === (this.auth.sessionUser()?.id ?? null) && !this.error() && !this.unavailable() && !this.result() && !this.transitionRequired() && !this.welcome()) {
-      if (previousScreen === 'calendar') await this.openCalendar()
-      if (previousScreen === 'ranking') await this.openRanking()
+      if (!enabled && previousScreen === 'calendar') await this.openCalendar()
+      if (!enabled && previousScreen === 'ranking') await this.openRanking()
     }
   }
   private readonly api = '/v1/advent'
@@ -163,7 +163,7 @@ export class AdventTest {
     this.visibilityListener = null
   }
 
-  async start(): Promise<void> {
+  async start(openTestDay = false): Promise<void> {
     this.projectionEpoch++
     this.welcome.set(false); this.welcomePreview.set(false); this.confirmationPreview.set(false); this.discoveryError.set(false)
     this.calendarOpen.set(false); this.calendarDays.set([]); this.history.set(null); this.christmasScore.set(null); this.lateDiscovery.set(false)
@@ -197,7 +197,7 @@ export class AdventTest {
         setTimeout(() => this.welcomeHeading?.nativeElement.focus())
         return
       }
-      await this.enterAt(clock.date)
+      await this.enterAt(clock.date, openTestDay && this.testMode())
     } catch (error) { if (!(error instanceof StaleRequestError)) { this.error.set(true); this.loading.set(false) } }
   }
 
@@ -284,7 +284,7 @@ export class AdventTest {
   }
 
   /** Re-enter at a simulated date, giving any eligible unseen reveal priority. */
-  private async enterAt(date: string): Promise<void> {
+  private async enterAt(date: string, openTestDay = false): Promise<void> {
     this.projectionEpoch++
     const returnToCalendar = this.calendarOpen()
     this.closeRanking()
@@ -308,7 +308,7 @@ export class AdventTest {
       else if (date < '2026-12-25') {
         const day = Math.min(24, Math.max(1, Number(date.slice(-2))))
         const state = await this.requestJson<{ status: string }>(`/v1/advent-test/doors/${day}/answer`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
-        if (state.status === 'recorded') await this.openRanking()
+        if (state.status === 'recorded' && !openTestDay) await this.openRanking()
         else await this.selectDay(day)
       }
       else if (date === '2026-12-25') await this.loadChristmasScore()

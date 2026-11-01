@@ -15,8 +15,6 @@ historical registry below.
 
 ### Open defects and limitations
 
-BUG-074 (activating Advent test mode can show the ranking instead of the current day's state).
-
 BUG-073 (Advent catalogue synchronization refuses an additional zero-traffic revision).
 
 BUG-071 (Advent catalogue PostgreSQL integration test loses its connection in CI).
@@ -55,6 +53,8 @@ integration database).
 
 ### Pending verification or operational follow-up
 
+BUG-074 is corrected locally; development deployment and human verification remain pending.
+
 BUG-056 is corrected locally in story 25.2; integration and real-browser isolation verification remain pending.
 
 BUG-POSTHOG-002 is closed locally with its reviewed fix integrated into v2 and regression tests passing; corrected CI execution remains pending.
@@ -66,12 +66,12 @@ human-smoke, integration, or validation gate.
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
 
 ### BUG-074 — Advent test mode opens ranking instead of current day's state
-- **Status**: Open; reported, not independently reproduced.
+- **Status**: Corrected locally; development deployment and human verification pending.
 - **Severity**: Medium.
 - **Affected area**: Advent test-mode entry in development.
 - **Observed behavior**: On 2026-11-01, activating test mode at simulated December 1 displayed the ranking instead of the day's lutin, available result, or pending-result state.
 - **Expected behavior**: Show the appropriate current-day state, while preserving priority for an unseen result.
-- **Notes/context**: The current local `enterAt` opens the ranking when the current day's answer is recorded; `toggleTestMode` may also restore a previously open ranking. The actual trigger and deployed revision behavior remain to be verified.
+- **Notes/context**: The previous local `enterAt` opened the ranking when the current day's answer was recorded; `toggleTestMode` could also restore a previously open ranking. Targeted component tests exercise both paths. The actual trigger in development remains unverified.
 
 ### BUG-073 — Advent catalogue synchronization refuses an additional zero-traffic revision
 - **Status**: Open.
