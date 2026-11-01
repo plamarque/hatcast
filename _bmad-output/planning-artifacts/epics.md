@@ -3721,6 +3721,19 @@ As the HatCast maintainer, I want the existing Advent regression tests to run wi
 
 **References:** `PLAN.md`, `_bmad-output/test-artifacts/cartographie-risques-avent-2026-11-01.md`, `.github/workflows/api-test.yml`, `.github/workflows/apps-web.yml`, `.github/workflows/e2e-smoke.yml`.
 
+### Story 25.14: Give Advent CTA snow realistic volume
+
+As an Advent participant, I want the snow on primary action buttons to look like small accumulated mounds, so that the buttons match the approved illustrated Christmas world.
+
+**Acceptance Criteria:**
+
+1. Given an enabled Advent primary CTA, when displayed, then its snow resembles irregular accumulated mounds with shaded relief inspired by the approved reference, without obscuring its label or arrow.
+2. Given the welcome and other Advent primary CTAs, when displayed at mobile and desktop widths, then the treatment is consistent and adapts to button size, including long labels and disabled states.
+3. Given keyboard, touch, forced colors or reduced motion, when using these buttons, then their existing accessible name, focus, target size, state and behavior remain usable. Decorative snow conveys no information and does not intercept input.
+4. Given the change, when viewing HatCast outside Advent, then its styles are unaffected. Verify the actual Advent interface visually against the reference and provide a recorded demonstration.
+
+**References:** Advent DESIGN and EXPERIENCE contracts, architecture AD-7, `docs/v2/technical/FRONTEND_UI.md`, `test-design-advent-visual-isolation.md`, `ux-designs/ux-hatcast-avent-2026-10-28/imports/advent-quiz-design-system-reference.png`.
+
 ## Final validation
 
 - **Coverage:** FR-1–FR-13, AD-1–AD-6 and UX-DR1–UX-DR11 are covered across stories 25.1–25.7, 25.2a and 25.9; companions retain full contractual detail.
