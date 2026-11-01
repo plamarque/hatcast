@@ -484,6 +484,9 @@ Après confirmation, les deux opérateurs vérifiés en développement isolé pe
 
 ### Parcours membre Avent
 
+Avant le 1er décembre 2026 à 00 h Europe/Paris, la navigation ordinaire ne révèle pas l’Avent, y compris en cas d’échec réseau ou serveur. Par URL directe, Patrice et Toinou, authentifiés, vérifiés et membres actifs, peuvent prévisualiser les quiz et portraits futurs de production, enregistrer une réponse personnelle définitive et consulter immédiatement leur résultat et son explication. Ce parcours distinct du mode test ne change ni l’horloge ni l’état des autres ; les contrôles de simulation, suppression et rejeu restent interdits en production. Les réponses restent privées et les deux comptes sont exclus du classement.
+
+
 La route directe partagée propose le quiz du jour et le classement ; seuls les deux opérateurs vérifiés en développement isolé disposent des commandes de test. Une réponse du jour est définitive et son accusé reste neutre jusqu’au lendemain à Paris. Une case passée non jouée peut être découverte et répondue une seule fois pour le plaisir ; son résultat immédiat vaut zéro et ne modifie ni score ni série. Après la première découverte du calendrier, la révélation non vue la plus récente précède le parcours et son accusé suit l’affichage effectif. Le classement et le score personnel ne prennent en compte que les réponses révélables à un même instant serveur. Les comptes exclus restent hors liste mais voient leur score. Le classement est final dès le 25 décembre ; l’accès est autorisé jusqu’au 15 janvier inclus et les résultats restent conservés. Le calendrier présente les jours 1 à 25 et permet de revoir les découvertes passées, avec réponse tardive sans point sur les cases non jouées. Le 25 décembre, une présentation de Noël donne accès au calendrier et au classement final, y compris sans participation ; du 26 décembre au 15 janvier, le classement est présenté. Les notifications ne sont pas comprises.
 
 ### Entrée dans le calendrier Avent
@@ -502,3 +505,7 @@ The shared private Advent bucket stores the canonical catalogue under `catalogue
 Sur l’attente après réponse et les résultats, chaque membre peut choisir un rappel Avent partagé entre ses appareils. L’activation sur un appareil nécessite son autorisation et un abonnement de cet appareil ; un autre appareil peut nécessiter sa propre activation. La désactivation du rappel Avent ne modifie pas les autres notifications. Du 1er au 24 décembre 2026, un traitement à partir de 10 h à Paris tente au plus une invitation par membre et quiz disponible si le membre actif n’a pas répondu. Les invitations ne contiennent ni anecdote ni résultat ; elles ne sont ni reprises ni garanties. Le parcours conserve la découverte et les révélations prioritaires.
 
 Dans le mode test Avent autorisé, la case de rappel peut être manipulée en simulation sans activer un rappel réel ni modifier les abonnements.
+
+### Retour sur une réponse Avent en attente
+
+Le membre qui rouvre depuis le calendrier une réponse normale du jour encore en attente retrouve une scène d’attente et le temps restant jusqu’à la disponibilité de son résultat à minuit, heure de Paris. La confirmation immédiatement après la réponse reste distincte. La révélation dépend de l’état autorisé par le serveur ; en cas d’erreur, le membre peut réessayer. Le 25 décembre ne comporte pas de quiz.

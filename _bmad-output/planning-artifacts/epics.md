@@ -3612,6 +3612,8 @@ As an eligible member, I want to discover and reopen the experience without repe
 
 ### Story 25.7: Invite members to the daily quiz
 
+Preview must not cause a premature invitation or change invitations to other members.
+
 As an eligible member, I want the usual invitation to the day's quiz so that I can take part when notifications are enabled.
 
 **Acceptance Criteria:**
@@ -3641,6 +3643,8 @@ As a member, I want the Advent experience to reflect its approved illustrated Ch
 **References:** Advent DESIGN and EXPERIENCE, approved visual board and confirmation reference, AD-7.
 
 ### Story 25.9: Measure actual participation
+
+Count the two excluded accounts’ production answers; exclude isolated development tests.
 
 As an organizer, I want to know how many people played and how many answers were recorded without exposing quiz contents.
 
@@ -3734,7 +3738,19 @@ As an Advent participant, I want the snow on primary action buttons to look like
 
 **References:** Advent DESIGN and EXPERIENCE contracts, architecture AD-7, `docs/v2/technical/FRONTEND_UI.md`, `test-design-advent-visual-isolation.md`, `ux-designs/ux-hatcast-avent-2026-10-28/imports/advent-quiz-design-system-reference.png`.
 
+### Story 25.15: Preserve the Advent surprise and preview production content
+
+As an organizer, I want a private production preview while ordinary navigation stays silent before opening, so that the surprise and real content can both be checked safely.
+
+**Acceptance criteria:** Verify active membership and both privileged identities server-side; restrict future portraits and quiz content and immediately reveal only each organizer’s own final, persistent answer. Preserve ordinary time gates, ranking, privacy, production control denials, cache isolation and analytics secrecy. Cover the Paris opening boundary, failures, account switches, accessibility and the release gates with nonempty regression suites. No deployment or production data operation is authorized.
+
+**Material 3 and Advent UI:** Apply DESIGN, EXPERIENCE, AD-7 and the frontend checklist; verify responsive, keyboard, focus, reduced motion and HatCast isolation, recording gaps.
+
+**References:** approved sprint change proposal and `spec-avent-surprise-production-preview.md`.
+
 ## Final validation
+
+
 
 - **Coverage:** FR-1–FR-13, AD-1–AD-6 and UX-DR1–UX-DR11 are covered across stories 25.1–25.7, 25.2a and 25.9; companions retain full contractual detail.
 - **Order:** 25.1 → 25.2 → 25.2a → 25.3 → 25.4 → 25.5 → 25.6 → 25.7; 25.9 follows recorded answers. Development isolation and protections precede human testing; partial features are identified as such.

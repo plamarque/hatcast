@@ -103,13 +103,7 @@
 }
 
 .member-shell__advent-entry--desktop {
-  position: static;
+  position: relative;
   display: block;
   margin: 0 auto;
-}
-
-.member-shell__advent-error {
-  padding: 0.5rem 4rem 0.5rem 1rem;
-  color: var(--mat-sys-on-surface);
-  background: var(--mat-sys-surface-container);
 }

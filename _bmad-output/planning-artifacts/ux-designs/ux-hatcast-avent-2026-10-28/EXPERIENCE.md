@@ -23,7 +23,7 @@ Animation intégrée à HatCast, mobile-first et utilisable sur desktop ; Angula
 | Porte et quiz du jour | Du 1er au 24, quiz disponible et non répondu : ouverture automatique selon FR-2, ou accès par icône et notification ; une fermeture supprime l’ouverture automatique du jour sur tous les appareils. |
 | Confirmation | Accusé sans résultat ni points, invitation à revenir demain et action vers le classement. |
 | Classement | Dans la story 25.4, l’accusé après réponse donne accès par « Voir le classement » au score personnel, à la position et à la liste, sous réserve de la révélation prioritaire. En production les scores sont révélés ; en test isolé ils incluent toutes les réponses notées enregistrées, y compris celles en attente. |
-| Calendrier | Grille ordonnée des 24 quiz et du 25 ; accès aux contenus passés et au quiz du jour disponible. Cases futures bloquées. |
+| Calendrier | Grille ordonnée des 24 quiz et du 25 ; accès aux contenus passés et au quiz du jour disponible. Cases futures bloquées en parcours ordinaire. |
 | 25 décembre | Après l’éventuelle révélation prioritaire du 24 : message de joyeux Noël, invitation à profiter des fêtes, félicitations, rappel du score personnel et rendez-vous à la rentrée ; accès au classement et au calendrier. Père Noël et boîte au-dessus du message, puis score bien visible. |
 | Mode test | Développement isolé, indication visible ; rejeu personnel de sa propre réponse et remise à zéro ciblée. Date simulée propre à l’onglet opérateur, validée côté serveur : le numéro du jour simulé est visible et annoncé entre les flèches ; les flèches avancent ou reculent d’un jour sans effacer les réponses ni modifier la date des autres membres ; le résultat est révélé le lendemain simulé. Le classement affiche le score actuel de toutes les réponses notées enregistrées, indépendamment de la date simulée ; il peut donc donner un indice sur les points en attente. Le parcours et le CTA restent les mêmes. Un reset ciblé redémarre la partie. |
 
@@ -89,7 +89,7 @@ Grille de quatre colonnes ordonnées, défilement accepté ; téléphone d’abo
 
 1. Camille ouvre Calendrier depuis l’expérience et choisit une case passée.
 2. Si elle a joué, elle revoit son résultat sans célébration ; sinon elle ouvre le cadeau et répond une fois sans point, puis découvre immédiatement son résultat.
-3. Si le contenu manque, elle voit le message d’absence ; les cases futures restent verrouillées.
+3. Si le contenu manque, elle voit le message d’absence ; les cases futures restent verrouillées en parcours ordinaire.
 
 ### UJ-4 — Patrice et Toinou préparent la surprise
 
@@ -185,3 +185,12 @@ La première visite affiche une invitation avant tout résultat ou quiz. L’act
 Le titre « Quiz de l’Avent » dans la barre supérieure permet à chaque membre de revoir l’accueil sans modifier l’état de découverte ni les réponses. Il est indisponible pendant une révélation prioritaire ou une opération en cours. L’action de l’accueil ouvre le calendrier selon les contrôles habituels, notamment la priorité de révélation.
 
 En mode test autorisé, une commande du calendrier permet également de prévisualiser l’accusé de réponse avec un lutin fictif, sans enregistrer ni effacer de réponse.
+
+### Retour à la case jouée du jour
+
+Depuis le calendrier, revenir sur une réponse normale enregistrée et encore en attente affiche une scène distincte de la confirmation immédiate. Un décompte indique le temps avant le résultat, jusqu’au prochain minuit parisien. Une vérification serveur est nécessaire avant toute révélation ; une erreur reste récupérable. En mode test, la date simulée reste explicite et seul son changement déclenche la révélation correspondante. Le 25 décembre est un bilan, sans nouveau quiz.
+
+
+### Prévisualisation privée de production
+
+La route directe réservée aux deux personnes autorisées ouvre le calendrier et ses cases futures ; une réponse est définitive, son résultat personnel et son explication sont immédiatement consultables et récupérables. Identifier clairement la prévisualisation sans afficher de contrôles de simulation ou d’effacement. Préserver clavier, focus, mouvement réduit, lisibilité mobile et isolation visuelle Advent. Dans la navigation ordinaire, aucune erreur ne révèle l’Avent avant son ouverture.

@@ -122,6 +122,44 @@ BUG-037 and BUG-029 have fixture-only corrections verified by the complete API s
 - **Expected behavior**: The message remains readable at enlarged text sizes without awkward word breaks.
 - **Notes/context**: Observed in Chromium with notification permission denied; the reminder remains within its container. The message was shortened and checked in Chromium at 320 px / 200% text size; automated checks verify the word remains on one line and the text contrast is at least 4.5:1. Other accessibility checks remain open.
 
+### BUG-080 — Availability E2E interception races with navigation
+- **Status**: Mitigation verified locally; CI verification pending.
+- **Severity**: High (required release gate fails).
+- **Affected area**: Playwright availability save-and-reopen regression.
+- **Observed behavior**: The GitHub release suite failed twice with an already-handled inbox route while the test was changing pages.
+- **Expected behavior**: Network interception completes before navigation and the real save, persistence and navigation checks remain active.
+- **Notes/context**: CI run 41350700737; the exact source of the already-handled route has not been proven.
+
+### BUG-079 — Advent gift intercepts desktop navigation
+- **Status**: Corrected locally; deployment verification pending.
+- **Severity**: High (desktop member navigation blocked while the gift is visible).
+- **Affected area**: Desktop member navigation rail.
+- **Observed behavior**: The gift's Material focus indicator spans the rail and intercepts clicks on navigation links.
+- **Expected behavior**: The gift and navigation remain independently clickable and keyboard accessible.
+
+### BUG-078 — Advent release checks fail in local and CI environments
+- **Status**: Corrected locally; full delivery verification pending.
+- **Severity**: High (staging release blocked).
+- **Affected area**: Advent visual-isolation fixture and privacy regression workflow.
+- **Observed behavior**: Six visual-isolation tests receive an incomplete discovery response; the CI PWA build requires an ignored local environment file unavailable on clean runners.
+- **Expected behavior**: The fixture reflects the discovery contract and the CI build uses tracked, non-secret configuration with the production service worker.
+
+### BUG-077 — Advent content is not marked private for analytics capture
+- **Status**: Corrected locally; remote replay configuration and integration remain to verify.
+- **Severity**: High (potential disclosure of private quiz content).
+- **Affected area**: Advent UI and PostHog autocapture/session replay.
+- **Observed behavior**: The Advent root lacked the exclusion class recognized by the installed PostHog SDK, while autocapture and replay may be enabled in production.
+- **Expected behavior**: Quiz choices, explanations and personal results are excluded from automatic analytics and session recordings.
+- **Notes/context**: The Advent root now uses `ph-no-capture`; the SDK initialization explicitly sets the replay block class. Local tests verify the marker. The effective remote configuration and production behavior have not been inspected or tested.
+
+### BUG-076 — Advent stylesheet exceeds the production build budget
+- **Status**: Corrected locally; integration pending.
+- **Severity**: High (production-local build blocked).
+- **Affected area**: Advent Angular component stylesheet.
+- **Observed behavior**: The production-local build failed because the component stylesheet compiled to 12.53 kB, exceeding its 12 kB error budget.
+- **Expected behavior**: The production-local build succeeds within the existing error budget while preserving the Advent visual contract.
+- **Notes/context**: Removed generated scenery pseudo-elements already hidden by the illustrated design and an unused selector. The build now succeeds at 11.74 kB; the existing 9 kB warning remains. No budget was increased.
+
 ### BUG-075 — Late test replay is closed on its simulated day
 - **Status**: Closed on 2026-11-01 at Patrice's request; deployed and verified in development.
 - **Severity**: Medium.

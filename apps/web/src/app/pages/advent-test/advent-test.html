@@ -1,4 +1,4 @@
-<main class="advent">
+<main class="advent ph-no-capture">
   <header class="advent__header">
     @if (testControls()) { <button mat-icon-button type="button" (click)="toggleTestMode()" [disabled]="loading() || submitting() || closingDay() !== null || pendingMutations() > 0" [attr.aria-pressed]="testMode()" [attr.aria-label]="testMode() ? 'Désactiver le mode test' : 'Activer le mode test'" title="Mode test"><mat-icon aria-hidden="true">science</mat-icon></button> }
     <button #entryHeading mat-button type="button" class="advent__header-title" (click)="previewWelcome()" [disabled]="welcome() || loading() || submitting() || closingDay() !== null || pendingMutations() > 0 || result() !== null || sessionChanged() || transitionRequired() || unavailable()" aria-label="Revoir l’accueil du Quiz de l’Avent">Quiz de l’Avent</button>
@@ -6,6 +6,7 @@
     <button mat-icon-button type="button" (click)="navigateRanking()" [disabled]="welcome() || loading() || submitting() || closingDay() !== null || (result() !== null && !historicalResult())" [attr.aria-current]="rankingOpen() ? 'page' : null" aria-label="Classement" title="Classement"><mat-icon aria-hidden="true">emoji_events</mat-icon></button>
     <button mat-icon-button type="button" (click)="closeExperience()" [disabled]="closingExperience() || loading() || submitting() || pendingMutations() > 0 || closingDay() !== null" aria-label="Fermer le quiz" title="Fermer"><mat-icon aria-hidden="true">close</mat-icon></button>
   </header>
+  @if (productionPreview()) { <p class="advent__state" role="status">Prévisualisation : tes réponses sont définitives.</p> }
   @if (!memberMode) {
     <div class="advent__test-actions" [class.advent__test-actions--calendar]="calendarOpen()" aria-label="Commandes de test">
       <span class="advent__test-label"><span class="advent__test-label-full">Mode test</span><span class="advent__test-label-short">Test</span></span>
@@ -73,7 +74,7 @@
             <li>{{ statement }} @if ($index === past.falseChoice) { <strong> — anecdote fausse</strong> } @if (past.result && $index === past.result.selectedChoice) { <strong> — ton choix</strong> }</li>
           }
         </ul>
-        @if (past.result; as result) { <p>Tu as gagné {{ result.responsePoints + result.participationPoints + result.bonusPoints }} points pour ce jour.</p> }
+        @if (past.result; as result) { @if (productionPreview()) { <p>Ce score est provisoire : répondre à des jours précédents peut modifier le bonus de série.</p> } <p>Tu as gagné {{ result.responsePoints + result.participationPoints + result.bonusPoints }} points pour ce jour.</p> }
         @if (past.result) { <ng-container [ngTemplateOutlet]="reminderControl" /> }
       </section>
     } @else if (calendarOpen()) {
@@ -133,6 +134,7 @@
             <span class="advent__banner-star" aria-hidden="true">✦</span>
             <div>
               <h1 #resultHeading id="advent-result-title" tabindex="-1">{{ reveal.correct ? 'Bravo, tu as trouvé !' : 'Bien tenté !' }}</h1>
+              @if (productionPreview()) { <p>Ce score est provisoire : répondre à des jours précédents peut modifier le bonus de série.</p> }
               <p class="advent__result-points"><strong>+{{ reveal.responsePoints + reveal.participationPoints + reveal.bonusPoints }}</strong> {{ reveal.responsePoints + reveal.participationPoints + reveal.bonusPoints === 1 ? 'point gagné' : 'points gagnés' }} @if (reveal.late) { <span> · réponse après le jour du quiz</span> }</p>
             </div>
             <span class="advent__banner-star" aria-hidden="true">✦</span>
@@ -190,6 +192,7 @@
       }
     } @else if (quiz(); as content) {
       <section class="advent__quiz" [attr.aria-labelledby]="answerState() === 'recorded' ? 'recorded-title' : 'quiz-title'">
+        @if (waiting()) { <p class="advent__date">{{ content.day }} décembre</p> }
         @if (answerState() !== 'recorded') {
           <p class="advent__date">{{ content.day }} décembre</p>
           <div class="advent__portrait-scene"><span class="advent__portrait-spark advent__portrait-spark--left" aria-hidden="true">✦</span><div class="advent__portrait"><img [src]="content.portrait" [alt]="'Portrait du lutin '+ owner(content.name)"></div><span class="advent__portrait-spark advent__portrait-spark--right" aria-hidden="true">✧</span></div>
@@ -203,6 +206,24 @@
           </mat-radio-group>
           <button mat-flat-button type="button" [disabled]="choice() === null || submitting()" (click)="confirm()">Confirmer ma réponse</button>
         } @else if (answerState() === 'recorded') {
+          @if (waiting()) {
+            <div #recordedStatus class="advent__waiting" tabindex="-1">
+              <img class="advent__waiting-art" src="/advent/elf-sleeping-v1.webp" alt="">
+              <div class="advent__waiting-copy">
+                <h1 id="recorded-title">Reviens demain !</h1>
+                <p>Ton résultat sera disponible à minuit, heure de Paris.</p>
+                @if (testMode()) { <p>Jour simulé : {{ simulatedDateLabel() }}. Avance le jour pour découvrir le résultat.</p> }
+                @if (remainingSeconds() !== null) {
+                  <div class="advent__waiting-clock" role="timer" aria-live="off" [attr.aria-label]="'Temps restant avant le résultat : ' + waitingTime()">
+                    <span class="advent__waiting-unit"><strong class="advent__waiting-number">{{ waitingPart('hours') }}</strong><span>heures</span></span>
+                    <span class="advent__waiting-unit"><strong class="advent__waiting-number">{{ waitingPart('minutes') }}</strong><span>minutes</span></span>
+                    <span class="advent__waiting-unit"><strong class="advent__waiting-number">{{ waitingPart('seconds') }}</strong><span>secondes</span></span>
+                  </div>
+                }
+                @if (waitingError()) { <p role="alert">Impossible de vérifier le décompte ou le résultat. Réessaie.</p><button mat-stroked-button type="button" (click)="retryWaiting()">Réessayer</button> }
+              </div>
+            </div>
+          } @else {
           <div #recordedStatus class="advent__recorded" role="status" tabindex="-1">
             <div class="advent__recorded-art" aria-hidden="true"><img src="/advent/confirmation-scene-v2.png" alt=""></div>
             <div class="advent__recorded-panel">
@@ -216,6 +237,7 @@
             </div>
             <p class="advent__recorded-message">Reviens demain pour découvrir le résultat !</p>
           </div>
+          }
           <ng-container [ngTemplateOutlet]="reminderControl" />
           @if (!sessionChanged()) {
             <button #rankingButton mat-flat-button type="button" (click)="openRanking()" [disabled]="loading() || submitting()">Voir le classement <mat-icon iconPositionEnd aria-hidden="true">arrow_forward</mat-icon></button>

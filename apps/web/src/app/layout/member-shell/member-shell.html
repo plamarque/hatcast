@@ -7,9 +7,6 @@
     </app-member-nav>
   }
   <main class="member-shell__content" tabindex="-1">
-    @if (showNav() && adventError()) {
-      <div class="member-shell__advent-error" role="alert">Le quiz de l’Avent est momentanément indisponible. <button mat-button type="button" (click)="retryAdvent()">Réessayer</button></div>
-    }
     @if (showNav() && isMobileViewport() && adventVisible()) {
       <button id="advent-entry-mobile" mat-icon-button [class.member-shell__advent-entry--sparkle]="adventSparkle()" class="member-shell__advent-entry" type="button" (click)="openAdvent()" aria-label="Ouvrir le quiz de l’Avent" title="Quiz de l’Avent">
         <img src="/advent/gifts/gift-closed-v1.png" alt=""><span class="member-shell__gift-effect" aria-hidden="true"></span>

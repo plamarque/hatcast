@@ -96,3 +96,5 @@ Vérifications intermédiaires : compilation Kotlin ; suites API existantes `MeP
 - Après retrait de la réconciliation risquée, les 32 tests API ciblés passent et l’attestation Playwright officielle est renouvelée avec 17 scénarios réussis. Une comparaison visuelle avait échoué lors d’une exécution précédente ; les deux relances suivantes ont réussi. La clôture reste en attente du traitement des limites ci-dessus et du rapprochement avec `v2`.
 
 - Décision de Patrice : l’usage visé est un téléphone par membre ; ne pas bloquer la story sur les scénarios d’appareil partagé. Les limites BUG-083 et BUG-084 sont reportées et la vérification réelle des rappels est préparée séparément.
+
+- Après rapprochement avec `v2` : 160 tests Angular ciblés, les tests API ciblés et les 20 scénarios Playwright de l’attestation passent. La recette réelle des notifications est préparée séparément.

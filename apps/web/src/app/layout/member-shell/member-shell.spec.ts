@@ -136,6 +136,24 @@ describe('MemberShell', () => {
     fixture.detectChanges()
   }
 
+  it('silently retries a stationary shell and updates access at the boundary', async () => {
+    const refresh: (() => void)[] = []
+    const interval = vi.spyOn(globalThis, 'setInterval').mockImplementation(((callback: () => void) => {
+      refresh.push(callback)
+      return 123
+    }) as typeof setInterval)
+    vi.mocked(fetch).mockRejectedValue(new Error('offline'))
+    await renderAt('/accueil')
+    expect(fixture.nativeElement.querySelector('#advent-entry-mobile')).toBeNull()
+    vi.mocked(fetch).mockResolvedValue({ ok: true, json: async () => ({ autoOpen: false }) } as Response)
+    refresh.forEach(callback => callback())
+    await vi.waitFor(() => { fixture.detectChanges(); expect(fixture.nativeElement.querySelector('#advent-entry-mobile')).not.toBeNull() })
+    vi.mocked(fetch).mockResolvedValue({ ok: false, status: 404 } as Response)
+    refresh.forEach(callback => callback())
+    await vi.waitFor(() => { fixture.detectChanges(); expect(fixture.nativeElement.querySelector('#advent-entry-mobile')).toBeNull() })
+    interval.mockRestore()
+  })
+
   it('opens an eligible daily entry and remembers the originating route', async () => {
     vi.mocked(fetch).mockImplementation(async input => {
       if (String(input).endsWith('/v1/advent/entry')) return new Response(JSON.stringify({ autoOpen: true }))
@@ -147,6 +165,8 @@ describe('MemberShell', () => {
   })
 
   it('does not automatically reopen when returning from Advent without a saved dismissal', async () => {
+    const refresh: (() => void)[] = []
+    const interval = vi.spyOn(globalThis, 'setInterval').mockImplementation(((callback: () => void) => { refresh.push(callback); return 123 }) as typeof setInterval)
     vi.mocked(fetch).mockImplementation(async input => String(input).endsWith('/v1/advent/entry')
       ? new Response(JSON.stringify({ autoOpen: true })) : new Response('', { status: 404 }))
     await renderAt('/agenda')
@@ -154,6 +174,10 @@ describe('MemberShell', () => {
     await router.navigateByUrl('/agenda')
     await fixture.whenStable()
     expect(router.url).toBe('/agenda')
+    refresh.forEach(callback => callback())
+    await fixture.whenStable()
+    expect(router.url).toBe('/agenda')
+    interval.mockRestore()
   })
 
   it('offers a manual entry without reopening when the day was dismissed', async () => {
@@ -168,13 +192,30 @@ describe('MemberShell', () => {
     await vi.waitFor(() => expect(router.url).toBe('/avent'))
   })
 
-  it.each([423, 503])('offers retry after an entry service failure (%i)', async (status) => {
+  it.each([404, 423, 500, 503])('keeps entry failures silent (%i)', async (status) => {
     vi.mocked(fetch).mockImplementation(async input => {
       if (String(input).endsWith('/v1/advent/entry')) return new Response('', { status })
       return new Response('', { status: 404 })
     })
     await renderAt('/agenda')
-    await vi.waitFor(() => { fixture.detectChanges(); expect(fixture.nativeElement.querySelector('[role="alert"]')?.textContent).toContain('Réessayer') })
+    await fixture.whenStable()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).not.toContain('Avent')
+    expect(fixture.nativeElement.querySelector('#advent-entry-mobile')).toBeNull()
+    expect(router.url).toBe('/agenda')
+  })
+
+  it('keeps network failures silent', async () => {
+    vi.mocked(fetch).mockImplementation(async input => {
+      if (String(input).endsWith('/v1/advent/entry')) throw new TypeError('network failure')
+      return new Response('', { status: 404 })
+    })
+    await renderAt('/agenda')
+    await fixture.whenStable()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).not.toContain('Avent')
+    expect(fixture.nativeElement.querySelector('#advent-entry-mobile')).toBeNull()
+    expect(router.url).toBe('/agenda')
   })
 
   it('shows member nav on shell routes', async () => {

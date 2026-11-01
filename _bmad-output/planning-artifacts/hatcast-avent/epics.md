@@ -20,7 +20,7 @@ Updated requirements inventory for the La Malice Advent calendar. The spec and c
 
 ### Functional Requirements
 
-- **FR-1:** En production, l’animation est invisible avant le 1er décembre pour les membres ; aucun mode test n’y est disponible. Du 1er décembre au 15 janvier 2027 inclus, une icône cadeau près de Mon compte permet d’accéder à l’animation. Sa micro-animation est discrète et festive ; ses détails sont à définir en UX. L’accès disparaît à partir du 16 janvier.
+- **FR-1:** En production, la navigation ordinaire ne révèle pas l’animation avant le 1er décembre ; aucun mode test n’y est disponible. Du 1er décembre au 15 janvier 2027 inclus, une icône cadeau près de Mon compte permet d’accéder à l’animation. Sa micro-animation est discrète et festive ; ses détails sont à définir en UX. L’accès disparaît à partir du 16 janvier.
 
 - **FR-2:** Du 1er au 24 décembre, lorsqu’un quiz du jour est disponible et que le membre n’y a pas répondu, il s’ouvre automatiquement lors de sa première ouverture pertinente de HatCast, après l’éventuelle révélation prioritaire prévue par FR-7. Le membre peut le fermer ; une fois fermé, il ne s’ouvre plus automatiquement ce jour-là sur aucun appareil du membre et reste accessible par l’icône. Une réponse enregistrée sur un autre appareil empêche aussi l’ouverture automatique. Une visite sans quiz disponible ne consomme pas cette ouverture : si le quiz paraît plus tard, il peut s’ouvrir lors d’une visite ultérieure, sauf si l’expérience a déjà été fermée ce jour-là.
 
@@ -38,15 +38,20 @@ Updated requirements inventory for the La Malice Advent calendar. The spec and c
 
 - **FR-9:** Après réponse au quiz du jour, l’accès à l’animation ouvre le classement, sous réserve de la priorité de FR-7. Le 25 décembre, après l’éventuelle révélation du 24, présenter un message de Noël et un bilan personnel ; son contenu spécial et une éventuelle animation restent à discuter. Le classement est final dès la révélation du 24. Jusqu’au 15 janvier 2027 inclus, tous les membres peuvent consulter le classement final et le calendrier, même sans avoir joué ; après le 24, seules les réponses tardives sans point restent possibles et aucun quiz ne s’ouvre automatiquement.
 
-- **FR-10:** Le calendrier représente les 24 quiz et le 25 décembre, dont la présentation reste à définir en UX. Il distingue les quiz joués, passés non joués, celui du jour et les futurs bloqués. Une case passée non jouée ouvre le cadeau et le quiz ; la réponse tardive unique donne immédiatement un résultat personnel sans point. Les visites suivantes ouvrent ce résultat sans célébration. Une case jouée montre le choix, la fausse anecdote et les points obtenus uniquement après leur révélation. Une case sans contenu affiche « Il n’y a rien ici. Reviens plus tard ! ». Le calendrier et le classement restent accessibles depuis l’expérience, sauf sur l’écran prioritaire de révélation de FR-7.
+- **FR-10:** Le calendrier représente les 24 quiz et le 25 décembre, dont la présentation reste à définir en UX. Il distingue les quiz joués, passés non joués, celui du jour et les futurs bloqués pour les membres ordinaires. Une case passée non jouée ouvre le cadeau et le quiz ; la réponse tardive unique donne immédiatement un résultat personnel sans point. Les visites suivantes ouvrent ce résultat sans célébration. Une case jouée montre le choix, la fausse anecdote et les points obtenus uniquement après leur révélation. Une case sans contenu affiche « Il n’y a rien ici. Reviens plus tard ! ». Le calendrier et le classement restent accessibles depuis l’expérience, sauf sur l’écran prioritaire de révélation de FR-7.
 
 - **FR-11:** L’animation peut commencer sans les 24 quiz. Après validation, Patrice prépare les quiz et affirmations directement en base par requêtes ; seuls les quiz sont transférés du développement vers la production, jamais les réponses de test ; un quiz publié pendant son jour devient jouable dès sa disponibilité et jusqu’à minuit. Un contenu publié après son jour devient jouable une fois sans point comme toute case passée non jouée. Patrice vérifie les anecdotes avant publication et ne modifie pas les contributions pendant le jeu. Une modification exceptionnelle peut rendre une réponse ou sa révélation incohérente ; ce risque est accepté.
 
 - **FR-12:** Un jour de jeu sans quiz disponible, il n’y a ni notification ni ouverture automatique. L’icône mène au message « Il n’y a rien ici. Reviens plus tard ! » et à un accès au classement pour tous, même sans participation, après l’éventuelle révélation prioritaire. Le 25 décembre suit FR-9 et ne comporte pas de quiz.
 
-- **FR-13:** Avant décembre, Patrice et Toinou peuvent tester et présenter le calendrier dans un environnement de développement isolé de la production. Le mode test permet aux membres actifs de la troupe configurée figurant sur la liste dédiée des testeurs d’ouvrir librement les cases disponibles avant leur jour prévu ; il doit permettre de vérifier les nouvelles règles de jeu et de révélation, sans affecter la partie réelle. Chaque testeur peut effacer sa propre réponse à une case et la rejouer, même passée, sans reculer l’horloge commune ni modifier les réponses des autres. Une remise à zéro ciblée des données du calendrier permet de recommencer toute la partie. La troupe peut être choisie par environnement. Aucun mode test n’est disponible en production. Les flèches font avancer ou reculer d’un jour l’horloge simulée commune, sans effacer les réponses ; répondre à une case future la fait avancer jusqu’au jour de cette case. Le barème normal s’applique et le résultat est révélé le lendemain simulé. La remise à zéro ciblée reste disponible pour recommencer la partie. Les limites réelles sont vérifiées séparément.
+- **FR-13:** Avant décembre, Patrice et Toinou peuvent tester et présenter le calendrier dans un environnement de développement isolé de la production. Le mode test permet aux membres actifs de la troupe configurée figurant sur la liste dédiée des testeurs d’ouvrir librement les cases disponibles avant leur jour prévu ; il doit permettre de vérifier les nouvelles règles de jeu et de révélation, sans affecter la partie réelle. Chaque testeur peut effacer sa propre réponse à une case et la rejouer, même passée, sans reculer l’horloge commune ni modifier les réponses des autres. Une remise à zéro ciblée des données du calendrier permet de recommencer toute la partie. La troupe peut être choisie par environnement. Aucun mode test n’est disponible en production. En mode test isolé, les flèches modifient la date simulée de l’onglet, sans avancer l’horloge partagée ; répondre ne modifie pas cette date. Le barème normal s’applique et le résultat est révélé le lendemain simulé. La remise à zéro ciblée reste disponible pour recommencer la partie. Les limites réelles sont vérifiées séparément.
 
 ### NonFunctional Requirements
+
+Avant le 1er décembre 2026 à 00 h Europe/Paris, la navigation ordinaire ne révèle pas l’Avent, y compris en cas d’échec réseau ou serveur. Par URL directe, Patrice et Toinou, authentifiés, vérifiés et membres actifs, peuvent prévisualiser les quiz et portraits futurs de production, enregistrer une réponse personnelle définitive et consulter immédiatement leur résultat et son explication. Ce parcours distinct du mode test ne change ni l’horloge ni l’état des autres ; les contrôles de simulation, suppression et rejeu restent interdits en production. Les réponses restent privées et les deux comptes sont exclus du classement.
+
+Les réponses de prévisualisation réellement enregistrées en production peuvent compter dans les futurs totaux de participation ; les essais de développement isolé restent exclus. Aucune anecdote, choix, justesse ni score non révélé ne part dans l’analytics. Les futures invitations ne révèlent pas l’événement avant son ouverture et ne ciblent pas d’autres membres du fait de cet aperçu.
+
 
 - **NFR-1 — Confidentiality:** Restrict the event to active members of the configured troupe; protect unreleased portraits, statements and answers and collect consent from people presented.
 - **NFR-2 — Integrity and recovery:** Ensure one durable answer per member and case under retries, interruption and concurrency; scores and rankings derive from recorded answers across devices.
@@ -258,6 +263,9 @@ As an eligible member, I want to discover and reopen the experience without repe
 
 ### Story 25.7: Invite members to the daily quiz
 
+**Contrat complémentaire :** aucun aperçu ne déclenche une notification révélatrice ni ne modifie les invitations des autres membres ; aucune invitation avant ouverture.
+
+
 As an eligible member, I want the usual invitation to the day's quiz so that I can take part when notifications are enabled.
 
 **Acceptance Criteria:**
@@ -288,6 +296,9 @@ As a member, I want the Advent experience to reflect its approved illustrated Ch
 
 ### Story 25.9: Measure actual participation
 
+**Contrat complémentaire :** inclure les réponses de production des deux comptes exclus du classement ; exclure les essais isolés de développement.
+
+
 As an organizer, I want to know how many people played and how many answers were recorded without exposing quiz contents.
 
 **Acceptance Criteria:**
@@ -302,7 +313,19 @@ As an organizer, I want to know how many people played and how many answers were
 
 Add database-backed quiz reads and a documented, verified quiz-only promotion procedure before real content is used. Development and production use separate databases; simulation and reset are development-only. Preserve the protections and delivered history of 25.1, 25.2, 25.2a and 25.3; revalidate normal answer and reveal behavior, privacy, reset scope and production isolation. Patrice does not change contributions during play and accepts the risk of inconsistency if an exceptional change occurs. The transfer mechanism and scope of any migration remain to be designed; this direction does not authorize production writes or prescribe versioning. Stories 25.4–25.7 and 25.9 depend on the appropriate database content and environment boundary.
 
+### Story 25.15: Preserve the Advent surprise and preview production content
+
+As an organizer, I want a private production preview while ordinary navigation stays silent before opening, so that the surprise and real content can both be checked safely.
+
+**Acceptance criteria:** Verify active membership and both privileged identities server-side; restrict future portraits and quiz content and immediately reveal only each organizer’s own final, persistent answer. Preserve ordinary time gates, ranking, privacy, production control denials, cache isolation and analytics secrecy. Cover the Paris opening boundary, failures, account switches, accessibility and the release gates with nonempty regression suites. No deployment or production data operation is authorized.
+
+**Material 3 and Advent UI:** Apply DESIGN, EXPERIENCE, AD-7 and the frontend checklist; verify responsive, keyboard, focus, reduced motion and HatCast isolation, recording gaps.
+
+**References:** approved sprint change proposal and `spec-avent-surprise-production-preview.md`.
+
 ## Final validation
+
+
 
 - **Coverage:** FR-1–FR-13, AD-1–AD-7 and UX-DR1–UX-DR11 are covered across stories 25.1–25.7, 25.2a and 25.9; companions retain full contractual detail.
 - **Order:** 25.1 → 25.2 → 25.2a → 25.3 → 25.3a → 25.4 → 25.5 → 25.6 → 25.7; 25.9 follows recorded answers. Development isolation and protections precede human testing; partial features are identified as such.

@@ -122,6 +122,305 @@ describe('AdventTest', () => {
     expect(disable).not.toHaveBeenCalled()
     expect(vi.mocked(window.fetch).mock.calls.at(-1)?.[0]).toBe('/v1/advent/reminder-preference')
   })
+  it('marks all Advent content as excluded from analytics capture and replay', () => {
+    const root = fixture.nativeElement.querySelector('main.advent') as HTMLElement
+    expect(root.classList.contains('ph-no-capture')).toBe(true)
+  })
+  it('opens the authorized direct preview, records a final answer and recovers it', async () => {
+    const component = fixture.componentInstance
+    vi.spyOn(TestBed.inject(Router), 'url', 'get').mockReturnValue('/avent?preview=1')
+    let recorded = false
+    const answer = { answerId: 'answer', day: 23, selectedChoice: 1, falseChoice: 1, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: true, explanation: 'Explication fictive' }
+    vi.mocked(fetch).mockImplementation(async (input, options) => {
+      const url = String(input)
+      if (url.endsWith('/session')) return new Response(JSON.stringify({ sessionId: 'session', testControls: false, productionPreview: true }))
+      expect(options?.headers).toMatchObject({ 'X-Advent-Preview': 'true', 'X-Advent-Test-Session': 'session' })
+      if (url.endsWith('/clock')) return new Response(JSON.stringify({ date: '2026-11-30' }))
+      if (url.endsWith('/discovery')) return new Response(JSON.stringify({ discovered: true }))
+      if (url.endsWith('/calendar')) return new Response(JSON.stringify({ days: [{ day: 23, state: recorded ? 'played' : 'today', outcome: recorded ? 'correct' : null }], priorityResult: null }))
+      if (url.endsWith('/doors/23')) return new Response(JSON.stringify({ day: 23, name: 'Lutin fictif', portrait: '', statements: ['un', 'deux', 'trois'] }))
+      if (url.endsWith('/answer/reconcile')) return new Response(JSON.stringify({ status: 'available', generation: 'generation' }))
+      if (url.endsWith('/answer/reserve')) return new Response(JSON.stringify({ status: 'available' }))
+      if (url.endsWith('/answer') && options?.method === 'POST') { recorded = true; return new Response(JSON.stringify({ status: 'recorded' })) }
+      if (url.endsWith('/answer')) return new Response(JSON.stringify({ status: recorded ? 'recorded' : 'available' }))
+      if (url.endsWith('/result')) return recorded ? new Response(JSON.stringify(answer)) : new Response('', { status: 404 })
+      if (url.endsWith('/history')) return new Response(JSON.stringify({ quiz: { day: 23, name: 'Lutin fictif', portrait: '', statements: [] }, result: answer }))
+      if (url.endsWith('/acknowledge')) return new Response('')
+      throw new Error(url)
+    })
+    await component.start()
+    fixture.detectChanges()
+    expect(component.productionPreview()).toBe(true)
+    expect(component.testMode()).toBe(false)
+    expect(component.calendarOpen()).toBe(true)
+    expect(fixture.nativeElement.textContent).toContain('tes réponses sont définitives')
+    await component.openCalendarDay(component.calendarDays()[0])
+    await component.openDoor()
+    component.choice.set(1)
+    await component.confirm()
+    expect(component.result()?.explanation).toBe('Explication fictive')
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('score est provisoire')
+    await component.returnToCalendar()
+    await component.openCalendarDay(component.calendarDays()[0])
+    expect(component.result()?.selectedChoice).toBe(1)
+  })
+  it('does not activate preview from the URL without server authorization', async () => {
+    const component = fixture.componentInstance
+    vi.spyOn(TestBed.inject(Router), 'url', 'get').mockReturnValue('/avent?preview=1')
+    vi.mocked(fetch).mockImplementation(async (input, options) => {
+      if (String(input).endsWith('/session')) return new Response(JSON.stringify({ sessionId: 'session', testControls: false, productionPreview: false }))
+      expect(options?.headers).not.toHaveProperty('X-Advent-Preview')
+      return new Response('', { status: 404 })
+    })
+    await component.start()
+    expect(component.productionPreview()).toBe(false)
+    expect(component.unavailable()).toBe(true)
+    expect(component.calendarDays()).toEqual([])
+  })
+  it('discards an in-flight private preview when the account changes', async () => {
+    const component = fixture.componentInstance
+    const auth = TestBed.inject(AuthApiService) as unknown as { sessionUserSignal: WritableSignal<UserSummary | null> }
+    component.testMode.set(false); component.productionPreview.set(true)
+    let resolveCalendar!: (response: Response) => void
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      if (String(input).endsWith('/calendar')) return new Promise<Response>(resolve => { resolveCalendar = resolve })
+      if (String(input).endsWith('/session')) return new Response(JSON.stringify({ sessionId: 'other-session', testControls: false, productionPreview: false }))
+      return new Response('', { status: 404 })
+    })
+    const pending = component.openCalendar()
+    await vi.waitFor(() => expect(resolveCalendar).toBeDefined())
+    auth.sessionUserSignal.set({ id: 'other-preview-user', slug: 'other', email: null, displayName: 'Autre' })
+    fixture.detectChanges()
+    resolveCalendar(new Response(JSON.stringify({ days: [{ day: 23, state: 'played', outcome: 'correct' }], priorityResult: null })))
+    await pending
+    expect(component.productionPreview()).toBe(false)
+    expect(component.calendarDays()).toEqual([])
+    expect(component.result()).toBeNull()
+  })
+  it('shows a server-timed waiting scene only when revisiting a pending calendar answer', async () => {
+    const component = fixture.componentInstance
+    component.testMode.set(false); component.clockDate.set('2026-12-01'); component.calendarOpen.set(true)
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url = String(input)
+      if (url.endsWith('/clock')) return new Response(JSON.stringify({ date: '2026-12-01', effectiveInstant: '2026-12-01T22:00:00Z', nextMidnight: '2026-12-01T23:00:00Z', simulated: false }))
+      if (url.endsWith('/answer')) return new Response(JSON.stringify({ status: 'recorded', late: false }))
+      if (url.endsWith('/result')) return new Response('', { status: 404 })
+      if (url.endsWith('/doors/1')) return new Response(JSON.stringify({ day: 1, name: 'Lutin', portrait: '/elf', statements: [], genericElf: true }))
+      throw new Error(url)
+    })
+    await component.openCalendarDay({ day: 1, state: 'played', outcome: 'pending' }); fixture.detectChanges()
+    expect(component.waiting()).toBe(true)
+    expect(component.remainingSeconds()).toBeGreaterThan(3598)
+    expect(fixture.nativeElement.textContent).toContain('Reviens demain !')
+    expect(fixture.nativeElement.textContent).not.toContain('est enregistrée !')
+    expect(fixture.nativeElement.textContent).not.toContain('anecdote fausse')
+    component.ngOnDestroy()
+  })
+  it('keeps the waiting state recoverable when the clock cannot be read', async () => {
+    const component = fixture.componentInstance
+    component.testMode.set(false); component.clockDate.set('2026-12-01'); component.calendarOpen.set(true)
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url = String(input)
+      if (url.endsWith('/clock')) return new Response('', { status: 503 })
+      if (url.endsWith('/answer')) return new Response(JSON.stringify({ status: 'recorded' }))
+      if (url.endsWith('/result')) return new Response('', { status: 404 })
+      if (url.endsWith('/doors/1')) return new Response(JSON.stringify({ day: 1, name: 'Lutin', portrait: '/elf', statements: [], genericElf: true }))
+      throw new Error(url)
+    })
+    await component.openCalendarDay({ day: 1, state: 'played', outcome: 'pending' }); fixture.detectChanges()
+    expect(component.waiting()).toBe(true)
+    expect(component.waitingError()).toBe(true)
+    expect(component.remainingSeconds()).toBeNull()
+    expect(fixture.nativeElement.textContent).toContain('Réessayer')
+    component.ngOnDestroy()
+  })
+  it('hands the server-authorized priority result to the reveal after Paris midnight', async () => {
+    const component = fixture.componentInstance as any
+    component.testMode.set(false); component.selectedDay.set(24)
+    const priority = { answerId: 'answer', day: 24, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false }
+    const reveal = vi.spyOn(component, 'showResult').mockResolvedValue(undefined)
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url = String(input)
+      if (url.endsWith('/clock')) return new Response(JSON.stringify({ date: '2026-12-25', effectiveInstant: '2026-12-24T23:00:01Z', nextMidnight: '2026-12-25T23:00:00Z', simulated: false }))
+      if (url.endsWith('/results/latest-unseen')) return new Response(JSON.stringify({ result: priority }))
+      throw new Error(url)
+    })
+    await component.beginWaiting()
+    expect(reveal).toHaveBeenCalledWith(priority, false, expect.any(Number))
+    component.ngOnDestroy()
+  })
+  it('recovers a result already acknowledged on another device', async () => {
+    const component = fixture.componentInstance as any
+    component.testMode.set(false); component.selectedDay.set(24)
+    const result = { answerId: 'answer', day: 24, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: true }
+    const reveal = vi.spyOn(component, 'showResult').mockResolvedValue(undefined)
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url = String(input)
+      if (url.endsWith('/clock')) return new Response(JSON.stringify({ date: '2026-12-25', effectiveInstant: '2026-12-24T23:00:01Z', nextMidnight: '2026-12-25T23:00:00Z', simulated: false }))
+      if (url.endsWith('/results/latest-unseen')) return new Response(JSON.stringify({ result: null }))
+      if (url.endsWith('/doors/24/result')) return new Response(JSON.stringify(result))
+      throw new Error(url)
+    })
+    await component.beginWaiting()
+    expect(reveal).toHaveBeenCalledWith(result, true, expect.any(Number))
+    component.ngOnDestroy()
+  })
+  it('does not reveal at expiry when the authorized priority read fails', async () => {
+    const component = fixture.componentInstance as any
+    component.testMode.set(false); component.selectedDay.set(24); component.answerState.set('recorded')
+    component.quiz.set({ day: 24, name: 'Lutin', portrait: '/elf', statements: [], genericElf: true })
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url = String(input)
+      if (url.endsWith('/clock')) return new Response(JSON.stringify({ date: '2026-12-25', effectiveInstant: '2026-12-24T23:00:01Z', nextMidnight: '2026-12-25T23:00:00Z', simulated: false }))
+      if (url.endsWith('/results/latest-unseen')) return new Response('', { status: 503 })
+      throw new Error(url)
+    })
+    await component.beginWaiting(); fixture.detectChanges()
+    expect(component.waiting()).toBe(true)
+    expect(component.waitingError()).toBe(true)
+    expect(component.result()).toBeNull()
+    expect(fixture.nativeElement.textContent).toContain('Réessayer')
+    component.ngOnDestroy()
+  })
+  it('rechecks the server clock on resume', async () => {
+    const component = fixture.componentInstance as any
+    component.testMode.set(false); component.selectedDay.set(1)
+    component.quiz.set({ day: 1, name: 'Lutin', portrait: '/elf', statements: [], genericElf: true })
+    vi.mocked(window.fetch).mockImplementation(async () => new Response(JSON.stringify({ date: '2026-12-01', effectiveInstant: '2026-12-01T21:00:00Z', nextMidnight: '2026-12-01T23:00:00Z', simulated: false })))
+    await component.beginWaiting()
+    const before = vi.mocked(window.fetch).mock.calls.length
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible')
+    document.dispatchEvent(new Event('visibilitychange'))
+    await vi.waitFor(() => expect(vi.mocked(window.fetch).mock.calls.length).toBeGreaterThan(before))
+    component.ngOnDestroy()
+  })
+  it('ignores a delayed clock after navigating away', async () => {
+    const component = fixture.componentInstance as any
+    component.testMode.set(false); component.selectedDay.set(1)
+    let resolveClock!: (response: Response) => void
+    vi.mocked(window.fetch).mockClear()
+    vi.mocked(window.fetch).mockImplementation(() => new Promise<Response>(resolve => { resolveClock = resolve }))
+    const pending = component.beginWaiting()
+    component.stopWaiting()
+    resolveClock(new Response(JSON.stringify({ date: '2026-12-02', effectiveInstant: '2026-12-01T23:00:01Z', nextMidnight: '2026-12-02T23:00:00Z', simulated: false })))
+    await pending
+    expect(component.waiting()).toBe(false)
+    expect(component.result()).toBeNull()
+    expect(vi.mocked(window.fetch).mock.calls.some(([url]) => String(url).endsWith('/results/latest-unseen'))).toBe(false)
+  })
+  it('does not advance a fixed simulated date at the countdown boundary', async () => {
+    const component = fixture.componentInstance as any
+    component.testMode.set(true); component.selectedDay.set(1)
+    component.quiz.set({ day: 1, name: 'Lutin', portrait: '/elf', statements: [], genericElf: true })
+    vi.useFakeTimers()
+    vi.mocked(window.fetch).mockImplementation(async () => new Response(JSON.stringify({ date: '2026-12-01', effectiveInstant: '2026-12-01T22:59:58Z', nextMidnight: '2026-12-01T23:00:00Z', simulated: true })))
+    await component.beginWaiting()
+    const calls = vi.mocked(window.fetch).mock.calls.length
+    await vi.advanceTimersByTimeAsync(5000)
+    expect(component.remainingSeconds()).toBe(0)
+    expect(component.waiting()).toBe(true)
+    expect(component.result()).toBeNull()
+    expect(vi.mocked(window.fetch).mock.calls.length).toBe(calls)
+    component.ngOnDestroy()
+  })
+  it('discards a result whose content arrives after leaving the waiting scene', async () => {
+    const component = fixture.componentInstance as any
+    component.testMode.set(false); component.selectedDay.set(1)
+    component.quiz.set({ day: 1, name: 'Lutin', portrait: '/elf', statements: [], genericElf: true })
+    const result = { answerId: 'answer', day: 1, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false }
+    let resolveContent!: (response: Response) => void
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url = String(input)
+      if (url.endsWith('/clock')) return new Response(JSON.stringify({ date: '2026-12-02', effectiveInstant: '2026-12-01T23:00:01Z', nextMidnight: '2026-12-02T23:00:00Z', simulated: false }))
+      if (url.endsWith('/results/latest-unseen')) return new Response(JSON.stringify({ result }))
+      if (url.endsWith('/doors/1')) return new Promise<Response>(resolve => { resolveContent = resolve })
+      throw new Error(url)
+    })
+    const pending = component.beginWaiting()
+    await vi.waitFor(() => expect(resolveContent).toBeDefined())
+    component.stopWaiting()
+    resolveContent(new Response(JSON.stringify({ day: 1, name: 'Lutin', portrait: '/elf', statements: [], genericElf: true })))
+    await pending
+    expect(component.result()).toBeNull()
+    expect(component.waiting()).toBe(false)
+  })
+  it.each(['openCalendar', 'openRanking'] as const)('restores waiting after failed %s navigation', async action => {
+    const component = fixture.componentInstance as any
+    component.testMode.set(false); component.selectedDay.set(1); component.answerState.set('recorded')
+    component.quiz.set({ day: 1, name: 'Lutin', portrait: '/elf', statements: [], genericElf: true })
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      if (String(input).endsWith('/clock')) return new Response(JSON.stringify({ date: '2026-12-01', effectiveInstant: '2026-12-01T21:00:00Z', nextMidnight: '2026-12-01T23:00:00Z', simulated: false }))
+      return new Response('', { status: 503 })
+    })
+    await component.beginWaiting()
+    await component[action]()
+    expect(component.waiting()).toBe(true)
+    expect(component.remainingSeconds()).toBeGreaterThan(0)
+    expect(component.calendarOpen()).toBe(false)
+    expect(component.rankingOpen()).toBe(false)
+    component.ngOnDestroy()
+  })
+  it('reveals only after timer expiry and a server-authorized midnight result', async () => {
+    const component = fixture.componentInstance as any
+    component.testMode.set(false); component.clockDate.set('2026-12-24'); component.selectedDay.set(24); component.answerState.set('recorded')
+    component.quiz.set({ day: 24, name: 'Lutin', portrait: '/elf', statements: [], genericElf: true })
+    const result = { answerId: 'answer', day: 24, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false }
+    let clocks = 0
+    vi.useFakeTimers()
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url = String(input)
+      if (url.endsWith('/clock')) return new Response(JSON.stringify(++clocks === 1
+        ? { date: '2026-12-24', effectiveInstant: '2026-12-24T22:59:59Z', nextMidnight: '2026-12-24T23:00:00Z', simulated: false }
+        : { date: '2026-12-25', effectiveInstant: '2026-12-24T23:00:00Z', nextMidnight: '2026-12-25T23:00:00Z', simulated: false }))
+      if (url.endsWith('/results/latest-unseen')) return new Response(JSON.stringify({ result }))
+      if (url.endsWith('/doors/24')) return new Response(JSON.stringify({ day: 24, name: 'Lutin', portrait: '/elf', statements: ['A', 'B', 'C'], genericElf: true }))
+      if (url.endsWith('/answer')) return new Response(JSON.stringify({ status: 'recorded' }))
+      if (url.endsWith('/result')) return new Response(JSON.stringify(result))
+      throw new Error(url)
+    })
+    await component.beginWaiting()
+    expect(component.result()).toBeNull()
+    expect(component.clockDate()).toBe('2026-12-24')
+    await vi.advanceTimersByTimeAsync(1100)
+    expect(component.result()?.answerId).toBe('answer')
+    expect(component.clockDate()).toBe('2026-12-25')
+    expect(clocks).toBe(2)
+    component.ngOnDestroy()
+  })
+  it('does not consume a slow request duration as elapsed server time', async () => {
+    const component = fixture.componentInstance as any
+    component.testMode.set(false); component.selectedDay.set(1)
+    vi.useFakeTimers()
+    let resolveClock!: (response: Response) => void
+    vi.mocked(window.fetch).mockImplementation(() => new Promise<Response>(resolve => { resolveClock = resolve }))
+    const pending = component.beginWaiting()
+    await vi.advanceTimersByTimeAsync(3000)
+    resolveClock(new Response(JSON.stringify({ date: '2026-12-01', effectiveInstant: '2026-12-01T22:59:59Z', nextMidnight: '2026-12-01T23:00:00Z', simulated: false })))
+    await pending
+    expect(component.remainingSeconds()).toBe(1)
+    expect(component.waitingError()).toBe(false)
+    expect(component.result()).toBeNull()
+    component.ngOnDestroy()
+  })
+  it('refreshes again when the tab resumes during a clock request', async () => {
+    const component = fixture.componentInstance as any
+    component.testMode.set(false); component.selectedDay.set(1)
+    let resolveClock!: (response: Response) => void
+    let calls = 0
+    const projection = { date: '2026-12-01', effectiveInstant: '2026-12-01T21:00:00Z', nextMidnight: '2026-12-01T23:00:00Z', simulated: false }
+    vi.mocked(window.fetch).mockImplementation(() => {
+      calls++
+      return calls === 1 ? new Promise<Response>(resolve => { resolveClock = resolve }) : Promise.resolve(new Response(JSON.stringify(projection)))
+    })
+    const pending = component.beginWaiting()
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible')
+    document.dispatchEvent(new Event('visibilitychange'))
+    resolveClock(new Response(JSON.stringify(projection)))
+    await pending
+    await vi.waitFor(() => expect(calls).toBe(2))
+    component.ngOnDestroy()
+  })
   it('lets any member reopen the welcome without changing discovery', async () => {
     const component = fixture.componentInstance
     component.testControls.set(false); component.testMode.set(false); component.calendarOpen.set(true)
