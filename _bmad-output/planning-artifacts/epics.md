@@ -3685,6 +3685,24 @@ En tant que testeur, je veux une icône dans la barre de l’écran de classemen
 
 **Dépendances :** classement de la story 25.4 et contrôles du mode test existants.
 
+
+### Story 25.12 : Retrouver le lutin endormi après avoir joué
+
+En tant que membre ayant déjà répondu au quiz du jour, je veux retrouver une scène chaleureuse avec un décompte jusqu’à minuit, afin de savoir quand découvrir mon résultat.
+
+**Critères d’acceptation :**
+
+1. Lorsqu’un membre revient consulter, notamment depuis le calendrier, le quiz du jour auquel il a déjà répondu et dont le résultat attend la révélation, afficher la scène du lutin endormi de la vignette 9 de la planche. La confirmation immédiatement après l’enregistrement reste distincte. Les règles d’entrée existantes et la priorité d’une révélation non vue sont conservées.
+2. Reprendre fidèlement l’illustration appréciée : lutin endormi dans la neige, bonnet vert, clochette et décor nocturne enneigé et lumineux. Le texte « Reviens demain ! » et un décompte heures, minutes, secondes sont des éléments réels, lisibles et adaptables. Le message annonce la disponibilité du **résultat**, sans promettre un prochain quiz : le 25 décembre est un bilan sans quiz.
+3. Le décompte vise le prochain minuit du jour civil Europe/Paris associé à la réponse, avec une référence temporelle cohérente avec le serveur. À l’échéance, ne jamais révéler sur la seule horloge du navigateur : actualiser l’état autorisé auprès du serveur et gérer proprement attente, échec, reprise et onglet suspendu. Ne pas afficher de durée négative.
+4. Préserver confidentialité, résultat prioritaire, accès au calendrier et au classement, fermeture et rejeu de test existants. Ne pas appliquer cet état aux quiz passés joués tardivement, aux jours sans contenu, ni aux réponses déjà révélées. En mode test, respecter la date simulée propre à l’onglet et rendre le décompte cohérent sans prétendre qu’une date simulée est une heure réelle ; vérifier séparément les limites réelles.
+5. Appliquer les contrats Advent DESIGN, EXPERIENCE et AD-7, les critères Material 3 et la stratégie de tests visuels : interface accessible, texte et commandes réels, cibles adaptées, clavier, focus, contraste, mouvement réduit, mobile dès 320 px, zoom, tablette et ordinateur ; aucun effet sur HatCast hors Avent.
+6. Vérifier le parcours réel : réponse, confirmation, sortie et retour par le calendrier, décompte, passage de minuit et révélation autorisée ; vérifier le 24 décembre, changement de compte, mode test et reprise après suspension. Fournir une démonstration et comparer visuellement la scène à la référence. Mettre à jour les contrats UX et fonctionnels concernés lors de l’implémentation.
+
+**Dépendances :** stories 25.2, 25.3, 25.5, 25.6 et 25.8 ; respecter le fonctionnement de 25.10.
+
+**Référence :** vignette 9 de `ux-designs/ux-hatcast-avent-2026-10-28/imports/advent-quiz-design-system-reference.png` ; intention précisée par Patrice le 1er novembre 2026.
+
 ## Final validation
 
 - **Coverage:** FR-1–FR-13, AD-1–AD-6 and UX-DR1–UX-DR11 are covered across stories 25.1–25.7, 25.2a and 25.9; companions retain full contractual detail.
