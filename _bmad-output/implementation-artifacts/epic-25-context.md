@@ -21,6 +21,8 @@ Give eligible La Malice members a seasonal way to discover each other through 24
 - Story 25.8: Refine the Advent art direction
 - Story 25.9: Measure actual participation
 - Story 25.10: Discover the Advent calendar
+- Story 25.11: Generate a fictional ranking for tests
+- Story 25.12: Return to the sleeping elf after playing
 
 ## Requirements & Constraints
 
@@ -43,10 +45,11 @@ Give eligible La Malice members a seasonal way to discover each other through 24
 
 ## UX & Interaction Patterns
 
-- The welcome keeps the Advent top bar and evokes the approved illustrated winter reference with real adaptable text and an accessible action; the decorative scene excludes numbered doors. Coordinate shared visual elements with the ongoing art-direction work.
+- The welcome keeps the Advent top bar and evokes the approved illustrated winter reference with real adaptable text and an accessible action; the decorative scene excludes numbered doors. Reuse the established visual direction and preserve the completed art-direction work.
 - Advent has its own approved visual identity, scoped styles, tokens, typography and components; preserve HatCast's appearance. Apply accessible Material behavior and the established discovery, question, neutral confirmation, revelation, calendar and ranking journeys.
 - Make states understandable without color alone. Support keyboard use, visible focus, announcements, meaningful portrait alternatives, single-choice semantics, responsive layout, enlarged text, contrast, touch targets and reduced-motion equivalents. Do not truncate content. Verify visual isolation from HatCast. For the 25.8 visual work, Patrice prioritizes large readable text and generous touch targets; screen-reader testing and a numerical contrast threshold are not mandatory acceptance gates.
 - The priority revelation offers no calendar navigation until displayed. Persist its acknowledgment only after display; simultaneous devices may both show it before acknowledgment. In the calendar, past played cases show revealed results without repeating celebration; past unplayed cases offer a single zero-point answer with immediate feedback. Christmas presents a festive message and personal score with final ranking and calendar.
+- A planned return to a played quiz on its day introduces a sleeping elf scene and a countdown to the next Paris midnight, distinct from immediate acknowledgment; the countdown concerns the result, not a new quiz. Server authorization still gates revelation. This planned change must reconcile existing UX contracts when implemented.
 - The gift entry is available during the production window. Automatic daily opening follows any priority reveal and respects a member's shared daily dismissal or recorded answer; an absence of available content does not itself consume the opening. Test mode is visibly identified and production pending results and scores remain secret.
 
 ## Cross-Story Dependencies

@@ -12,6 +12,8 @@ class StaleRequestError extends Error {}
 
 interface AdventResult { answerId: string; day: number; selectedChoice: number; falseChoice: number; correct: boolean; responsePoints: number; participationPoints: number; bonusPoints: number; totalPoints: number; seen: boolean; explanation?: string | null; late?: boolean }
 
+interface ClockProjection { date: string; effectiveInstant: string; nextMidnight: string; simulated: boolean }
+
 interface AdventRanking { score: number; rank: number | null; entries: { name: string; score: number; rank: number; mine: boolean }[] }
 
 interface CalendarDay { day: number; state: 'locked' | 'played' | 'today' | 'past-unplayed' | 'missing' | 'christmas'; outcome?: 'pending' | 'correct' | 'incorrect' | null }
@@ -65,7 +67,7 @@ export class AdventTest {
       this.calendarDays.set([]); this.calendarOpen.set(false); this.welcome.set(false); this.discoveryError.set(false)
       this.result.set(null); this.resultContent.set(null); this.history.set(null)
       this.ranking.set(null); this.rankingOpen.set(false); this.christmasScore.set(null)
-      this.quiz.set(null); this.preview.set(null); this.clearVisibilityListener()
+      this.quiz.set(null); this.preview.set(null); this.clearVisibilityListener(); this.stopWaiting()
       this.loading.set(false); this.submitting.set(false); this.closingDay.set(null)
       this.error.set(false); this.rankingError.set(false); this.christmasError.set(false); this.calendarActionMessage.set('')
       this.generation = null; this.replayToken = null; this.sessionId = null; this.recordedLate = false
@@ -137,6 +139,109 @@ export class AdventTest {
   readonly transitionRequired = signal(false)
   readonly quiz = signal<FictionalQuiz | null>(null)
   readonly choice = signal<number | null>(null)
+  readonly waiting = signal(false)
+  readonly waitingError = signal(false)
+  readonly remainingSeconds = signal<number | null>(null)
+  private waitingGeneration = 0
+  private waitingTimer: ReturnType<typeof setInterval> | null = null
+  private waitingVisibility: (() => void) | null = null
+  private waitingRefreshInFlight = false
+  private waitingRefreshPending = false
+
+  private stopWaiting(): void {
+    this.waitingGeneration++
+    this.waiting.set(false); this.waitingError.set(false); this.remainingSeconds.set(null)
+    if (this.waitingTimer !== null) clearInterval(this.waitingTimer)
+    this.waitingTimer = null
+    if (this.waitingVisibility) document.removeEventListener('visibilitychange', this.waitingVisibility)
+    this.waitingVisibility = null
+    this.waitingRefreshInFlight = false
+    this.waitingRefreshPending = false
+  }
+
+  private async beginWaiting(): Promise<void> {
+    this.stopWaiting()
+    this.waiting.set(true)
+    const generation = this.waitingGeneration
+    this.waitingVisibility = () => { if (document.visibilityState === 'visible') void this.refreshWaiting(generation) }
+    document.addEventListener('visibilitychange', this.waitingVisibility)
+    await this.refreshWaiting(generation)
+  }
+
+  async retryWaiting(): Promise<void> { await this.refreshWaiting(this.waitingGeneration) }
+
+  private async refreshWaiting(generation: number): Promise<void> {
+    if (!this.waiting() || generation !== this.waitingGeneration) return
+    if (this.waitingRefreshInFlight) { this.waitingRefreshPending = true; return }
+    this.waitingRefreshInFlight = true
+    if (this.waitingTimer !== null) clearInterval(this.waitingTimer)
+    this.waitingTimer = null
+    try {
+      const clock = await this.requestJson<ClockProjection>('/v1/advent-test/clock', { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
+      if (!this.waiting() || generation !== this.waitingGeneration) return
+      const effective = Date.parse(clock.effectiveInstant), midnight = Date.parse(clock.nextMidnight)
+      if (!Number.isFinite(effective) || !Number.isFinite(midnight) || midnight <= effective || clock.simulated !== this.testMode()) throw new Error('Invalid clock projection')
+      this.waitingError.set(false)
+      const expectedDate = `2026-12-${String(this.selectedDay()).padStart(2, '0')}`
+      if (clock.date !== expectedDate) {
+        // The clock is only a hint. Read the server-authorized priority result.
+        const latest = await this.requestJson<{ result: AdventResult | null }>('/v1/advent-test/results/latest-unseen', { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
+        if (!this.waiting() || generation !== this.waitingGeneration) return
+        if (latest.result) {
+          await this.showResult(latest.result, false, generation)
+          if (this.result()?.answerId === latest.result.answerId) this.clockDate.set(clock.date)
+        } else {
+          // Another device may already have acknowledged it; still read the result from the server.
+          const result = await this.requestJson<AdventResult | null>(`/v1/advent-test/doors/${this.selectedDay()}/result`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() }, true)
+          if (!this.waiting() || generation !== this.waitingGeneration) return
+          if (!result) throw new Error('Result requires refresh')
+          await this.showResult(result, true, generation)
+          if (this.result()?.answerId === result.answerId) this.clockDate.set(clock.date)
+        }
+        return
+      }
+      const sample = performance.now()
+      // The server sampled during the request. Starting at receipt can only delay, never anticipate, the boundary.
+      const remainingAtSample = midnight - effective
+      const tick = () => {
+        if (!this.waiting() || generation !== this.waitingGeneration) return
+        const remaining = Math.max(0, remainingAtSample - (performance.now() - sample))
+        this.remainingSeconds.set(Math.ceil(remaining / 1000))
+        if (remaining === 0) {
+          const wasRunning = this.waitingTimer !== null
+          if (this.waitingTimer !== null) clearInterval(this.waitingTimer)
+          this.waitingTimer = null
+          // A simulated date remains fixed at real midnight. Never auto-advance it.
+          if (!clock.simulated && wasRunning) void this.refreshWaiting(generation)
+        }
+      }
+      tick()
+      if (this.remainingSeconds()! > 0) this.waitingTimer = setInterval(tick, 1000)
+    } catch (error) {
+      if (!(error instanceof StaleRequestError) && this.waiting() && generation === this.waitingGeneration) {
+        this.remainingSeconds.set(null); this.waitingError.set(true)
+      }
+    } finally {
+      if (generation === this.waitingGeneration) {
+        this.waitingRefreshInFlight = false
+        if (this.waitingRefreshPending && this.waiting()) {
+          this.waitingRefreshPending = false
+          void this.refreshWaiting(generation)
+        }
+      }
+    }
+  }
+
+  waitingPart(part: 'hours' | 'minutes' | 'seconds'): string {
+    const seconds = this.remainingSeconds() ?? 0
+    const value = part === 'hours' ? Math.floor(seconds / 3600) : part === 'minutes' ? Math.floor(seconds / 60) % 60 : seconds % 60
+    return String(value).padStart(2, '0')
+  }
+
+  waitingTime(): string {
+    return `${this.waitingPart('hours')} heures ${this.waitingPart('minutes')} minutes ${this.waitingPart('seconds')} secondes`
+  }
+
   readonly answerState = signal<'checking' | 'available' | 'recorded' | 'closed' | 'uncertain'>('checking')
   readonly submitting = signal(false)
   readonly sessionChanged = signal(false)
@@ -157,13 +262,14 @@ export class AdventTest {
   }
 
   ngOnInit(): void { void this.start(); setTimeout(() => this.entryHeading?.nativeElement.focus()) }
-  ngOnDestroy(): void { this.projectionEpoch++; this.clearVisibilityListener() }
+  ngOnDestroy(): void { this.projectionEpoch++; this.clearVisibilityListener(); this.stopWaiting() }
   private clearVisibilityListener(): void {
     if (this.visibilityListener) document.removeEventListener('visibilitychange', this.visibilityListener)
     this.visibilityListener = null
   }
 
   async start(openTestDay = false): Promise<void> {
+    this.stopWaiting()
     this.projectionEpoch++
     this.welcome.set(false); this.welcomePreview.set(false); this.confirmationPreview.set(false); this.discoveryError.set(false)
     this.calendarOpen.set(false); this.calendarDays.set([]); this.history.set(null); this.christmasScore.set(null); this.lateDiscovery.set(false)
@@ -239,16 +345,23 @@ export class AdventTest {
     } finally { if (this.contextCurrent(epoch, identity)) this.loading.set(false) }
   }
 
-  private async showResult(result: AdventResult, historical = false): Promise<void> {
-    this.historicalResult.set(historical)
-    this.selectedDay.set(result.day)
+  private async showResult(result: AdventResult, historical = false, waitingGeneration?: number): Promise<void> {
+    const waitingCurrent = () => waitingGeneration === undefined || (this.waiting() && this.waitingGeneration === waitingGeneration)
+    if (!waitingCurrent()) return
+    // Existing entry and history paths need the target day even when its content is missing.
+    // Waiting transitions defer this mutation until their generation has been validated.
+    if (waitingGeneration === undefined) { this.historicalResult.set(historical); this.selectedDay.set(result.day) }
     const content = await this.requestJson<FictionalQuiz | null>(`/v1/advent-test/doors/${result.day}`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() }, true)
-    if (!content) { this.showUnavailable(); return }
+    if (!waitingCurrent()) return
+    if (!content) { if (waitingGeneration !== undefined) throw new Error('Result content unavailable'); this.showUnavailable(); return }
     // Fence the content fetch and bind the replay token to the same answer.
     const state = await this.requestJson<{ status: string; replayToken?: string }>(`/v1/advent-test/doors/${result.day}/answer`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
     const current = await this.requestJson<AdventResult | null>(`/v1/advent-test/doors/${result.day}/result`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() }, true)
-    if (state.status === 'unavailable' || !current) { this.showUnavailable(); return }
+    if (!waitingCurrent()) return
+    if (state.status === 'unavailable' || !current) { if (waitingGeneration !== undefined) throw new Error('Result unavailable'); this.showUnavailable(); return }
     if (state.status !== 'recorded' || (!this.memberMode && !state.replayToken) || current.answerId !== result.answerId) throw new Error('Result changed')
+    this.stopWaiting()
+    this.historicalResult.set(historical)
     this.clearVisibilityListener()
     this.calendarOpen.set(false); this.history.set(null); this.closeRanking(); this.christmasError.set(false)
     this.selectedDay.set(result.day)
@@ -285,6 +398,7 @@ export class AdventTest {
 
   /** Re-enter at a simulated date, giving any eligible unseen reveal priority. */
   private async enterAt(date: string, openTestDay = false): Promise<void> {
+    this.stopWaiting()
     this.projectionEpoch++
     const returnToCalendar = this.calendarOpen()
     this.closeRanking()
@@ -341,17 +455,21 @@ export class AdventTest {
     const epoch = this.projectionEpoch
     const identity = this.auth.sessionUser()?.id ?? null
     if (this.loading() || this.submitting() || this.result() || this.sessionChanged()) return
+    const restoreWaiting = this.waiting()
+    const previousWaiting = restoreWaiting ? { day: this.selectedDay(), quiz: this.quiz(), preview: this.preview(), replay: this.replayToken, historical: this.historicalResult() } : null
+    if (restoreWaiting) this.stopWaiting()
     this.loading.set(true); this.error.set(false)
     try {
       const response = await this.requestJson<{ days: CalendarDay[] | null; priorityResult: AdventResult | null }>('/v1/advent-test/calendar', { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
-      if (response.priorityResult) { this.calendarOpen.set(false); this.history.set(null); await this.showResult(response.priorityResult); return }
+      if (response.priorityResult) { this.calendarOpen.set(false); this.history.set(null); await this.showResult(response.priorityResult); if (previousWaiting && !this.result()) throw new Error('Priority result unavailable'); return }
       if (!response.days) throw new Error('Calendar unavailable')
       this.calendarDays.set(response.days); this.history.set(null); this.rankingOpen.set(false); this.calendarOpen.set(true)
       if (this.confirmationPreview()) { this.confirmationPreview.set(false); this.quiz.set(null) }
       setTimeout(() => this.calendarHeading?.nativeElement.focus())
     } catch (error) {
       if (error instanceof StaleRequestError || !this.contextCurrent(epoch, identity)) return
-      this.error.set(true) }
+      this.error.set(true)
+      if (previousWaiting) { this.selectedDay.set(previousWaiting.day); this.quiz.set(previousWaiting.quiz); this.preview.set(previousWaiting.preview); this.replayToken = previousWaiting.replay; this.historicalResult.set(previousWaiting.historical); this.unavailable.set(false); await this.beginWaiting() } }
     finally { if (this.contextCurrent(epoch, identity)) this.loading.set(false) }
   }
 
@@ -410,7 +528,7 @@ export class AdventTest {
     }
     if (day.state === 'today' || (day.state === 'played' && this.clockDate() === `2026-12-${String(day.day).padStart(2, '0')}`)) {
       this.lateDiscovery.set(false)
-      this.calendarOpen.set(false); this.history.set(null); this.unavailable.set(false); await this.selectDay(day.day); return
+      this.calendarOpen.set(false); this.history.set(null); this.unavailable.set(false); await this.selectDay(day.day, day.state === 'played' && day.outcome === 'pending'); return
     }
     if (day.state === 'missing') { this.history.set(null); this.calendarOpen.set(false); this.unavailable.set(true); this.selectedDay.set(day.day); return }
     this.loading.set(true); this.error.set(false)
@@ -456,12 +574,15 @@ export class AdventTest {
     const epoch = this.projectionEpoch
     const identity = this.auth.sessionUser()?.id ?? null
     if (this.loading() || this.submitting() || this.result() || this.sessionChanged() || this.rankingOpen()) return
+    const restoreWaiting = this.waiting()
+    const previousWaiting = restoreWaiting ? { day: this.selectedDay(), quiz: this.quiz(), preview: this.preview(), replay: this.replayToken, historical: this.historicalResult() } : null
+    if (restoreWaiting) this.stopWaiting()
     this.loading.set(true)
     this.error.set(false)
     this.rankingError.set(false)
     try {
       const response = await this.requestJson<{ ranking: AdventRanking | null; priorityResult: AdventResult | null }>('/v1/advent-test/ranking', { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
-      if (response.priorityResult) { await this.showResult(response.priorityResult); return }
+      if (response.priorityResult) { await this.showResult(response.priorityResult); if (previousWaiting && !this.result()) throw new Error('Priority result unavailable'); return }
       if (!response.ranking) throw new Error('Ranking unavailable')
       this.ranking.set(response.ranking)
       if (this.confirmationPreview()) { this.confirmationPreview.set(false); this.quiz.set(null) }
@@ -470,7 +591,8 @@ export class AdventTest {
       setTimeout(() => this.rankingHeading?.nativeElement.focus())
     } catch (error) {
       if (error instanceof StaleRequestError || !this.contextCurrent(epoch, identity)) return
-      this.rankingError.set(true) }
+      this.rankingError.set(true)
+      if (previousWaiting) { this.selectedDay.set(previousWaiting.day); this.quiz.set(previousWaiting.quiz); this.preview.set(previousWaiting.preview); this.replayToken = previousWaiting.replay; this.historicalResult.set(previousWaiting.historical); this.unavailable.set(false); await this.beginWaiting() } }
     finally { if (this.contextCurrent(epoch, identity)) this.loading.set(false) }
   }
 
@@ -549,7 +671,8 @@ export class AdventTest {
     this.unavailable.set(true); this.error.set(false); this.loading.set(false)
   }
 
-  async selectDay(day: number): Promise<void> {
+  async selectDay(day: number, calendarRevisit = false): Promise<void> {
+    this.stopWaiting()
     const epoch = this.projectionEpoch
     const identity = this.auth.sessionUser()?.id ?? null
     if (this.loading() || this.submitting() || (this.quiz() && this.answerState() === 'checking')) return
@@ -565,7 +688,7 @@ export class AdventTest {
     try {
       const [content, state] = await Promise.all([
         this.requestJson<FictionalQuiz | null>(`/v1/advent-test/doors/${day}`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() }, true),
-        this.requestJson<{ status: 'available' | 'recorded' | 'closed' | 'unavailable'; replayToken?: string }>(`/v1/advent-test/doors/${day}/answer`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() }),
+        this.requestJson<{ status: 'available' | 'recorded' | 'closed' | 'unavailable'; replayToken?: string; late?: boolean }>(`/v1/advent-test/doors/${day}/answer`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() }),
       ])
       if (!content) { this.showUnavailable(); return }
       if (state.status === 'unavailable') { this.showUnavailable(); return }
@@ -581,6 +704,7 @@ export class AdventTest {
         this.replayToken = state.replayToken ?? null
         this.answerState.set('recorded')
         this.quiz.set(content)
+        if (calendarRevisit && !state.late) await this.beginWaiting()
       }
     } catch (error) {
       if (error instanceof StaleRequestError || !this.contextCurrent(epoch, identity)) return
@@ -647,6 +771,7 @@ export class AdventTest {
   }
 
   async replay(): Promise<void> {
+    this.stopWaiting()
     const epoch = this.projectionEpoch
     const identity = this.auth.sessionUser()?.id ?? null
     if (this.submitting() || this.answerState() !== 'recorded' || !this.replayToken) return

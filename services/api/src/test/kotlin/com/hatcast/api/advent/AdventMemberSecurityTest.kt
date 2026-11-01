@@ -43,6 +43,21 @@ class AdventMemberSecurityTest {
         mvc.perform(post("/v1/advent/discovery").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("""{"attemptId":"${UUID.randomUUID()}"}""")).andExpect(status().isUnauthorized).andExpect(header().string("Cache-Control", "private, no-store"))
         mvc.perform(post("/v1/advent/discovery").cookie(cookie).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("""{"attemptId":"${UUID.randomUUID()}"}""")).andExpect(status().isForbidden).andExpect(header().string("Cache-Control", "private, no-store"))
     }
+    @Test fun `authorized clock serializes coherent projection without caching`() {
+        val troupe = UUID.fromString("a0000001-0000-4000-8000-000000000001")
+        jdbc.update("INSERT INTO troupes (id, name, slug, created_at) SELECT ?, 'Fictif', 'advent-security', CURRENT_TIMESTAMP WHERE NOT EXISTS (SELECT 1 FROM troupes WHERE id = ?)", troupe, troupe)
+        val cookie = TestAuthSupport.sessionCookieFromGoogleSignIn(mvc, google, "clock-projection-http-member")
+        val user = jdbc.queryForObject("SELECT id FROM users WHERE google_sub = ?", UUID::class.java, "clock-projection-http-member")!!
+        jdbc.update("INSERT INTO troupe_memberships (id, troupe_id, user_id, status, baseline_role, display_name, created_at, updated_at) VALUES (?, ?, ?, 'ACTIVE', 'MEMBER', 'Fictif', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", UUID.randomUUID(), troupe, user)
+        `when`(clock.instant()).thenReturn(Instant.parse("2026-12-24T22:59:59Z"))
+        val session = json.readTree(mvc.perform(get("/v1/advent/session").cookie(cookie)).andExpect(status().isOk).andReturn().response.contentAsString)["sessionId"].asText()
+        mvc.perform(get("/v1/advent/clock").cookie(cookie).header("X-Advent-Test-Session", session))
+            .andExpect(status().isOk).andExpect(header().string("Cache-Control", "private, no-store"))
+            .andExpect(jsonPath("$.date").value("2026-12-24"))
+            .andExpect(jsonPath("$.effectiveInstant").value("2026-12-24T22:59:59Z"))
+            .andExpect(jsonPath("$.nextMidnight").value("2026-12-24T23:00:00Z"))
+            .andExpect(jsonPath("$.simulated").value(false))
+    }
     @Test fun `discovery requires current authorized session and enforces mode`() {
         val troupe = UUID.fromString("a0000001-0000-4000-8000-000000000001")
         jdbc.update("INSERT INTO troupes (id, name, slug, created_at) SELECT ?, 'Fictif', 'advent-security', CURRENT_TIMESTAMP WHERE NOT EXISTS (SELECT 1 FROM troupes WHERE id = ?)", troupe, troupe)

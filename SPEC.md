@@ -496,3 +496,7 @@ Pendant la période autorisée, un cadeau près du compte permet aux membres él
 À la première visite, une invitation précède le parcours. Son action explicite ouvre le calendrier personnel et enregistre durablement la découverte ; fermer avant cette action ne l’enregistre pas. Une révélation existante reste non vue et reprend sa priorité aux visites suivantes.
 
 The shared private Advent bucket stores the canonical catalogue under `catalogue/` and elf images under `portraits/`. Cloud runtime resolves simple database portrait references under `portraits/`; offline uses the local private directory. Environments retain distinct databases. Migration and deployment require separate authorization; existing objects and game state are preserved.
+
+### Retour sur une réponse Avent en attente
+
+Le membre qui rouvre depuis le calendrier une réponse normale du jour encore en attente retrouve une scène d’attente et le temps restant jusqu’à la disponibilité de son résultat à minuit, heure de Paris. La confirmation immédiatement après la réponse reste distincte. La révélation dépend de l’état autorisé par le serveur ; en cas d’erreur, le membre peut réessayer. Le 25 décembre ne comporte pas de quiz.

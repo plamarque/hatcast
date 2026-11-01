@@ -87,6 +87,15 @@ class AdventMemberGame(private val jdbc: JdbcTemplate, private val clock: Advent
             jdbc.update("INSERT INTO advent_member_dismissals (user_id, dismissed_on) VALUES (?, ?)", user, today)
     }
 
+    data class ClockProjection(val date: LocalDate, val effectiveInstant: Instant, val nextMidnight: Instant, val simulated: Boolean)
+
+    @Transactional
+    fun clockProjection(expected: UUID? = null, simulated: LocalDate? = null): ClockProjection {
+        val effective = now(expected, simulated)
+        val today = date(effective)
+        return ClockProjection(today, effective, today.plusDays(1).atStartOfDay(paris).toInstant(), simulated != null)
+    }
+
     @Transactional
     fun today(expected: UUID? = null, simulated: LocalDate? = null): LocalDate = date(now(expected, simulated))
 

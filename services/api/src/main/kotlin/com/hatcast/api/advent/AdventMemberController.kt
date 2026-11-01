@@ -117,9 +117,9 @@ class AdventMemberController(
     }
 
     @GetMapping("/clock")
-    fun date(@AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): Map<String, String> {
+    fun date(@AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AdventMemberGame.ClockProjection {
         authorize(principal)
-        return mapOf("date" to game.today(sessionFor(principal, request), simulated(principal, request)).toString())
+        return game.clockProjection(sessionFor(principal, request), simulated(principal, request))
     }
 
     @GetMapping("/doors/{day}")

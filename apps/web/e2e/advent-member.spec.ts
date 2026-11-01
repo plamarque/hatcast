@@ -49,6 +49,69 @@ test('member confirmation and ranking remain neutral and accessible', async ({ p
   expect(requests.every(path => !path.startsWith('/v1/advent-test/'))).toBe(true)
 })
 
+test('pending calendar revisit has its own sleeping elf and server countdown', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 320, height: 800 })
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  let recorded = false
+  await page.route('**/v1/**', async route => {
+    const request = route.request(), path = new URL(request.url()).pathname
+    if (path === '/v1/auth/me') return route.fulfill({ json: { user: { id: 'fiction', slug: 'fiction', displayName: 'Fiction', email: 'fiction@example.test', avatarUrl: null }, platformAdmin: false } })
+    if (path === '/v1/troupes') return route.fulfill({ json: [] })
+    if (path === '/v1/me/preferences') return route.fulfill({ json: { memberDisplayName: 'Fiction', preferredRoleKeys: [] } })
+    if (path === '/v1/advent/session') return route.fulfill({ json: { testControls: false, sessionId: 'fixture-session' } })
+    if (path === '/v1/advent/clock') return route.fulfill({ json: { date: '2026-12-01', effectiveInstant: '2026-12-01T12:00:00Z', nextMidnight: '2026-12-01T23:00:00Z', simulated: false } })
+    if (path === '/v1/advent/discovery') return route.fulfill({ json: { discovered: true } })
+    if (path === '/v1/advent/results/latest-unseen') return route.fulfill({ json: { result: null } })
+    if (path === '/v1/advent/calendar') return route.fulfill({ json: { priorityResult: null, days: [{ day: 1, state: recorded ? 'played' : 'today', outcome: recorded ? 'pending' : null }] } })
+    if (path === '/v1/advent/doors/1') return route.fulfill({ json: { day: 1, name: 'Lutin fictif', portrait: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a2ioAAAAASUVORK5CYII=', genericElf: true, statements: ['Première affirmation fictive.', 'Deuxième affirmation fictive.', 'Troisième affirmation fictive.'] } })
+    if (path.endsWith('/answer/reconcile')) return route.fulfill({ json: { status: 'available', generation: 'generation' } })
+    if (path.endsWith('/answer/reserve')) return route.fulfill({ json: { status: 'available' } })
+    if (path.endsWith('/answer') && request.method() === 'POST') { recorded = true; return route.fulfill({ json: { status: 'recorded', late: false } }) }
+    if (path.endsWith('/answer')) return route.fulfill({ json: { status: recorded ? 'recorded' : 'available', late: false } })
+    if (path.endsWith('/result')) return route.fulfill({ status: 404 })
+    return route.fulfill({ json: {} })
+  })
+  await page.goto('/avent')
+  await page.getByRole('button', { name: 'Ouvrir le cadeau du jour 1' }).click()
+  await page.getByRole('radio').first().click()
+  await page.getByRole('button', { name: 'Confirmer ma réponse' }).click()
+  await expect(page.locator('.advent__recorded')).toContainText('est enregistrée')
+  await expect(page.locator('.advent__waiting')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Voir le calendrier' }).click()
+  await page.locator('.advent__calendar-door[data-day="1"]').click()
+  const waiting = page.locator('.advent__waiting')
+  await expect(waiting).toBeVisible()
+  await expect(waiting.getByRole('heading', { name: 'Reviens demain !' })).toBeVisible()
+  await expect(waiting).toContainText('Ton résultat sera disponible à minuit, heure de Paris.')
+  await expect(page.locator('.advent__recorded')).toHaveCount(0)
+  await expect(waiting).not.toContainText(/anecdote fausse|bonne réponse|points/i)
+  await expect(waiting.locator('img')).toHaveAttribute('src', '/advent/elf-sleeping-v1.webp')
+  await expect.poll(() => waiting.locator('img').evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0)
+  const timer = waiting.locator('.advent__waiting-clock')
+  await expect(timer.locator('.advent__waiting-unit')).toHaveCount(3)
+  await expect(timer.locator('.advent__waiting-number')).toHaveCount(3)
+  await expect(timer).toHaveAttribute('aria-live', 'off')
+  await expect(timer).toContainText(/heures.*minutes.*secondes/)
+  const initial = await timer.textContent()
+  await expect.poll(() => timer.textContent(), { timeout: 4000 }).not.toBe(initial)
+  await expect(page.getByRole('button', { name: 'Voir le calendrier' })).toBeEnabled()
+  await expect(page.getByRole('button', { name: 'Classement', exact: true })).toBeEnabled()
+  await expect(page.getByRole('button', { name: 'Fermer le quiz' })).toBeEnabled()
+  const assertNoHorizontalOverflow = async () => {
+    const sizes = await page.locator('main.advent').evaluate(el => ({ client: el.clientWidth, scroll: el.scrollWidth }))
+    expect(sizes.scroll).toBeLessThanOrEqual(sizes.client)
+  }
+  await assertNoHorizontalOverflow()
+  await page.screenshot({ path: testInfo.outputPath('waiting-320.png'), fullPage: true })
+  // Simulate 200% page zoom with a 640px physical viewport, leaving 320 CSS pixels.
+  await page.setViewportSize({ width: 640, height: 1200 })
+  await page.evaluate(() => { document.documentElement.style.zoom = '2' })
+  await expect(waiting).toBeVisible()
+  await expect(timer).toBeVisible()
+  await assertNoHorizontalOverflow()
+  await page.screenshot({ path: testInfo.outputPath('waiting-zoom-200.png'), fullPage: true })
+})
+
 test('verified operator controls use the same Advent URL and member API', async ({ page }, testInfo) => {
   const date = '2026-12-01'
   const paths: string[] = []
