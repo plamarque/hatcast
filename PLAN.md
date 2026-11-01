@@ -1045,6 +1045,15 @@ Détail tags/branches : [DEPLOYMENT_WORKFLOW.md](docs/v2/technical/DEPLOYMENT_WO
 
 Les contenus privés restent hors dépôt ; seules des données fictives servent aux tests automatisés. La promotion des quiz validés reste distincte des réponses et de l'état de jeu. Ce plan ne lance ni synchronisation de données, ni déploiement.
 
+### Organisation des tests et retrait éventuel de l'Avent
+
+L'Avent est une animation temporaire. Concevoir les ajouts de A à C pour qu'ils puissent être identifiés, exécutés et retirés avec la fonctionnalité, sans prévoir sa suppression automatique ni en fixer la date. Maintenir les protections complètes tant que l'Avent est présent et accessible.
+
+- **Périmètre identifiable** : regrouper les scénarios, jeux de données fictifs, préparations d'horloge et utilitaires propres à l'Avent sous des chemins ou projets clairement nommés ; réutiliser les conventions déjà présentes plutôt que disperser des conditions Avent dans les suites générales. Documenter une commande et une sélection CI explicites par niveau, ainsi que les dépendances et les fichiers concernés.
+- **Frontières partagées** : laisser dans les suites HatCast les tests des capacités générales (authentification, navigation, stockage, PWA) ; isoler les assertions et scénarios propres à l'Avent. Tester l'interaction entre l'entrée membre et l'Avent sans rendre les tests généraux tributaires des données ou de l'horloge Avent.
+- **Exécution et coût** : mesurer durée et sélection réelle par suite et par CI. Une sélection ciblée doit rester non vide et justifiée ; le regroupement ne réduit pas les contrôles requis sur les changements qui peuvent affecter l'Avent. Garder les tests rapides distincts des parcours intégrés plus coûteux et conserver les gates de release applicables.
+- **Retrait futur explicite** : conserver un inventaire des suites, fixtures, commandes, jobs, protections et dépendances Avent pour faciliter une suppression cohérente lorsque celle-ci sera demandée. À ce moment-là, décider séparément du traitement et de la conservation des données, migrations et contenus privés ; ne pas déduire une autorisation de suppression de ce plan. Vérifier que les tests généraux nécessaires restent actifs et que la CI ne signale pas un succès sur une suite vide.
+
 ## Refonte de la direction artistique Advent Quiz
 
 La DA du kit du 30 octobre est approuvée. Les [contrats UX](./_bmad-output/planning-artifacts/ux-designs/ux-hatcast-avent-2026-10-28/DESIGN.md), l'[architecture Avent](./_bmad-output/planning-artifacts/architecture/architecture-hatcast-avent-2026-10-29/ARCHITECTURE-SPINE.md), l'[Epic 25](./_bmad-output/planning-artifacts/hatcast-avent/epics.md) et le [plan de tests](./_bmad-output/test-artifacts/test-design-advent-visual-isolation.md) portent les décisions et vérifications. La 25.1 et la 25.2 sont terminées ; leur reprise visuelle ne réécrit pas leur historique ni leurs comportements.
