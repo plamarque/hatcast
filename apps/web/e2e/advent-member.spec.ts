@@ -33,6 +33,9 @@ test('member confirmation and ranking remain neutral and accessible', async ({ p
   await page.keyboard.press('Space')
   await page.getByRole('button', { name: 'Confirmer ma réponse' }).click()
   await expect(page.locator('.advent__recorded')).not.toContainText(/bonne réponse|mauvaise réponse|points/i)
+  await expect(page.locator('.advent__recorded-art img')).toHaveAttribute('src', '/advent/elf-confirmation-v1.webp')
+  await expect.poll(() => page.locator('.advent__recorded-art img').evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0)
+  await expect(page.locator('.advent__portrait-scene--recorded img')).toBeVisible()
   await page.getByRole('button', { name: 'Voir le classement' }).click()
   await expect(page.getByRole('heading', { name: 'Classement', exact: true })).toBeFocused()
   await expect(page.locator('.advent__ranking')).toContainText('Ton score actuel : 0 points')
@@ -71,6 +74,7 @@ test('verified operator controls use the same Advent URL and member API', async 
   await expect(page.getByText('Mode test')).toHaveCount(0)
   const toggle = page.getByRole('button', { name: 'Activer le mode test' })
   await expect(toggle).toHaveAttribute('aria-pressed', 'false')
+  await expect(toggle).toBeEnabled()
   await toggle.focus()
   await page.keyboard.press('Enter')
   await expect(page.getByRole('button', { name: 'Désactiver le mode test' })).toHaveAttribute('aria-pressed', 'true')
@@ -176,7 +180,7 @@ test('calendar remains legible at 320px and past unplayed content can be answere
   await page.getByRole('button', { name: 'Confirmer ma réponse' }).click()
   await expect(page.getByRole('button', { name: 'Voir le calendrier' })).toBeVisible()
   await page.getByRole('button', { name: /Voir le classement/ }).click()
-  await page.getByRole('button', { name: 'Voir le calendrier' }).click()
+  await page.locator('.advent__ranking-action').getByRole('button', { name: 'Voir le calendrier' }).click()
   await expect(page.getByRole('heading', { name: 'Calendrier de l’Avent' })).toBeFocused()
   await expect(page.getByRole('button', { name: 'Classement', exact: true })).toBeVisible()
   const cells = page.locator('.advent__calendar button')
@@ -228,6 +232,9 @@ test('calendar remains legible at 320px and past unplayed content can be answere
   await page.getByRole('radio').first().click()
   await page.getByRole('button', { name: 'Confirmer ma réponse' }).click()
   await expect(page.getByText(/réponse après le jour du quiz/)).toBeVisible()
+  await expect(page.locator('.advent__reveal-mood img')).toHaveAttribute('src', '/advent/elf-encouragement-v1.webp')
+  await expect.poll(() => page.locator('.advent__reveal-mood img').evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0)
+  await page.screenshot({ path: testInfo.outputPath('result-incorrect.png'), fullPage: true })
   await expect(page.locator('.advent__confetti')).toHaveCount(0)
 })
 
@@ -265,4 +272,31 @@ test('operator can opt in from outside the member window and return without rese
   await expect(page.getByText('Il n’y a rien ici. Reviens plus tard !')).toBeVisible()
   expect(seen.filter(x => x.path.endsWith('/clock')).at(-1)?.mode).toBeUndefined()
   expect(seen.some(x => x.path.endsWith('/session/reset'))).toBe(false)
+})
+
+
+test('missing and error states show the illustrated recovery', async ({ page }, testInfo) => {
+  let doorStatus = 404
+  await page.route('**/v1/**', async route => {
+    const path = new URL(route.request().url()).pathname
+    if (path === '/v1/auth/me') return route.fulfill({ json: { user: { id: 'fiction', slug: 'fiction', displayName: 'Fiction', email: 'fiction@example.test' }, platformAdmin: false } })
+    if (path === '/v1/troupes') return route.fulfill({ json: [] })
+    if (path === '/v1/me/preferences') return route.fulfill({ json: {} })
+    if (path === '/v1/advent/session') return route.fulfill({ json: { testControls: false, sessionId: 'fiction' } })
+    if (path === '/v1/advent/clock') return route.fulfill({ json: { date: '2026-12-01' } })
+    if (path === '/v1/advent/results/latest-unseen') return route.fulfill({ json: { result: null } })
+    if (path === '/v1/advent/doors/1') return route.fulfill({ status: doorStatus, body: '' })
+    if (path.endsWith('/answer')) return route.fulfill({ json: { status: 'available' } })
+    return route.fulfill({ json: {} })
+  })
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/avent')
+  await expect(page.getByText('Il n’y a rien ici. Reviens plus tard !')).toBeVisible()
+  await expect(page.locator('.advent__state-art img')).toHaveAttribute('src', '/advent/elf-encouragement-v1.webp')
+  await page.screenshot({ path: testInfo.outputPath('missing.png'), fullPage: true })
+  doorStatus = 500
+  await page.getByRole('button', { name: 'Réessayer' }).click()
+  await expect(page.getByText('Le lutin est indisponible. Réessaie.')).toBeVisible()
+  await expect(page.locator('.advent__state-art img')).toBeVisible()
+  await page.screenshot({ path: testInfo.outputPath('error.png'), fullPage: true })
 })

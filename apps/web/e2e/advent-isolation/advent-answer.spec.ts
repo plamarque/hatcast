@@ -70,6 +70,7 @@ test(`Advent preserves the HatCast home at ${width}px`, async ({ page }, testInf
   const homeImage = await page.screenshot({ path: testInfo.outputPath('hatcast-before-advent.png'), animations: 'disabled', fullPage: true })
 
   await page.goto('/avent')
+  await page.getByRole('button', { name: 'Activer le mode test' }).click()
   await expect(page.locator('.advent__scene')).toBeVisible()
   expect(await page.locator('.advent').evaluate(element => getComputedStyle(element).getPropertyValue('--hatcast-avent-red').trim())).not.toBe('')
   await page.getByRole('button', { name: 'Ouvrir le cadeau du jour 1' }).click({ position: { x: 8, y: 8 } })
@@ -78,7 +79,7 @@ test(`Advent preserves the HatCast home at ${width}px`, async ({ page }, testInf
   await expect(page.locator('.advent__recorded')).toBeVisible()
   await page.getByRole('button', { name: 'Avancer au jour suivant' }).click()
   await expect(page.getByRole('heading', { name: 'Bravo, tu as trouvé !' })).toBeVisible()
-  await page.getByRole('link', { name: 'Fermer le quiz' }).click()
+  await page.getByRole('button', { name: 'Fermer le quiz' }).click()
   await expect(page).toHaveURL(/\/accueil$/)
   const after = await settleHome(page)
   expect(await styles(after.heading)).toEqual(headingStyles)

@@ -24,7 +24,7 @@ interface FictionalQuiz { day: number; name: string; portrait: string; statement
   standalone: true,
   imports: [MatButtonModule, MatIconModule, MatRadioModule],
   templateUrl: './advent-test.html',
-  styleUrls: ['./advent-test.scss', './advent-result.scss', './advent-ranking.scss', './advent-calendar.scss'],
+  styleUrls: ['./advent-test.scss', './advent-result.scss', './advent-ranking.scss', './advent-calendar.scss', './advent-illustrated.scss'],
 })
 export class AdventTest {
   private readonly auth = inject(AuthApiService)
