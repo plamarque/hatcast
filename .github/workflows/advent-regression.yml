@@ -77,12 +77,12 @@ jobs:
         working-directory: apps/web
         env:
           CI: 'true'
-        run: npx playwright test e2e/advent-member.spec.ts --project=chromium-advent-answer
+        run: npx playwright test e2e/advent-member.spec.ts e2e/advent-isolation/advent-answer.spec.ts --project=chromium-advent-answer
       - name: Real PostHog payload privacy
         run: node apps/web/e2e/advent-isolation/posthog-privacy.smoke.cjs
-      - name: Build production-local PWA
+      - name: Build production PWA
         working-directory: apps/web
-        run: npm run build -- --configuration production-local
+        run: npm run build -- --configuration production
       - name: Active service-worker preview privacy
         working-directory: apps/web
         run: node e2e/advent-isolation/preview-service-worker.smoke.cjs

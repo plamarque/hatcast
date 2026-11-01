@@ -49,6 +49,7 @@ test(`Advent preserves the HatCast home at ${width}px`, async ({ page }, testInf
     else if (path === '/v1/advent/clock') body = { date: revealed ? '2026-12-02' : '2026-12-01' }
     else if (path === '/v1/advent/results/latest-unseen') body = { result: revealed ? result : null }
     else if (path === '/v1/advent/session') body = { sessionId: 'isolation-session', testControls: true }
+    else if (path === '/v1/advent/discovery') body = { discovered: true }
     else if (path.endsWith('/answer/reconcile')) body = { status: 'available', generation: 'isolation-generation' }
     else if (path.endsWith('/answer/reserve')) body = { status: 'available' }
     else if (path === '/v1/advent/doors/1/answer') body = route.request().method() === 'POST' || revealed ? { status: 'recorded', replayToken: 'isolation-token' } : { status: 'available' }

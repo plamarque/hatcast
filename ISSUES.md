@@ -63,6 +63,13 @@ human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
 
+### BUG-078 — Advent release checks fail in local and CI environments
+- **Status**: Corrected locally; full delivery verification pending.
+- **Severity**: High (staging release blocked).
+- **Affected area**: Advent visual-isolation fixture and privacy regression workflow.
+- **Observed behavior**: Six visual-isolation tests receive an incomplete discovery response; the CI PWA build requires an ignored local environment file unavailable on clean runners.
+- **Expected behavior**: The fixture reflects the discovery contract and the CI build uses tracked, non-secret configuration with the production service worker.
+
 ### BUG-077 — Advent content is not marked private for analytics capture
 - **Status**: Corrected locally; remote replay configuration and integration remain to verify.
 - **Severity**: High (potential disclosure of private quiz content).

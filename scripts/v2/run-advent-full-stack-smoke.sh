@@ -25,7 +25,7 @@ cleanup() {
   rm -rf "${logdir}"
 }
 trap cleanup EXIT
-[[ -f "${web_root}/ngsw.json" ]] || { echo 'Production-local PWA build missing' >&2; exit 1; }
+[[ -f "${web_root}/ngsw.json" ]] || { echo 'Production PWA build missing' >&2; exit 1; }
 node -e "const n=require('node:net'); Promise.all([18080,14331].map(p=>new Promise((ok,no)=>{const s=n.createServer();s.once('error',no);s.listen(p,'127.0.0.1',()=>s.close(ok))}))).catch(e=>{console.error('Test port unavailable:',e.message);process.exitCode=1})"
 (
   cd "${root}/services/api"
