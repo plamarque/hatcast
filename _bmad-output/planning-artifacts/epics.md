@@ -3703,6 +3703,24 @@ En tant que membre ayant déjà répondu au quiz du jour, je veux retrouver une 
 
 **Référence :** vignette 9 de `ux-designs/ux-hatcast-avent-2026-10-28/imports/advent-quiz-design-system-reference.png` ; intention précisée par Patrice le 1er novembre 2026.
 
+### Story 25.13: Run Advent regression tests in CI
+
+As the HatCast maintainer, I want the existing Advent regression tests to run with visible results in CI, so that failures cannot silently escape detection before delivery.
+
+**Acceptance Criteria:**
+
+1. Given a relevant change, when CI runs, then the existing Angular Advent tests and the Advent PostgreSQL integration tests run on the candidate revision, unless an existing equivalent job is demonstrated. PostgreSQL uses a disposable local service and fictional data; no production or shared development data is used.
+2. Given a test run, when its results are inspected, then the revision, selected suites and executed, skipped and failed test counts are visible. An empty required selection, a missing required PostgreSQL configuration, or a failing test cannot be reported as a successful required check.
+3. Given a regression in a selected test, when the relevant job runs, then that job fails. Do not disable existing tests or remove existing API or Playwright coverage. Verify the actual selection of Advent isolation, motion and service-worker checks and document any execution gaps.
+4. Given the Advent feature may be removed after the event, when test commands, fixtures and jobs are organized, then Advent-specific coverage and its dependencies remain identifiable and independently removable. Shared HatCast tests remain independent of Advent data and clocks; relevant changes continue to trigger the necessary checks.
+5. Document commands, triggers, measured execution time, reports and the limitations of existing mocked browser tests. Inspect existing CI and branch protection before asserting that a job is a required gate; this story does not authorize weakening release gates.
+
+**UI:** N/A — no user-visible interface change.
+
+**Scope:** Step A of the Advent regression plan in `PLAN.md`. New end-to-end member journeys and the controlled server clock belong to later steps, not this story.
+
+**References:** `PLAN.md`, `_bmad-output/test-artifacts/cartographie-risques-avent-2026-11-01.md`, `.github/workflows/api-test.yml`, `.github/workflows/apps-web.yml`, `.github/workflows/e2e-smoke.yml`.
+
 ## Final validation
 
 - **Coverage:** FR-1–FR-13, AD-1–AD-6 and UX-DR1–UX-DR11 are covered across stories 25.1–25.7, 25.2a and 25.9; companions retain full contractual detail.
