@@ -122,6 +122,14 @@ BUG-037 and BUG-029 have fixture-only corrections verified by the complete API s
 - **Expected behavior**: The message remains readable at enlarged text sizes without awkward word breaks.
 - **Notes/context**: Observed in Chromium with notification permission denied; the reminder remains within its container. The message was shortened and checked in Chromium at 320 px / 200% text size; automated checks verify the word remains on one line and the text contrast is at least 4.5:1. Other accessibility checks remain open.
 
+### BUG-087 — Advent catalogue deployment regression test uses a stale anchor
+- **Status**: Corrected locally; GitHub verification pending.
+- **Severity**: High (catalogue CI fails).
+- **Affected area**: Advent deployment configuration regression test.
+- **Observed behavior**: The test cannot locate a conditional removed from the deployment workflow and stops before validating the shared portrait configuration.
+- **Expected behavior**: The test exercises the current deployment block for development, staging and production without omitting its existing safety checks.
+- **Notes/context**: CI run 41357887230 failed one of 56 catalogue tests.
+
 ### BUG-080 — Availability E2E interception races with navigation
 - **Status**: Mitigation verified locally; CI verification pending.
 - **Severity**: High (required release gate fails).
