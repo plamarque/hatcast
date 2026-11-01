@@ -10,6 +10,12 @@ import java.nio.file.Paths
 import java.time.Instant
 import javax.sql.DataSource
 
+/** Actual wall clock, separate from the isolated game's configurable clock. */
+@Component
+class AdventRealClock {
+    fun instant(): Instant = Instant.now()
+}
+
 /** Only a proven isolated local or named development runtime may use the configured offset. */
 @Component
 class AdventMemberClock(private val environment: Environment, private val dataSource: DataSource, private val offlineRoot: AdventOfflineRoot) {

@@ -1,0 +1,20 @@
+{
+  "command": "HATCAST_E2E_NO_BROWSER_INSTALL=1 PLAYWRIGHT_REUSE_SERVERS=0 scripts/run_e2e.sh -- e2e/advent-answer.spec.ts e2e/advent-isolation/advent-answer.spec.ts e2e/advent-member.spec.ts",
+  "discovered": [
+    "spec:apps/web/e2e/advent-answer.spec.ts",
+    "spec:apps/web/e2e/advent-isolation/advent-answer.spec.ts",
+    "spec:apps/web/e2e/advent-member.spec.ts"
+  ],
+  "disposition": "run",
+  "outcome": "passed",
+  "rationale": "Rappel Avent, parcours et isolation HatCast",
+  "report_reference": "apps/web/playwright-report/index.html",
+  "schema": "hatcast.story-e2e-evidence.v1",
+  "selection": [
+    "spec:apps/web/e2e/advent-answer.spec.ts",
+    "spec:apps/web/e2e/advent-isolation/advent-answer.spec.ts",
+    "spec:apps/web/e2e/advent-member.spec.ts"
+  ],
+  "story_key": "25-7-invite-members-to-the-daily-quiz",
+  "target": "advent"
+}

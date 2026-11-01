@@ -1,6 +1,7 @@
 package com.hatcast.api.notification
 
 import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.Primary
 import org.springframework.scheduling.annotation.EnableScheduling
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler
 
@@ -8,11 +9,20 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler
 @EnableScheduling
 class NotificationSchedulingConfiguration {
     @org.springframework.context.annotation.Bean
+    @Primary
     fun notificationTaskScheduler(): ThreadPoolTaskScheduler {
         val scheduler = ThreadPoolTaskScheduler()
         scheduler.poolSize = 1
         scheduler.setThreadNamePrefix("notification-scheduler-")
         scheduler.initialize()
+        return scheduler
+    }
+
+    @org.springframework.context.annotation.Bean
+    fun adventReminderScheduler(): ThreadPoolTaskScheduler {
+        val scheduler = ThreadPoolTaskScheduler()
+        scheduler.poolSize = 1
+        scheduler.setThreadNamePrefix("advent-reminder-scheduler-")
         return scheduler
     }
 }

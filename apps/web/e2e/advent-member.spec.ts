@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test'
 
 test.use({ serviceWorkers: 'block' })
-test('member confirmation and ranking remain neutral and accessible', async ({ page }) => {
+test('member confirmation and ranking remain neutral and accessible', async ({ page, context }, testInfo) => {
+  await context.grantPermissions([])
   await page.setViewportSize({ width: 320, height: 700 })
   await page.emulateMedia({ reducedMotion: 'reduce' })
   const requests: string[] = []
@@ -14,6 +15,7 @@ test('member confirmation and ranking remain neutral and accessible', async ({ p
     if (path === '/v1/advent/session') return route.fulfill({ json: { testControls: false, sessionId: 'fixture-session' } })
     if (path === '/v1/advent/clock') return route.fulfill({ json: { date: '2026-12-01' } })
     if (path === '/v1/advent/discovery') return route.fulfill({ json: { discovered: true } })
+    if (path === '/v1/advent/reminder-preference') return route.fulfill({ json: { enabled: false } })
     if (path === '/v1/advent/results/latest-unseen') return route.fulfill({ json: { result: null } })
     if (path === '/v1/advent/doors/1') return route.fulfill({ json: { day: 1, name: 'Lutin fictif', portrait: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a2ioAAAAASUVORK5CYII=', genericElf: true, statements: ['Première affirmation fictive.', 'Deuxième affirmation fictive.', 'Troisième affirmation fictive.'] } })
     if (path.endsWith('/answer/reconcile')) return route.fulfill({ json: { status: 'available', generation: 'generation' } })
@@ -34,9 +36,44 @@ test('member confirmation and ranking remain neutral and accessible', async ({ p
   await page.keyboard.press('Space')
   await page.getByRole('button', { name: 'Confirmer ma réponse' }).click()
   await expect(page.locator('.advent__recorded')).not.toContainText(/bonne réponse|mauvaise réponse|points/i)
-  await expect(page.locator('.advent__recorded-art img')).toHaveAttribute('src', '/advent/elf-confirmation-v1.webp')
+  await expect(page.locator('.advent__recorded-art img')).toHaveAttribute('src', '/advent/confirmation-scene-v2.png')
   await expect.poll(() => page.locator('.advent__recorded-art img').evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0)
-  await expect(page.locator('.advent__portrait-scene--recorded img')).toBeVisible()
+  await expect(page.locator('.advent__portrait-scene')).toHaveCount(0)
+  const reminder = page.getByRole('checkbox', { name: 'Ne rate aucun quiz !' })
+  await expect(reminder).toBeVisible()
+  await expect(reminder).toHaveAccessibleDescription('On t’enverra un (et un seul) rappel à 10H chaque jour, si tu oublies de jouer.')
+  await reminder.focus()
+  await page.keyboard.press('Space')
+  await expect(reminder).not.toBeChecked()
+  await expect(page.locator('.advent__reminder')).toContainText('Autorise les alertes dans les réglages de ton navigateur')
+  await expect(page.locator('.advent__reminder [role="alert"]')).toBeVisible()
+  const legibility = await page.locator('.advent__reminder [role="alert"]').evaluate(element => {
+    const text = element.firstChild!
+    const start = text.textContent!.indexOf('navigateur')
+    const range = document.createRange()
+    range.setStart(text, start)
+    range.setEnd(text, start + 'navigateur'.length)
+    const luminance = (color: string) => {
+      const values = color.match(/[\d.]+/g)!.slice(0, 3).map(Number).map(value => {
+        const channel = value / 255
+        return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4
+      })
+      return 0.2126 * values[0] + 0.7152 * values[1] + 0.0722 * values[2]
+    }
+    const foreground = luminance(getComputedStyle(element).color)
+    const background = luminance(getComputedStyle(element.parentElement!).backgroundColor)
+    return { lines: range.getClientRects().length, contrast: (Math.max(foreground, background) + 0.05) / (Math.min(foreground, background) + 0.05) }
+  })
+  expect(legibility.lines).toBe(1)
+  expect(legibility.contrast).toBeGreaterThanOrEqual(4.5)
+  await page.locator('.advent__reminder').screenshot({ path: testInfo.outputPath('reminder-denied-320-enlarged.png'), animations: 'disabled' })
+  for (const width of [320, 375, 390, 430, 768]) {
+    await page.setViewportSize({ width, height: 700 })
+    const overflow = await page.locator('main.advent').evaluate(root => ({ client: root.clientWidth, scroll: root.scrollWidth }))
+    expect(overflow.scroll, JSON.stringify({ width, ...overflow })).toBeLessThanOrEqual(overflow.client)
+    const label = await page.locator('.advent__reminder-label').boundingBox()
+    expect(label?.height).toBeGreaterThanOrEqual(44)
+  }
   await page.getByRole('button', { name: 'Voir le classement' }).click()
   await expect(page.getByRole('heading', { name: 'Classement', exact: true })).toBeFocused()
   await expect(page.locator('.advent__ranking')).toContainText('Ton score actuel : 0 points')
@@ -355,4 +392,53 @@ test('first welcome is responsive and opens the personal calendar', async ({ pag
   await page.keyboard.press('Enter')
   await expect(page.getByRole('heading', { name: 'Calendrier de l’Avent' })).toBeFocused()
   await expect(page.getByRole('button', { name: /1 décembre/ })).toBeVisible()
+})
+
+test('reminder consent registers this device before enabling the shared preference', async ({ page }) => {
+  const operations: string[] = []
+  await page.addInitScript(() => {
+    const json = { endpoint: 'https://push.example.test/device', keys: { p256dh: 'device-key', auth: 'device-auth' } }
+    const subscription = { endpoint: json.endpoint, toJSON: () => json }
+    const manager = { getSubscription: async () => subscription, subscribe: async () => subscription }
+    const registration = { active: {}, pushManager: manager }
+    Object.defineProperty(window, 'PushManager', { configurable: true, value: function () {} })
+    Object.defineProperty(window, 'Notification', { configurable: true, value: { permission: 'default', requestPermission: async () => 'granted' } })
+    Object.defineProperty(navigator, 'serviceWorker', { configurable: true, value: { getRegistration: async () => registration, ready: Promise.resolve(registration), addEventListener: () => {}, removeEventListener: () => {} } })
+  })
+  await page.route('**/v1/**', async route => {
+    const path = new URL(route.request().url()).pathname
+    const method = route.request().method()
+    if (path.startsWith('/v1/advent/reminder-')) operations.push(`${method} ${path}`)
+    if (path === '/v1/auth/me') return route.fulfill({ json: { user: { id: 'fictif', slug: 'test', displayName: 'Fictif', email: 'fictif@example.test', avatarUrl: null }, platformAdmin: false } })
+    if (path === '/v1/troupes') return route.fulfill({ json: [] })
+    if (path === '/v1/me/preferences') return route.fulfill({ json: { memberDisplayName: 'Fictif', preferredRoleKeys: [] } })
+    if (path === '/v1/advent/session') return route.fulfill({ json: { testControls: false, sessionId: 'fixture-session' } })
+    if (path === '/v1/advent/clock') return route.fulfill({ json: { date: '2026-12-01' } })
+    if (path === '/v1/advent/discovery') return route.fulfill({ json: { discovered: true } })
+    if (path === '/v1/advent/results/latest-unseen') return route.fulfill({ json: { result: null } })
+    if (path === '/v1/advent/doors/1') return route.fulfill({ json: { day: 1, name: 'Fictif', portrait: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a2ioAAAAASUVORK5CYII=', genericElf: true, statements: ['A', 'B', 'C'] } })
+    if (path.endsWith('/answer/reconcile')) return route.fulfill({ json: { status: 'available', generation: 'generation' } })
+    if (path.endsWith('/answer/reserve')) return route.fulfill({ json: { status: 'available' } })
+    if (path.endsWith('/answer')) return route.fulfill({ json: { status: method === 'POST' ? 'recorded' : 'available' } })
+    if (path === '/v1/advent/reminder-preference') return route.fulfill({ json: { enabled: method === 'PUT' ? route.request().postDataJSON().enabled : false } })
+    if (path === '/v1/advent/reminder-device') return route.fulfill({ status: 200, body: '' })
+    if (path === '/v1/advent/reminder-device/status') return route.fulfill({ json: { owned: true } })
+    return route.fulfill({ json: {} })
+  })
+  await page.goto('/avent')
+  await page.getByRole('button', { name: 'Ouvrir le cadeau du jour 1' }).click()
+  await page.getByRole('radio').first().click()
+  await page.getByRole('button', { name: 'Confirmer ma réponse' }).click()
+  const checkbox = page.getByRole('checkbox', { name: 'Ne rate aucun quiz !' })
+  await expect(checkbox).not.toBeChecked()
+  await checkbox.click()
+  await expect.poll(() => operations.filter(operation => operation.startsWith('PUT ')).length).toBe(2)
+  await expect(checkbox).toBeChecked()
+  expect(operations.filter(operation => operation.startsWith('PUT '))).toEqual([
+    'PUT /v1/advent/reminder-device', 'PUT /v1/advent/reminder-preference',
+  ])
+  await checkbox.click()
+  await expect.poll(() => operations.filter(operation => operation.startsWith('PUT ')).length).toBe(3)
+  await expect(checkbox).not.toBeChecked()
+  expect(operations.at(-1)).toBe('PUT /v1/advent/reminder-preference')
 })

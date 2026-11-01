@@ -51,6 +51,18 @@ integration database).
 
 ### Pending verification or operational follow-up
 
+BUG-081 is closed as an accepted shared-browser-subscription behavior; the Advent opt-out isolation is covered by targeted tests.
+
+BUG-082 is corrected locally in the unintegrated story 25.7 worktree; integration remains pending.
+
+BUG-083 is deferred at Patrice's request; the intended quiz use is one phone per member.
+
+BUG-084 is deferred at Patrice's request; real-device push verification is planned separately.
+
+BUG-086 is corrected and verified locally in story 25.7; integration remains pending.
+
+BUG-085 is corrected and verified locally in story 25.7; integration remains pending.
+
 BUG-073 is corrected locally and verified with the live Cloud Run configuration; integration remains pending.
 
 BUG-056 is corrected locally in story 25.2; integration and real-browser isolation verification remain pending.
@@ -62,6 +74,53 @@ BUG-024, and BUG-021 have local fixes but still require their stated review,
 human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
+
+### BUG-084 — In-flight Advent reminder can follow an account switch
+- **Status**: Deferred on 2026-11-01 at Patrice's request; identified by code review, not reproduced on a real push service.
+- **Severity**: Medium.
+- **Affected area**: A reminder being sent while the same browser endpoint is transferred to another account.
+- **Observed behavior**: The sender can read the previous account's Avent device immediately before the normal HatCast registration transfers the endpoint; its already prepared push may then reach the newly signed-in account. The endpoint ownership lock serializes registrations, but does not cover network delivery.
+- **Expected behavior**: A reminder for the former account does not reach a browser after its endpoint has been transferred to another account, without making HatCast notification operations wait on an Avent network send.
+- **Notes/context**: The sender now rechecks device ownership immediately before each attempt without locking HatCast during network delivery. A notification already handed to a push provider cannot be recalled; the neutral payload contains no quiz or result. This residual delivery window remains to be reported accurately; the issue number must be reconciled with the integration branch.
+
+### BUG-083 — Advent device remains associated with a previous account
+- **Status**: Deferred on 2026-11-01 at Patrice's request; intended usage is one phone per member.
+- **Severity**: Medium.
+- **Affected area**: Activating Advent reminders after changing accounts on one browser.
+- **Observed behavior**: An endpoint registered to a previous account is rejected for a second account. A HatCast account switch can transfer a general subscription, but Avent alone provides no equivalent reassignment or release.
+- **Expected behavior**: A member can activate the reminder after an account change without sending the previous member's reminder to the new member or changing the other account's HatCast notifications.
+- **Notes/context**: An endpoint and matching subscription keys transfer only the Avent registration; the other account's HatCast subscription and preferences are unchanged. Concurrent registrations are serialized on PostgreSQL. If another member signs in without registering the device for either service, the former member's Avent device record is not updated. A session-reconciliation approach was reviewed and removed because stale requests could remove or recreate a newer association. The issue number must be reconciled with the current integration branch.
+
+### BUG-082 — Advent activation can misreport and delay HatCast notifications
+- **Status**: Corrected locally in the unintegrated story 25.7 worktree; integration pending.
+- **Severity**: High.
+- **Affected area**: HatCast notification status and scheduling after adding Avent reminders.
+- **Observed behavior**: An Avent-only browser subscription could appear as an enabled HatCast device when the account had another HatCast device. Advent network sends also shared HatCast's single scheduler thread.
+- **Expected behavior**: HatCast reports the current device's actual HatCast registration, and Avent sends do not delay HatCast scheduled tasks.
+- **Notes/context**: The current device registration is checked on the authenticated server; Advent uses a separate scheduler. Targeted frontend and API tests pass. The issue number must be reconciled with the current integration branch before integration.
+
+### BUG-081 — Advent and HatCast share a browser push subscription
+- **Status**: Closed on 2026-11-01 following the user's clarification.
+- **Affected area**: Advent reminders and HatCast browser push notifications.
+- **Observed behavior**: Both features reuse the browser's service-worker subscription, so turning off HatCast notifications may also stop Avent reminders.
+- **Decision**: This direction of dependency is accepted. Unchecking the Advent reminder must only change the Advent preference and must not unsubscribe the browser or alter HatCast notifications.
+- **Notes/context**: Targeted frontend and API tests cover Advent opt-out and preservation of HatCast subscriptions and category dispatch. Real-device delivery remains to be verified.
+
+### BUG-086 — Advent reminder appears active before save completes
+- **Status**: Corrected locally in the unintegrated 25.7 worktree; integration pending.
+- **Severity**: Medium.
+- **Affected area**: Advent reminder checkbox while an activation request is pending.
+- **Observed behavior**: A browser initially displayed the checkbox as checked before device registration and the shared preference save had completed.
+- **Expected behavior**: The previous choice remains visible until the server confirms the new preference.
+- **Notes/context**: The control now restores the previous state during the request. A deferred-response unit test and an isolated browser scenario verify the state and operation order.
+
+### BUG-085 — Advent reminder permission message splits a word at enlarged text size
+- **Status**: Corrected locally in the unintegrated 25.7 worktree; integration pending.
+- **Severity**: Low.
+- **Affected area**: Advent reminder permission error on narrow screens.
+- **Observed behavior**: At a 320 px viewport and 200% root text size, the French word « notifications » breaks between letters across lines.
+- **Expected behavior**: The message remains readable at enlarged text sizes without awkward word breaks.
+- **Notes/context**: Observed in Chromium with notification permission denied; the reminder remains within its container. The message was shortened and checked in Chromium at 320 px / 200% text size; automated checks verify the word remains on one line and the text contrast is at least 4.5:1. Other accessibility checks remain open.
 
 ### BUG-075 — Late test replay is closed on its simulated day
 - **Status**: Closed on 2026-11-01 at Patrice's request; deployed and verified in development.

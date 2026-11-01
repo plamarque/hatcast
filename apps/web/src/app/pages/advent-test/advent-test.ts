@@ -1,9 +1,11 @@
 import { Component, ElementRef, ViewChild, signal, inject, effect } from '@angular/core'
+import { NgTemplateOutlet } from '@angular/common'
 import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
 import { MatRadioModule } from '@angular/material/radio'
 import { Router } from '@angular/router'
 import { AuthApiService } from '../../core/auth/auth-api.service'
+import { PushNotificationsService } from '../../core/push/push-notifications.service'
 
 const REQUEST_TIMEOUT_MS = 10_000
 
@@ -22,13 +24,78 @@ interface FictionalQuiz { day: number; name: string; portrait: string; statement
 @Component({
   selector: 'app-advent-test',
   standalone: true,
-  imports: [MatButtonModule, MatIconModule, MatRadioModule],
+  imports: [MatButtonModule, MatIconModule, MatRadioModule, NgTemplateOutlet],
   templateUrl: './advent-test.html',
-  styleUrls: ['./advent-test.scss', './advent-result.scss', './advent-ranking.scss', './advent-calendar.scss', './advent-illustrated.scss', './advent-welcome.scss', './advent-controls.scss'],
+  styleUrls: ['./advent-test.scss', './advent-result.scss', './advent-ranking.scss', './advent-calendar.scss', './advent-illustrated.scss', './advent-welcome.scss', './advent-controls.scss', './advent-reminder.scss'],
 })
 export class AdventTest {
   private readonly auth = inject(AuthApiService)
   private readonly router = inject(Router)
+  private readonly push = inject(PushNotificationsService)
+  readonly reminderEnabled = signal<boolean | null>(null)
+  readonly previewReminderEnabled = signal(false)
+  readonly reminderDeviceOwned = signal(false)
+  readonly reminderBusy = signal(false)
+  private readonly reminderLoadFailed = signal(false)
+  readonly reminderMessage = signal('')
+  private reminderEpoch = 0
+
+  private async reminderRequest(path: string, method = 'GET', body?: unknown): Promise<any> {
+    const response = await fetch(`${this.api}/${path}`, { method, credentials: 'include', cache: 'no-store', signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS), headers: { ...this.sessionHeaders(), 'X-Advent-User': this.identity ?? '', ...(method === 'GET' ? {} : { ...this.csrfHeaders(), 'Content-Type': 'application/json' }) }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) })
+    if (!response.ok) throw new Error('Reminder request failed')
+    return response.status === 204 || path === 'reminder-device' ? null : response.json()
+  }
+
+  async loadReminder(): Promise<void> {
+    if (this.testMode()) return
+    const identity = this.identityEpoch
+    const revision = ++this.reminderEpoch
+    try {
+      const preference = await this.reminderRequest('reminder-preference')
+      if (identity !== this.identityEpoch || revision !== this.reminderEpoch || this.testMode()) return
+      const endpoint = await this.push.adventDeviceEndpoint()
+      const device = endpoint ? await this.reminderRequest('reminder-device/status', 'POST', { endpoint }) : { owned: false }
+      if (identity !== this.identityEpoch || revision !== this.reminderEpoch || this.testMode()) return
+      this.reminderEnabled.set(preference.enabled)
+      this.reminderDeviceOwned.set(device.owned)
+    } catch { if (identity === this.identityEpoch && revision === this.reminderEpoch) this.reminderLoadFailed.set(true) }
+  }
+
+  async changeReminder(enabled: boolean, deviceOnly = false): Promise<void> {
+    if (this.reminderBusy() || this.testMode()) return
+    this.reminderEpoch++
+    const identity = this.identityEpoch
+    this.reminderBusy.set(true); this.reminderMessage.set('')
+    try {
+      let endpoint: string | undefined
+      if (enabled) {
+        const device = await this.push.activateAdventDevice(async subscription => {
+          if (identity !== this.identityEpoch) return false
+          await this.reminderRequest('reminder-device', 'PUT', subscription)
+          return identity === this.identityEpoch
+        })
+        if (identity !== this.identityEpoch) return
+        if (!device.endpoint) { this.reminderMessage.set(device.message ?? 'Réessaie plus tard.'); return }
+        endpoint = device.endpoint
+        this.reminderDeviceOwned.set(true)
+      }
+      if (!deviceOnly) {
+        const preference = await this.reminderRequest('reminder-preference', 'PUT', { enabled, endpoint })
+        if (identity !== this.identityEpoch) return
+        this.reminderEnabled.set(preference.enabled)
+      }
+    } catch { if (identity === this.identityEpoch) this.reminderMessage.set('Impossible de modifier les rappels. Réessaie.') }
+    finally { if (identity === this.identityEpoch) this.reminderBusy.set(false) }
+  }
+
+  async onReminderChange(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement
+    if (this.testMode()) { this.previewReminderEnabled.set(input.checked); return }
+    const desired = input.checked
+    input.checked = this.reminderEnabled() === true
+    await this.changeReminder(desired)
+    input.checked = this.reminderEnabled() === true
+  }
   readonly closeError = signal(false)
   readonly closingExperience = signal(false)
 
@@ -55,9 +122,16 @@ export class AdventTest {
   private identityEpoch = 0
   constructor() {
     effect(() => {
+      const relevant = !!this.result() || !!this.history()?.result || (!!this.quiz() && this.answerState() === 'recorded')
+      if (relevant && this.memberMode && this.reminderEnabled() === null && !this.reminderBusy() && !this.reminderLoadFailed()) {
+        void this.loadReminder()
+      }
+    })
+    effect(() => {
       const identity = this.auth.sessionUser()?.id ?? null
       if (identity === this.identity) return
       this.identity = identity
+      this.reminderLoadFailed.set(false); this.previewReminderEnabled.set(false); this.reminderEnabled.set(null); this.reminderDeviceOwned.set(false); this.reminderBusy.set(false); this.reminderMessage.set('')
       this.discoveryAttempt = null
       this.identityEpoch++
       this.personalResetConfirm.set(null)

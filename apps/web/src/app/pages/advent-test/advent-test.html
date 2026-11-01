@@ -74,6 +74,7 @@
           }
         </ul>
         @if (past.result; as result) { <p>Tu as gagné {{ result.responsePoints + result.participationPoints + result.bonusPoints }} points pour ce jour.</p> }
+        @if (past.result) { <ng-container [ngTemplateOutlet]="reminderControl" /> }
       </section>
     } @else if (calendarOpen()) {
       <section id="advent-calendar-panel" aria-labelledby="calendar-title">
@@ -143,6 +144,7 @@
             <div class="advent__result-answer advent__result-answer--truth"><span class="advent__answer-label">L’anecdote qui était fausse</span><p>{{ content.statements[reveal.falseChoice] }}</p></div>
             @if (reveal.explanation) { <p>{{ reveal.explanation }}</p> }
           </div>
+          <ng-container [ngTemplateOutlet]="reminderControl" />
           @if (historicalResult()) { <button mat-flat-button type="button" (click)="navigateRanking()" [disabled]="loading()">Voir le classement <mat-icon iconPositionEnd aria-hidden="true">arrow_forward</mat-icon></button> }
           @else { <button mat-flat-button type="button" (click)="continueAfterResult()" [disabled]="loading()">Continuer <mat-icon iconPositionEnd aria-hidden="true">arrow_forward</mat-icon></button> }
         </section>
@@ -188,9 +190,10 @@
       }
     } @else if (quiz(); as content) {
       <section class="advent__quiz" [attr.aria-labelledby]="answerState() === 'recorded' ? 'recorded-title' : 'quiz-title'">
-        @if (confirmationPreview()) { <p class="advent__state">Aperçu de l’accusé</p> }
-        <p class="advent__date">{{ content.day }} décembre</p>
-        <div class="advent__portrait-scene" [class.advent__portrait-scene--recorded]="answerState() === 'recorded'"><span class="advent__portrait-spark advent__portrait-spark--left" aria-hidden="true">✦</span><div class="advent__portrait"><img [src]="content.portrait" [alt]="'Portrait du lutin '+ owner(content.name)"></div><span class="advent__portrait-spark advent__portrait-spark--right" aria-hidden="true">✧</span></div>
+        @if (answerState() !== 'recorded') {
+          <p class="advent__date">{{ content.day }} décembre</p>
+          <div class="advent__portrait-scene"><span class="advent__portrait-spark advent__portrait-spark--left" aria-hidden="true">✦</span><div class="advent__portrait"><img [src]="content.portrait" [alt]="'Portrait du lutin '+ owner(content.name)"></div><span class="advent__portrait-spark advent__portrait-spark--right" aria-hidden="true">✧</span></div>
+        }
         <h2 #quizHeading id="quiz-title" tabindex="-1" [hidden]="answerState() === 'recorded'">Une anecdote sur {{ content.name }}</h2>
         @if (answerState() === 'available') {
           <p class="advent__question" [hidden]="answerState() === 'recorded'">Quelle affirmation est fausse ?</p>
@@ -201,13 +204,19 @@
           <button mat-flat-button type="button" [disabled]="choice() === null || submitting()" (click)="confirm()">Confirmer ma réponse</button>
         } @else if (answerState() === 'recorded') {
           <div #recordedStatus class="advent__recorded" role="status" tabindex="-1">
-            <div class="advent__recorded-art" aria-hidden="true"><img src="/advent/elf-confirmation-v1.webp" alt=""></div>
+            <div class="advent__recorded-art" aria-hidden="true"><img src="/advent/confirmation-scene-v2.png" alt=""></div>
             <div class="advent__recorded-panel">
-              <span class="advent__recorded-stars" aria-hidden="true">✦ &nbsp; ✧ &nbsp; ✦</span>
-              <p id="recorded-title" class="advent__recorded-title">Ta réponse <strong>est enregistrée !</strong></p>
+              <p id="recorded-title" class="advent__recorded-title" aria-label="Ta réponse est enregistrée !">
+                <svg viewBox="0 0 500 170" aria-hidden="true" focusable="false">
+                  <defs><path id="advent-confirmation-arc-one" d="M 20 82 Q 250 5 480 82"/><path id="advent-confirmation-arc-two" d="M 12 160 Q 250 85 488 160"/></defs>
+                  <text class="advent__arc-first"><textPath href="#advent-confirmation-arc-one" startOffset="50%" text-anchor="middle">Ta réponse </textPath></text>
+                  <text class="advent__arc-second"><textPath href="#advent-confirmation-arc-two" startOffset="50%" text-anchor="middle">est enregistrée !</textPath></text>
+                </svg>
+              </p>
             </div>
             <p class="advent__recorded-message">Reviens demain pour découvrir le résultat !</p>
           </div>
+          <ng-container [ngTemplateOutlet]="reminderControl" />
           @if (!sessionChanged()) {
             <button #rankingButton mat-flat-button type="button" (click)="openRanking()" [disabled]="loading() || submitting()">Voir le classement <mat-icon iconPositionEnd aria-hidden="true">arrow_forward</mat-icon></button>
           }
@@ -227,3 +236,19 @@
     }
   </div>
 </main>
+
+<ng-template #reminderControl>
+  @if (testMode() || (memberMode && reminderEnabled() !== null)) {
+    <div class="advent__reminder">
+      <label class="advent__reminder-label">
+        <input type="checkbox" aria-label="Ne rate aucun quiz !" aria-describedby="advent-reminder-description" [checked]="testMode() ? previewReminderEnabled() : reminderEnabled()" [disabled]="reminderBusy()" (change)="onReminderChange($event)">
+        <span class="advent__reminder-copy"><strong>Ne rate aucun quiz !</strong><span id="advent-reminder-description">On t’enverra un (et un seul) rappel à 10H chaque jour, si tu oublies de jouer.</span></span>
+      </label>
+      @if (memberMode && reminderEnabled() && !reminderDeviceOwned()) {
+        <p>Les rappels sont activés, mais cet appareil ne les reçoit pas encore.</p>
+        <button mat-stroked-button type="button" [disabled]="reminderBusy()" (click)="changeReminder(true, true)">Activer sur cet appareil</button>
+      }
+      @if (memberMode && reminderMessage()) { <p role="alert">{{ reminderMessage() }}</p> }
+    </div>
+  }
+</ng-template>

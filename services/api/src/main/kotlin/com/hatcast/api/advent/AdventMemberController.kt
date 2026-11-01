@@ -2,6 +2,9 @@ package com.hatcast.api.advent
 
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.troupe.TroupeMembershipService
+import com.hatcast.api.notification.UserPushSubscriptionService
+import com.hatcast.api.notification.dto.RegisterPushSubscriptionRequest
+import jakarta.validation.Valid
 import org.springframework.core.env.Environment
 import org.springframework.http.HttpStatus
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -24,6 +27,7 @@ class AdventMemberController(
     private val clock: AdventMemberClock,
     private val offlineRoot: AdventOfflineRoot,
     private val portraitStorage: AdventMemberPortraitStorage,
+    private val pushSubscriptions: UserPushSubscriptionService,
 ) {
     private fun authorize(principal: SessionUserPrincipal): UUID {
         val troupe = try { UUID.fromString(environment.getProperty("hatcast.advent.troupe-id", "")) }
@@ -71,10 +75,38 @@ class AdventMemberController(
         return date
     }
 
+    private fun requireReminderContext(principal: SessionUserPrincipal, request: HttpServletRequest): UUID {
+        authorize(principal)
+        if (request.getHeader("X-Advent-User") != principal.userId.toString()) throw ResponseStatusException(HttpStatus.CONFLICT)
+        if (activeMode(principal, request) || request.getHeader("X-Advent-Simulated-Date") != null) throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        return sessionFor(principal, request)
+    }
+
     @GetMapping("/entry")
     fun entry(@AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AdventMemberGame.EntryState {
         authorize(principal)
         return game.entry(principal.userId, null, simulated(principal, request))
+    }
+
+    @GetMapping("/reminder-preference")
+    fun reminderPreference(@AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AdventReminderPreference {
+        return AdventReminderPreference(game.reminderPreference(principal.userId, requireReminderContext(principal, request)))
+    }
+
+    @PutMapping("/reminder-preference")
+    fun setReminderPreference(@RequestBody body: AdventReminderPreferenceRequest, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AdventReminderPreference {
+        return AdventReminderPreference(game.setReminderPreference(principal.userId, requireReminderContext(principal, request), body.enabled, body.endpoint))
+    }
+
+    @PutMapping("/reminder-device")
+    fun registerReminderDevice(@Valid @RequestBody body: RegisterPushSubscriptionRequest, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest) {
+        game.reminderPreference(principal.userId, requireReminderContext(principal, request))
+        pushSubscriptions.registerAdventDevice(principal.userId, body, request.getHeader("User-Agent"))
+    }
+
+    @PostMapping("/reminder-device/status")
+    fun reminderDeviceStatus(@RequestBody body: AdventReminderDevice, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): Map<String, Boolean> {
+        return mapOf("owned" to game.reminderDeviceOwned(principal.userId, requireReminderContext(principal, request), body.endpoint))
     }
 
     @GetMapping("/discovery")
@@ -217,6 +249,10 @@ class AdventMemberController(
     }
 }
 data class MemberAnswer(val choice: Int?, val attemptId: UUID?)
+
+data class AdventReminderPreference(val enabled: Boolean)
+data class AdventReminderPreferenceRequest(val enabled: Boolean, val endpoint: String? = null)
+data class AdventReminderDevice(val endpoint: String)
 
 data class AdventHistoryResponse(val quiz: FictionalQuiz? = null, val falseChoice: Int? = null, val result: AdventResult? = null, val priorityResult: AdventResult? = null)
 

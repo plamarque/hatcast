@@ -30,6 +30,33 @@ export class PushNotificationsService {
     return Notification.permission
   }
 
+  /** Read only the current browser's subscription; do not alter global push settings. */
+  async adventDeviceEndpoint(): Promise<string | null> {
+    if (!this.canUsePush() || this.getPermission() !== 'granted') return null
+    return (await this.getLocalSubscription())?.endpoint ?? null
+  }
+
+  /** Called only from a member gesture. Registration is supplied by the Advent API. */
+  async activateAdventDevice(register: (subscription: PushSubscriptionJSON) => Promise<boolean>): Promise<{ endpoint?: string; message?: string }> {
+    if (!this.canUsePush()) return { message: 'Les alertes ne sont pas disponibles sur cet appareil.' }
+    try {
+      let permission = this.getPermission()
+      if (permission === 'default') permission = await Notification.requestPermission()
+      if (permission !== 'granted') return { message: 'Autorise les alertes dans les réglages de ton navigateur pour activer cet appareil.' }
+      const registration = await this.waitForServiceWorkerRegistration()
+      if (!registration) return { message: 'Les alertes sont indisponibles. Réessaie plus tard.' }
+      let subscription = await registration.pushManager.getSubscription()
+      if (!subscription) {
+        const key = await this.resolveVapidPublicKey()
+        if (!key) return { message: 'Les alertes sont indisponibles. Réessaie plus tard.' }
+        subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(key) })
+      }
+      const json = subscription.toJSON()
+      if (!json.endpoint || !json.keys?.['p256dh'] || !json.keys?.['auth'] || !(await register(json))) return { message: 'Impossible d’activer cet appareil. Réessaie.' }
+      return { endpoint: json.endpoint }
+    } catch { return { message: 'Impossible d’activer cet appareil. Réessaie.' } }
+  }
+
   async loadStatus(): Promise<{ state: PushUiState; status?: MePushStatus }> {
     if (!this.canUsePush()) {
       return this.publishState('unsupported')
@@ -48,8 +75,10 @@ export class PushNotificationsService {
     }
 
     const localSub = await this.getLocalSubscription()
-    const enabled = status.enabled && permission === 'granted' && localSub != null
-    return this.publishState(enabled ? 'enabled' : 'disabled', status)
+    if (!status.enabled || permission !== 'granted' || !localSub) return this.publishState('disabled', status)
+    const ownership = await this.api.ownsSubscription(localSub.endpoint)
+    if (!ownership.ok || !ownership.data) return this.publishState('error', status)
+    return this.publishState(ownership.data.owned ? 'enabled' : 'disabled', status)
   }
 
   async enable(): Promise<{ ok: boolean; state: PushUiState; message?: string }> {
