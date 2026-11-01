@@ -3671,6 +3671,20 @@ En tant que membre découvrant le Quiz de l’Avent, je veux être accueilli dan
 
 **Références :** contrats Avent DESIGN et EXPERIENCE, architecture AD-7, référence visuelle `imports/advent-quiz-design-system-reference.png`, story 25.8.
 
+### Story 25.11: Générer un classement fictif pour les tests
+
+En tant que testeur, je veux une icône dans la barre de l’écran de classement pour générer des valeurs aléatoires, afin de pouvoir observer différents classements fictifs.
+
+**Critères d’acceptation :**
+
+1. En mode test isolé, une icône accessible dans la barre de l’écran de classement permet de générer un classement fictif ; son libellé explique son action.
+2. Chaque activation génère de nouvelles valeurs et actualise le classement affiché, avec des positions cohérentes avec les scores et les règles existantes d’ex æquo.
+3. L’action est réservée aux testeurs autorisés en environnement de test isolé et ne modifie pas les données de production. Le caractère fictif des valeurs est identifiable.
+4. Préserver les données et parcours réels du quiz ; préciser lors de la préparation de la story la portée et la durée des valeurs fictives ainsi que le retour au classement calculé.
+5. Appliquer les contrats visuels Advent DESIGN et EXPERIENCE, l’architecture AD-7 et la checklist Material 3 ; vérifier clavier, libellé accessible, adaptation mobile et absence d’effet sur HatCast.
+
+**Dépendances :** classement de la story 25.4 et contrôles du mode test existants.
+
 ## Final validation
 
 - **Coverage:** FR-1–FR-13, AD-1–AD-6 and UX-DR1–UX-DR11 are covered across stories 25.1–25.7, 25.2a and 25.9; companions retain full contractual detail.
