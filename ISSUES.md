@@ -63,6 +63,14 @@ human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
 
+### BUG-080 — Availability E2E interception races with navigation
+- **Status**: Mitigation verified locally; CI verification pending.
+- **Severity**: High (required release gate fails).
+- **Affected area**: Playwright availability save-and-reopen regression.
+- **Observed behavior**: The GitHub release suite failed twice with an already-handled inbox route while the test was changing pages.
+- **Expected behavior**: Network interception completes before navigation and the real save, persistence and navigation checks remain active.
+- **Notes/context**: CI run 41350700737; the exact source of the already-handled route has not been proven.
+
 ### BUG-079 — Advent gift intercepts desktop navigation
 - **Status**: Corrected locally; deployment verification pending.
 - **Severity**: High (desktop member navigation blocked while the gift is visible).

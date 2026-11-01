@@ -38,3 +38,7 @@ status: open
 - source_spec: `_bmad-output/implementation-artifacts/spec-avent-surprise-production-preview.md`
   summary: Verify effective PostHog privacy settings and traffic in a production-equivalent deployed environment.
   evidence: Unverified high risk; the real SDK passed local synthetic capture and replay tests, but remote settings and deployed traffic remain unchecked.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-stabilize-availability-e2e.md`
+  summary: Exercise availability interception cleanup with an intentionally in-flight inbox request.
+  evidence: Unverified medium risk; the exact already-handled route cause was not established and the current scenario does not deterministically hold a handler during cleanup.
