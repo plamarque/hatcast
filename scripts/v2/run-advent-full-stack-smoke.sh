@@ -2,9 +2,27 @@
 # CI-only isolated H2 stack; never attaches to an existing API or database.
 set -euo pipefail
 if [[ -z "${ADVENT_SMOKE_BOUNDARY:-}" ]]; then
-  ADVENT_SMOKE_BOUNDARY=before "$0"
-  ADVENT_SMOKE_BOUNDARY=after "$0"
-  ADVENT_SMOKE_BOUNDARY=transition "$0"
+  for boundary in before after transition; do
+    ADVENT_SMOKE_BOUNDARY="${boundary}" "$0"
+    # Gradle's API child can finish shutting down after its launcher exits.
+    # Never let the next scenario attach to it or race its listening socket.
+    node -e '
+      const net = require("node:net");
+      const free = p => new Promise(resolve => {
+        const s = net.createServer();
+        s.once("error", () => resolve(false));
+        s.listen(p, "127.0.0.1", () => s.close(() => resolve(true)));
+      });
+      (async () => {
+        for (let i = 0; i < 120; i++) {
+          if ((await Promise.all([18080, 14331].map(free))).every(Boolean)) return;
+          await new Promise(resolve => setTimeout(resolve, 250));
+        }
+        console.error("Isolated Advent test servers did not release their ports");
+        process.exitCode = 1;
+      })();
+    '
+  done
   exit 0
 fi
 case "${ADVENT_SMOKE_BOUNDARY}" in
