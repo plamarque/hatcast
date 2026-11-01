@@ -1,7 +1,7 @@
 <main class="advent">
   <header class="advent__header">
     @if (testControls()) { <button mat-icon-button type="button" (click)="toggleTestMode()" [disabled]="loading() || submitting() || closingDay() !== null || pendingMutations() > 0" [attr.aria-pressed]="testMode()" [attr.aria-label]="testMode() ? 'Désactiver le mode test' : 'Activer le mode test'" title="Mode test"><mat-icon aria-hidden="true">science</mat-icon></button> }
-    <span #entryHeading tabindex="-1" class="advent__header-title">Quiz de l’Avent</span>
+    <button #entryHeading mat-button type="button" class="advent__header-title" (click)="previewWelcome()" [disabled]="welcome() || loading() || submitting() || closingDay() !== null || pendingMutations() > 0 || result() !== null || sessionChanged() || transitionRequired() || unavailable()" aria-label="Revoir l’accueil du Quiz de l’Avent">Quiz de l’Avent</button>
     <button mat-icon-button type="button" (click)="historicalResult() ? returnToCalendar() : openCalendar()" [disabled]="welcome() || loading() || submitting() || closingDay() !== null || (result() !== null && !historicalResult())" [attr.aria-current]="calendarOpen() ? 'page' : null" aria-label="Voir le calendrier" title="Calendrier"><mat-icon aria-hidden="true">calendar_month</mat-icon></button>
     <button mat-icon-button type="button" (click)="navigateRanking()" [disabled]="welcome() || loading() || submitting() || closingDay() !== null || (result() !== null && !historicalResult())" [attr.aria-current]="rankingOpen() ? 'page' : null" aria-label="Classement" title="Classement"><mat-icon aria-hidden="true">emoji_events</mat-icon></button>
     <button mat-icon-button type="button" (click)="closeExperience()" [disabled]="closingExperience() || loading() || submitting() || pendingMutations() > 0 || closingDay() !== null" aria-label="Fermer le quiz" title="Fermer"><mat-icon aria-hidden="true">close</mat-icon></button>
@@ -14,12 +14,15 @@
       <span class="advent__simulated-day" role="status" aria-live="polite" [attr.aria-label]="clockDate() === null ? 'Jour simulé non disponible' : 'Jour simulé : ' + simulatedDateLabel()">{{ clockDate() === null ? '–' : simulatedDateLabel(true) }}</span>
       <button mat-icon-button type="button" (click)="nextDay()" [disabled]="welcome() || transitionRequired() || loading() || submitting() || closingDay() !== null || (quiz() && answerState() === 'checking') || !clockDate() || clockDate()! >= '2027-01-15'" aria-label="Avancer au jour suivant" title="Jour suivant"><mat-icon aria-hidden="true">arrow_forward</mat-icon></button>
       }
+      @if (calendarOpen()) {
+      <button mat-icon-button type="button" (click)="previewConfirmation()" [disabled]="loading() || submitting() || closingDay() !== null" aria-label="Revoir l’accusé de réponse" title="Revoir l’accusé"><mat-icon aria-hidden="true">mark_email_read</mat-icon></button>
+      }
       @if (calendarOpen() && currentPlayedDay()) {
       <button mat-icon-button type="button" (click)="personalResetConfirm.set('calendar')" [disabled]="!currentPlayedDay() || loading() || submitting() || closingDay() !== null" aria-label="Refermer mon cadeau du jour et effacer ma réponse" title="Refermer mon cadeau et effacer ma réponse"><mat-icon aria-hidden="true">card_giftcard</mat-icon></button>
       }
       @if (!calendarOpen() && !rankingOpen()) {
       <button mat-icon-button type="button" (click)="resetConfirm.set(true)" [disabled]="loading() || submitting()" aria-label="Réinitialiser la partie de développement" title="Réinitialiser la partie"><mat-icon aria-hidden="true">restart_alt</mat-icon></button>
-      @if ((result() || quiz() || history()?.result) && answerState() === 'recorded') {
+      @if (!confirmationPreview() && (result() || quiz() || history()?.result) && answerState() === 'recorded') {
         <button mat-icon-button type="button" (click)="personalResetConfirm.set('replay')" [disabled]="submitting()" aria-label="Effacer ma réponse et rejouer" title="Effacer ma réponse et rejouer"><mat-icon aria-hidden="true">delete_outline</mat-icon></button>
       }
       }
@@ -49,8 +52,8 @@
       <section class="advent__welcome" aria-labelledby="welcome-title">
         <div class="advent__welcome-scene" aria-hidden="true"><img src="/advent/welcome-elf-v1.webp" alt=""></div>
         <div class="advent__welcome-panel">
-          <h1 #welcomeHeading id="welcome-title" tabindex="-1">Bienvenue dans le calendrier de l’Avent !</h1>
-          <p>Chaque jour, découvre une surprise et apprends à mieux connaître les membres de La Malice.</p>
+          <h1 #welcomeHeading id="welcome-title" tabindex="-1">Le Quiz de l’Avent</h1>
+          <p>Chaque jour, une surprise !</p>
           @if (discoveryError()) { <p role="alert">{{ sessionChanged() ? 'La partie ou l’invitation a changé. Recharge pour continuer.' : 'Impossible d’ouvrir ton calendrier. Réessaie.' }}</p> }
           @if (sessionChanged()) { <button mat-stroked-button type="button" (click)="start()">Recharger</button> }
           <button mat-flat-button type="button" (click)="discoverCalendar()" [disabled]="loading() || sessionChanged()">Découvrir mon calendrier de l’Avent</button>
@@ -177,6 +180,7 @@
       }
     } @else if (quiz(); as content) {
       <section class="advent__quiz" [attr.aria-labelledby]="answerState() === 'recorded' ? 'recorded-title' : 'quiz-title'">
+        @if (confirmationPreview()) { <p class="advent__state">Aperçu de l’accusé</p> }
         <p class="advent__date">{{ content.day }} décembre</p>
         <div class="advent__portrait-scene"><span class="advent__portrait-spark advent__portrait-spark--left" aria-hidden="true">✦</span><div class="advent__portrait"><img [src]="content.portrait" [alt]="'Portrait du lutin '+ owner(content.name)"></div><span class="advent__portrait-spark advent__portrait-spark--right" aria-hidden="true">✧</span></div>
         <h2 #quizHeading id="quiz-title" tabindex="-1" [hidden]="answerState() === 'recorded'">Une anecdote sur {{ content.name }}</h2>

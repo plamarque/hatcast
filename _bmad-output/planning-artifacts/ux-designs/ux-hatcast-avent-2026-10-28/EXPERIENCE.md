@@ -171,3 +171,9 @@ Un testeur autorisé commence en mode membre : le temps, les réponses et le cla
 ### Première découverte du calendrier
 
 La première visite affiche une invitation avant tout résultat ou quiz. L’action explicite « Découvrir mon calendrier de l’Avent » enregistre la découverte et ouvre le calendrier. Fermer avant cette action laisse l’invitation disponible ; une erreur permet de réessayer. Un résultat préexistant ne devient pas vu par la récupération du calendrier et reste prioritaire lors des visites suivantes.
+
+### Prévisualisation de l’accueil en test
+
+Le titre « Quiz de l’Avent » dans la barre supérieure permet à chaque membre de revoir l’accueil sans modifier l’état de découverte ni les réponses. Il est indisponible pendant une révélation prioritaire ou une opération en cours. L’action de l’accueil ouvre le calendrier selon les contrôles habituels, notamment la priorité de révélation.
+
+En mode test autorisé, une commande du calendrier permet également de prévisualiser l’accusé de réponse avec un lutin fictif, sans enregistrer ni effacer de réponse.

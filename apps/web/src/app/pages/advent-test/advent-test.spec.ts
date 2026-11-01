@@ -28,6 +28,37 @@ describe('AdventTest', () => {
     fixture.detectChanges()
   })
   afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks() })
+  it('lets any member reopen the welcome without changing discovery', async () => {
+    const component = fixture.componentInstance
+    component.testControls.set(false); component.testMode.set(false); component.calendarOpen.set(true)
+    fixture.detectChanges()
+    const preview = fixture.nativeElement.querySelector('button[aria-label="Revoir l’accueil du Quiz de l’Avent"]') as HTMLButtonElement
+    expect(preview).not.toBeNull()
+    const calls = vi.mocked(window.fetch).mock.calls.length
+    preview.click(); fixture.detectChanges()
+    expect(component.welcome()).toBe(true)
+    expect(vi.mocked(window.fetch).mock.calls.length).toBe(calls)
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ days: [{ day: 1, state: 'today' }], priorityResult: null })))
+    await component.discoverCalendar(); fixture.detectChanges()
+    expect(component.calendarOpen()).toBe(true)
+    expect(vi.mocked(window.fetch).mock.calls.at(-1)?.[0]).toBe('/v1/advent/calendar')
+    component.result.set({ answerId: 'a', day: 1, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false }); fixture.detectChanges()
+    expect(preview.disabled).toBe(true)
+  })
+  it('previews the acknowledgement for test operators without saving an answer', async () => {
+    const component = fixture.componentInstance
+    component.testControls.set(true); component.testMode.set(true); component.calendarOpen.set(true)
+    fixture.detectChanges()
+    const calls = vi.mocked(window.fetch).mock.calls.length
+    const button = fixture.nativeElement.querySelector('button[aria-label="Revoir l’accusé de réponse"]') as HTMLButtonElement
+    expect(button).not.toBeNull(); button.click(); fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('Aperçu de l’accusé')
+    expect(fixture.nativeElement.textContent).toContain('est enregistrée !')
+    expect(vi.mocked(window.fetch).mock.calls.length).toBe(calls)
+    expect(fixture.nativeElement.querySelector('button[aria-label="Effacer ma réponse et rejouer"]')).toBeNull()
+    component.testMode.set(false); component.calendarOpen.set(true); fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('button[aria-label="Revoir l’accusé de réponse"]')).toBeNull()
+  })
   it('opens welcome until discovery succeeds and safely retries a failed save', async () => {
     let fail = true
     const attempts: string[] = []

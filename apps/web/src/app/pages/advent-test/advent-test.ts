@@ -74,6 +74,8 @@ export class AdventTest {
     })
   }
   readonly welcome = signal(false)
+  readonly welcomePreview = signal(false)
+  readonly confirmationPreview = signal(false)
   readonly discoveryError = signal(false)
   private discoveryAttempt: string | null = null
   @ViewChild("welcomeHeading") private welcomeHeading?: ElementRef<HTMLElement>
@@ -144,7 +146,7 @@ export class AdventTest {
   private recordedLate = false
   readonly lateDiscovery = signal(false)
   private visibilityListener: (() => void) | null = null
-  @ViewChild('entryHeading') private entryHeading?: ElementRef<HTMLElement>
+  @ViewChild('entryHeading', { read: ElementRef }) private entryHeading?: ElementRef<HTMLElement>
   @ViewChild('resultHeading') private resultHeading?: ElementRef<HTMLElement>
   @ViewChild('quizHeading') private quizHeading?: ElementRef<HTMLElement>
   @ViewChild('recordedStatus') private recordedStatus?: ElementRef<HTMLElement>
@@ -163,7 +165,7 @@ export class AdventTest {
 
   async start(): Promise<void> {
     this.projectionEpoch++
-    this.welcome.set(false); this.discoveryError.set(false)
+    this.welcome.set(false); this.welcomePreview.set(false); this.confirmationPreview.set(false); this.discoveryError.set(false)
     this.calendarOpen.set(false); this.calendarDays.set([]); this.history.set(null); this.christmasScore.set(null); this.lateDiscovery.set(false)
     this.rankingOpen.set(false)
     this.ranking.set(null)
@@ -199,8 +201,28 @@ export class AdventTest {
     } catch (error) { if (!(error instanceof StaleRequestError)) { this.error.set(true); this.loading.set(false) } }
   }
 
+  previewWelcome(): void {
+    if (this.welcome() || this.loading() || this.submitting() || this.closingDay() !== null || this.pendingMutations() || this.result() || this.sessionChanged() || this.transitionRequired() || this.unavailable()) return
+    this.welcomePreview.set(true); this.welcome.set(true); this.calendarOpen.set(false)
+    setTimeout(() => this.welcomeHeading?.nativeElement.focus())
+  }
+
+  previewConfirmation(): void {
+    if (!this.testMode() || !this.testControls() || !this.calendarOpen() || this.loading() || this.result()) return
+    this.calendarOpen.set(false); this.confirmationPreview.set(true)
+    this.preview.set(null); this.history.set(null); this.rankingOpen.set(false)
+    this.quiz.set({ day: 1, name: 'Lutin de Noël', portrait: '/advent/welcome-elf-v1.webp', statements: [], genericElf: true })
+    this.answerState.set('recorded')
+    setTimeout(() => this.recordedStatus?.nativeElement.focus())
+  }
+
   async discoverCalendar(): Promise<void> {
     if (!this.welcome() || this.loading()) return
+    if (this.welcomePreview()) {
+      this.welcomePreview.set(false); this.welcome.set(false)
+      await this.openCalendar()
+      return
+    }
     const epoch = this.projectionEpoch
     const identity = this.auth.sessionUser()?.id ?? null
     this.loading.set(true); this.discoveryError.set(false)
@@ -325,6 +347,7 @@ export class AdventTest {
       if (response.priorityResult) { this.calendarOpen.set(false); this.history.set(null); await this.showResult(response.priorityResult); return }
       if (!response.days) throw new Error('Calendar unavailable')
       this.calendarDays.set(response.days); this.history.set(null); this.rankingOpen.set(false); this.calendarOpen.set(true)
+      if (this.confirmationPreview()) { this.confirmationPreview.set(false); this.quiz.set(null) }
       setTimeout(() => this.calendarHeading?.nativeElement.focus())
     } catch (error) {
       if (error instanceof StaleRequestError || !this.contextCurrent(epoch, identity)) return
@@ -441,6 +464,7 @@ export class AdventTest {
       if (response.priorityResult) { await this.showResult(response.priorityResult); return }
       if (!response.ranking) throw new Error('Ranking unavailable')
       this.ranking.set(response.ranking)
+      if (this.confirmationPreview()) { this.confirmationPreview.set(false); this.quiz.set(null) }
       this.calendarOpen.set(false); this.history.set(null)
       this.rankingOpen.set(true)
       setTimeout(() => this.rankingHeading?.nativeElement.focus())
