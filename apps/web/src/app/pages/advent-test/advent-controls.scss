@@ -2,6 +2,7 @@
 .advent__test-actions, .advent__test-actions.advent__test-actions--calendar { display: flex; flex-wrap: nowrap; width: 100%; max-width: 100%; min-height: 3rem; box-sizing: border-box; gap: .125rem; border-radius: 0; overflow-x: visible; padding: 0 .5rem; }
 .advent__test-actions button { flex: 0 0 48px; width: 48px; height: 48px; color: var(--hatcast-avent-green) !important; }
 .advent__test-label { font: var(--mat-sys-label-large); }
+.advent__preview-actions-label { align-self: center; min-width: 0; font: var(--mat-sys-label-large); color: var(--hatcast-avent-green); }
 .advent__test-label-short { display: none; }
 .advent__test-menu-trigger { margin-inline-start: auto; }
 .advent__simulated-day { min-width: 0; flex: 1 1 auto; white-space: nowrap; }

@@ -2121,6 +2121,48 @@ describe('AdventTest', () => {
     expect(fixture.nativeElement.querySelector('[role=alert]')).toBeNull()
   })
 
+  it('shows loading rather than a failure while preview content is reloading', async () => {
+    const component = fixture.componentInstance
+    component.testMode.set(false); component.productionPreview.set(true); component.selectedDay.set(3)
+    component.result.set({ answerId: 'a', day: 3, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: true })
+    component.answerState.set('recorded'); (component as any).replayToken = 'token'
+    let resolveRead!: (response: Response) => void
+    const pendingRead = new Promise<Response>(resolve => { resolveRead = resolve })
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url = String(input)
+      if (url.endsWith('/replay')) return new Response(JSON.stringify({ status: 'available' }))
+      if (url.endsWith('/reconcile')) return new Response(JSON.stringify({ status: 'available', generation: 'new' }))
+      return pendingRead
+    })
+    const replay = component.replay()
+    await vi.waitFor(() => expect(component.replayReloading()).toBe(true))
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('Chargement du quiz')
+    expect(fixture.nativeElement.textContent).not.toContain('n’a pas pu être rechargé')
+    resolveRead(new Response(JSON.stringify({ day: 3, name: 'Modifié', portrait: '', statements: ['un', 'deux', 'trois'] })))
+    await replay; fixture.detectChanges()
+    expect(component.replayReloading()).toBe(false)
+    expect(component.replayReloadFailed()).toBe(false)
+    expect(component.quiz()?.name).toBe('Modifié')
+  })
+
+  it('hides the previous reload failure while retrying', async () => {
+    const component = fixture.componentInstance
+    component.productionPreview.set(true); component.selectedDay.set(3); component.replayReloadFailed.set(true)
+    let resolveRead!: (response: Response) => void
+    const pendingRead = new Promise<Response>(resolve => { resolveRead = resolve })
+    vi.mocked(window.fetch).mockImplementation(async input => String(input).endsWith('/answer')
+      ? new Response(JSON.stringify({ status: 'available' })) : pendingRead)
+    const retry = component.retryReplayContent()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('Chargement du quiz')
+    expect(fixture.nativeElement.textContent).not.toContain('n’a pas pu être rechargé')
+    resolveRead(new Response(JSON.stringify({ day: 3, name: 'Modifié', portrait: '', statements: ['un', 'deux', 'trois'] })))
+    await retry; fixture.detectChanges()
+    expect(component.replayReloading()).toBe(false)
+    expect(component.replayReloadFailed()).toBe(false)
+  })
+
   it('focuses the personal deletion confirmation and restores the preview menu trigger on cancel', async () => {
     const component = fixture.componentInstance
     component.testMode.set(false); component.productionPreview.set(true); component.selectedDay.set(3)
@@ -2128,6 +2170,7 @@ describe('AdventTest', () => {
     component.answerState.set('recorded')
     document.body.appendChild(fixture.nativeElement); fixture.detectChanges()
     const trigger = fixture.nativeElement.querySelector('button[aria-label="Actions de prévisualisation"]') as HTMLButtonElement
+    expect(fixture.nativeElement.querySelector('.advent__preview-actions-label')?.textContent).toContain('Actions de prévisualisation')
     trigger.focus(); trigger.click(); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges()
     const action = [...document.querySelectorAll('button')].find(button => button.textContent?.includes('Effacer ma réponse et rejouer'))!
     action.focus(); action.click(); fixture.detectChanges(); await new Promise(resolve => setTimeout(resolve, 0))

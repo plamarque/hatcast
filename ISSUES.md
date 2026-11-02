@@ -75,6 +75,14 @@ human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
 
+### BUG-090 — Advent preview briefly reports a failed replay reload
+- **Status**: Corrected locally; staging human verification pending. Reported on 2026-11-02.
+- **Severity**: Low.
+- **Affected area**: Private Advent preview, personal answer deletion and replay.
+- **Observed behavior**: After confirming deletion of the host's answer, the interface briefly says the quiz could not be reloaded, then displays the quiz again. Observed on mobile staging revision `hatcast-v2-staging-00131-dn8`.
+- **Expected behavior**: While the quiz reload is pending, do not display a failure; display the retry message only if the reload actually fails.
+- **Notes/context**: The frontend sets `replayReloadFailed` before awaiting the content request and clears it on success, which explains the transient error display. Actual failed reads must remain visible and retryable. The user also reported that the preview action menu is not clearly identified.
+
 ### BUG-089 — Mobile install banner covers the Advent entry
 - **Status**: Closed on 2026-11-02; existing behavior accepted by Patrice.
 - **Severity**: Not classified as a defect.
