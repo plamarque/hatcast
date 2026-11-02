@@ -15,8 +15,6 @@ historical registry below.
 
 ### Open defects and limitations
 
-BUG-089 (mobile PWA install banner covers the Advent gift entry).
-
 BUG-071 (Advent catalogue PostgreSQL integration test loses its connection in CI).
 
 BUG-072 (V2 Playwright smoke suite fails on commit b560afa4).
@@ -78,12 +76,12 @@ human-smoke, integration, or validation gate.
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
 
 ### BUG-089 — Mobile install banner covers the Advent entry
-- **Status**: Open
-- **Severity**: Medium
+- **Status**: Closed on 2026-11-02; existing behavior accepted by Patrice.
+- **Severity**: Not classified as a defect.
 - **Affected area**: V2 mobile member shell and PWA install banner.
 - **Observed behavior**: At a 390 × 844 viewport in the isolated offline stack, the visible install banner intercepted pointer events on the Advent gift after returning from the quiz.
-- **Expected behavior**: Members can activate the Advent gift while the install banner is visible.
-- **Notes**: Observed in a real-browser local test on 2026-11-02. Dismissing the banner permits further testing; production occurrence has not been checked.
+- **Expected behavior**: The member may dismiss the banner before using the gift; no change to the existing banner behavior is requested.
+- **Notes**: Observed in a real-browser local test on 2026-11-02. After dismissal, the gift was accessible and the Advent path worked. Production occurrence has not been checked. No complete blockage was established.
 
 ### BUG-084 — In-flight Advent reminder can follow an account switch
 - **Status**: Deferred on 2026-11-01 at Patrice's request; identified by code review, not reproduced on a real push service.
