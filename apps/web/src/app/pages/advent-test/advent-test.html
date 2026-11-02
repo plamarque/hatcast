@@ -51,6 +51,7 @@
     }
   @if (productionPreview() && !calendarOpen() && !rankingOpen() && result() && answerState() === 'recorded') {
     <div class="advent__test-actions" aria-label="Actions de prévisualisation">
+      <span class="advent__preview-actions-label">Actions de prévisualisation</span>
       <button #previewReplayButton mat-icon-button type="button" class="advent__test-menu-trigger" [matMenuTriggerFor]="previewActionsMenu" aria-label="Actions de prévisualisation" title="Actions de prévisualisation"><mat-icon aria-hidden="true">more_vert</mat-icon></button>
       <mat-menu #previewActionsMenu="matMenu" class="advent-test-menu" xPosition="before">
         <button mat-menu-item type="button" (click)="requestPersonalReset('replay')" [disabled]="submitting()"><mat-icon aria-hidden="true">delete_outline</mat-icon><span>Effacer ma réponse et rejouer</span></button>
@@ -77,7 +78,9 @@
     }
     @if (error() && (quiz() || result() || history() || rankingOpen())) { <p class="advent__feedback" role="alert">{{ sessionChanged() ? 'La partie de test a été réinitialisée. Recharge l’aperçu.' : rankingOpen() ? 'Impossible de charger le calendrier. Réessaie.' : memberMode ? 'Impossible de mettre à jour le quiz. Réessaie.' : 'Impossible de mettre à jour la partie de test. Réessaie.' }}</p> }
     @if (rankingError()) { <p role="alert">{{ sessionChanged() ? 'La partie de test a été réinitialisée. Recharge l’aperçu.' : 'Impossible de charger le classement. Réessaie.' }}</p> @if (sessionChanged()) { <button mat-stroked-button type="button" (click)="start()">Recharger l’aperçu</button> } }
-    @if (replayReloadFailed()) {
+    @if (replayReloading()) {
+      <p role="status">Chargement du quiz…</p>
+    } @else if (replayReloadFailed()) {
       <p class="advent__feedback" role="alert">Ta réponse a été effacée, mais le quiz n’a pas pu être rechargé.</p>
       <button mat-stroked-button type="button" class="advent__retry-replay" (click)="retryReplayContent()" [disabled]="loading() || submitting()">Réessayer le chargement</button>
     } @else if (welcome()) {

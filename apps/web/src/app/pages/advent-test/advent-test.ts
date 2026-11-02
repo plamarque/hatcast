@@ -219,6 +219,7 @@ export class AdventTest {
       this.discoveryAttempt = null
       this.identityEpoch++
       this.personalResetConfirm.set(null)
+      this.replayReloading.set(false); this.replayReloadFailed.set(false)
       this.projectionEpoch++
       this.calendarDays.set([]); this.calendarOpen.set(false); this.welcome.set(false); this.discoveryError.set(false)
       this.result.set(null); this.resultContent.set(null); this.history.set(null)
@@ -244,6 +245,7 @@ export class AdventTest {
   readonly resetConfirm = signal(false)
   readonly personalResetConfirm = signal<'calendar' | 'replay' | null>(null)
   readonly replayReloadFailed = signal(false)
+  readonly replayReloading = signal(false)
   get memberMode(): boolean { return !this.testMode() }
   async toggleTestMode(): Promise<void> {
     if (!this.testControls() || this.loading() || this.submitting() || this.closingDay() !== null || this.pendingMutations()) return
@@ -428,6 +430,7 @@ export class AdventTest {
 
   async start(openTestDay = false): Promise<void> {
     this.replayReloadFailed.set(false)
+    this.replayReloading.set(false)
     this.stopWaiting()
     this.projectionEpoch++
     this.welcome.set(false); this.welcomePreview.set(false); this.confirmationPreview.set(false); this.discoveryError.set(false)
@@ -963,8 +966,15 @@ export class AdventTest {
 
   async retryReplayContent(): Promise<void> {
     if (this.loading() || this.submitting()) return
-    await this.selectDay(this.selectedDay())
-    if (!this.error()) this.replayReloadFailed.set(false)
+    const epoch = this.projectionEpoch
+    const identity = this.auth.sessionUser()?.id ?? null
+    this.replayReloading.set(true)
+    try {
+      await this.selectDay(this.selectedDay())
+      if (this.contextCurrent(epoch, identity) && !this.error()) this.replayReloadFailed.set(false)
+    } finally {
+      if (this.contextCurrent(epoch, identity)) this.replayReloading.set(false)
+    }
   }
 
   async replay(): Promise<void> {
@@ -992,12 +1002,19 @@ export class AdventTest {
         this.quiz.set(null)
         this.preview.set(null)
         if (this.productionPreview()) {
-          this.replayReloadFailed.set(true)
-          const currentContent = await this.requestJson<FictionalQuiz | null>(`/v1/advent-test/doors/${this.selectedDay()}`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() }, true)
-          if (!currentContent) throw new Error('Quiz unavailable')
-          this.quiz.set(currentContent)
-          this.preview.set(currentContent)
           this.replayReloadFailed.set(false)
+          this.replayReloading.set(true)
+          try {
+            const currentContent = await this.requestJson<FictionalQuiz | null>(`/v1/advent-test/doors/${this.selectedDay()}`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() }, true)
+            if (!currentContent) throw new Error('Quiz unavailable')
+            this.quiz.set(currentContent)
+            this.preview.set(currentContent)
+          } catch (error) {
+            if (!(error instanceof StaleRequestError) && this.contextCurrent(epoch, identity)) this.replayReloadFailed.set(true)
+            throw error
+          } finally {
+            if (this.contextCurrent(epoch, identity)) this.replayReloading.set(false)
+          }
         } else this.quiz.set(previousContent)
       }
       await this.reconcile()
