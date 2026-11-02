@@ -22,10 +22,9 @@
     <button mat-icon-button type="button" (click)="navigateRanking()" [disabled]="welcome() || loading() || submitting() || closingDay() !== null || (result() !== null && !historicalResult())" [attr.aria-current]="rankingOpen() ? 'page' : null" aria-label="Classement" title="Classement"><mat-icon aria-hidden="true">emoji_events</mat-icon></button>
     <button mat-icon-button type="button" (click)="closeExperience()" [disabled]="closingExperience() || loading() || submitting() || pendingMutations() > 0 || closingDay() !== null" aria-label="Fermer le quiz" title="Fermer"><mat-icon aria-hidden="true">close</mat-icon></button>
   </header>
-  @if (productionPreview()) { <p class="advent__state" role="status">Prévisualisation : tes réponses sont définitives.</p> }
+  @if (productionPreview()) { <p class="advent__state" role="status">Prévisualisation privée : tu peux effacer ta réponse pour rejouer.</p> }
   @if (!memberMode) {
     <div class="advent__test-actions" [class.advent__test-actions--calendar]="calendarOpen()" aria-label="Commandes de test">
-      <button #openingReplayButton mat-icon-button type="button" (click)="prepareOpeningReplay()" [disabled]="openingReplayBusy() || closingExperience() || loading() || submitting() || closingDay() !== null || pendingMutations() > 0" aria-label="Rejouer l’ouverture à la connexion" title="Rejouer l’ouverture à la connexion"><mat-icon aria-hidden="true">login</mat-icon></button>
       <span class="advent__test-label"><span class="advent__test-label-full">Mode test</span><span class="advent__test-label-short">Test</span></span>
       @if (!rankingOpen()) {
       <button mat-icon-button type="button" (click)="previousDay()" [disabled]="welcome() || transitionRequired() || loading() || submitting() || closingDay() !== null || (quiz() && answerState() === 'checking') || !clockDate() || clockDate()! <= '2026-12-01'" aria-label="Revenir au jour précédent" title="Jour précédent"><mat-icon aria-hidden="true">arrow_back</mat-icon></button>
@@ -35,24 +34,36 @@
       @if (calendarOpen()) {
       <button mat-icon-button type="button" (click)="previewConfirmation()" [disabled]="loading() || submitting() || closingDay() !== null" aria-label="Revoir l’accusé de réponse" title="Revoir l’accusé"><mat-icon aria-hidden="true">mark_email_read</mat-icon></button>
       }
-      @if (calendarOpen() && currentPlayedDay()) {
-      <button mat-icon-button type="button" (click)="personalResetConfirm.set('calendar')" [disabled]="!currentPlayedDay() || loading() || submitting() || closingDay() !== null" aria-label="Refermer mon cadeau du jour et effacer ma réponse" title="Refermer mon cadeau et effacer ma réponse"><mat-icon aria-hidden="true">card_giftcard</mat-icon></button>
-      }
-      @if (!calendarOpen() && !rankingOpen()) {
-      <button mat-icon-button type="button" (click)="resetConfirm.set(true)" [disabled]="loading() || submitting()" aria-label="Réinitialiser la partie de développement" title="Réinitialiser la partie"><mat-icon aria-hidden="true">restart_alt</mat-icon></button>
-      @if (!confirmationPreview() && (result() || quiz() || history()?.result) && answerState() === 'recorded') {
-        <button mat-icon-button type="button" (click)="personalResetConfirm.set('replay')" [disabled]="submitting()" aria-label="Effacer ma réponse et rejouer" title="Effacer ma réponse et rejouer"><mat-icon aria-hidden="true">delete_outline</mat-icon></button>
-      }
-      }
+      <button #openingReplayButton mat-icon-button type="button" class="advent__test-menu-trigger" [matMenuTriggerFor]="testActionsMenu" aria-label="Actions du mode test" title="Actions du mode test"><mat-icon aria-hidden="true">more_vert</mat-icon></button>
+      <mat-menu #testActionsMenu="matMenu" class="advent-test-menu" xPosition="before">
+        <button mat-menu-item type="button" (click)="prepareOpeningReplay()" [disabled]="openingReplayBusy() || closingExperience() || loading() || submitting() || closingDay() !== null || pendingMutations() > 0"><mat-icon aria-hidden="true">login</mat-icon><span>Rejouer l’ouverture à la connexion</span></button>
+        @if (calendarOpen() && currentPlayedDay()) {
+          <button mat-menu-item type="button" (click)="requestPersonalReset('calendar')" [disabled]="loading() || submitting() || closingDay() !== null" aria-label="Refermer mon cadeau du jour et effacer ma réponse"><mat-icon aria-hidden="true">card_giftcard</mat-icon><span>Refermer mon cadeau et effacer ma réponse</span></button>
+        }
+        @if (!calendarOpen() && !rankingOpen()) {
+          @if (!confirmationPreview() && (result() || quiz() || history()?.result) && answerState() === 'recorded') {
+            <button mat-menu-item type="button" (click)="requestPersonalReset('replay')" [disabled]="submitting()" aria-label="Effacer ma réponse et rejouer"><mat-icon aria-hidden="true">delete_outline</mat-icon><span>Effacer ma réponse et rejouer</span></button>
+          }
+          <button mat-menu-item type="button" (click)="resetConfirm.set(true)" [disabled]="loading() || submitting()" aria-label="Réinitialiser toute la partie de test"><mat-icon aria-hidden="true">restart_alt</mat-icon><span>Réinitialiser toute la partie de test</span></button>
+        }
+      </mat-menu>
     </div>
     }
+  @if (productionPreview() && !calendarOpen() && !rankingOpen() && result() && answerState() === 'recorded') {
+    <div class="advent__test-actions" aria-label="Actions de prévisualisation">
+      <button #previewReplayButton mat-icon-button type="button" class="advent__test-menu-trigger" [matMenuTriggerFor]="previewActionsMenu" aria-label="Actions de prévisualisation" title="Actions de prévisualisation"><mat-icon aria-hidden="true">more_vert</mat-icon></button>
+      <mat-menu #previewActionsMenu="matMenu" class="advent-test-menu" xPosition="before">
+        <button mat-menu-item type="button" (click)="requestPersonalReset('replay')" [disabled]="submitting()"><mat-icon aria-hidden="true">delete_outline</mat-icon><span>Effacer ma réponse et rejouer</span></button>
+      </mat-menu>
+    </div>
+  }
   <div class="advent__content">
     @if (closeError()) { <p role="alert">Impossible d’enregistrer la fermeture pour aujourd’hui. Réessaie ou quitte sans l’enregistrer.</p><button mat-stroked-button type="button" (click)="leaveExperience()">Quitter sans enregistrer</button> }
-    @if (personalResetConfirm() && !memberMode) {
+    @if (personalResetConfirm() && (!memberMode || productionPreview())) {
       <section aria-labelledby="advent-personal-reset-title">
-        <h2 id="advent-personal-reset-title">Effacer ta réponse ?</h2>
+        <h2 #personalResetHeading id="advent-personal-reset-title" tabindex="-1">Effacer ta réponse du {{ personalResetConfirm() === 'calendar' ? currentPlayedDay()?.day : selectedDay() }} décembre ?</h2>
         <p>Ta réponse à ce cadeau sera effacée. Tu pourras rejouer.</p>
-        <button mat-stroked-button type="button" (click)="personalResetConfirm.set(null)">Annuler</button>
+        <button mat-stroked-button type="button" (click)="cancelPersonalReset()">Annuler</button>
         <button mat-flat-button type="button" (click)="confirmPersonalReset()">Effacer ma réponse</button>
       </section>
     }
@@ -66,7 +77,10 @@
     }
     @if (error() && (quiz() || result() || history() || rankingOpen())) { <p class="advent__feedback" role="alert">{{ sessionChanged() ? 'La partie de test a été réinitialisée. Recharge l’aperçu.' : rankingOpen() ? 'Impossible de charger le calendrier. Réessaie.' : memberMode ? 'Impossible de mettre à jour le quiz. Réessaie.' : 'Impossible de mettre à jour la partie de test. Réessaie.' }}</p> }
     @if (rankingError()) { <p role="alert">{{ sessionChanged() ? 'La partie de test a été réinitialisée. Recharge l’aperçu.' : 'Impossible de charger le classement. Réessaie.' }}</p> @if (sessionChanged()) { <button mat-stroked-button type="button" (click)="start()">Recharger l’aperçu</button> } }
-    @if (welcome()) {
+    @if (replayReloadFailed()) {
+      <p class="advent__feedback" role="alert">Ta réponse a été effacée, mais le quiz n’a pas pu être rechargé.</p>
+      <button mat-stroked-button type="button" class="advent__retry-replay" (click)="retryReplayContent()" [disabled]="loading() || submitting()">Réessayer le chargement</button>
+    } @else if (welcome()) {
       <section class="advent__welcome" aria-labelledby="welcome-title">
         <div class="advent__welcome-scene" aria-hidden="true"><img src="/advent/welcome-elf-v1.webp" alt=""></div>
         <div class="advent__welcome-panel">

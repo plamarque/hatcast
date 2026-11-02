@@ -3,6 +3,7 @@
 .advent__test-actions button { flex: 0 0 48px; width: 48px; height: 48px; color: var(--hatcast-avent-green) !important; }
 .advent__test-label { font: var(--mat-sys-label-large); }
 .advent__test-label-short { display: none; }
+.advent__test-menu-trigger { margin-inline-start: auto; }
 .advent__simulated-day { min-width: 0; flex: 1 1 auto; white-space: nowrap; }
 
 @media (max-width: 360px) {

@@ -29,6 +29,13 @@ describe('AdventTest', () => {
     fixture.detectChanges()
   })
   afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks() })
+  async function openTestMenu(): Promise<void> {
+    fixture.detectChanges()
+    ;(fixture.nativeElement.querySelector('[aria-label="Actions du mode test"]') as HTMLButtonElement).click()
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+  }
   it('confirms the ordinary date and signs out without recording a dismissal', async () => {
     const component = fixture.componentInstance
     const auth = TestBed.inject(AuthApiService) as unknown as { sessionUserSignal: WritableSignal<UserSummary | null> }
@@ -233,7 +240,7 @@ describe('AdventTest', () => {
     expect(component.productionPreview()).toBe(true)
     expect(component.testMode()).toBe(false)
     expect(component.calendarOpen()).toBe(true)
-    expect(fixture.nativeElement.textContent).toContain('tes réponses sont définitives')
+    expect(fixture.nativeElement.textContent).toContain('tu peux effacer ta réponse pour rejouer')
     await component.openCalendarDay(component.calendarDays()[0])
     await component.openDoor()
     component.choice.set(1)
@@ -1043,7 +1050,8 @@ describe('AdventTest', () => {
     expect(component.result()?.answerId).toBe('answer-one')
     expect(component.historicalResult()).toBe(true)
     expect(fixture.nativeElement.querySelector('.advent__confetti')).toBeNull()
-    expect(fixture.nativeElement.querySelector('[aria-label="Effacer ma réponse et rejouer"]')).not.toBeNull()
+    await openTestMenu()
+    expect(document.querySelector('[aria-label="Effacer ma réponse et rejouer"]')).not.toBeNull()
     expect(fixture.nativeElement.textContent).not.toContain('Retour au calendrier')
     expect(fixture.nativeElement.querySelector('[aria-label="Voir le calendrier"]')).not.toBeNull()
   })
@@ -1149,10 +1157,11 @@ describe('AdventTest', () => {
     component.clockDate.set('2026-12-01')
     component.calendarDays.set([{ day: 1, state: 'played' }, { day: 2, state: 'past-unplayed' }, { day: 3, state: 'played' }])
     fixture.detectChanges()
-    expect(fixture.nativeElement.querySelectorAll('[aria-label="Refermer mon cadeau du jour et effacer ma réponse"]')).toHaveLength(1)
+    await openTestMenu()
+    expect(document.querySelectorAll('[aria-label="Refermer mon cadeau du jour et effacer ma réponse"]')).toHaveLength(1)
     expect(fixture.nativeElement.querySelector('.advent__calendar-door button')).toBeNull()
     component.testControls.set(false); component.testMode.set(false); fixture.detectChanges()
-    expect(fixture.nativeElement.querySelectorAll('[aria-label="Refermer mon cadeau du jour et effacer ma réponse"]')).toHaveLength(0)
+    expect(fixture.nativeElement.querySelector('[aria-label="Actions du mode test"]')).toBeNull()
     component.testControls.set(true); component.testMode.set(true); fixture.detectChanges()
     vi.mocked(window.fetch).mockClear().mockResolvedValueOnce(new Response(JSON.stringify({ status: 'recorded', replayToken: 'own-answer' })))
       .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'cleared' })))
@@ -1179,9 +1188,10 @@ describe('AdventTest', () => {
       expect(window.fetch).not.toHaveBeenCalled()
     }
     component.clockDate.set('2026-12-24'); fixture.detectChanges()
-    expect(fixture.nativeElement.querySelector('[aria-label="Refermer mon cadeau du jour et effacer ma réponse"]').disabled).toBe(false)
+    await openTestMenu()
+    expect((document.querySelector('[aria-label="Refermer mon cadeau du jour et effacer ma réponse"]') as HTMLButtonElement).disabled).toBe(false)
     component.closingDay.set(24); fixture.detectChanges()
-    expect(fixture.nativeElement.querySelector('[aria-label="Refermer mon cadeau du jour et effacer ma réponse"]').disabled).toBe(true)
+    expect((document.querySelector('[aria-label="Refermer mon cadeau du jour et effacer ma réponse"]') as HTMLButtonElement).disabled).toBe(true)
   })
 
   it('disables both date arrows during a delayed daily reset and keeps the date', async () => {
@@ -1386,7 +1396,8 @@ describe('AdventTest', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Voir le classement')
   })
   it('asks for confirmation before resetting the shared development game', async () => {
-    const trigger = fixture.nativeElement.querySelector('[aria-label="Réinitialiser la partie de développement"]') as HTMLButtonElement
+    await openTestMenu()
+    const trigger = document.querySelector('[aria-label="Réinitialiser toute la partie de test"]') as HTMLButtonElement
     expect(trigger).not.toBeNull()
     trigger.click()
     fixture.detectChanges()
@@ -1611,7 +1622,8 @@ describe('AdventTest', () => {
     fixture.detectChanges()
     expect(fixture.nativeElement.querySelector('.advent__gift')).toBeNull()
     expect(fixture.nativeElement.textContent).toContain('Ta réponse est enregistrée')
-    expect(fixture.nativeElement.querySelector('[aria-label="Effacer ma réponse et rejouer"]')).toBeTruthy()
+    await openTestMenu()
+    expect(document.querySelector('[aria-label="Effacer ma réponse et rejouer"]')).toBeTruthy()
   })
 
   it('announces loading and a closed quiz through request transitions', async () => {
@@ -1823,7 +1835,8 @@ describe('AdventTest', () => {
     fixture.componentInstance.choice.set(1)
     fixture.detectChanges()
     expect(fixture.nativeElement.textContent).not.toContain('Quelle affirmation est fausse')
-    const button = fixture.nativeElement.querySelector('.advent__test-actions button[aria-label="Effacer ma réponse et rejouer"]') as HTMLButtonElement
+    await openTestMenu()
+    const button = document.querySelector('[aria-label="Effacer ma réponse et rejouer"]') as HTMLButtonElement
     expect(button).toBeTruthy()
     vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ status: 'available' }), { status: 200 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'available', generation: 'new' }), { status: 200 }))
@@ -2065,6 +2078,63 @@ describe('AdventTest', () => {
     expect(component.error()).toBe(true)
   })
 
+  it('reloads the current preview content after personal deletion', async () => {
+    const component = fixture.componentInstance
+    component.testMode.set(false); component.productionPreview.set(true); component.selectedDay.set(3)
+    component.result.set({ answerId: 'a', day: 3, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: true })
+    component.resultContent.set({ day: 3, name: 'Ancien', portrait: 'old', statements: ['un', 'deux', 'trois'], genericElf: false })
+    component.answerState.set('recorded'); (component as any).replayToken = 'token'
+    const current = { day: 3, name: 'Modifié', portrait: 'new', statements: ['nouveau', 'deux', 'trois'] }
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url = String(input)
+      if (url.endsWith('/replay')) return new Response(JSON.stringify({ status: 'available' }))
+      if (url.endsWith('/reconcile')) return new Response(JSON.stringify({ status: 'available', generation: 'new' }))
+      return new Response(JSON.stringify(current))
+    })
+    await component.replay()
+    expect(component.quiz()).toEqual(current)
+    const read = vi.mocked(window.fetch).mock.calls.find(([url]) => String(url).endsWith('/doors/3'))!
+    expect(read[1]?.cache).toBe('no-store')
+    expect((read[1]?.headers as Record<string, string>)['X-Advent-Preview']).toBe('true')
+  })
+
+  it('reports a failed current-content read after deletion without showing the old quiz or result', async () => {
+    const component = fixture.componentInstance
+    component.testMode.set(false); component.productionPreview.set(true); component.selectedDay.set(3)
+    component.result.set({ answerId: 'a', day: 3, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: true })
+    component.resultContent.set({ day: 3, name: 'Ancien', portrait: 'old', statements: ['un', 'deux', 'trois'], genericElf: false })
+    component.answerState.set('recorded'); (component as any).replayToken = 'token'
+    vi.mocked(window.fetch).mockImplementation(async input => String(input).endsWith('/replay') ? new Response(JSON.stringify({ status: 'available' })) : new Response('', { status: 503 }))
+    await component.replay()
+    expect(component.result()).toBeNull(); expect(component.quiz()).toBeNull(); expect(component.error()).toBe(true)
+    expect(vi.mocked(window.fetch).mock.calls.some(([url]) => String(url).endsWith('/reconcile'))).toBe(false)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('[role=alert]')?.textContent).toContain('Ta réponse a été effacée')
+    const current = { day: 3, name: 'Modifié', portrait: 'new', statements: ['nouveau', 'deux', 'trois'], genericElf: false }
+    vi.mocked(window.fetch).mockImplementation(async input => String(input).endsWith('/answer') ? new Response(JSON.stringify({ status: 'available' })) : new Response(JSON.stringify(current)))
+    ;(fixture.nativeElement.querySelector('button.advent__retry-replay') as HTMLButtonElement).click()
+    await fixture.whenStable(); fixture.detectChanges()
+    expect(component.preview()).toEqual(current)
+    expect(fixture.nativeElement.querySelector('[role=alert]')).toBeNull()
+  })
+
+  it('focuses the personal deletion confirmation and restores the preview menu trigger on cancel', async () => {
+    const component = fixture.componentInstance
+    component.testMode.set(false); component.productionPreview.set(true); component.selectedDay.set(3)
+    component.result.set({ answerId: 'a', day: 3, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: true })
+    component.answerState.set('recorded')
+    document.body.appendChild(fixture.nativeElement); fixture.detectChanges()
+    const trigger = fixture.nativeElement.querySelector('button[aria-label="Actions de prévisualisation"]') as HTMLButtonElement
+    trigger.focus(); trigger.click(); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges()
+    const action = [...document.querySelectorAll('button')].find(button => button.textContent?.includes('Effacer ma réponse et rejouer'))!
+    action.focus(); action.click(); fixture.detectChanges(); await new Promise(resolve => setTimeout(resolve, 0))
+    expect(document.activeElement?.id).toBe('advent-personal-reset-title')
+    expect(document.activeElement?.textContent).toContain('3 décembre')
+    ;(fixture.nativeElement.querySelector('#advent-personal-reset-title + p + button') as HTMLButtonElement).click()
+    fixture.detectChanges(); await new Promise(resolve => setTimeout(resolve, 0))
+    expect(document.activeElement).toBe(trigger)
+  })
+
   it('uses the revealed answer day and its replay token', async () => {
     const component = fixture.componentInstance
     const result = { answerId: 'a', day: 3, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false }
@@ -2079,7 +2149,8 @@ describe('AdventTest', () => {
     })
     await (component as any).showResult(result)
     fixture.detectChanges()
-    expect(fixture.nativeElement.querySelector('[aria-label="Effacer ma réponse et rejouer"]')).toBeTruthy()
+    await openTestMenu()
+    expect(document.querySelector('[aria-label="Effacer ma réponse et rejouer"]')).toBeTruthy()
     await component.replay()
     const call = vi.mocked(window.fetch).mock.calls.find(([url]) => String(url).endsWith('/replay'))!
     expect(String(call[0])).toContain('/doors/3/')

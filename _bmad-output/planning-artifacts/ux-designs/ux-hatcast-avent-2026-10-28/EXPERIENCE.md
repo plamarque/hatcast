@@ -35,7 +35,7 @@ Français, tutoiement, ton festif et encourageant. Après confirmation : accusé
 
 ## Component Patterns
 
-- **Porte et choix** : toucher la grande porte pour découvrir le contenu ; sélectionner une des trois anecdotes supposée fausse, changer librement avant confirmation. En production, une réponse enregistrée est définitive ; en mode test isolé uniquement, la commande de rejeu personnel permet d’effacer sa propre réponse et rejouer la case selon le contrat existant.
+- **Porte et choix** : toucher la grande porte pour découvrir le contenu ; sélectionner une des trois anecdotes supposée fausse, changer librement avant confirmation. En production, une réponse enregistrée est définitive hors prévisualisation autorisée ; en mode test isolé ou en prévisualisation personnelle autorisée, la commande de rejeu personnel permet d’effacer sa propre réponse et rejouer la case selon le contrat existant.
 - **Confirmation** : sur la surface du quiz, confirmer l’enregistrement sans révéler justesse, fausse anecdote ou points ; en production, ne pas exposer d’indice par les scores ou le classement ; en test isolé, le classement courant fait exception comme précisé ci-dessus. En cas d’échec, proposer de réessayer tant que le quiz est jouable. Si l’enregistrement est incertain après une coupure, vérifier l’état enregistré avant de proposer un nouveau geste : si la réponse existe, afficher la confirmation ; sinon permettre le réessai avant minuit, ou expliquer la clôture après minuit. La résolution technique et les conflits entre appareils relèvent de l’architecture.
 - **Révélation** : dès minuit le lendemain, heure de Paris, montrer la justesse et la fausse anecdote, ainsi que le choix lorsque celui-ci diffère ; afficher uniquement les points gagnés ce jour (réponse, participation et éventuel bonus additionnés). Présenter aussi le complément facultatif lorsqu’il existe. Mettre les points du jour en évidence et la célébration validée pour une bonne réponse, avec alternative sans mouvement. La consultation ultérieure ne rejoue pas la célébration.
 - **Accès au calendrier et au classement** : après l’enregistrement de sa réponse, le membre peut ouvrir le classement depuis l’accusé. Les icônes de la barre donnent accès directement au calendrier et au classement ; elles sont désactivées pendant la révélation prioritaire.
@@ -167,6 +167,8 @@ La barre de l’Avent comporte à droite les icônes calendrier, classement et f
 
 Un testeur autorisé commence en mode membre : le temps, les réponses et le classement suivent les règles normales. Il peut activer le mode test depuis la barre de l’Avent, y compris lorsque le parcours normal est indisponible ; une barre contextuelle affiche alors les actions applicables. Le choix reste actif pendant la navigation dans l’Avent. Le désactiver recharge la projection membre sans effacer de réponse ni réinitialiser la partie. Une mutation en cours se termine avant le changement ; les anciennes réponses réseau ne doivent pas remplacer la nouvelle projection. Le reset global reste confirmé ; refermer son cadeau indique que la réponse personnelle sera effacée.
 
+Dans cette barre, un menu à trois points placé à droite regroupe les actions de réinitialisation, d’effacement personnel et de rejeu de l’ouverture à la connexion. Chaque action disponible conserve son icône et porte un libellé explicite ; ses confirmations et ses conditions restent inchangées. Les flèches de date et la prévisualisation de l’accusé restent directement accessibles.
+
 À l’activation du mode test, une révélation non vue reste prioritaire ; sinon, avant le 25 décembre, afficher l’état de la case du jour simulé, y compris l’accusé neutre si sa réponse est déjà enregistrée. Ce parcours remplace l’écran calendrier ou classement précédemment ouvert.
 
 Lorsqu’un testeur rejoue une réponse initialement tardive en revenant au jour simulé correspondant, le rejeu reste sans points et l’interface l’indique ; sa réponse et son résultat restent masqués jusqu’à la révélation autorisée.
@@ -193,7 +195,7 @@ Depuis le calendrier, revenir sur une réponse normale enregistrée et encore en
 
 ### Prévisualisation privée de production
 
-La route directe réservée aux deux personnes autorisées ouvre le calendrier et ses cases futures ; une réponse est définitive, son résultat personnel et son explication sont immédiatement consultables et récupérables. Identifier clairement la prévisualisation sans afficher de contrôles de simulation ou d’effacement. Préserver clavier, focus, mouvement réduit, lisibilité mobile et isolation visuelle Advent. Dans la navigation ordinaire, aucune erreur ne révèle l’Avent avant son ouverture.
+La route directe réservée aux deux personnes autorisées ouvre le calendrier et ses cases futures ; son résultat personnel et son explication sont immédiatement consultables et récupérables. Identifier clairement la prévisualisation avec une action confirmée pour effacer uniquement sa réponse au jour sélectionné et rejouer, sans contrôle de simulation ou de remise à zéro commune. Préserver clavier, focus, mouvement réduit, lisibilité mobile et isolation visuelle Advent. Dans la navigation ordinaire, aucune erreur ne révèle l’Avent avant son ouverture.
 
 ### Rejouer l’ouverture à la connexion (mode test)
 

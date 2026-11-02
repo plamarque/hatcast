@@ -174,8 +174,11 @@ class AdventMemberController(
 
     @PostMapping("/doors/{day}/answer/replay")
     fun replay(@PathVariable day: Int, @RequestBody body: ReplayAnswer, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AnswerState {
-        val session = requireControl(principal, request)
-        return game.replay(principal.userId, day, body.replayToken ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), session, simulated(principal, request), body.close)
+        authorize(principal)
+        val isPreview = preview(principal, request)
+        if (isPreview && body.close) throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        val session = if (isPreview) sessionFor(principal, request) else requireControl(principal, request)
+        return game.replay(principal.userId, day, body.replayToken ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), session, simulated(principal, request), body.close, isPreview)
     }
 
     @GetMapping("/clock")

@@ -116,9 +116,11 @@ test('keyboard answers on a narrow enlarged screen with reduced motion', async (
   }
   await page.setViewportSize({ width: 320, height: 700 })
   expect(await page.locator('.advent__recorded-art').evaluate(el => el.getBoundingClientRect().width)).toBeGreaterThanOrEqual(44)
-  const replay = page.locator('.advent__test-actions').getByRole('button', { name: 'Effacer ma réponse et rejouer' })
+  await page.getByRole('button', { name: 'Actions du mode test' }).click()
+  const replay = page.getByRole('menuitem', { name: 'Effacer ma réponse et rejouer' })
   await expect(replay).toBeVisible()
   await expect(replay.locator('mat-icon')).toHaveText('delete_outline')
+  await page.keyboard.press('Escape')
   await expect(page.locator('.advent__recorded')).not.toContainText(/bonne réponse|mauvaise réponse|points/i)
   expect(await page.locator('html').evaluate(el => getComputedStyle(el).getPropertyValue('--hatcast-avent-red').trim())).toBe('')
   expect(reservedAttempt).toBeTruthy()

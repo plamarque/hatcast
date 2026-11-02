@@ -34,7 +34,7 @@ const base = 'http://127.0.0.1:14331'
   }
   async function openPreview() {
     await page.goto(`${base}/avent?preview=1`)
-    try { await page.getByText('Prévisualisation : tes réponses sont définitives.').waitFor({ timeout: 12000 }) } catch (error) {
+    try { await page.getByText('Prévisualisation privée : tu peux effacer ta réponse pour rejouer.').waitFor({ timeout: 12000 }) } catch (error) {
       console.error('Preview session:', JSON.stringify(await page.evaluate(async () => (await fetch('/v1/advent/session', { cache: 'no-store' })).json())))
       console.error('Preview page:', (await page.locator('body').innerText()).slice(0, 800))
       throw error
@@ -95,9 +95,14 @@ const base = 'http://127.0.0.1:14331'
     const own = await api('/v1/advent/doors/23/result', true)
     assert.equal(own.status, 200); assert.equal(own.body.selectedChoice, 1); assert.match(own.cache, /no-store/)
     assert.equal(await mutate('/v1/advent/session/reset'), 404)
-    assert.equal(await mutate('/v1/advent/doors/23/answer/replay', { replayToken: own.body.answerId }), 404)
+    await page.getByRole('button', { name: 'Actions de prévisualisation' }).click()
+    await page.getByRole('menuitem', { name: 'Effacer ma réponse et rejouer' }).click()
+    await page.getByRole('button', { name: 'Effacer ma réponse', exact: true }).click()
+    await page.getByRole('radio').nth(1).check()
+    await page.getByRole('button', { name: 'Confirmer ma réponse' }).click()
+    await page.getByText('Explication fictive vingt-trois').waitFor()
     await page.reload()
-    await page.getByText('Prévisualisation : tes réponses sont définitives.').waitFor()
+    await page.getByText('Prévisualisation privée : tu peux effacer ta réponse pour rejouer.').waitFor()
     if (!(await page.getByText('Explication fictive vingt-trois').count())) {
       await page.locator('.advent__calendar-door[data-day="23"]').click()
       await page.getByText('Explication fictive vingt-trois').waitFor()
@@ -124,6 +129,6 @@ const base = 'http://127.0.0.1:14331'
     await context.setOffline(true)
     const offline = await page.evaluate(() => fetch('/v1/advent/doors/23/result', { headers: { 'X-Advent-Preview': 'true' } }).then(r => r.ok, () => false))
     assert.equal(offline, false)
-    console.log('PASS: real API, synthetic identities, final results, account isolation and active worker')
+    console.log('PASS: real API, synthetic identities, personal replay, account isolation and active worker')
   } finally { await context.close(); await browser.close() }
 })().catch(error => { console.error(error); process.exitCode = 1 })
