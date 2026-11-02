@@ -122,7 +122,8 @@ describe('AdventTest', () => {
     fixture.detectChanges()
     const calls = vi.mocked(window.fetch).mock.calls.length
     const activate = vi.spyOn(TestBed.inject(PushNotificationsService), 'activateAdventDevice')
-    ;(fixture.nativeElement.querySelector('button[aria-label="Revoir l’accusé de réponse"]') as HTMLButtonElement).click()
+    await openTestMenu()
+    ;(document.querySelector('button[aria-label="Revoir la confirmation de réponse"]') as HTMLButtonElement).click()
     fixture.detectChanges()
     const checkbox = fixture.nativeElement.querySelector('.advent__reminder input') as HTMLInputElement
     expect(checkbox).not.toBeNull()
@@ -530,14 +531,16 @@ describe('AdventTest', () => {
     component.testControls.set(true); component.testMode.set(true); component.calendarOpen.set(true)
     fixture.detectChanges()
     const calls = vi.mocked(window.fetch).mock.calls.length
-    const button = fixture.nativeElement.querySelector('button[aria-label="Revoir l’accusé de réponse"]') as HTMLButtonElement
+    expect(fixture.nativeElement.querySelector('button[aria-label="Revoir la confirmation de réponse"]')).toBeNull()
+    await openTestMenu()
+    const button = document.querySelector('button[aria-label="Revoir la confirmation de réponse"]') as HTMLButtonElement
     expect(button).not.toBeNull(); button.click(); fixture.detectChanges()
     expect(fixture.nativeElement.textContent).not.toContain('Aperçu de l’accusé')
     expect(fixture.nativeElement.textContent).toContain('est enregistrée !')
     expect(vi.mocked(window.fetch).mock.calls.length).toBe(calls)
     expect(fixture.nativeElement.querySelector('button[aria-label="Effacer ma réponse et rejouer"]')).toBeNull()
     component.testMode.set(false); component.calendarOpen.set(true); fixture.detectChanges()
-    expect(fixture.nativeElement.querySelector('button[aria-label="Revoir l’accusé de réponse"]')).toBeNull()
+    expect(fixture.nativeElement.querySelector('button[aria-label="Revoir la confirmation de réponse"]')).toBeNull()
   })
   it('opens welcome until discovery succeeds and safely retries a failed save', async () => {
     let fail = true

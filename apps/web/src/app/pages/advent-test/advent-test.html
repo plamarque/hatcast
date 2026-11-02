@@ -31,11 +31,11 @@
       <span class="advent__simulated-day" role="status" aria-live="polite" [attr.aria-label]="clockDate() === null ? 'Jour simulé non disponible' : 'Jour simulé : ' + simulatedDateLabel()">{{ clockDate() === null ? '–' : simulatedDateLabel(true) }}</span>
       <button mat-icon-button type="button" (click)="nextDay()" [disabled]="welcome() || transitionRequired() || loading() || submitting() || closingDay() !== null || (quiz() && answerState() === 'checking') || !clockDate() || clockDate()! >= '2027-01-15'" aria-label="Avancer au jour suivant" title="Jour suivant"><mat-icon aria-hidden="true">arrow_forward</mat-icon></button>
       }
-      @if (calendarOpen()) {
-      <button mat-icon-button type="button" (click)="previewConfirmation()" [disabled]="loading() || submitting() || closingDay() !== null" aria-label="Revoir l’accusé de réponse" title="Revoir l’accusé"><mat-icon aria-hidden="true">mark_email_read</mat-icon></button>
-      }
       <button #openingReplayButton mat-icon-button type="button" class="advent__test-menu-trigger" [matMenuTriggerFor]="testActionsMenu" aria-label="Actions du mode test" title="Actions du mode test"><mat-icon aria-hidden="true">more_vert</mat-icon></button>
       <mat-menu #testActionsMenu="matMenu" class="advent-test-menu" xPosition="before">
+        @if (calendarOpen()) {
+          <button mat-menu-item type="button" (click)="previewConfirmation()" [disabled]="loading() || submitting() || closingDay() !== null" aria-label="Revoir la confirmation de réponse"><mat-icon aria-hidden="true">mark_email_read</mat-icon><span>Revoir la confirmation de réponse</span></button>
+        }
         <button mat-menu-item type="button" (click)="prepareOpeningReplay()" [disabled]="openingReplayBusy() || closingExperience() || loading() || submitting() || closingDay() !== null || pendingMutations() > 0"><mat-icon aria-hidden="true">login</mat-icon><span>Rejouer l’ouverture à la connexion</span></button>
         @if (calendarOpen() && currentPlayedDay()) {
           <button mat-menu-item type="button" (click)="requestPersonalReset('calendar')" [disabled]="loading() || submitting() || closingDay() !== null" aria-label="Refermer mon cadeau du jour et effacer ma réponse"><mat-icon aria-hidden="true">card_giftcard</mat-icon><span>Refermer mon cadeau et effacer ma réponse</span></button>
