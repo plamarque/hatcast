@@ -1,4 +1,20 @@
 <main class="advent ph-no-capture">
+  @if (openingReplayDate(); as date) {
+    <section aria-labelledby="advent-opening-replay-title">
+      <h2 id="advent-opening-replay-title">Rejouer l’ouverture à la connexion ?</h2>
+      @if (openingReplayOutcome() === 'confirm') {
+        <p>Pour la date ordinaire de développement {{ date }}, ta réponse sera effacée si elle existe, ainsi que ta fermeture enregistrée. Tu seras ensuite déconnecté.</p>
+        <button #openingReplayCancel mat-stroked-button type="button" (click)="cancelOpeningReplay()" [disabled]="openingReplayBusy()">Annuler</button>
+        <button mat-flat-button type="button" (click)="confirmOpeningReplay()" [disabled]="openingReplayBusy()">Effacer et me déconnecter</button>
+      } @else if (openingReplayOutcome() === 'uncertain') {
+        <button mat-flat-button type="button" (click)="leaveUncertainReplay()" [disabled]="openingReplayBusy()">Me déconnecter</button>
+      } @else {
+        <button mat-flat-button type="button" (click)="retryOpeningReplayLogout()" [disabled]="openingReplayBusy()">Réessayer la déconnexion</button>
+      }
+    </section>
+  }
+  @if (openingReplayError()) { <p role="alert">{{ openingReplayError() }}</p> }
+  <div [attr.inert]="openingReplayBusy() || openingReplayDate() ? '' : null">
   <header class="advent__header">
     @if (testControls()) { <button mat-icon-button type="button" (click)="toggleTestMode()" [disabled]="loading() || submitting() || closingDay() !== null || pendingMutations() > 0" [attr.aria-pressed]="testMode()" [attr.aria-label]="testMode() ? 'Désactiver le mode test' : 'Activer le mode test'" title="Mode test"><mat-icon aria-hidden="true">science</mat-icon></button> }
     <button #entryHeading mat-button type="button" class="advent__header-title" (click)="previewWelcome()" [disabled]="welcome() || loading() || submitting() || closingDay() !== null || pendingMutations() > 0 || result() !== null || sessionChanged() || transitionRequired() || unavailable()" aria-label="Revoir l’accueil du Quiz de l’Avent">Quiz de l’Avent</button>
@@ -9,6 +25,7 @@
   @if (productionPreview()) { <p class="advent__state" role="status">Prévisualisation : tes réponses sont définitives.</p> }
   @if (!memberMode) {
     <div class="advent__test-actions" [class.advent__test-actions--calendar]="calendarOpen()" aria-label="Commandes de test">
+      <button #openingReplayButton mat-icon-button type="button" (click)="prepareOpeningReplay()" [disabled]="openingReplayBusy() || closingExperience() || loading() || submitting() || closingDay() !== null || pendingMutations() > 0" aria-label="Rejouer l’ouverture à la connexion" title="Rejouer l’ouverture à la connexion"><mat-icon aria-hidden="true">login</mat-icon></button>
       <span class="advent__test-label"><span class="advent__test-label-full">Mode test</span><span class="advent__test-label-short">Test</span></span>
       @if (!rankingOpen()) {
       <button mat-icon-button type="button" (click)="previousDay()" [disabled]="welcome() || transitionRequired() || loading() || submitting() || closingDay() !== null || (quiz() && answerState() === 'checking') || !clockDate() || clockDate()! <= '2026-12-01'" aria-label="Revenir au jour précédent" title="Jour précédent"><mat-icon aria-hidden="true">arrow_back</mat-icon></button>
@@ -256,6 +273,7 @@
         } @else { <p class="advent__state" role="status">Vérification en cours…</p> }
       </section>
     }
+  </div>
   </div>
 </main>
 

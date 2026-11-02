@@ -45,7 +45,7 @@ class AdventMemberSecurityTest {
             jdbc.update("INSERT INTO troupe_memberships (id, troupe_id, user_id, status, baseline_role, display_name, created_at, updated_at) VALUES (?, ?, ?, 'ACTIVE', 'MEMBER', 'Fictif', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", UUID.randomUUID(), troupe, id)
             id
         }
-        environment.propertySources.addFirst(MapPropertySource("advent-preview-test", mapOf("hatcast.advent.excluded-user-ids" to "${ids[0]},${ids[1]}")))
+        environment.propertySources.addFirst(MapPropertySource("advent-preview-test", mapOf("hatcast.advent.excluded-user-ids" to "${ids[0]},${ids[1]}", "hatcast.advent-test.allowed-emails" to "patrice.lamarque@gmail.com,brousseau.ant@gmail.com")))
         try {
             `when`(clock.instant()).thenReturn(Instant.parse("2026-11-30T22:59:59Z"))
             for (day in listOf(7, 23)) {
@@ -88,6 +88,31 @@ class AdventMemberSecurityTest {
                 .andExpect(status().isNotFound)
             mvc.perform(get("/v1/advent/doors/23/history").cookie(second).header("X-Advent-Test-Session", token).header("X-Advent-Preview", "true"))
                 .andExpect(status().isOk).andExpect(jsonPath("$.priorityResult.day").value(7))
+            // Preview identities cannot use the isolated opening-replay operation.
+            mvc.perform(get("/v1/advent/entry/replay").cookie(first).header("X-Advent-Test-Session", token).header("X-Advent-Test-Mode", "true").header("X-Advent-User", ids[0].toString())).andExpect(status().isNotFound)
+            mvc.perform(post("/v1/advent/entry/replay").cookie(first).with(csrf()).header("X-Advent-Test-Session", token).header("X-Advent-Test-Mode", "true").header("X-Advent-User", ids[0].toString()).contentType(MediaType.APPLICATION_JSON).content("""{"date":"2026-12-01"}""")).andExpect(status().isNotFound)
+            // The operator prepares the ordinary day even when the tab simulates another day.
+            `when`(clock.isolatedControlsAllowed()).thenReturn(true)
+            `when`(clock.instant()).thenReturn(Instant.parse("2026-12-01T12:00:00Z"))
+            jdbc.update("DELETE FROM advent_quizzes WHERE quiz_day = 1")
+            jdbc.update("INSERT INTO advent_quizzes (quiz_day, display_name, statement_0, statement_1, statement_2, false_choice) VALUES (1, 'Fictif', 'A', 'B', 'C', 0)")
+            jdbc.update("INSERT INTO advent_member_answers (user_id, quiz_day, answer_id, choice, correct_choice, answered_at, reveal_at) VALUES (?, 1, ?, 0, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", ids[0], UUID.randomUUID())
+            jdbc.update("INSERT INTO advent_member_dismissals (user_id, dismissed_on) VALUES (?, ?)", ids[0], java.time.LocalDate.of(2026, 12, 1))
+            val replayHeaders = mapOf("X-Advent-Test-Session" to token, "X-Advent-Test-Mode" to "true", "X-Advent-User" to ids[0].toString(), "X-Advent-Simulated-Date" to "2026-12-07")
+            fun replayGet() = get("/v1/advent/entry/replay").cookie(first).also { request -> replayHeaders.forEach { (key, value) -> request.header(key, value) } }
+            fun replayPost(date: String, user: String = ids[0].toString(), session: String = token) = post("/v1/advent/entry/replay").cookie(first).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("""{"date":"$date"}""").also { request -> (replayHeaders + mapOf("X-Advent-User" to user, "X-Advent-Test-Session" to session)).forEach { (key, value) -> request.header(key, value) } }
+            mvc.perform(replayGet()).andExpect(status().isOk).andExpect(jsonPath("$.date").value("2026-12-01")).andExpect(jsonPath("$.eligible").value(true))
+            mvc.perform(replayPost("2026-12-07")).andExpect(status().isConflict)
+            mvc.perform(replayPost("2026-12-01", user = ids[1].toString())).andExpect(status().isConflict)
+            mvc.perform(replayPost("2026-12-01", session = UUID.randomUUID().toString())).andExpect(status().isConflict)
+            mvc.perform(replayPost("2026-12-01")).andExpect(status().isOk)
+            assert(jdbc.queryForObject("SELECT COUNT(*) FROM advent_member_answers WHERE user_id = ? AND quiz_day = 1", Int::class.java, ids[0]) == 0)
+            assert(jdbc.queryForObject("SELECT COUNT(*) FROM advent_member_answers WHERE user_id = ? AND quiz_day = 7", Int::class.java, ids[0]) == 1)
+            assert(jdbc.queryForObject("SELECT COUNT(*) FROM advent_member_answers WHERE user_id = ? AND quiz_day = 7", Int::class.java, ids[1]) == 1)
+            assert(jdbc.queryForObject("SELECT COUNT(*) FROM advent_member_dismissals WHERE user_id = ? AND dismissed_on = ?", Int::class.java, ids[0], java.time.LocalDate.of(2026, 12, 1)) == 0)
+            mvc.perform(get("/v1/advent/entry").cookie(first)).andExpect(status().isOk).andExpect(jsonPath("$.autoOpen").value(true))
+            `when`(clock.isolatedControlsAllowed()).thenReturn(false)
+            `when`(clock.instant()).thenReturn(Instant.parse("2026-11-30T22:59:59Z"))
             mvc.perform(post("/v1/advent/session/reset").cookie(first).with(csrf()).header("X-Advent-Test-Session", token).header("X-Advent-Preview", "true")).andExpect(status().isNotFound)
             mvc.perform(post("/v1/advent/doors/23/answer/replay").cookie(first).with(csrf()).header("X-Advent-Test-Session", token).header("X-Advent-Preview", "true").contentType(MediaType.APPLICATION_JSON).content("""{"replayToken":"${UUID.randomUUID()}"}""")).andExpect(status().isNotFound)
             mvc.perform(get("/v1/advent/doors/23/result").cookie(second).header("X-Advent-Test-Session", token).header("X-Advent-Preview", "true")).andExpect(status().isNotFound)

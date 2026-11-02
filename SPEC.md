@@ -491,7 +491,7 @@ La route directe partagée propose le quiz du jour et le classement ; seuls les 
 
 ### Entrée dans le calendrier Avent
 
-Pendant la période autorisée, un cadeau près du compte permet aux membres éligibles de retrouver le parcours. Du 1er au 24 décembre, un quiz disponible et non répondu ouvre automatiquement le parcours lors de la visite, sauf fermeture explicite enregistrée pour ce membre et ce jour à Paris. L’absence de quiz ne consomme pas cette ouverture. Une réponse empêche également sa réouverture automatique. Après la première découverte, le résultat non vu le plus récent reste prioritaire ; un quiz déjà répondu conduit au classement. Une fermeture qui ne peut être enregistrée est signalée et peut être réessayée.
+Pendant la période autorisée, un cadeau près du compte permet aux membres éligibles de retrouver le parcours. Du 1er au 24 décembre, un quiz disponible et non répondu ouvre automatiquement le parcours lors de la visite, sauf fermeture explicite enregistrée pour ce membre et ce jour à Paris. L’absence de quiz ne consomme pas cette ouverture. Une réponse empêche également sa réouverture automatique. Après la première découverte, le résultat non vu le plus récent reste prioritaire ; une réponse normale du jour encore en attente conduit au décompte. Une fermeture qui ne peut être enregistrée est signalée et peut être réessayée.
 
 
 ### Première découverte du calendrier
@@ -508,4 +508,8 @@ Dans le mode test Avent autorisé, la case de rappel peut être manipulée en si
 
 ### Retour sur une réponse Avent en attente
 
-Le membre qui rouvre depuis le calendrier une réponse normale du jour encore en attente retrouve une scène d’attente et le temps restant jusqu’à la disponibilité de son résultat à minuit, heure de Paris. La confirmation immédiatement après la réponse reste distincte. La révélation dépend de l’état autorisé par le serveur ; en cas d’erreur, le membre peut réessayer. Le 25 décembre ne comporte pas de quiz.
+Le membre qui rouvre une réponse normale du jour encore en attente depuis le cadeau ou le calendrier retrouve une scène d’attente et le temps restant jusqu’à la disponibilité de son résultat à minuit, heure de Paris. La confirmation immédiatement après la réponse reste distincte. La révélation dépend de l’état autorisé par le serveur ; en cas d’erreur, le membre peut réessayer. Le 25 décembre ne comporte pas de quiz.
+
+### Rejeu de l’ouverture Advent en développement
+
+En mode test, un opérateur autorisé dans un environnement de développement isolé peut préparer le rejeu de son ouverture automatique à la connexion. Après confirmation de la date ordinaire de développement et de l’effacement éventuel de sa propre réponse, seule sa réponse et sa fermeture enregistrée pour cette date sont effacées, puis il est déconnecté. La date simulée de l’onglet ne détermine pas cette opération. Si la date est hors période ou si le quiz manque, aucune suppression ni déconnexion ne sont effectuées. Les découvertes et les résultats non vus des autres jours sont conservés.

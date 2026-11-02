@@ -98,11 +98,90 @@ export class AdventTest {
     await this.changeReminder(desired)
     input.checked = this.reminderEnabled() === true
   }
+  readonly openingReplayDate = signal<string | null>(null)
+  readonly openingReplayError = signal('')
+  readonly openingReplayBusy = signal(false)
+  readonly openingReplayOutcome = signal<'confirm' | 'uncertain' | 'logout-failed'>('confirm')
+  private openingReplayUncertain = false
+  @ViewChild('openingReplayCancel') private openingReplayCancel?: ElementRef<HTMLElement>
+  @ViewChild('openingReplayButton') private openingReplayButton?: ElementRef<HTMLElement>
+
+  async prepareOpeningReplay(): Promise<void> {
+    if (!this.testMode() || this.openingReplayBusy() || this.pendingMutations() > 0) return
+    const identity = this.auth.sessionUser()?.id
+    if (!identity) return
+    this.openingReplayBusy.set(true); this.openingReplayError.set(''); this.openingReplayDate.set(null); this.openingReplayOutcome.set('confirm'); this.openingReplayUncertain = false
+    try {
+      const response = await fetch(`${this.api}/entry/replay`, { credentials: 'include', cache: 'no-store', signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS), headers: { ...this.sessionHeaders(), 'X-Advent-User': identity } })
+      if (!response.ok || identity !== this.auth.sessionUser()?.id) throw new Error('Preparation failed')
+      const preparation = await response.json() as { date: string; eligible: boolean; reason?: string }
+      if (identity !== this.auth.sessionUser()?.id) throw new Error('Session changed')
+      if (!preparation.eligible) {
+        this.openingReplayError.set(preparation.reason === 'missing-quiz' ? 'Aucun quiz n’est disponible pour la date ordinaire de développement.' : 'La date ordinaire de développement est hors de la période des quiz.')
+        return
+      }
+      this.openingReplayDate.set(preparation.date)
+      setTimeout(() => this.openingReplayCancel?.nativeElement?.focus())
+    } catch { this.openingReplayError.set('Impossible de préparer le rejeu. Vérifie ta session et réessaie.') }
+    finally { this.openingReplayBusy.set(false) }
+  }
+
+  cancelOpeningReplay(): void {
+    this.openingReplayDate.set(null)
+    setTimeout(() => this.openingReplayButton?.nativeElement?.focus())
+  }
+
+  async confirmOpeningReplay(): Promise<void> {
+    const date = this.openingReplayDate()
+    const identity = this.auth.sessionUser()?.id
+    if (!date || !identity || !this.testMode() || this.openingReplayOutcome() !== 'confirm' || this.openingReplayBusy() || this.pendingMutations() > 0) return
+    this.openingReplayBusy.set(true); this.openingReplayError.set('')
+    try {
+      const response = await fetch(`${this.api}/entry/replay`, { method: 'POST', credentials: 'include', cache: 'no-store', signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS), headers: { ...this.csrfHeaders(), ...this.sessionHeaders(), 'X-Advent-User': identity, 'Content-Type': 'application/json' }, body: JSON.stringify({ date }) })
+      if (!response.ok || identity !== this.auth.sessionUser()?.id) throw new Error('Replay outcome uncertain')
+      await this.signOutAfterReplay()
+    } catch {
+      this.openingReplayUncertain = true
+      this.openingReplayOutcome.set('uncertain')
+      this.openingReplayError.set('Impossible de confirmer si ta réponse a été effacée. Ne relance pas cette suppression ; déconnecte-toi puis vérifie à la connexion.')
+    } finally { this.openingReplayBusy.set(false) }
+  }
+
+  private async signOutAfterReplay(): Promise<void> {
+    let loggedOut = false
+    try { loggedOut = await this.auth.logout() } catch { /* retry is available below */ }
+    if (loggedOut) {
+      await this.router.navigateByUrl('/connexion')
+    } else {
+      this.openingReplayOutcome.set('logout-failed')
+      this.openingReplayError.set(this.openingReplayUncertain ? 'Le résultat de la suppression reste incertain et la déconnexion a échoué. Réessaie la déconnexion.' : 'La préparation est terminée, mais la déconnexion a échoué. Réessaie la déconnexion avant de te reconnecter.')
+    }
+  }
+
+  async retryOpeningReplayLogout(): Promise<void> {
+    if (this.openingReplayBusy() || this.openingReplayOutcome() !== 'logout-failed') return
+    this.openingReplayBusy.set(true)
+    try { await this.signOutAfterReplay() }
+    catch { this.openingReplayError.set('La déconnexion a échoué. Réessaie la déconnexion avant de te reconnecter.') }
+    finally { this.openingReplayBusy.set(false) }
+  }
+
+  async leaveUncertainReplay(): Promise<void> {
+    if (this.openingReplayBusy() || this.openingReplayOutcome() !== 'uncertain') return
+    this.openingReplayBusy.set(true)
+    try {
+      const ok = await this.auth.logout()
+      if (ok) await this.router.navigateByUrl('/connexion')
+      else { this.openingReplayOutcome.set('logout-failed'); this.openingReplayError.set('Le résultat de la suppression reste incertain et la déconnexion a échoué. Réessaie la déconnexion.') }
+    } catch { this.openingReplayOutcome.set('logout-failed'); this.openingReplayError.set('Le résultat de la suppression reste incertain et la déconnexion a échoué. Réessaie la déconnexion.') }
+    finally { this.openingReplayBusy.set(false) }
+  }
+
   readonly closeError = signal(false)
   readonly closingExperience = signal(false)
 
   async closeExperience(): Promise<void> {
-    if (this.closingExperience() || this.loading() || this.submitting() || this.pendingMutations() > 0 || this.closingDay() !== null) return
+    if (this.openingReplayBusy() || this.openingReplayDate() || this.closingExperience() || this.loading() || this.submitting() || this.pendingMutations() > 0 || this.closingDay() !== null) return
     const identity = this.auth.sessionUser()?.id ?? null
     this.closingExperience.set(true)
     this.closeError.set(false)
@@ -501,8 +580,11 @@ export class AdventTest {
       else if (date < '2026-12-25') {
         const day = Math.min(24, Math.max(1, Number(date.slice(-2))))
         const state = await this.requestJson<{ status: string }>(`/v1/advent-test/doors/${day}/answer`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
-        if (state.status === 'recorded' && !openTestDay) await this.openRanking()
-        else await this.selectDay(day)
+        if (state.status === 'recorded' && !openTestDay) {
+          const priority = await this.requestJson<{ result: AdventResult | null }>('/v1/advent-test/results/latest-unseen', { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
+          if (priority.result) { await this.showResult(priority.result); return }
+        }
+        await this.selectDay(day, state.status === 'recorded' && !openTestDay)
       }
       else if (date === '2026-12-25') await this.loadChristmasScore()
       else await this.openRanking()
@@ -736,7 +818,11 @@ export class AdventTest {
       if (clock.date > '2026-12-25') { await this.openRanking(); return }
       const day = Math.min(24, Math.max(1, Number(clock.date.slice(-2))))
       const state = await this.requestJson<{ status: string }>(`/v1/advent-test/doors/${day}/answer`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
-      if (state.status === 'recorded' && !this.testMode()) await this.openRanking(); else await this.selectDay(day)
+      if (state.status === 'recorded' && !this.testMode()) {
+        const priority = await this.requestJson<{ result: AdventResult | null }>('/v1/advent-test/results/latest-unseen', { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
+        if (priority.result) { await this.showResult(priority.result); return }
+      }
+      await this.selectDay(day, state.status === 'recorded' && !this.testMode())
     } catch (error) {
       if (error instanceof StaleRequestError) return
       this.error.set(true)
@@ -784,7 +870,12 @@ export class AdventTest {
         this.replayToken = state.replayToken ?? null
         this.answerState.set('recorded')
         this.quiz.set(content)
-        if (calendarRevisit && !state.late) await this.beginWaiting()
+        if (calendarRevisit && !state.late) {
+          await this.beginWaiting()
+          if (this.waiting() && this.contextCurrent(epoch, identity)) setTimeout(() => {
+            if (this.waiting() && this.contextCurrent(epoch, identity)) this.recordedStatus?.nativeElement.focus()
+          })
+        }
       }
     } catch (error) {
       if (error instanceof StaleRequestError || !this.contextCurrent(epoch, identity)) return

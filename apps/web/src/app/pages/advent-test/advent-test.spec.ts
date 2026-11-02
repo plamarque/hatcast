@@ -29,6 +29,86 @@ describe('AdventTest', () => {
     fixture.detectChanges()
   })
   afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks() })
+  it('confirms the ordinary date and signs out without recording a dismissal', async () => {
+    const component = fixture.componentInstance
+    const auth = TestBed.inject(AuthApiService) as unknown as { sessionUserSignal: WritableSignal<UserSummary | null> }
+    auth.sessionUserSignal.set({ id: 'operator', slug: 'operator', email: null, displayName: 'Test' })
+    fixture.detectChanges()
+    component.testMode.set(true)
+    const logout = vi.spyOn(TestBed.inject(AuthApiService), 'logout').mockResolvedValue(true)
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true)
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ date: '2026-12-02', eligible: true })))
+      .mockResolvedValueOnce(new Response('', { status: 200 }))
+    await component.prepareOpeningReplay()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('2026-12-02')
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(document.activeElement?.textContent).toContain('Annuler')
+    await component.confirmOpeningReplay()
+    const calls = vi.mocked(window.fetch).mock.calls.slice(-2)
+    expect(calls[1][0]).toBe('/v1/advent/entry/replay')
+    expect(JSON.parse(String(calls[1][1]?.body))).toEqual({ date: '2026-12-02' })
+    expect(logout).toHaveBeenCalledOnce()
+    expect(navigate).toHaveBeenCalledWith('/connexion')
+    expect(calls.some(call => String(call[0]).endsWith('/entry/dismiss'))).toBe(false)
+  })
+
+  it('does not sign out when replay is unavailable or mutation fails', async () => {
+    const component = fixture.componentInstance
+    const auth = TestBed.inject(AuthApiService) as unknown as { sessionUserSignal: WritableSignal<UserSummary | null> }
+    auth.sessionUserSignal.set({ id: 'operator', slug: 'operator', email: null, displayName: 'Test' })
+    fixture.detectChanges(); component.testMode.set(true)
+    const logout = vi.spyOn(TestBed.inject(AuthApiService), 'logout').mockResolvedValue(true)
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ date: '2026-11-01', eligible: false, reason: 'outside-period' })))
+    await component.prepareOpeningReplay()
+    expect(component.openingReplayError()).toContain('hors de la période')
+    expect(component.openingReplayDate()).toBeNull()
+    component.openingReplayDate.set('2026-12-01')
+    vi.mocked(window.fetch).mockImplementation(async (input, init) => String(input).endsWith('/entry/replay') && init?.method === 'POST' ? new Response('', { status: 409 }) : new Response('{}'))
+    await component.confirmOpeningReplay()
+    expect(component.openingReplayError()).toContain('Impossible')
+    expect(logout).not.toHaveBeenCalled()
+  })
+
+  it('does not repeat an uncertain deletion and locks other controls', async () => {
+    const component = fixture.componentInstance
+    const auth = TestBed.inject(AuthApiService) as unknown as { sessionUserSignal: WritableSignal<UserSummary | null> }
+    auth.sessionUserSignal.set({ id: 'operator', slug: 'operator', email: null, displayName: 'Test' })
+    fixture.detectChanges(); component.testMode.set(true); component.openingReplayDate.set('2026-12-01')
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('main > div[inert]')).not.toBeNull()
+    const logout = vi.spyOn(TestBed.inject(AuthApiService), 'logout').mockResolvedValue(true)
+    vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true)
+    vi.mocked(window.fetch).mockImplementation(async (input, init) => {
+      if (String(input).endsWith('/entry/replay') && init?.method === 'POST') throw new TypeError('lost response')
+      return new Response('{}')
+    })
+    await component.confirmOpeningReplay()
+    expect(component.openingReplayOutcome()).toBe('uncertain')
+    await component.confirmOpeningReplay()
+    expect(vi.mocked(window.fetch).mock.calls.filter(call => String(call[0]).endsWith('/entry/replay') && call[1]?.method === 'POST')).toHaveLength(1)
+    await component.closeExperience()
+    expect(vi.mocked(window.fetch).mock.calls.some(call => String(call[0]).endsWith('/entry/dismiss'))).toBe(false)
+    await component.leaveUncertainReplay()
+    expect(logout).toHaveBeenCalledOnce()
+  })
+
+  it('can retry logout after the replay succeeded and local identity was cleared', async () => {
+    const component = fixture.componentInstance
+    const auth = TestBed.inject(AuthApiService) as unknown as { sessionUserSignal: WritableSignal<UserSummary | null> }
+    auth.sessionUserSignal.set({ id: 'operator', slug: 'operator', email: null, displayName: 'Test' })
+    fixture.detectChanges(); component.testMode.set(true); component.openingReplayDate.set('2026-12-01')
+    const logout = vi.spyOn(TestBed.inject(AuthApiService), 'logout').mockImplementationOnce(async () => { auth.sessionUserSignal.set(null); return false }).mockResolvedValueOnce(true)
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true)
+    vi.mocked(window.fetch).mockImplementation(async () => new Response('', { status: 200 }))
+    await component.confirmOpeningReplay()
+    expect(component.openingReplayOutcome()).toBe('logout-failed')
+    expect(component.openingReplayError()).toContain('déconnexion a échoué')
+    await component.retryOpeningReplayLogout()
+    expect(logout).toHaveBeenCalledTimes(2)
+    expect(navigate).toHaveBeenCalledWith('/connexion')
+  })
+
   it('shows a local-only reminder simulation without push or API writes in test mode', async () => {
     const component = fixture.componentInstance
     component.testControls.set(true); component.testMode.set(true); component.calendarOpen.set(true)
@@ -566,16 +646,59 @@ describe('AdventTest', () => {
     vi.mocked(window.fetch).mockImplementation(async input => {
       const url = String(input)
       if (url.endsWith('/session')) return new Response(JSON.stringify({ sessionId: 'same', testControls: false }))
-      if (url.endsWith('/clock')) return new Response(JSON.stringify({ date: '2026-12-01' }))
+      if (url.endsWith('/clock')) return new Response(JSON.stringify({ date: '2026-12-01', effectiveInstant: '2026-12-01T12:00:00Z', nextMidnight: '2026-12-01T23:00:00Z', simulated: false }))
       if (url.endsWith('/discovery')) return new Response(JSON.stringify({ discovered: true }))
       if (url.endsWith('/latest-unseen')) return new Response(JSON.stringify({ result: null }))
       if (url.endsWith('/answer')) return new Response(JSON.stringify({ status: 'recorded' }))
-      if (url.endsWith('/ranking')) return new Response(JSON.stringify({ priorityResult: null, ranking: { score: 0, rank: 1, entries: [] } }))
+      if (url.endsWith('/result')) return new Response('', { status: 404 })
       return new Response(JSON.stringify({ day: 1, name: 'Fictif', portrait: '', statements: ['A', 'B', 'C'] }))
     })
     await component.toggleTestMode()
     expect(component.testMode()).toBe(false)
-    expect(component.rankingOpen()).toBe(true)
+    expect(component.waiting()).toBe(true)
+    expect(component.rankingOpen()).toBe(false)
+    component.ngOnDestroy()
+  })
+
+  it('opens the countdown on member entry after today was answered', async () => {
+    const component = fixture.componentInstance
+    component.testMode.set(false)
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url = String(input)
+      if (url.endsWith('/session')) return new Response(JSON.stringify({ sessionId: 'same', testControls: false }))
+      if (url.endsWith('/clock')) return new Response(JSON.stringify({ date: '2026-12-01', effectiveInstant: '2026-12-01T12:00:00Z', nextMidnight: '2026-12-01T23:00:00Z', simulated: false }))
+      if (url.endsWith('/discovery')) return new Response(JSON.stringify({ discovered: true }))
+      if (url.endsWith('/latest-unseen')) return new Response(JSON.stringify({ result: null }))
+      if (url.endsWith('/answer')) return new Response(JSON.stringify({ status: 'recorded', late: false }))
+      if (url.endsWith('/result')) return new Response('', { status: 404 })
+      return new Response(JSON.stringify({ day: 1, name: 'Lutin', portrait: '', statements: [] }))
+    })
+    await component.start(); fixture.detectChanges()
+    expect(component.waiting()).toBe(true)
+    expect(fixture.nativeElement.textContent).toContain('Reviens demain !')
+    expect(component.rankingOpen()).toBe(false)
+    component.ngOnDestroy()
+  })
+
+  it('rechecks a priority reveal before opening the waiting scene', async () => {
+    const component = fixture.componentInstance
+    component.testMode.set(false)
+    const result = { answerId: 'reveal', day: 1, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false }
+    let checks = 0
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url = String(input)
+      if (url.endsWith('/session')) return new Response(JSON.stringify({ sessionId: 'same', testControls: false }))
+      if (url.endsWith('/clock')) return new Response(JSON.stringify({ date: '2026-12-02' }))
+      if (url.endsWith('/discovery')) return new Response(JSON.stringify({ discovered: true }))
+      if (url.endsWith('/latest-unseen')) return new Response(JSON.stringify({ result: ++checks === 1 ? null : result }))
+      if (url.endsWith('/answer')) return new Response(JSON.stringify({ status: 'recorded', late: false }))
+      if (url.endsWith('/result')) return new Response(JSON.stringify(result))
+      return new Response(JSON.stringify({ day: 1, name: 'Lutin', portrait: '', statements: ['A', 'B', 'C'] }))
+    })
+    await component.start()
+    expect(component.result()?.answerId).toBe('reveal')
+    expect(component.waiting()).toBe(false)
+    component.ngOnDestroy()
   })
 
   it('blocks a mode switch while a mutation is in flight', async () => {

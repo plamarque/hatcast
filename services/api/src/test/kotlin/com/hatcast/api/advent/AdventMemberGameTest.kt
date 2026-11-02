@@ -46,6 +46,65 @@ class AdventMemberGameTest {
         jdbc.update("INSERT INTO advent_quizzes (quiz_day, display_name, statement_0, statement_1, statement_2, false_choice) VALUES (1, 'Personnage fictif', 'A', 'B', 'C', 0)")
         at("2026-12-01T12:00:00Z")
     }
+    @Test fun `opening replay clears only the ordinary day for the current member`() {
+        `when`(clock.isolatedControlsAllowed()).thenReturn(true)
+        val session = game.session()
+        game.confirm(member, 1, 0, reserve())
+        game.dismiss(member)
+        game.dismiss(other)
+        val otherGeneration = game.reconcile(other, 1).generation!!
+        val otherAttempt = UUID.randomUUID()
+        game.reserve(other, 1, otherAttempt, otherGeneration)
+        game.confirm(other, 1, 1, otherAttempt)
+        val preparation = game.prepareOpeningReplay(session)
+        assertEquals(LocalDate.of(2026, 12, 1), preparation.date)
+        assertTrue(preparation.eligible)
+        assertThrows(ResponseStatusException::class.java) { game.replayOpening(member, session, preparation.date.plusDays(1)) }
+        assertThrows(ResponseStatusException::class.java) { game.replayOpening(member, UUID.randomUUID(), preparation.date) }
+        assertFalse(game.entry(member).autoOpen)
+        game.replayOpening(member, session, preparation.date)
+        assertTrue(game.entry(member).autoOpen)
+        assertFalse(game.entry(other).autoOpen)
+        assertEquals("recorded", game.state(other, 1).status)
+        game.replayOpening(member, session, preparation.date)
+        assertTrue(game.entry(member).autoOpen)
+        `when`(clock.isolatedControlsAllowed()).thenReturn(false)
+        assertThrows(ResponseStatusException::class.java) { game.replayOpening(member, session, preparation.date) }
+    }
+
+    @Test fun `opening replay invalidates a reserved attempt`() {
+        `when`(clock.isolatedControlsAllowed()).thenReturn(true)
+        val session = game.session()
+        val attempt = reserve()
+        game.replayOpening(member, session, LocalDate.of(2026, 12, 1))
+        assertEquals("stale", game.confirm(member, 1, 0, attempt).status)
+        assertEquals("available", game.state(member, 1).status)
+    }
+    @Test fun `opening replay preserves earlier unseen results and discovery`() {
+        `when`(clock.isolatedControlsAllowed()).thenReturn(true)
+        val session = game.session()
+        val discovery = game.discovery(member, session).attemptId!!
+        game.discover(member, discovery, session)
+        game.confirm(member, 1, 0, reserve())
+        at("2026-12-02T12:00:00Z")
+        jdbc.update("DELETE FROM advent_quizzes WHERE quiz_day = 2")
+        jdbc.update("INSERT INTO advent_quizzes (quiz_day, display_name, statement_0, statement_1, statement_2, false_choice) VALUES (2, 'Fictif', 'A', 'B', 'C', 0)")
+        val unseen = game.latestUnseen(member)!!
+        game.replayOpening(member, session, LocalDate.of(2026, 12, 2))
+        assertEquals(unseen.answerId, game.latestUnseen(member)!!.answerId)
+        assertTrue(game.discovery(member, session).discovered)
+        assertTrue(game.entry(member).autoOpen)
+    }
+    @Test fun `opening replay rejects missing content and dates outside the quiz period`() {
+        `when`(clock.isolatedControlsAllowed()).thenReturn(true)
+        val session = game.session()
+        jdbc.update("DELETE FROM advent_quizzes WHERE quiz_day = 1")
+        assertEquals("missing-quiz", game.prepareOpeningReplay(session).reason)
+        assertThrows(ResponseStatusException::class.java) { game.replayOpening(member, session, LocalDate.of(2026, 12, 1)) }
+        at("2026-11-01T12:00:00Z")
+        assertEquals("outside-period", game.prepareOpeningReplay(session).reason)
+        assertThrows(ResponseStatusException::class.java) { game.replayOpening(member, session, LocalDate.of(2026, 11, 1)) }
+    }
     @Test fun `clock projection samples Paris midnight coherently in real and simulated modes`() {
         at("2026-12-24T22:59:59Z")
         val before = game.clockProjection()

@@ -112,6 +112,37 @@ class AdventMemberGame(private val jdbc: JdbcTemplate, private val clock: Advent
             jdbc.update("INSERT INTO advent_member_dismissals (user_id, dismissed_on) VALUES (?, ?)", user, today)
     }
 
+    data class OpeningReplayPreparation(val date: LocalDate, val eligible: Boolean, val reason: String? = null)
+
+    private fun openingReplayDate(expected: UUID): LocalDate {
+        if (!clock.isolatedControlsAllowed()) throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        val session = jdbc.query("SELECT test_session_id FROM advent_member_lock WHERE id = 1 FOR UPDATE") { rs, _ -> rs.getString(1) }.single()
+        if (session != expected.toString()) throw ResponseStatusException(HttpStatus.CONFLICT)
+        return date(clock.instant())
+    }
+
+    private fun openingReplayPreparation(today: LocalDate): OpeningReplayPreparation {
+        if (today.year != 2026 || today.monthValue != 12 || today.dayOfMonth !in 1..24)
+            return OpeningReplayPreparation(today, false, "outside-period")
+        if (memberQuiz(today.dayOfMonth) == null) return OpeningReplayPreparation(today, false, "missing-quiz")
+        return OpeningReplayPreparation(today, true)
+    }
+
+    @Transactional
+    fun prepareOpeningReplay(expected: UUID): OpeningReplayPreparation = openingReplayPreparation(openingReplayDate(expected))
+
+    @Transactional
+    fun replayOpening(user: UUID, expected: UUID, confirmedDate: LocalDate) {
+        val today = openingReplayDate(expected)
+        if (today != confirmedDate || !openingReplayPreparation(today).eligible) throw ResponseStatusException(HttpStatus.CONFLICT)
+        val day = today.dayOfMonth
+        // Invalidate in-flight attempts as well as the recorded answer for this member and day.
+        listOf("advent_member_attempts", "advent_member_generations", "advent_member_replays", "advent_member_answers").forEach {
+            jdbc.update("DELETE FROM $it WHERE user_id = ? AND quiz_day = ?", user, day)
+        }
+        jdbc.update("DELETE FROM advent_member_dismissals WHERE user_id = ? AND dismissed_on = ?", user, today)
+    }
+
     data class ClockProjection(val date: LocalDate, val effectiveInstant: Instant, val nextMidnight: Instant, val simulated: Boolean)
 
     @Transactional
