@@ -42,6 +42,3 @@ status: open
 - source_spec: `_bmad-output/implementation-artifacts/spec-stabilize-availability-e2e.md`
   summary: Exercise availability interception cleanup with an intentionally in-flight inbox request.
   evidence: Unverified medium risk; the exact already-handled route cause was not established and the current scenario does not deterministically hold a handler during cleanup.
-- source_spec: `_bmad-output/implementation-artifacts/spec-avent-rejouer-ouverture.md`
-  summary: Verify unseen-result priority when entry reads race a newly eligible reveal.
-  evidence: Unverified medium risk; a concurrent server-backed test must establish whether a result can become eligible between the priority reads and the waiting scene.

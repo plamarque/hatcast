@@ -62,7 +62,7 @@ context: []
 - The toolbar action confirms the targeted date, then signs out without recording a dismissal; it distinguishes uncertain deletion from failed logout and blocks concurrent UI actions.
 - Targeted Angular tests and the Advent member game and HTTP security suites passed. The HTTP suite exercises a simulated date different from the normal day.
 - A real isolated offline stack with a synthetic account and content passed the sign-in, answer, replay, sign-out and automatic sign-in entry on desktop and at 390 px. The same mobile test confirmed a pending answer opens the countdown from the gift after dismissing the install banner.
-- The mobile install banner obstructed the gift in this local test; tracked as BUG-089. Production occurrence has not been checked.
+- The mobile install banner obstructed the gift in this local test; dismissing it restored access. Patrice accepted this existing behavior, recorded under closed BUG-089. Production occurrence has not been checked.
 
 ## Review Triage Log
 
@@ -71,4 +71,4 @@ context: []
 - Medium, fixed: concurrent closure or mutation could interfere with the prepared state; the underlying interface is inert throughout the action.
 - Medium, fixed: tests now protect another member's answer on the same day and invalidate an in-flight attempt.
 - Medium, fixed: the end-to-end acceptance was run against a real isolated local API and synthetic login, including a mobile viewport.
-- Unverified: a reveal becoming eligible between independent reads may compete with entry; a concurrent server-backed test would be required to establish reachability. Existing entry and waiting paths retain server authorization and an additional priority read.
+- Accepted on 2026-11-02: Patrice considers the possible race between a newly eligible reveal and entry extremely unlikely with limited consequences and explicitly declines further testing or mitigation.

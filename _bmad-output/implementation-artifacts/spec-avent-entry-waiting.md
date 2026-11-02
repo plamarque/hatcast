@@ -29,5 +29,5 @@ context: []
 
 - Medium, fixed: align SPEC and UX/PRD requirements with the approved entry behavior.
 - Medium, fixed: focus the waiting scene after it is rendered and ensure it is still current.
-- Medium, mitigated: recheck the latest unseen result after the answer read before opening the waiting scene, with a targeted test. A concurrent server-backed scenario remains unverified.
+- Medium, mitigated: recheck the latest unseen result after the answer read before opening the waiting scene, with a targeted test. On 2026-11-02 Patrice explicitly accepted the residual concurrency risk and declined further testing or mitigation.
 - Medium, limitation: unit mocks and separate API tests do not establish the real sign-in flow; perform an isolated end-to-end test before delivery.
