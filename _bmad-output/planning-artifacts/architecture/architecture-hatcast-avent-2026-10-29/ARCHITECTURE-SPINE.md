@@ -46,7 +46,7 @@ flowchart LR
 
 ### AD-2 — Essais isolés et configuration [ADOPTED]
 
-**Exception de prévisualisation approuvée :** La prévisualisation de production est distincte du mode test et ne permet aucun reset, rejeu ou changement de date ; la production utilise l’heure réelle.
+**Exception de prévisualisation approuvée :** La prévisualisation de production est distincte du mode test et permet uniquement la suppression confirmée de la réponse personnelle au jour sélectionné et son rejeu, sans reset partagé ni changement de date ; la production utilise l’heure réelle.
 
 
 - **Binds:** FR-13 ; développement, simulation et opérations.
@@ -55,7 +55,7 @@ flowchart LR
 
 ### AD-3 — Réponses et état partagés [ADOPTED]
 
-**Exception de prévisualisation approuvée :** Une réponse future de prévisualisation est unique, définitive et personnelle ; son résultat est immédiatement visible par son auteur, tandis que sa date normale de révélation reste conservée.
+**Exception de prévisualisation approuvée :** Une réponse de prévisualisation est unique et personnelle, et peut être supprimée explicitement par son auteur pour rejouer ; son résultat est immédiatement visible par son auteur, tandis que sa date normale de révélation reste conservée.
 
 
 - **Binds:** FR-2, FR-4 à FR-7, FR-10, FR-11.

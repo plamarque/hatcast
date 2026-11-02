@@ -60,6 +60,23 @@ class AdventMemberPostgresTest {
                 assertEquals("Explication fictive", result.explanation)
                 game.acknowledge(other, 23, UUID.fromString(result.answerId), preview = true)
                 assertNull(game.latestUnseen(other, preview = true))
+                val session = game.session()
+                val ownerToken = game.state(owner, 23, preview = true).replayToken!!
+                assertEquals("recorded", game.replay(other, 23, ownerToken, session, preview = true).status)
+                assertEquals("available", game.replay(owner, 23, ownerToken, session, preview = true).status)
+                assertNotNull(game.result(other, 23, preview = true))
+                jdbc.update("UPDATE advent_quizzes SET display_name = ?, portrait_ref = ?, statement_0 = ?, explanation = ? WHERE quiz_day = 23", "Lutin modifié", "portrait-modifie.png", "Nouvelle anecdote", "Nouvelle explication")
+                val updatedQuiz = game.quiz(23, preview = true)!!
+                assertEquals("Lutin modifié", updatedQuiz.name)
+                assertEquals("portrait-modifie.png", updatedQuiz.portraitRef)
+                assertEquals("Nouvelle anecdote", updatedQuiz.statements[0])
+                val replayGeneration = game.reconcile(owner, 23, preview = true).generation!!
+                val replayAttempt = UUID.randomUUID()
+                game.reserve(owner, 23, replayAttempt, replayGeneration, preview = true)
+                assertEquals("recorded", game.confirm(owner, 23, 0, replayAttempt, preview = true).status)
+                assertFalse(game.result(owner, 23, preview = true)!!.correct)
+                assertEquals("Nouvelle explication", game.result(owner, 23, preview = true)!!.explanation)
+                assertEquals("available", game.replay(owner, 23, game.state(owner, 23, preview = true).replayToken!!, session, preview = true).status)
             }
         } finally { root.execute("DROP SCHEMA $schema CASCADE") }
     }

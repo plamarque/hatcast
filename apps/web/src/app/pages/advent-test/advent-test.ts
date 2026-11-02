@@ -2,6 +2,7 @@ import { Component, ElementRef, ViewChild, signal, inject, effect } from '@angul
 import { NgTemplateOutlet } from '@angular/common'
 import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
+import { MatMenuModule } from '@angular/material/menu'
 import { MatRadioModule } from '@angular/material/radio'
 import { Router } from '@angular/router'
 import { AuthApiService } from '../../core/auth/auth-api.service'
@@ -26,7 +27,7 @@ interface FictionalQuiz { day: number; name: string; portrait: string; statement
 @Component({
   selector: 'app-advent-test',
   standalone: true,
-  imports: [MatButtonModule, MatIconModule, MatRadioModule, NgTemplateOutlet],
+  imports: [MatButtonModule, MatIconModule, MatMenuModule, MatRadioModule, NgTemplateOutlet],
   templateUrl: './advent-test.html',
   styleUrls: ['./advent-test.scss', './advent-result.scss', './advent-ranking.scss', './advent-calendar.scss', './advent-illustrated.scss', './advent-welcome.scss', './advent-controls.scss', './advent-reminder.scss'],
 })
@@ -98,11 +99,92 @@ export class AdventTest {
     await this.changeReminder(desired)
     input.checked = this.reminderEnabled() === true
   }
+  readonly openingReplayDate = signal<string | null>(null)
+  readonly openingReplayError = signal('')
+  readonly openingReplayBusy = signal(false)
+  readonly openingReplayOutcome = signal<'confirm' | 'uncertain' | 'logout-failed'>('confirm')
+  private openingReplayUncertain = false
+  @ViewChild('openingReplayCancel') private openingReplayCancel?: ElementRef<HTMLElement>
+  @ViewChild('openingReplayButton', { read: ElementRef }) private openingReplayButton?: ElementRef<HTMLElement>
+  @ViewChild('previewReplayButton', { read: ElementRef }) private previewReplayButton?: ElementRef<HTMLElement>
+  @ViewChild('personalResetHeading') private personalResetHeading?: ElementRef<HTMLElement>
+
+  async prepareOpeningReplay(): Promise<void> {
+    if (!this.testMode() || this.openingReplayBusy() || this.pendingMutations() > 0) return
+    const identity = this.auth.sessionUser()?.id
+    if (!identity) return
+    this.openingReplayBusy.set(true); this.openingReplayError.set(''); this.openingReplayDate.set(null); this.openingReplayOutcome.set('confirm'); this.openingReplayUncertain = false
+    try {
+      const response = await fetch(`${this.api}/entry/replay`, { credentials: 'include', cache: 'no-store', signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS), headers: { ...this.sessionHeaders(), 'X-Advent-User': identity } })
+      if (!response.ok || identity !== this.auth.sessionUser()?.id) throw new Error('Preparation failed')
+      const preparation = await response.json() as { date: string; eligible: boolean; reason?: string }
+      if (identity !== this.auth.sessionUser()?.id) throw new Error('Session changed')
+      if (!preparation.eligible) {
+        this.openingReplayError.set(preparation.reason === 'missing-quiz' ? 'Aucun quiz n’est disponible pour la date ordinaire de développement.' : 'La date ordinaire de développement est hors de la période des quiz.')
+        return
+      }
+      this.openingReplayDate.set(preparation.date)
+      setTimeout(() => this.openingReplayCancel?.nativeElement?.focus())
+    } catch { this.openingReplayError.set('Impossible de préparer le rejeu. Vérifie ta session et réessaie.') }
+    finally { this.openingReplayBusy.set(false) }
+  }
+
+  cancelOpeningReplay(): void {
+    this.openingReplayDate.set(null)
+    setTimeout(() => this.openingReplayButton?.nativeElement?.focus())
+  }
+
+  async confirmOpeningReplay(): Promise<void> {
+    const date = this.openingReplayDate()
+    const identity = this.auth.sessionUser()?.id
+    if (!date || !identity || !this.testMode() || this.openingReplayOutcome() !== 'confirm' || this.openingReplayBusy() || this.pendingMutations() > 0) return
+    this.openingReplayBusy.set(true); this.openingReplayError.set('')
+    try {
+      const response = await fetch(`${this.api}/entry/replay`, { method: 'POST', credentials: 'include', cache: 'no-store', signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS), headers: { ...this.csrfHeaders(), ...this.sessionHeaders(), 'X-Advent-User': identity, 'Content-Type': 'application/json' }, body: JSON.stringify({ date }) })
+      if (!response.ok || identity !== this.auth.sessionUser()?.id) throw new Error('Replay outcome uncertain')
+      await this.signOutAfterReplay()
+    } catch {
+      this.openingReplayUncertain = true
+      this.openingReplayOutcome.set('uncertain')
+      this.openingReplayError.set('Impossible de confirmer si ta réponse a été effacée. Ne relance pas cette suppression ; déconnecte-toi puis vérifie à la connexion.')
+    } finally { this.openingReplayBusy.set(false) }
+  }
+
+  private async signOutAfterReplay(): Promise<void> {
+    let loggedOut = false
+    try { loggedOut = await this.auth.logout() } catch { /* retry is available below */ }
+    if (loggedOut) {
+      await this.router.navigateByUrl('/connexion')
+    } else {
+      this.openingReplayOutcome.set('logout-failed')
+      this.openingReplayError.set(this.openingReplayUncertain ? 'Le résultat de la suppression reste incertain et la déconnexion a échoué. Réessaie la déconnexion.' : 'La préparation est terminée, mais la déconnexion a échoué. Réessaie la déconnexion avant de te reconnecter.')
+    }
+  }
+
+  async retryOpeningReplayLogout(): Promise<void> {
+    if (this.openingReplayBusy() || this.openingReplayOutcome() !== 'logout-failed') return
+    this.openingReplayBusy.set(true)
+    try { await this.signOutAfterReplay() }
+    catch { this.openingReplayError.set('La déconnexion a échoué. Réessaie la déconnexion avant de te reconnecter.') }
+    finally { this.openingReplayBusy.set(false) }
+  }
+
+  async leaveUncertainReplay(): Promise<void> {
+    if (this.openingReplayBusy() || this.openingReplayOutcome() !== 'uncertain') return
+    this.openingReplayBusy.set(true)
+    try {
+      const ok = await this.auth.logout()
+      if (ok) await this.router.navigateByUrl('/connexion')
+      else { this.openingReplayOutcome.set('logout-failed'); this.openingReplayError.set('Le résultat de la suppression reste incertain et la déconnexion a échoué. Réessaie la déconnexion.') }
+    } catch { this.openingReplayOutcome.set('logout-failed'); this.openingReplayError.set('Le résultat de la suppression reste incertain et la déconnexion a échoué. Réessaie la déconnexion.') }
+    finally { this.openingReplayBusy.set(false) }
+  }
+
   readonly closeError = signal(false)
   readonly closingExperience = signal(false)
 
   async closeExperience(): Promise<void> {
-    if (this.closingExperience() || this.loading() || this.submitting() || this.pendingMutations() > 0 || this.closingDay() !== null) return
+    if (this.openingReplayBusy() || this.openingReplayDate() || this.closingExperience() || this.loading() || this.submitting() || this.pendingMutations() > 0 || this.closingDay() !== null) return
     const identity = this.auth.sessionUser()?.id ?? null
     this.closingExperience.set(true)
     this.closeError.set(false)
@@ -161,6 +243,7 @@ export class AdventTest {
   readonly pendingMutations = signal(0)
   readonly resetConfirm = signal(false)
   readonly personalResetConfirm = signal<'calendar' | 'replay' | null>(null)
+  readonly replayReloadFailed = signal(false)
   get memberMode(): boolean { return !this.testMode() }
   async toggleTestMode(): Promise<void> {
     if (!this.testControls() || this.loading() || this.submitting() || this.closingDay() !== null || this.pendingMutations()) return
@@ -344,6 +427,7 @@ export class AdventTest {
   }
 
   async start(openTestDay = false): Promise<void> {
+    this.replayReloadFailed.set(false)
     this.stopWaiting()
     this.projectionEpoch++
     this.welcome.set(false); this.welcomePreview.set(false); this.confirmationPreview.set(false); this.discoveryError.set(false)
@@ -501,8 +585,11 @@ export class AdventTest {
       else if (date < '2026-12-25') {
         const day = Math.min(24, Math.max(1, Number(date.slice(-2))))
         const state = await this.requestJson<{ status: string }>(`/v1/advent-test/doors/${day}/answer`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
-        if (state.status === 'recorded' && !openTestDay) await this.openRanking()
-        else await this.selectDay(day)
+        if (state.status === 'recorded' && !openTestDay) {
+          const priority = await this.requestJson<{ result: AdventResult | null }>('/v1/advent-test/results/latest-unseen', { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
+          if (priority.result) { await this.showResult(priority.result); return }
+        }
+        await this.selectDay(day, state.status === 'recorded' && !openTestDay)
       }
       else if (date === '2026-12-25') await this.loadChristmasScore()
       else await this.openRanking()
@@ -543,6 +630,7 @@ export class AdventTest {
       const response = await this.requestJson<{ days: CalendarDay[] | null; priorityResult: AdventResult | null }>('/v1/advent-test/calendar', { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
       if (response.priorityResult) { this.calendarOpen.set(false); this.history.set(null); await this.showResult(response.priorityResult); if (previousWaiting && !this.result()) throw new Error('Priority result unavailable'); return }
       if (!response.days) throw new Error('Calendar unavailable')
+      this.replayReloadFailed.set(false)
       this.calendarDays.set(response.days); this.history.set(null); this.rankingOpen.set(false); this.calendarOpen.set(true)
       if (this.confirmationPreview()) { this.confirmationPreview.set(false); this.quiz.set(null) }
       setTimeout(() => this.calendarHeading?.nativeElement.focus())
@@ -559,10 +647,20 @@ export class AdventTest {
     return this.calendarDays().find(day => day.state === 'played' && this.isCalendarToday(day))
   }
 
+  requestPersonalReset(action: 'calendar' | 'replay'): void {
+    this.personalResetConfirm.set(action)
+    setTimeout(() => this.personalResetHeading?.nativeElement.focus())
+  }
+
+  cancelPersonalReset(): void {
+    this.personalResetConfirm.set(null)
+    setTimeout(() => (this.productionPreview() ? this.previewReplayButton : this.openingReplayButton)?.nativeElement.focus())
+  }
+
   async confirmPersonalReset(): Promise<void> {
     const action = this.personalResetConfirm()
     this.personalResetConfirm.set(null)
-    if (!this.testMode()) return
+    if (!this.testMode() && !this.productionPreview()) return
     if (action === 'calendar') await this.closeCalendarDay()
     if (action === 'replay') await this.replay()
   }
@@ -667,6 +765,7 @@ export class AdventTest {
       this.ranking.set(response.ranking)
       if (this.confirmationPreview()) { this.confirmationPreview.set(false); this.quiz.set(null) }
       this.calendarOpen.set(false); this.history.set(null)
+      this.replayReloadFailed.set(false)
       this.rankingOpen.set(true)
       setTimeout(() => this.rankingHeading?.nativeElement.focus())
     } catch (error) {
@@ -736,7 +835,11 @@ export class AdventTest {
       if (clock.date > '2026-12-25') { await this.openRanking(); return }
       const day = Math.min(24, Math.max(1, Number(clock.date.slice(-2))))
       const state = await this.requestJson<{ status: string }>(`/v1/advent-test/doors/${day}/answer`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
-      if (state.status === 'recorded' && !this.testMode()) await this.openRanking(); else await this.selectDay(day)
+      if (state.status === 'recorded' && !this.testMode()) {
+        const priority = await this.requestJson<{ result: AdventResult | null }>('/v1/advent-test/results/latest-unseen', { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
+        if (priority.result) { await this.showResult(priority.result); return }
+      }
+      await this.selectDay(day, state.status === 'recorded' && !this.testMode())
     } catch (error) {
       if (error instanceof StaleRequestError) return
       this.error.set(true)
@@ -784,7 +887,12 @@ export class AdventTest {
         this.replayToken = state.replayToken ?? null
         this.answerState.set('recorded')
         this.quiz.set(content)
-        if (calendarRevisit && !state.late) await this.beginWaiting()
+        if (calendarRevisit && !state.late) {
+          await this.beginWaiting()
+          if (this.waiting() && this.contextCurrent(epoch, identity)) setTimeout(() => {
+            if (this.waiting() && this.contextCurrent(epoch, identity)) this.recordedStatus?.nativeElement.focus()
+          })
+        }
       }
     } catch (error) {
       if (error instanceof StaleRequestError || !this.contextCurrent(epoch, identity)) return
@@ -853,6 +961,12 @@ export class AdventTest {
     } catch (error) { if (!(error instanceof StaleRequestError)) { this.generation = null; this.answerState.set('uncertain') } }
   }
 
+  async retryReplayContent(): Promise<void> {
+    if (this.loading() || this.submitting()) return
+    await this.selectDay(this.selectedDay())
+    if (!this.error()) this.replayReloadFailed.set(false)
+  }
+
   async replay(): Promise<void> {
     this.stopWaiting()
     const epoch = this.projectionEpoch
@@ -871,10 +985,20 @@ export class AdventTest {
         if (result.status !== 'available') throw new Error('Result changed')
         this.clearVisibilityListener()
         this.lateDiscovery.set(reveal?.late === true)
-        this.quiz.set(historical?.quiz ?? this.resultContent())
+        const previousContent = historical?.quiz ?? this.resultContent()
         this.history.set(null)
         this.result.set(null)
         this.resultContent.set(null)
+        this.quiz.set(null)
+        this.preview.set(null)
+        if (this.productionPreview()) {
+          this.replayReloadFailed.set(true)
+          const currentContent = await this.requestJson<FictionalQuiz | null>(`/v1/advent-test/doors/${this.selectedDay()}`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() }, true)
+          if (!currentContent) throw new Error('Quiz unavailable')
+          this.quiz.set(currentContent)
+          this.preview.set(currentContent)
+          this.replayReloadFailed.set(false)
+        } else this.quiz.set(previousContent)
       }
       await this.reconcile()
       if (this.contextCurrent(epoch, identity)) setTimeout(() => { if (this.contextCurrent(epoch, identity)) (this.answerState() === 'recorded' ? this.recordedStatus : this.quizHeading)?.nativeElement.focus() })

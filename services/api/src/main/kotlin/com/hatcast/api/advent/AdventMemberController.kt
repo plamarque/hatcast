@@ -151,6 +151,20 @@ class AdventMemberController(
         return mapOf("testControls" to capability, "productionPreview" to canPreview(principal, request), "sessionId" to game.session())
     }
 
+    @GetMapping("/entry/replay")
+    fun prepareOpeningReplay(@AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AdventMemberGame.OpeningReplayPreparation {
+        val session = requireControl(principal, request)
+        if (request.getHeader("X-Advent-User") != principal.userId.toString()) throw ResponseStatusException(HttpStatus.CONFLICT)
+        return game.prepareOpeningReplay(session)
+    }
+
+    @PostMapping("/entry/replay")
+    fun replayOpening(@AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest, @RequestBody body: OpeningReplayRequest) {
+        val session = requireControl(principal, request)
+        if (request.getHeader("X-Advent-User") != principal.userId.toString()) throw ResponseStatusException(HttpStatus.CONFLICT)
+        game.replayOpening(principal.userId, session, body.date ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST))
+    }
+
     @PostMapping("/session/reset")
     fun reset(@AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest) {
         val session = requireControl(principal, request)
@@ -160,8 +174,11 @@ class AdventMemberController(
 
     @PostMapping("/doors/{day}/answer/replay")
     fun replay(@PathVariable day: Int, @RequestBody body: ReplayAnswer, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AnswerState {
-        val session = requireControl(principal, request)
-        return game.replay(principal.userId, day, body.replayToken ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), session, simulated(principal, request), body.close)
+        authorize(principal)
+        val isPreview = preview(principal, request)
+        if (isPreview && body.close) throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        val session = if (isPreview) sessionFor(principal, request) else requireControl(principal, request)
+        return game.replay(principal.userId, day, body.replayToken ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), session, simulated(principal, request), body.close, isPreview)
     }
 
     @GetMapping("/clock")
@@ -289,3 +306,5 @@ class AdventMemberPortraitStorage {
         return if (blob != null && blob.size <= 5_000_000) blob.getContent() else null
     }
 }
+
+data class OpeningReplayRequest(val date: LocalDate? = null)

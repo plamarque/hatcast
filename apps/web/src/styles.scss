@@ -5,12 +5,26 @@
 // custom components at https://material.angular.dev/guide/theming
 @use '@angular/material' as mat;
 @use 'styles/hatcast-semantic-colors' as hatcast-colors;
+@use 'app/shared/advent/foundation' as advent;
 
 @import '@fontsource/fredoka/700.css';
 @import '@fontsource/nunito/400.css';
 @import '@fontsource/nunito/700.css';
 
 @import 'styles/hatcast-fonts';
+
+.advent-test-menu {
+  @include advent.foundation;
+  --mat-menu-container-color: var(--advent-surface);
+  --mat-menu-item-label-text-color: var(--advent-text);
+  --mat-menu-item-icon-color: var(--hatcast-avent-green);
+  --mat-menu-item-label-text-font: var(--advent-body-font);
+  max-width: min(22rem, calc(100vw - 2rem)) !important;
+}
+.advent-test-menu .mat-mdc-menu-item-text {
+  white-space: normal;
+  line-height: 1.3;
+}
 
 html {
   height: 100%;
