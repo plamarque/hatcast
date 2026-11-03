@@ -45,8 +45,13 @@ class AdventMemberSecurityTest {
             jdbc.update("INSERT INTO troupe_memberships (id, troupe_id, user_id, status, baseline_role, display_name, created_at, updated_at) VALUES (?, ?, ?, 'ACTIVE', 'MEMBER', 'Fictif', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", UUID.randomUUID(), troupe, id)
             id
         }
-        environment.propertySources.addFirst(MapPropertySource("advent-preview-test", mapOf("hatcast.advent.excluded-user-ids" to "${ids[0]},${ids[1]}", "hatcast.advent-test.allowed-emails" to "patrice.lamarque@gmail.com,brousseau.ant@gmail.com")))
+        environment.propertySources.addFirst(MapPropertySource("advent-preview-test", mapOf("hatcast.advent.excluded-user-ids" to "${ids[0]},${ids[1]}", "hatcast.advent-test.allowed-emails" to "patrice.lamarque@gmail.com,brousseau.ant@gmail.com", "hatcast.advent.preview-allowed-emails" to "patrice.lamarque@gmail.com,brousseau.ant@gmail.com")))
         try {
+            for (invalid in listOf("", "one@example.test", "same@example.test,SAME@example.test")) {
+                environment.propertySources.addFirst(MapPropertySource("invalid-preview-emails", mapOf("hatcast.advent.preview-allowed-emails" to invalid)))
+                mvc.perform(get("/v1/advent/preview-capability").cookie(first)).andExpect(status().isOk).andExpect(jsonPath("$.productionPreview").value(false))
+                environment.propertySources.remove("invalid-preview-emails")
+            }
             `when`(clock.instant()).thenReturn(Instant.parse("2026-11-30T22:59:59Z"))
             for (day in listOf(7, 23)) {
                 jdbc.update("DELETE FROM advent_quizzes WHERE quiz_day = ?", day)
@@ -56,6 +61,10 @@ class AdventMemberSecurityTest {
                 .andExpect(status().isOk).andExpect(jsonPath("$.productionPreview").value(true))
                 .andExpect(jsonPath("$.testControls").value(false))
             mvc.perform(get("/v1/advent/session").cookie(third)).andExpect(jsonPath("$.productionPreview").value(false))
+            for (cookie in listOf(first, second)) mvc.perform(get("/v1/advent/preview-capability").cookie(cookie))
+                .andExpect(status().isOk).andExpect(header().string("Cache-Control", "private, no-store"))
+                .andExpect(jsonPath("$.productionPreview").value(true)).andExpect(jsonPath("$.sessionId").doesNotExist())
+            mvc.perform(get("/v1/advent/preview-capability").cookie(third)).andExpect(status().isOk).andExpect(jsonPath("$.productionPreview").value(false))
             val token = json.readTree(mvc.perform(get("/v1/advent/session").cookie(first)).andReturn().response.contentAsString)["sessionId"].asText()
             mvc.perform(get("/v1/advent/entry").cookie(third)).andExpect(status().isNotFound)
             `when`(clock.instant()).thenReturn(Instant.parse("2026-11-30T23:00:00Z"))
@@ -132,17 +141,19 @@ class AdventMemberSecurityTest {
             mvc.perform(get("/v1/advent/doors/23/result").cookie(third).header("X-Advent-Test-Session", token)).andExpect(status().isNotFound)
             val unverified = TestAuthSupport.sessionCookieFromGoogleSignIn(mvc, google, "preview-capability-one", "patrice.lamarque@gmail.com", emailVerified = false)
             mvc.perform(get("/v1/advent/session").cookie(unverified)).andExpect(status().isOk).andExpect(jsonPath("$.productionPreview").value(false))
+            mvc.perform(get("/v1/advent/preview-capability").cookie(unverified)).andExpect(jsonPath("$.productionPreview").value(false))
             mvc.perform(get("/v1/advent/doors/23").cookie(unverified).header("X-Advent-Test-Session", token).header("X-Advent-Preview", "true")).andExpect(status().isNotFound)
             mvc.perform(previewReplay(unverified, 23, firstAnswer)).andExpect(status().isNotFound)
             jdbc.update("UPDATE troupe_memberships SET status = 'INACTIVE' WHERE troupe_id = ? AND user_id = ?", troupe, ids[0])
             mvc.perform(get("/v1/advent/session").cookie(first)).andExpect(status().isForbidden)
+            mvc.perform(get("/v1/advent/preview-capability").cookie(first)).andExpect(status().isForbidden).andExpect(header().string("Cache-Control", "private, no-store"))
         } finally {
             environment.propertySources.remove("advent-preview-test")
         }
     }
     @Test fun `anonymous and unrelated user cannot access member data and errors are not cached`() {
         val cookie = TestAuthSupport.sessionCookieFromGoogleSignIn(mvc, google, "outsider-advent-member")
-        for (path in listOf("/v1/advent/discovery", "/v1/advent/entry", "/v1/advent/clock", "/v1/advent/doors/1", "/v1/advent/doors/1/answer", "/v1/advent/doors/1/result", "/v1/advent/results/latest-unseen", "/v1/advent/ranking", "/v1/advent/calendar", "/v1/advent/doors/1/history")) {
+        for (path in listOf("/v1/advent/preview-capability", "/v1/advent/discovery", "/v1/advent/entry", "/v1/advent/clock", "/v1/advent/doors/1", "/v1/advent/doors/1/answer", "/v1/advent/doors/1/result", "/v1/advent/results/latest-unseen", "/v1/advent/ranking", "/v1/advent/calendar", "/v1/advent/doors/1/history")) {
             mvc.perform(get(path)).andExpect(status().isUnauthorized).andExpect(header().string("Cache-Control", "private, no-store"))
             mvc.perform(get(path).cookie(cookie)).andExpect(status().isForbidden).andExpect(header().string("Cache-Control", "private, no-store"))
         }

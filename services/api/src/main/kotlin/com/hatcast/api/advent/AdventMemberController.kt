@@ -55,8 +55,9 @@ class AdventMemberController(
         val operators = try { exclusions() } catch (_: ResponseStatusException) { return false }
         if (operators.size != 2 || principal.userId !in operators) return false
         if (request.getSession(false)?.getAttribute("hatcast.auth.verified-email") != true) return false
-        val emails = setOf("patrice.lamarque@gmail.com", "brousseau.ant@gmail.com")
-        return principal.email?.trim()?.lowercase() in emails
+        val emails = environment.getProperty("hatcast.advent.preview-allowed-emails", "")
+            .split(',').map { it.trim().lowercase() }.filter { it.isNotEmpty() }.toSet()
+        return emails.size == 2 && principal.email?.trim()?.lowercase() in emails
     }
 
     private fun activeMode(principal: SessionUserPrincipal, request: HttpServletRequest): Boolean {
@@ -149,6 +150,12 @@ class AdventMemberController(
         val capability = canControl(principal, request)
         simulated(principal, request)
         return mapOf("testControls" to capability, "productionPreview" to canPreview(principal, request), "sessionId" to game.session())
+    }
+
+    @GetMapping("/preview-capability")
+    fun previewCapability(@AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): Map<String, Boolean> {
+        authorize(principal)
+        return mapOf("productionPreview" to canPreview(principal, request))
     }
 
     @GetMapping("/entry/replay")

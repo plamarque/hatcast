@@ -1,3 +1,4 @@
+import { signal } from '@angular/core'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { MatDialog } from '@angular/material/dialog'
 import { MatSelectChange } from '@angular/material/select'
@@ -66,6 +67,7 @@ describe('SeasonsList', () => {
         {
           provide: AuthApiService,
           useValue: {
+            sessionUser: signal(null), sessionIdentityVersion: signal(0),
             ensureHatcastSession: vi.fn().mockResolvedValue({
               ok: true,
               data: { user: {}, platformAdmin: false },
@@ -392,6 +394,7 @@ describe('SeasonsList', () => {
         {
           provide: AuthApiService,
           useValue: {
+            sessionUser: signal(null), sessionIdentityVersion: signal(0),
             ensureHatcastSession: vi.fn().mockResolvedValue({
               ok: true,
               data: {

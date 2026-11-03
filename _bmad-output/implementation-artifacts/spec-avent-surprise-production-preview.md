@@ -2,7 +2,7 @@
 title: 'Preserve the Advent surprise and preview production content'
 type: 'feature'
 created: '2026-11-01'
-status: 'in-review'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 2
 baseline_commit: 'bf1359c82aeaffc439a302a795f21e8308dca9f4'
@@ -73,7 +73,10 @@ context:
 
 ## Implementation Notes
 
-The direct preview route is `/avent?preview=1`; the server checks active membership, the two configured excluded IDs and a verified privileged email on every preview request. The API keeps normal `reveal_at` values and applies the exception only to the requesting account. The ordinary entry projection remains separate. The delivery workflow injects troupe and excluded-ID configuration from each GitHub environment; actual production values are not verified here. Story 25.15 is tracked as `review` pending the staging smoke.
+The direct preview route is `/avent?preview=1`; the server checks active membership, the two configured excluded IDs and a verified privileged email on every preview request. The API keeps normal `reveal_at` values and applies the exception only to the requesting account. The ordinary entry projection remains separate. The delivery workflow injects troupe and excluded-ID configuration from each GitHub environment; actual production values are not verified here.
+
+- Human staging smoke, 2–3 November 2026: Patrice observed no Advent entry during ordinary signed-in navigation before opening, accessed the private preview on staging, played and replayed a quiz, and confirmed reviewing the first eight quizzes after catalogue synchronization. This was performed with his authorized account; no third-party or second-host human test was reported. The first eight quizzes were present in staging; later fictional placeholders were not promoted.
+- The staging human smoke preceded the final test-only CI corrections. Advent privacy regression, including the full-stack synthetic preview and ordinary-member checks, passed on `fa3b84525b7c42c40384e5dd608c893094b6d8bc`. Actual production configuration, content and human acceptance remain separate and unverified. The preview notice scope change was not deployed to staging in that smoke.
 
 ## Spec Change Log
 

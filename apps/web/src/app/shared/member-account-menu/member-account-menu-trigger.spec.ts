@@ -51,12 +51,13 @@ describe('MemberAccountMenuTrigger', () => {
         ]),
         {
           provide: AuthApiService,
-          useValue: { ensureHatcastSession: ensureSession, sessionUser },
+          useValue: { ensureHatcastSession: ensureSession, sessionUser, sessionIdentityVersion: signal(0) },
         },
         {
           provide: MemberDisplayNameService,
           useValue: {
             memberDisplayName,
+            avatarGender: signal(null),
             loadFromApi,
             syncSessionUser: vi.fn(),
             railLabel: (user: { email?: string | null } | null) => {

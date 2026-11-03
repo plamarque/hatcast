@@ -236,6 +236,7 @@ jobs:
           TARGET_ENV: ${{ needs.classify-ref.outputs.target_env }}
           ADVENT_TROUPE_ID: ${{ vars.HATCAST_ADVENT_TROUPE_ID }}
           ADVENT_EXCLUDED_USER_IDS: ${{ vars.HATCAST_ADVENT_EXCLUDED_USER_IDS }}
+          ADVENT_PREVIEW_ALLOWED_EMAILS: ${{ vars.HATCAST_ADVENT_PREVIEW_ALLOWED_EMAILS }}
           ADVENT_CLOCK_OFFSET_SECONDS: ${{ vars.HATCAST_ADVENT_CLOCK_OFFSET_SECONDS }}
         run: |
           set -euo pipefail
@@ -323,6 +324,7 @@ jobs:
           if [ "${TARGET_ENV}" = "development" ] && [ -n "${ADVENT_CLOCK_OFFSET_SECONDS}" ]; then
             append_env HATCAST_ADVENT_CLOCK_OFFSET_SECONDS "${ADVENT_CLOCK_OFFSET_SECONDS}"
           fi
+          append_env HATCAST_ADVENT_PREVIEW_ALLOWED_EMAILS "${ADVENT_PREVIEW_ALLOWED_EMAILS}"
           append_env HATCAST_ADVENT_PORTRAIT_LAYOUT portraits-default-v2
           append_env JAVA_TOOL_OPTIONS -XX:MaxRAMPercentage=75.0
           MEMORY="1Gi"

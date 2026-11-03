@@ -1,12 +1,17 @@
 import { TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { provideRouter, Router } from '@angular/router';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { AuthApiService } from '../../core/auth/auth-api.service';
+import { FirebaseAuthService } from '../../core/auth/firebase-auth.service';
 import { PwaInstallService } from '../../core/pwa/pwa-install.service';
 import { UserAccountMenuItemsComponent } from './user-account-menu-items';
 
 describe('UserAccountMenuItemsComponent', () => {
+  const sessionUser = signal<{ id: string } | null>(null);
+  const sessionIdentityVersion = signal(0);
+  afterEach(() => { sessionUser.set(null); sessionIdentityVersion.set(0); vi.unstubAllGlobals(); });
   async function setup(options?: {
     pwaInstalled?: boolean;
     showLogout?: boolean;
@@ -27,6 +32,7 @@ describe('UserAccountMenuItemsComponent', () => {
           provide: AuthApiService,
           useValue: {
             logout: vi.fn().mockResolvedValue(true),
+            sessionUser, sessionIdentityVersion,
           },
         },
       ],
@@ -45,6 +51,7 @@ describe('UserAccountMenuItemsComponent', () => {
       fixture.componentRef.setInput('showLogout', false);
     }
     fixture.detectChanges();
+    fixture.componentInstance.refreshPreviewCapability();
     return fixture;
   }
 
@@ -98,7 +105,7 @@ describe('UserAccountMenuItemsComponent', () => {
         },
         {
           provide: AuthApiService,
-          useValue: { logout: vi.fn().mockResolvedValue(true) },
+          useValue: { logout: vi.fn().mockResolvedValue(true), sessionUser, sessionIdentityVersion },
         },
       ],
     }).compileComponents();
@@ -112,5 +119,90 @@ describe('UserAccountMenuItemsComponent', () => {
     expect(installBtn).toBeTruthy();
     installBtn!.click();
     expect(installFromUserMenu).toHaveBeenCalled();
+  });
+
+  it('shows the authorized preview link with router query parameters', async () => {
+    sessionUser.set({ id: 'one' });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ productionPreview: true }) }));
+    const fixture = await setup();
+    await vi.waitFor(() => { fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain('Prévisualiser l’Avent'); });
+    expect(fixture.nativeElement.querySelector('a[href="/avent?preview=1"]')).not.toBeNull();
+  });
+
+  it.each([
+    { ok: true, json: async () => ({ productionPreview: false }) },
+    { ok: false },
+    new Error('offline'),
+  ])('hides the entry when authorization is denied or unavailable', async (result) => {
+    sessionUser.set({ id: 'one' });
+    vi.stubGlobal('fetch', result instanceof Error ? vi.fn().mockRejectedValue(result) : vi.fn().mockResolvedValue(result));
+    const fixture = await setup();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).not.toContain('Avent');
+  });
+
+  it('clears authorization on account changes and ignores late responses including a return to the same identity', async () => {
+    let resolveFirst!: (value: unknown) => void;
+    sessionUser.set({ id: 'one' });
+    vi.stubGlobal('fetch', vi.fn().mockImplementationOnce(() => new Promise((resolve) => { resolveFirst = resolve; }))
+      .mockResolvedValue({ ok: true, json: async () => ({ productionPreview: false }) }));
+    const fixture = await setup();
+    sessionIdentityVersion.update((n) => n + 1); sessionUser.set({ id: 'two' });
+    sessionIdentityVersion.update((n) => n + 1); sessionUser.set({ id: 'one' });
+    resolveFirst({ ok: true, json: async () => ({ productionPreview: true }) });
+    await fixture.whenStable(); fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).not.toContain('Avent');
+    sessionIdentityVersion.update((n) => n + 1); sessionUser.set(null);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).not.toContain('Avent');
+  });
+
+  it('immediately hides a granted capability on logout or account switch', async () => {
+    sessionUser.set({ id: 'one' });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ productionPreview: true }) }));
+    const fixture = await setup();
+    await vi.waitFor(() => { fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain('Avent'); });
+    sessionIdentityVersion.update((n) => n + 1); sessionUser.set({ id: 'two' });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).not.toContain('Avent');
+    sessionIdentityVersion.update((n) => n + 1); sessionUser.set(null);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).not.toContain('Avent');
+  });
+
+  it('revalidates on every opening and rejects an older overlapping success', async () => {
+    let resolveFirst!: (value: unknown) => void;
+    sessionUser.set({ id: 'one' });
+    vi.stubGlobal('fetch', vi.fn().mockImplementationOnce(() => new Promise((resolve) => { resolveFirst = resolve; }))
+      .mockResolvedValue({ ok: true, json: async () => ({ productionPreview: false }) }));
+    const fixture = await setup();
+    fixture.componentInstance.refreshPreviewCapability();
+    resolveFirst({ ok: true, json: async () => ({ productionPreview: true }) });
+    await fixture.whenStable(); fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).not.toContain('Avent');
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('rejects a delayed capability after real auth changes account', async () => {
+    let resolveCapability!: (value: unknown) => void;
+    let identity = 'one';
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
+      if (url === '/v1/advent/preview-capability') return new Promise((resolve) => { resolveCapability = resolve; });
+      return Promise.resolve({ ok: true, status: 200, json: async () => ({ user: { id: identity, slug: identity, email: null, displayName: null } }) });
+    }));
+    await TestBed.configureTestingModule({ imports: [UserAccountMenuItemsComponent], providers: [
+      provideRouter([]), AuthApiService,
+      { provide: FirebaseAuthService, useValue: { getAuthOrNull: () => null } },
+      { provide: PwaInstallService, useValue: { isPwaInstalled: () => true } },
+    ] }).compileComponents();
+    const auth = TestBed.inject(AuthApiService);
+    await auth.signInWithGoogleIdToken('first');
+    const fixture = TestBed.createComponent(UserAccountMenuItemsComponent);
+    fixture.detectChanges(); fixture.componentInstance.refreshPreviewCapability();
+    identity = 'two'; await auth.signInWithGoogleIdToken('second');
+    resolveCapability({ ok: true, json: async () => ({ productionPreview: true }) });
+    await fixture.whenStable(); fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).not.toContain('Avent');
   });
 });
