@@ -2152,7 +2152,7 @@ describe('AdventTest', () => {
     component.result.set(result)
     fixture.detectChanges()
     expect(fixture.nativeElement.querySelector('.advent__result-points').textContent).toContain('+1 point gagné')
-    expect(fixture.nativeElement.querySelector('.advent__reveal-mood img').getAttribute('src')).toBe('/advent/elf-encouragement-v1.webp')
+    expect(fixture.nativeElement.querySelector('.advent__reveal-mood img').getAttribute('src')).toBe('/advent/elf-disappointed-v1.png')
     expect(fixture.nativeElement.textContent).not.toContain('42 points')
     component.result.set({ ...result, explanation: 'Explication fictive' })
     fixture.detectChanges()

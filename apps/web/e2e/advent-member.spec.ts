@@ -1,6 +1,28 @@
 import { expect, test } from '@playwright/test'
 
 test.use({ serviceWorkers: 'block' })
+
+// Normalized bounds correspond to the face and raised fist in the current assets.
+// They are conservative visual landmarks, and must be revisited if artwork changes.
+async function assertResultPortraitLayout(page: import('@playwright/test').Page, correct: boolean) {
+  const portrait = page.locator('.advent__reveal-portrait')
+  const title = page.locator('#advent-result-title')
+  const art = page.locator('.advent__reveal-mood img')
+  await expect(portrait).toBeVisible()
+  await expect.poll(() => portrait.locator('img').evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0)
+  const [p, t, a] = await Promise.all([portrait.boundingBox(), title.boundingBox(), art.boundingBox()])
+  expect(p).not.toBeNull(); expect(t).not.toBeNull(); expect(a).not.toBeNull()
+  if (!p || !t || !a) throw new Error('Missing result layout bounds')
+  const overlaps = (x: {x: number, y: number, width: number, height: number}, y: {x: number, y: number, width: number, height: number}) =>
+    x.x < y.x + y.width && y.x < x.x + x.width && x.y < y.y + y.height && y.y < x.y + x.height
+  const region = (left: number, top: number, right: number, bottom: number) => ({
+    x: a.x + a.width * left, y: a.y + a.height * top, width: a.width * (right - left), height: a.height * (bottom - top),
+  })
+  expect(overlaps(p, t), 'portrait overlaps heading').toBe(false)
+  expect(overlaps(p, correct ? region(.36, .20, .73, .59) : region(.40, .24, .75, .61)), 'portrait overlaps elf face').toBe(false)
+  if (correct) expect(overlaps(p, region(.80, .07, 1, .32)), 'portrait overlaps raised fist').toBe(false)
+}
+
 test('member confirmation and ranking remain neutral and accessible', async ({ page, context }, testInfo) => {
   await context.grantPermissions([])
   await page.setViewportSize({ width: 320, height: 700 })
@@ -278,9 +300,9 @@ test('calendar remains legible at 320px and past unplayed content can be answere
     if (path === '/v1/advent/results/latest-unseen') return route.fulfill({ json: { result: null } })
     if (path === '/v1/advent/ranking') return route.fulfill({ json: { priorityResult: null, ranking: { score: 0, rank: 1, entries: [] } } })
     if (path === '/v1/advent/calendar') return route.fulfill({ json: { priorityResult: null, days: Array.from({ length: 25 }, (_, i) => ({ day: i + 1, state: i === 0 ? 'past-unplayed' : i === 1 ? 'today' : i >= 3 && i <= 5 ? 'played' : i === 6 ? 'missing' : i === 24 ? 'christmas' : 'locked', outcome: i === 3 ? 'pending' : i === 4 ? 'correct' : i === 5 ? 'incorrect' : null })) } })
-    if (path === '/v1/advent/doors/1/history') return route.fulfill({ json: { priorityResult: null, quiz: { day: 1, name: 'Fiction', portrait: '', statements: ['A', 'B', 'C'] }, falseChoice: null, result: lateRecorded ? lateResult : null } })
+    if (path === '/v1/advent/doors/1/history') return route.fulfill({ json: { priorityResult: null, quiz: { day: 1, name: 'Fiction', portrait: '/advent/elf-encouragement-v1.webp', statements: ['A', 'B', 'C'] }, falseChoice: null, result: lateRecorded ? lateResult : null } })
     if (path === '/v1/advent/doors/1/result') return route.fulfill({ json: lateResult })
-    if (path === '/v1/advent/doors/1') return route.fulfill({ json: { day: 1, name: 'Fiction', portrait: '', statements: ['A', 'B', 'C'] } })
+    if (path === '/v1/advent/doors/1') return route.fulfill({ json: { day: 1, name: 'Fiction', portrait: '/advent/elf-encouragement-v1.webp', statements: ['A', 'B', 'C'] } })
     if (path === '/v1/advent/doors/1/answer' && route.request().method() === 'POST') { lateRecorded = true; return route.fulfill({ json: { status: 'recorded', late: true } }) }
     if (path === '/v1/advent/doors/1/answer' && lateRecorded) return route.fulfill({ json: { status: 'recorded', late: true } })
     if (path === '/v1/advent/doors/2') return route.fulfill({ json: { day: 2, name: 'Fiction', portrait: '', statements: ['A', 'B', 'C'] } })
@@ -348,9 +370,55 @@ test('calendar remains legible at 320px and past unplayed content can be answere
   await page.getByRole('radio').first().click()
   await page.getByRole('button', { name: 'Confirmer ma réponse' }).click()
   await expect(page.getByText(/réponse après le jour du quiz/)).toBeVisible()
-  await expect(page.locator('.advent__reveal-mood img')).toHaveAttribute('src', '/advent/elf-encouragement-v1.webp')
+  await expect(page.locator('.advent__reveal-mood img')).toHaveAttribute('src', '/advent/elf-disappointed-v1.png')
   await expect.poll(() => page.locator('.advent__reveal-mood img').evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0)
+  await assertResultPortraitLayout(page, false)
   await page.screenshot({ path: testInfo.outputPath('result-incorrect.png'), fullPage: true })
+  await page.evaluate(() => { document.documentElement.style.fontSize = '200%' })
+  await expect(page.locator('#advent-result-title')).toBeVisible()
+  const zoomScene = await page.locator('.advent__reveal').evaluate(el => {
+    const date = el.querySelector('.advent__date') as HTMLElement
+    const art = el.querySelector('.advent__reveal-mood img') as HTMLElement
+    const heading = el.querySelector('#advent-result-title') as HTMLElement
+    const reminder = el.querySelector('.advent__reminder-copy') as HTMLElement
+    const lineHeight = parseFloat(getComputedStyle(date).lineHeight)
+    return { dateHeight: date.getBoundingClientRect().height, lineHeight, artWidth: art.getBoundingClientRect().width,
+      headingSize: parseFloat(getComputedStyle(heading).fontSize), reminderWidth: reminder.getBoundingClientRect().width }
+  })
+  expect(zoomScene.dateHeight).toBeLessThanOrEqual(zoomScene.lineHeight * 2 + 2)
+  expect(zoomScene.artWidth).toBeGreaterThanOrEqual(100)
+  expect(zoomScene.headingSize).toBeGreaterThanOrEqual(32)
+  expect(zoomScene.reminderWidth).toBeGreaterThanOrEqual(150)
+  await expect(page.locator('.advent__result-points')).toBeVisible()
+  await expect(page.locator('.advent__result-answer--truth')).toBeVisible()
+  await assertResultPortraitLayout(page, false)
+  const enlargedLayout = await page.locator('.advent__reveal').evaluate(el => {
+    const heading = el.querySelector('#advent-result-title')!.getBoundingClientRect()
+    const points = el.querySelector('.advent__result-points')!.getBoundingClientRect()
+    return { heading: { left: heading.left, right: heading.right, bottom: heading.bottom }, pointsTop: points.top, viewport: window.innerWidth, scrollWidth: document.documentElement.scrollWidth }
+  })
+  expect(enlargedLayout.heading.left).toBeGreaterThanOrEqual(0)
+  expect(enlargedLayout.heading.right).toBeLessThanOrEqual(enlargedLayout.viewport)
+  expect(enlargedLayout.heading.bottom).toBeLessThanOrEqual(enlargedLayout.pointsTop)
+  expect(enlargedLayout.scrollWidth).toBeLessThanOrEqual(enlargedLayout.viewport)
+  const action = page.getByRole('button', { name: 'Voir le classement' })
+  await action.scrollIntoViewIfNeeded()
+  await expect(action).toBeVisible()
+  await expect(action).toBeEnabled()
+  const actionBox = await action.boundingBox()
+  expect(actionBox).not.toBeNull()
+  expect(actionBox!.width).toBeGreaterThanOrEqual(44)
+  expect(actionBox!.height).toBeGreaterThanOrEqual(44)
+  await page.screenshot({ path: testInfo.outputPath('result-incorrect-320-large-text.png'), fullPage: true })
+  await page.evaluate(() => { document.documentElement.style.fontSize = '' })
+
+  for (const width of [375, 390, 430, 768]) {
+    await page.setViewportSize({ width, height: 900 })
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    await assertResultPortraitLayout(page, false)
+    await page.screenshot({ path: testInfo.outputPath(`result-incorrect-${width}.png`), fullPage: true })
+  }
+  await page.setViewportSize({ width: 320, height: 700 })
   await expect(page.locator('.advent__confetti')).toHaveCount(0)
 })
 
