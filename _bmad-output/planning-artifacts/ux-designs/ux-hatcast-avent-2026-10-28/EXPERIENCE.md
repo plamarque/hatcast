@@ -200,3 +200,5 @@ La route directe réservée aux deux personnes autorisées ouvre le calendrier e
 ### Rejouer l’ouverture à la connexion (mode test)
 
 La barre de test propose à l’opérateur autorisé une action explicite pour préparer sa prochaine connexion. La confirmation indique la date ordinaire de développement et prévient que sa réponse à cette date sera effacée avant la déconnexion. Une date simulée différente ne change pas cette cible. Une date hors période, un quiz manquant ou un échec sont expliqués sans annoncer une réussite ; les résultats non vus conservent leur priorité normale.
+
+Dans le classement, les testeurs autorisés en mode test isolé peuvent générer des scores fictifs, puis régénérer ou revenir au classement calculé. La projection disparaît en quittant le classement, au rechargement ou au changement de mode, compte ou session ; elle ne modifie aucune réponse.

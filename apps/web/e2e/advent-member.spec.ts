@@ -627,3 +627,45 @@ test('ordinary navigation stays silent when the entry request fails', async ({ p
     }
   }
 })
+
+test('isolated tester can project and restore a fictional ranking', async ({ page }, testInfo) => {
+  const methods: string[] = []
+  await page.setViewportSize({ width: 320, height: 700 })
+  await page.route('**/v1/**', async route => {
+    const request = route.request(), path = new URL(request.url()).pathname
+    methods.push(request.method())
+    if (path === '/v1/auth/me') return route.fulfill({ json: { user: { id: 'fiction', slug: 'fiction', displayName: 'Fiction', email: 'fiction@example.test' }, platformAdmin: false } })
+    if (path === '/v1/troupes') return route.fulfill({ json: [] })
+    if (path === '/v1/me/preferences') return route.fulfill({ json: { memberDisplayName: 'Fiction', preferredRoleKeys: [] } })
+    if (path === '/v1/advent/session') return route.fulfill({ json: { testControls: true, sessionId: 'fiction' } })
+    if (path === '/v1/advent/clock') return route.fulfill({ json: { date: '2026-12-26' } })
+    if (path === '/v1/advent/discovery') return route.fulfill({ json: { discovered: true } })
+    if (path === '/v1/advent/results/latest-unseen') return route.fulfill({ json: { result: null } })
+    if (path === '/v1/advent/ranking') return route.fulfill({ json: { priorityResult: null, ranking: { score: 0, rank: null, entries: [{ name: 'Alex', score: 0, rank: 2, mine: false }, { name: 'Camille', score: 0, rank: 2, mine: false }] } } })
+    return route.fulfill({ json: {} })
+  })
+  await page.goto('/avent')
+  await page.getByRole('button', { name: 'Activer le mode test' }).click()
+  await page.getByRole('button', { name: 'Classement', exact: true }).click()
+  await page.addStyleTag({ content: 'html { font-size: 200% !important; }' })
+  const menu = page.getByRole('button', { name: 'Actions du mode test' })
+  const generate = page.getByRole('menuitem', { name: 'Générer un classement fictif', exact: true })
+  await page.getByRole('button', { name: 'Fermer le quiz' }).focus()
+  await page.keyboard.press('Tab')
+  await expect(menu).toBeFocused()
+  await page.keyboard.press('Enter')
+  await expect(generate).toBeVisible()
+  await generate.click()
+  await expect(page.getByRole('status').filter({ hasText: 'Classement fictif' })).toBeVisible()
+  await expect(page.locator('.advent__ranking-summary')).toContainText('hors classement')
+  for (const width of [320, 1280]) {
+    await page.setViewportSize({ width, height: 700 })
+    const size = await page.locator('main.advent').evaluate(el => ({ client: el.clientWidth, scroll: el.scrollWidth }))
+    expect(size.scroll).toBeLessThanOrEqual(size.client)
+    await page.locator('main.advent').screenshot({ path: testInfo.outputPath(`fictional-ranking-${width}.png`), animations: 'disabled' })
+  }
+  await page.getByRole('button', { name: 'Revenir au classement calculé' }).click()
+  await expect(menu).toBeFocused()
+  await expect(page.locator('.advent__ranking-summary')).toContainText('0 points')
+  expect(methods.every(method => method === 'GET')).toBe(true)
+})

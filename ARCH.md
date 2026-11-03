@@ -196,3 +196,5 @@ Le traitement Avent utilise son propre ordonnanceur afin que ses envois réseau 
 Avant chaque tentative Avent, l’émetteur vérifie à nouveau que l’appareil appartient au destinataire, sans verrouiller l’inscription HatCast pendant l’envoi réseau. Une notification déjà transmise au fournisseur push ne peut pas être rappelée lors d’un changement de compte ; son contenu reste neutre et ne contient ni question ni résultat.
 
 En mode test Avent autorisé, la case de rappel est une simulation limitée à la page : elle ne modifie aucune préférence ni aucun abonnement et ne déclenche aucun envoi.
+
+La projection fictive du classement est calculée uniquement dans la mémoire de l’onglet, à partir de la liste autorisée reçue du serveur. Elle ne modifie ni réponses ni classement calculé, ne traverse pas les changements de compte, mode ou session et est détruite à la sortie du classement ou au rechargement.

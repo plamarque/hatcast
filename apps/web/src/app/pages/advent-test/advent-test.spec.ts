@@ -811,6 +811,11 @@ describe('AdventTest', () => {
     const component = fixture.componentInstance
     component.calendarOpen.set(screen === 'calendar')
     component.rankingOpen.set(screen === 'ranking')
+    if (screen === 'ranking') {
+      component.ranking.set({ score: 0, rank: null, entries: [] })
+      component.generateFictionalRanking()
+      expect(component.fictionalRanking()).not.toBeNull()
+    }
     const requested: { url: string; mode?: string }[] = []
     vi.mocked(window.fetch).mockImplementation(async (input, options) => {
       if (String(input).endsWith('/discovery')) return new Response(JSON.stringify({ discovered: true }))
@@ -826,6 +831,7 @@ describe('AdventTest', () => {
     })
     await component.toggleTestMode()
     expect(component.testMode()).toBe(false)
+    expect(component.fictionalRanking()).toBeNull()
     expect(screen === 'calendar' ? component.calendarOpen() : component.rankingOpen()).toBe(true)
     expect(requested.some(call => call.url.endsWith(`/${screen}`) && !call.mode)).toBe(true)
   })
@@ -1472,6 +1478,129 @@ describe('AdventTest', () => {
     fixture.detectChanges()
     expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain('Impossible de charger le calendrier')
   })
+  it('projects a transient fictional ranking with ties and restores the server ranking', () => {
+    const component = fixture.componentInstance
+    const board = { score: 11, rank: 2, entries: [
+      { name: 'Alex', score: 22, rank: 1, mine: false },
+      { name: 'Camille', score: 11, rank: 2, mine: true },
+      { name: 'Sophie', score: 0, rank: 3, mine: false },
+    ] }
+    component.ranking.set(board); component.rankingOpen.set(true)
+    component.testControls.set(true); component.testMode.set(true)
+    component.generateFictionalRanking()
+    const projected = component.fictionalRanking()!
+    fixture.detectChanges()
+    const rows = [...fixture.nativeElement.querySelectorAll('.advent__ranking-list li')] as HTMLElement[]
+    rows.forEach((row, index) => {
+      expect(row.querySelector('.advent__ranking-position')!.textContent).toContain(String(projected.entries[index].rank))
+      expect(row.querySelector('.advent__ranking-score strong')!.textContent).toContain(String(projected.entries[index].score))
+    })
+    expect(fixture.nativeElement.querySelector('.advent__ranking-summary').textContent).toContain(String(projected.score))
+    expect(projected.entries.map(e => e.name).sort()).toEqual(['Alex', 'Camille', 'Sophie'])
+    expect(projected.score).toBe(projected.entries.find(e => e.mine)!.score)
+    expect(projected.rank).toBe(projected.entries.find(e => e.mine)!.rank)
+    const tie = projected.entries.filter(e => projected.entries.filter(other => other.score === e.score).length > 1)
+    expect(tie.length).toBeGreaterThanOrEqual(2)
+    expect(tie.every(e => e.rank === projected.entries.filter(other => other.score >= e.score).length)).toBe(true)
+    expect(component.ranking()).toEqual(board)
+    component.generateFictionalRanking()
+    expect(component.fictionalRanking()).not.toEqual(projected)
+    component.restoreCalculatedRanking()
+    expect(component.fictionalRanking()).toBeNull()
+    fixture.detectChanges()
+    const restoredRows = [...fixture.nativeElement.querySelectorAll('.advent__ranking-list li')] as HTMLElement[]
+    restoredRows.forEach((row, index) => {
+      expect(row.querySelector('.advent__ranking-position')!.textContent).toContain(String(board.entries[index].rank))
+      expect(row.querySelector('.advent__ranking-score strong')!.textContent).toContain(String(board.entries[index].score))
+    })
+    expect(fixture.nativeElement.querySelector('.advent__ranking-summary').textContent).toContain('11')
+    component.generateFictionalRanking()
+    component.closeRanking()
+    expect(component.fictionalRanking()).toBeNull()
+  })
+  it('discards the projection when opening the welcome screen', () => {
+    const component = fixture.componentInstance
+    component.ranking.set({ score: 0, rank: null, entries: [] })
+    component.rankingOpen.set(true); component.testControls.set(true); component.testMode.set(true)
+    component.generateFictionalRanking()
+    expect(component.fictionalRanking()).not.toBeNull()
+    component.previewWelcome()
+    expect(component.welcome()).toBe(true)
+    expect(component.rankingOpen()).toBe(false)
+    expect(component.ranking()).toBeNull()
+    expect(component.fictionalRanking()).toBeNull()
+  })
+  it('changes an excluded personal score on repeated zero draws with an empty roster', () => {
+    const component = fixture.componentInstance
+    component.ranking.set({ score: 0, rank: null, entries: [] })
+    component.rankingOpen.set(true); component.testControls.set(true); component.testMode.set(true)
+    const random = vi.spyOn(Math, 'random').mockReturnValue(0)
+    component.generateFictionalRanking()
+    expect(component.fictionalRanking()?.score).toBe(0)
+    component.generateFictionalRanking()
+    expect(component.fictionalRanking()?.score).toBe(1)
+    expect(component.fictionalRanking()?.rank).toBeNull()
+    random.mockRestore()
+  })
+  it('varies tied members and handles a repeated random draw', () => {
+    const component = fixture.componentInstance
+    component.ranking.set({ score: 0, rank: null, entries: ['A', 'B', 'C'].map(name => ({ name, score: 0, rank: 3, mine: false })) })
+    component.rankingOpen.set(true); component.testControls.set(true); component.testMode.set(true)
+    const random = vi.spyOn(Math, 'random')
+    for (const value of [0.04, 0.12, 0.2, 0, 0, 0.04]) random.mockReturnValueOnce(value)
+    component.generateFictionalRanking()
+    const first = component.fictionalRanking()!
+    expect(first.entries.find(e => e.name === 'A')!.score).toBe(first.entries.find(e => e.name === 'B')!.score)
+    for (const value of [0.04, 0.12, 0.2, 0.9, 0.9, 0.04]) random.mockReturnValueOnce(value)
+    component.generateFictionalRanking()
+    const second = component.fictionalRanking()!
+    expect(second.entries.find(e => e.name === 'B')!.score).toBe(second.entries.find(e => e.name === 'C')!.score)
+    expect(second.entries.find(e => e.name === 'A')!.score).not.toBe(second.entries.find(e => e.name === 'B')!.score)
+    random.mockReturnValue(0)
+    component.generateFictionalRanking()
+    const repeated = component.fictionalRanking()
+    component.restoreCalculatedRanking()
+    component.generateFictionalRanking()
+    expect(component.fictionalRanking()).not.toEqual(repeated)
+    random.mockRestore()
+  })
+  it('discards a fictional projection on a session conflict', async () => {
+    const component = fixture.componentInstance
+    component.ranking.set({ score: 0, rank: null, entries: [] })
+    component.rankingOpen.set(true); component.testControls.set(true); component.testMode.set(true)
+    component.generateFictionalRanking()
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response('', { status: 409 }))
+    await component.openCalendar()
+    expect(component.sessionChanged()).toBe(true)
+    expect(component.fictionalRanking()).toBeNull()
+  })
+  it('shows no projection controls to ordinary members or before generation', () => {
+    const component = fixture.componentInstance
+    component.ranking.set({ score: 0, rank: null, entries: [] })
+    component.rankingOpen.set(true); component.testControls.set(false); component.testMode.set(false)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('[aria-label="Générer un classement fictif"]')).toBeNull()
+    expect(fixture.nativeElement.querySelector('.advent__ranking-test-actions')).toBeNull()
+    component.testControls.set(true); component.testMode.set(true)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('[aria-label="Actions du mode test"]')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('.advent__ranking-test-actions')).toBeNull()
+    component.generateFictionalRanking(); fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.advent__ranking-test-actions')).not.toBeNull()
+  })
+  it('keeps excluded testers unranked and rejects unavailable modes', () => {
+    const component = fixture.componentInstance
+    component.ranking.set({ score: 11, rank: null, entries: [{ name: 'Alex', score: 0, rank: 1, mine: false }] })
+    component.rankingOpen.set(true); component.testControls.set(false); component.testMode.set(true)
+    component.generateFictionalRanking()
+    expect(component.fictionalRanking()).toBeNull()
+    component.testControls.set(true); component.productionPreview.set(true)
+    component.generateFictionalRanking()
+    expect(component.fictionalRanking()).toBeNull()
+    component.productionPreview.set(false); component.generateFictionalRanking()
+    expect(component.fictionalRanking()!.rank).toBeNull()
+    expect(component.fictionalRanking()!.entries.some(e => e.mine)).toBe(false)
+  })
   it('identifies shared ranks without marking unique ranks as ties', () => {
     fixture.componentInstance.ranking.set({ score: 0, rank: 3, entries: [
       { name: 'Alex', score: 11, rank: 1, mine: false },
@@ -1489,6 +1618,8 @@ describe('AdventTest', () => {
   it('shows a newly eligible priority reveal before the ranking', async () => {
     fixture.componentInstance.quiz.set(fixture.componentInstance.preview())
     fixture.componentInstance.answerState.set('recorded')
+    fixture.componentInstance.testControls.set(true)
+    fixture.componentInstance.testMode.set(true)
     const result = { answerId: 'new', day: 1, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false }
     vi.mocked(window.fetch)
       .mockResolvedValueOnce(new Response(JSON.stringify({ priorityResult: result, ranking: null })))
@@ -1498,6 +1629,8 @@ describe('AdventTest', () => {
     await fixture.componentInstance.openRanking()
     fixture.detectChanges()
     expect(fixture.componentInstance.rankingOpen()).toBe(false)
+    expect(fixture.componentInstance.fictionalRanking()).toBeNull()
+    expect(fixture.nativeElement.querySelector('[aria-label="Générer un classement fictif"]')).toBeNull()
     expect(fixture.nativeElement.textContent).toContain('Bravo, tu as trouvé')
   })
   it('shows ranking errors and fences a reset session', async () => {

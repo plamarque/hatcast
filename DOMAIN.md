@@ -371,3 +371,5 @@ The shared private Advent bucket stores the canonical catalogue under `catalogue
 ### Préférence et tentative de rappel Avent
 
 La préférence de rappel Avent appartient au membre et est commune à ses appareils. L’autorisation de notification et l’abonnement push sont propres à chaque appareil. Une tentative d’invitation est unique par membre et par jour de quiz ; elle ne prouve pas la livraison. Elle ne constitue pas un événement de spectacle ni une réponse au quiz.
+
+La projection fictive du classement en mode test conserve la liste et les exclusions calculées ; ses scores et rangs affichés sont temporaires et ne représentent aucune réponse. Les égalités utilisent le dernier rang du groupe et un compte exclu reste sans rang.

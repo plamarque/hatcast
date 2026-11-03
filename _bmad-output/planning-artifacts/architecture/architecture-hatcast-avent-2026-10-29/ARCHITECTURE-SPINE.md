@@ -129,3 +129,5 @@ Les tentatives de découverte expirent 24 heures après leur émission selon l�
 The shared private Advent bucket stores the canonical catalogue under `catalogue/` and elf images under `portraits/`. Cloud runtime resolves simple database portrait references under `portraits/`; offline uses the local private directory. Environments retain distinct databases. Migration and deployment require separate authorization; existing objects and game state are preserved.
 
 The V82 reservation and updated workstation operator describe the implementation under review; actual Cloud Run deployment and effective bucket access require separate authorization and verification.
+
+La projection de classement fictif du mode test isolé reste en mémoire dans l’onglet et utilise la liste fournie par le serveur. Aucun score fictif ni réponse ne sont persistés ou partagés ; la projection disparaît à la sortie du classement et aux transitions de session.

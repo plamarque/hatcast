@@ -513,3 +513,5 @@ Le membre qui rouvre une réponse normale du jour encore en attente depuis le ca
 ### Rejeu de l’ouverture Advent en développement
 
 En mode test, un opérateur autorisé dans un environnement de développement isolé peut préparer le rejeu de son ouverture automatique à la connexion. Après confirmation de la date ordinaire de développement et de l’effacement éventuel de sa propre réponse, seule sa réponse et sa fermeture enregistrée pour cette date sont effacées, puis il est déconnecté. La date simulée de l’onglet ne détermine pas cette opération. Si la date est hors période ou si le quiz manque, aucune suppression ni déconnexion ne sont effectuées. Les découvertes et les résultats non vus des autres jours sont conservés.
+
+En mode test explicitement activé en développement isolé, le classement propose une projection fictive des scores, signalée comme telle. Elle conserve les membres et exclusions du classement reçu, permet de revenir au classement calculé et disparaît en quittant cet écran ou lors d’un changement de session.

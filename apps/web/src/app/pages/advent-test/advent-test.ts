@@ -223,7 +223,7 @@ export class AdventTest {
       this.projectionEpoch++
       this.calendarDays.set([]); this.calendarOpen.set(false); this.welcome.set(false); this.discoveryError.set(false)
       this.result.set(null); this.resultContent.set(null); this.history.set(null)
-      this.ranking.set(null); this.rankingOpen.set(false); this.christmasScore.set(null)
+      this.ranking.set(null); this.fictionalRanking.set(null); this.lastFictionalRanking = null; this.rankingOpen.set(false); this.christmasScore.set(null)
       this.quiz.set(null); this.preview.set(null); this.clearVisibilityListener(); this.stopWaiting()
       this.loading.set(false); this.submitting.set(false); this.closingDay.set(null)
       this.error.set(false); this.rankingError.set(false); this.christmasError.set(false); this.calendarActionMessage.set('')
@@ -266,6 +266,47 @@ export class AdventTest {
   }
   private readonly api = '/v1/advent'
   readonly ranking = signal<AdventRanking | null>(null)
+  readonly fictionalRanking = signal<AdventRanking | null>(null)
+  private lastFictionalRanking: AdventRanking | null = null
+  generateFictionalRanking(): void {
+    const board = this.ranking()
+    if (!board || !this.rankingOpen() || !this.testControls() || !this.testMode() || this.productionPreview() || this.sessionChanged()) return
+    // Each total is attainable by answering correctly on that many days.
+    const randomScore = (): number => {
+      const days = Math.floor(Math.random() * 25)
+      return 11 * days + 2 * Math.floor(days / 3)
+    }
+    const scores = board.entries.map(() => randomScore())
+    if (scores.length > 1) {
+      const first = Math.floor(Math.random() * scores.length)
+      let second = Math.floor(Math.random() * (scores.length - 1))
+      if (second >= first) second++
+      scores[second] = scores[first]
+    }
+    let personalScore = randomScore()
+    const previous = this.lastFictionalRanking
+    // Even a repeated random draw must visibly change the distribution.
+    const signature = (entries: AdventRanking['entries']): string =>
+      JSON.stringify(entries.map(entry => [entry.name, entry.mine, entry.score]).sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b))))
+    if (previous && signature(previous.entries) === signature(board.entries.map((entry, index) => ({ ...entry, score: scores[index] }))) &&
+      (board.entries.some(entry => entry.mine) || previous.score === personalScore)) {
+      const replacement = (scores[0] ?? personalScore) === 0 ? 1 : 0
+      scores.fill(replacement)
+      personalScore = replacement
+    }
+    const entries = board.entries.map((entry, index) => ({ ...entry, score: scores[index] }))
+      .sort((a, b) => b.score - a.score)
+    for (let i = 0; i < entries.length; i++) {
+      let last = i
+      while (last + 1 < entries.length && entries[last + 1].score === entries[i].score) last++
+      for (let j = i; j <= last; j++) entries[j].rank = last + 1
+      i = last
+    }
+    const mine = entries.find(entry => entry.mine)
+    this.lastFictionalRanking = { entries, score: mine?.score ?? personalScore, rank: mine?.rank ?? null }
+    this.fictionalRanking.set(this.lastFictionalRanking)
+  }
+  restoreCalculatedRanking(): void { this.fictionalRanking.set(null); setTimeout(() => this.openingReplayButton?.nativeElement.focus()) }
   isTied(board: AdventRanking, rank: number): boolean { return board.entries.filter(entry => entry.rank === rank).length > 1 }
   readonly calendarOpen = signal(false)
   readonly calendarDays = signal<CalendarDay[]>([])
@@ -437,6 +478,8 @@ export class AdventTest {
     this.calendarOpen.set(false); this.calendarDays.set([]); this.history.set(null); this.christmasScore.set(null); this.lateDiscovery.set(false)
     this.rankingOpen.set(false)
     this.ranking.set(null)
+    this.fictionalRanking.set(null)
+    this.lastFictionalRanking = null
     this.rankingError.set(false)
     this.loading.set(true)
     this.error.set(false)
@@ -475,6 +518,7 @@ export class AdventTest {
 
   previewWelcome(): void {
     if (this.welcome() || this.loading() || this.submitting() || this.closingDay() !== null || this.pendingMutations() || this.result() || this.sessionChanged() || this.transitionRequired() || this.unavailable()) return
+    this.closeRanking()
     this.welcomePreview.set(true); this.welcome.set(true); this.calendarOpen.set(false)
     setTimeout(() => this.welcomeHeading?.nativeElement.focus())
   }
@@ -634,7 +678,7 @@ export class AdventTest {
       if (response.priorityResult) { this.calendarOpen.set(false); this.history.set(null); await this.showResult(response.priorityResult); if (previousWaiting && !this.result()) throw new Error('Priority result unavailable'); return }
       if (!response.days) throw new Error('Calendar unavailable')
       this.replayReloadFailed.set(false)
-      this.calendarDays.set(response.days); this.history.set(null); this.rankingOpen.set(false); this.calendarOpen.set(true)
+      this.calendarDays.set(response.days); this.history.set(null); this.closeRanking(); this.calendarOpen.set(true)
       if (this.confirmationPreview()) { this.confirmationPreview.set(false); this.quiz.set(null) }
       setTimeout(() => this.calendarHeading?.nativeElement.focus())
     } catch (error) {
@@ -781,6 +825,8 @@ export class AdventTest {
   closeRanking(restoreFocus = false): void {
     this.rankingOpen.set(false)
     this.ranking.set(null)
+    this.fictionalRanking.set(null)
+    this.lastFictionalRanking = null
     if (restoreFocus) setTimeout(() => this.rankingButton?.nativeElement.focus())
   }
 
@@ -1125,6 +1171,8 @@ export class AdventTest {
           if (epoch !== this.projectionEpoch || identity !== (this.auth.sessionUser()?.id ?? null)) throw new StaleRequestError()
           if (response.status === 409) {
             this.sessionChanged.set(true)
+            this.fictionalRanking.set(null)
+            this.lastFictionalRanking = null
             this.generation = null
             this.replayToken = null
           }

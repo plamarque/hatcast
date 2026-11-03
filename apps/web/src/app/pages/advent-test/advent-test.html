@@ -33,6 +33,9 @@
       }
       <button #openingReplayButton mat-icon-button type="button" class="advent__test-menu-trigger" [matMenuTriggerFor]="testActionsMenu" aria-label="Actions du mode test" title="Actions du mode test"><mat-icon aria-hidden="true">more_vert</mat-icon></button>
       <mat-menu #testActionsMenu="matMenu" class="advent-test-menu" xPosition="before">
+        @if (rankingOpen() && testControls() && !productionPreview() && !sessionChanged()) {
+          <button mat-menu-item type="button" (click)="generateFictionalRanking()"><mat-icon aria-hidden="true">shuffle</mat-icon><span>{{ fictionalRanking() ? 'Générer un autre classement fictif' : 'Générer un classement fictif' }}</span></button>
+        }
         @if (calendarOpen()) {
           <button mat-menu-item type="button" (click)="previewConfirmation()" [disabled]="loading() || submitting() || closingDay() !== null" aria-label="Revoir la confirmation de réponse"><mat-icon aria-hidden="true">mark_email_read</mat-icon><span>Revoir la confirmation de réponse</span></button>
         }
@@ -58,7 +61,7 @@
       </mat-menu>
     </div>
   }
-  <div class="advent__content">
+  <div class="advent__content" [class.advent__content--ranking]="rankingOpen()">
     @if (closeError()) { <p role="alert">Impossible d’enregistrer la fermeture pour aujourd’hui. Réessaie ou quitte sans l’enregistrer.</p><button mat-stroked-button type="button" (click)="leaveExperience()">Quitter sans enregistrer</button> }
     @if (personalResetConfirm() && (!memberMode || productionPreview())) {
       <section aria-labelledby="advent-personal-reset-title">
@@ -128,9 +131,15 @@
         </div>
       </section>
     } @else if (rankingOpen()) {
-      @if (ranking(); as board) {
+      @if (fictionalRanking() || ranking(); as board) {
         <section class="advent__ranking" id="advent-ranking-panel" aria-labelledby="ranking-title">
           <div class="advent__ranking-banner"><span aria-hidden="true">✦</span><h1 #rankingHeading id="ranking-title" tabindex="-1">Classement</h1><span aria-hidden="true">✦</span></div>
+          @if (fictionalRanking() && testControls() && testMode() && !productionPreview() && !sessionChanged()) {
+            <div class="advent__ranking-test-actions" aria-label="Classement de test">
+              @if (fictionalRanking()) { <p role="status">Classement fictif : ces scores sont uniquement affichés ici.</p> }
+              @if (fictionalRanking()) { <button mat-stroked-button type="button" (click)="restoreCalculatedRanking()">Revenir au classement calculé</button> }
+            </div>
+          }
           <p class="advent__ranking-summary">Ton score actuel : <strong>{{ board.score }} {{ board.score === 1 ? 'point' : 'points' }}</strong>@if (board.rank !== null) { · {{ board.rank }}@if (isTied(board, board.rank)) { ex æquo } } @else { · hors classement }</p>
           <ol class="advent__ranking-list">
             @for (entry of board.entries; track $index) {
