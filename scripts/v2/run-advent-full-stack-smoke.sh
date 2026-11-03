@@ -52,6 +52,7 @@ node -e "const n=require('node:net'); Promise.all([18080,14331].map(p=>new Promi
     HATCAST_CORS_ALLOWED_ORIGINS=http://127.0.0.1:14331 \
     HATCAST_ADVENT_TROUPE_ID=a0000001-0000-4000-8000-000000000001 \
     HATCAST_ADVENT_EXCLUDED_USER_IDS=d0000001-0000-4000-8000-000000000022,d0000001-0000-4000-8000-000000000003 \
+    HATCAST_ADVENT_PREVIEW_ALLOWED_EMAILS=preview-one@example.test,preview-two@example.test \
     SPRING_FLYWAY_LOCATIONS="classpath:db/migration,classpath:db/seed,classpath:db/seed-postgresql,filesystem:${root}/apps/web/e2e/advent-isolation/fixtures" \
     ./gradlew bootRun --no-daemon >"${logdir}/api.log" 2>&1
 ) &

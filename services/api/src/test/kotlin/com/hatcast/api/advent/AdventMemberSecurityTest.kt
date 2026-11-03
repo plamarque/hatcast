@@ -45,8 +45,13 @@ class AdventMemberSecurityTest {
             jdbc.update("INSERT INTO troupe_memberships (id, troupe_id, user_id, status, baseline_role, display_name, created_at, updated_at) VALUES (?, ?, ?, 'ACTIVE', 'MEMBER', 'Fictif', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", UUID.randomUUID(), troupe, id)
             id
         }
-        environment.propertySources.addFirst(MapPropertySource("advent-preview-test", mapOf("hatcast.advent.excluded-user-ids" to "${ids[0]},${ids[1]}", "hatcast.advent-test.allowed-emails" to "patrice.lamarque@gmail.com,brousseau.ant@gmail.com")))
+        environment.propertySources.addFirst(MapPropertySource("advent-preview-test", mapOf("hatcast.advent.excluded-user-ids" to "${ids[0]},${ids[1]}", "hatcast.advent-test.allowed-emails" to "patrice.lamarque@gmail.com,brousseau.ant@gmail.com", "hatcast.advent.preview-allowed-emails" to "patrice.lamarque@gmail.com,brousseau.ant@gmail.com")))
         try {
+            for (invalid in listOf("", "one@example.test", "same@example.test,SAME@example.test")) {
+                environment.propertySources.addFirst(MapPropertySource("invalid-preview-emails", mapOf("hatcast.advent.preview-allowed-emails" to invalid)))
+                mvc.perform(get("/v1/advent/preview-capability").cookie(first)).andExpect(status().isOk).andExpect(jsonPath("$.productionPreview").value(false))
+                environment.propertySources.remove("invalid-preview-emails")
+            }
             `when`(clock.instant()).thenReturn(Instant.parse("2026-11-30T22:59:59Z"))
             for (day in listOf(7, 23)) {
                 jdbc.update("DELETE FROM advent_quizzes WHERE quiz_day = ?", day)
