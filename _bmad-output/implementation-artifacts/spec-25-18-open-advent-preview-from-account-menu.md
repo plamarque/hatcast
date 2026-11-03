@@ -2,7 +2,7 @@
 title: 'Open the private Advent preview from the account menu'
 type: 'feature'
 created: '2026-11-03'
-status: 'in-review'
+status: 'done'
 route: 'dispatch'
 baseline_commit: '3c2f7a86a828a6b9dca21dca6c04b2a375164911'
 review_loop_iteration: 0
@@ -47,10 +47,10 @@ context: []
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] Add a lightweight server capability check using the existing preview authorization and no-store policy, without initializing or mutating a game session.
-- [ ] Add the shared account-menu entry with account-scoped, fail-closed capability loading and stale-response protection.
-- [ ] Test authorization, denial, errors, identity changes, late responses, navigation and existing sensitive API protection; verify mobile and keyboard menu use.
-- [ ] Update relevant normative documentation for the new entry and record Material 3 checklist results.
+- [x] Add a lightweight server capability check using the existing preview authorization and no-store policy, without initializing or mutating a game session.
+- [x] Add the shared account-menu entry with account-scoped, fail-closed capability loading and stale-response protection.
+- [x] Test authorization, denial, errors, identity changes, late responses, navigation and existing sensitive API protection; verify mobile and keyboard menu use.
+- [x] Update relevant normative documentation for the new entry and record Material 3 checklist results.
 
 **Acceptance Criteria:**
 - Given either authorized account, when its user menu opens, then the private preview is reachable without entering a URL.
@@ -62,10 +62,12 @@ context: []
 
 - The capability is rechecked when the menu opens and each request is scoped to the current identity generation. Failed requests hide the entry silently.
 - Material 3: existing Material menu and French label reused; keyboard navigation and a 375 px viewport were verified in Chromium with intercepted fictional API responses. The measured menu item height was 43.3 CSS px, within the documented 40 px minimum but below the preferred 48 px; this is a story-specific waiver for the existing menu density. No global theme or Advent styles changed. Dialogs and tabs are not applicable.
-- Real installed PWA, actual production identities and deployment remain unverified. The story is recorded in the epic and the controller-owned sprint tracker with status review.
+- Real installed PWA, actual production identities and deployment remain unverified. The story is recorded in the epic and the controller-owned sprint tracker with status done.
 
 
 ## Spec Change Log
+
+- Configured the two allowed preview emails per environment instead of hard-coding production addresses; absent or invalid configuration denies access. Local real-server video verified an authorized seed account and an ordinary member, followed by navigation to the 25-door calendar.
 
 ## Review Triage Log
 
@@ -78,6 +80,8 @@ context: []
 
 
 ## Verification
+
+- After merging current v2: isolated full-stack Advent smoke passed before and after Paris midnight and during the transition; includes real API, synthetic identities, personal replay, account isolation and service worker. Controller test passed.
 
 - `AdventMemberSecurityTest` passed; targeted Angular suites passed (38 tests after review corrections), and the web build passed after corrections.
 - Chromium at 375 × 812 with fictional intercepted API responses: menu opened by keyboard, preview link received focus and Enter navigated to `/avent?preview=1`. This does not prove a real installed PWA or server authorization on production.
