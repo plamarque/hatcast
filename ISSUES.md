@@ -75,6 +75,22 @@ human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
 
+### BUG-092 — Advent domain contract disagrees with production preview replay
+- **Status**: Resolved 2026-11-02.
+- **Severity**: Low (documentation conflict).
+- **Affected area**: Advent normative domain and preview contracts.
+- **Observed behavior**: DOMAIN.md § « Réponses et classement membres Avent » prohibits deletion and replay in production, including the two authorized preview testers. SPEC.md, EXPERIENCE.md, the Advent architecture and the corrected DESIGN.md permit confirmed personal replay by those testers, who are excluded from the ranking.
+- **Expected behavior**: The domain contract reflects the clarified rule: only authorized testers excluded from the ranking can erase their own answer; answers by ranked players are final.
+- **Notes/context**: DESIGN.md and DOMAIN.md were reconciled on 2026-11-02 following the user's clarification; application behavior was not changed.
+
+### BUG-091 — Advent preview unit test expects a hidden message
+- **Status**: Corrected locally 2026-11-03; observed 2026-11-02.
+- **Severity**: Low (test failure).
+- **Affected area**: Angular Advent preview test, `apps/web/src/app/pages/advent-test/advent-test.spec.ts`.
+- **Observed behavior**: The focused Advent suite fails the “opens the authorized direct preview, records a final answer and recovers it” test when it expects the replay message immediately after asserting that the calendar is open.
+- **Expected behavior**: The test and the intended preview state agree, so the suite can verify the message at the appropriate point in the journey.
+- **Notes/context**: The baseline commit `5d8bc04a6625ba8ab9c33d6b4920c1d4f5b70030` already contains both the assertion and the template condition hiding the message while `calendarOpen()` is true. The test now checks that the message is absent on the calendar and present after a response is recorded; 162 focused Angular tests passed.
+
 ### BUG-090 — Advent preview briefly reports a failed replay reload
 - **Status**: Corrected locally; staging human verification pending. Reported on 2026-11-02.
 - **Severity**: Low.
