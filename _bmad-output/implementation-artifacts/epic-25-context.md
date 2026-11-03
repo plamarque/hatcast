@@ -27,6 +27,7 @@ Give active La Malice members a festive way to discover each other through 24 da
 - Story 25.14: Give Advent CTA snow realistic volume
 - Story 25.15: Preserve the Advent surprise and preview production content
 - Story 25.16: Test Advent reminders on a real device
+- Story 25.17: Give the Advent result screens expressive scenes
 
 ## Requirements & Constraints
 
@@ -54,7 +55,7 @@ Give active La Malice members a festive way to discover each other through 24 da
 - Use the approved independent Advent visual identity, scoped styles, tokens, typography and components without changing HatCast's design system. Keep French, festive language, Material behaviors, visible focus, keyboard operation, meaningful portrait alternatives, accessible states, responsive layouts and reduced-motion equivalents.
 - First discovery presents the welcome before the personal calendar; the action opening it persists discovery across devices. Later journeys respect priority revelation and ordinary daily entry. The gift's brief animation respects reduced motion and daily dismissal or recorded answers prevent repeated automatic opening.
 - The calendar contains 24 numbered quiz cases and a Christmas case, distinguishes relevant states without relying on color alone, and permits accessible navigation. The approved preview adds a direct-URL journey to future gifts, immediate personal results and the persisted final-answer state without exposing these to ordinary members.
-- A played current-day quiz can return to the sleeping elf and countdown until its result; the server remains authoritative for revelation. Revisited revealed results do not replay celebration. Validate small screens, enlarged text, touch targets and isolation from unrelated HatCast screens.
+- A played current-day quiz can return to the sleeping elf and countdown until its result; the server remains authoritative for revelation. Revisited revealed results do not replay celebration. Correct and incorrect results use distinct expressive generic elves and preserve the personal portrait, readable result data and permitted navigation. Validate small screens, enlarged text, touch targets and isolation from unrelated HatCast screens.
 
 ## Cross-Story Dependencies
 

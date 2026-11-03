@@ -163,24 +163,39 @@
     } @else if (result(); as reveal) {
       @if (resultContent(); as content) {
         <section class="advent__quiz advent__reveal" [class.advent__reveal--correct]="reveal.correct" aria-labelledby="advent-result-title">
+          <div class="advent__result-illustration">
           <p class="advent__date">{{ content.day }} décembre</p>
-          <div class="advent__reveal-mood" aria-hidden="true"><img [src]="reveal.correct ? '/advent/elf-celebration-v1.webp' : '/advent/elf-encouragement-v1.webp'" alt=""></div>
+          <div class="advent__result-scenery" aria-hidden="true"><span>✦</span><span>✧</span><span>✦</span><span>✧</span><span>✦</span></div>
+          <div class="advent__reveal-mood" aria-hidden="true"><img [src]="reveal.correct ? '/advent/elf-celebration-v1.webp' : '/advent/elf-disappointed-v1.png'" alt=""></div>
           <div class="advent__reveal-scene">
             <span class="advent__reveal-star advent__reveal-star--left" aria-hidden="true">✦</span>
             <div class="advent__portrait advent__reveal-portrait" [hidden]="!content.portrait"><img [src]="content.portrait" [alt]="'Portrait du lutin ' + owner(content.name)"></div>
             <span class="advent__reveal-star advent__reveal-star--right" aria-hidden="true">✧</span>
           </div>
+          </div>
           @if (reveal.correct && !reveal.seen && !historicalResult()) {
             <div class="advent__confetti" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
           }
           <div class="advent__result-banner">
-            <span class="advent__banner-star" aria-hidden="true">✦</span>
-            <div>
-              <h1 #resultHeading id="advent-result-title" tabindex="-1">{{ reveal.correct ? 'Bravo, tu as trouvé !' : 'Bien tenté !' }}</h1>
-              @if (productionPreview()) { <p>Ce score est provisoire : répondre à des jours précédents peut modifier le bonus de série.</p> }
-              <p class="advent__result-points"><strong>+{{ reveal.responsePoints + reveal.participationPoints + reveal.bonusPoints }}</strong> {{ reveal.responsePoints + reveal.participationPoints + reveal.bonusPoints === 1 ? 'point gagné' : 'points gagnés' }} @if (reveal.late) { <span> · réponse après le jour du quiz</span> }</p>
+            <div class="advent__result-title-band">
+              <span class="advent__banner-star" aria-hidden="true">✦</span>
+              <h1 #resultHeading id="advent-result-title" tabindex="-1" [attr.aria-label]="reveal.correct ? 'Bravo, tu as trouvé !' : null">
+                @if (reveal.correct) {
+                  <svg viewBox="0 0 420 110" aria-hidden="true" focusable="false">
+                    <defs><path id="advent-result-title-arc" d="M 12 96 Q 210 5 408 96" /></defs>
+                    <text><textPath href="#advent-result-title-arc" startOffset="50%" text-anchor="middle">Bravo, tu as trouvé !</textPath></text>
+                  </svg>
+                  <svg class="advent__result-title-large" viewBox="0 0 420 195" aria-hidden="true" focusable="false">
+                    <defs><path id="advent-result-large-arc-one" d="M 15 90 Q 210 5 405 90"/><path id="advent-result-large-arc-two" d="M 15 185 Q 210 100 405 185"/></defs>
+                    <text><textPath href="#advent-result-large-arc-one" startOffset="50%" text-anchor="middle">Bravo,</textPath></text>
+                    <text><textPath href="#advent-result-large-arc-two" startOffset="50%" text-anchor="middle">tu as trouvé !</textPath></text>
+                  </svg>
+                } @else { Bien tenté ! }
+              </h1>
+              <span class="advent__banner-star" aria-hidden="true">✦</span>
             </div>
-            <span class="advent__banner-star" aria-hidden="true">✦</span>
+            @if (productionPreview()) { <p>Ce score est provisoire : répondre à des jours précédents peut modifier le bonus de série.</p> }
+            <p class="advent__result-points"><strong>+{{ reveal.responsePoints + reveal.participationPoints + reveal.bonusPoints }}</strong> {{ reveal.responsePoints + reveal.participationPoints + reveal.bonusPoints === 1 ? 'point gagné' : 'points gagnés' }} @if (reveal.late) { <span> · réponse après le jour du quiz</span> }</p>
           </div>
           <div class="advent__result-card">
             @if (!reveal.correct) {

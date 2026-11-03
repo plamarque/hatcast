@@ -5,7 +5,7 @@ baseline_commit:
 
 # Story 25.17 : Dynamiser les écrans de résultat de l’Avent
 
-Status: backlog
+Status: done
 
 ## Story
 
@@ -80,3 +80,5 @@ Les résultats et parcours de l’epic 25, notamment 25.3, 25.5 et 25.8, ainsi q
 ### Change Log
 
 - 2026-11-03 : création de la story.
+
+- 2026-11-03 : direction visuelle et recette validées par Patrice ; vérifications et limites consignées dans la spécification d’implémentation.
