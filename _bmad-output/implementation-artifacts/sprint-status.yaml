@@ -307,7 +307,7 @@ development_status:
   25-11-generer-un-classement-fictif-pour-les-tests: done
   25-3b-manage-and-synchronize-the-private-advent-catalogue: done
   25-12-retrouver-le-lutin-endormi-apres-avoir-joue: done
-  25-15-preserve-the-advent-surprise-and-preview-production-content: review
+  25-15-preserve-the-advent-surprise-and-preview-production-content: done
   25-13-run-advent-regression-tests-in-ci: done
   25-17-dynamiser-les-ecrans-de-resultat-de-lavent: backlog
   25-18-open-the-private-advent-preview-from-the-account-menu: review
