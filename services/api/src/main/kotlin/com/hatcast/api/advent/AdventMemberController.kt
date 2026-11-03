@@ -151,6 +151,12 @@ class AdventMemberController(
         return mapOf("testControls" to capability, "productionPreview" to canPreview(principal, request), "sessionId" to game.session())
     }
 
+    @GetMapping("/preview-capability")
+    fun previewCapability(@AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): Map<String, Boolean> {
+        authorize(principal)
+        return mapOf("productionPreview" to canPreview(principal, request))
+    }
+
     @GetMapping("/entry/replay")
     fun prepareOpeningReplay(@AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AdventMemberGame.OpeningReplayPreparation {
         val session = requireControl(principal, request)

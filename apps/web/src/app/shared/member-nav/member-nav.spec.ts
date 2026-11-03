@@ -82,6 +82,7 @@ describe('MemberNav', () => {
         {
           provide: AuthApiService,
           useValue: {
+            sessionIdentityVersion: signal(0),
             sessionUser: signal({
               slug: 'patrice',
               email: 'patrice@example.com',

@@ -5,6 +5,7 @@
       mat-button
       class="member-account-menu-trigger member-account-menu-trigger--rail"
       [matMenuTriggerFor]="accountMenu"
+      (menuOpened)="accountItems.refreshPreviewCapability()"
       [attr.aria-label]="accountAriaLabel()"
     >
       <span class="member-account-menu-trigger__rail-item">
@@ -27,6 +28,7 @@
       mat-icon-button
       class="member-account-menu-trigger member-account-menu-trigger--shell-icon"
       [matMenuTriggerFor]="accountMenu"
+      (menuOpened)="accountItems.refreshPreviewCapability()"
       [attr.aria-label]="accountAriaLabel()"
     >
       <app-user-avatar
@@ -41,6 +43,6 @@
   }
 
   <mat-menu #accountMenu="matMenu" yPosition="above">
-    <app-user-account-menu-items [showLogout]="effectiveShowLogout()" />
+    <app-user-account-menu-items #accountItems [showLogout]="effectiveShowLogout()" />
   </mat-menu>
 }

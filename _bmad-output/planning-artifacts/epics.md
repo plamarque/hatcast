@@ -3766,6 +3766,14 @@ En tant que membre, je veux découvrir mes résultats dans des scènes expressiv
 
 **Références :** story 25.17, DESIGN, EXPERIENCE, AD-7 et planche de référence Avent.
 
+### Story 25.18: Open the private Advent preview from the account menu
+
+As an authorized organizer using the installed PWA, I want to open the private Advent preview from my account menu, so I can review it without typing a URL.
+
+**Acceptance criteria:** Show “Prévisualiser l’Avent” only when the server confirms the existing production-preview authorization, including active membership and verified identity. Open the existing `/avent?preview=1` journey. Hide the entry silently on denial or failure and clear it on account changes; never expose the surprise to ordinary members. Keep authorization on every sensitive API request and preserve the existing personal-only preview rules. Verify mobile and desktop menus, access control, account changes, failures and keyboard accessibility.
+
+**Material 3 and references:** Reuse the existing account menu and Material components; apply `docs/v2/technical/FRONTEND_UI.md`, Advent DESIGN, EXPERIENCE and AD-7. Story 25.15 defines production preview.
+
 ## Final validation
 
 
