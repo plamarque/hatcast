@@ -3758,6 +3758,14 @@ As an authorized tester, I want to send myself the normal Advent push immediatel
 
 **References:** `hatcast-avent/proposition-recette-push-reelle.md`; Story 25.7.
 
+### Story 25.17: Dynamiser les écrans de résultat de l’Avent
+
+En tant que membre, je veux découvrir mes résultats dans des scènes expressives inspirées de la planche de l’Avent, afin que les écrans « Bravo » et « Bien tenté » soient aussi vivants que la confirmation de réponse.
+
+**Critères :** Rapprocher les deux compositions des vignettes 4 et 5 et de la confirmation existante : lutins génériques expressifs, mise en scène festive et titre dynamique en texte accessible. Conserver portrait personnel, données, score, parcours, confidentialité et règles de révélation, y compris pour les résultats historiques et tardifs. Comparer les deux écrans réels aux références et vérifier accessibilité, responsive et isolation visuelle HatCast.
+
+**Références :** story 25.17, DESIGN, EXPERIENCE, AD-7 et planche de référence Avent.
+
 ## Final validation
 
 
