@@ -326,8 +326,8 @@ class AdventMemberGame(private val jdbc: JdbcTemplate, private val clock: Advent
         val days = (1..25).map { day ->
             val target = LocalDate.of(2026, 12, day)
             val state = when {
-                target.isAfter(today) && !preview && (!testFuture || day == 25) -> "locked"
-                day == 25 -> if (target.isAfter(today)) "locked" else "christmas"
+                target.isAfter(today) && !preview && !testFuture -> "locked"
+                day == 25 -> if (target.isAfter(today) && !testFuture) "locked" else "christmas"
                 memberQuiz(day) == null -> "missing"
                 day in answered -> "played"
                 target == today || ((preview || testFuture) && target.isAfter(today)) -> "today"

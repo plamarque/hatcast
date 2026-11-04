@@ -51,6 +51,8 @@ integration database).
 
 ### Pending verification or operational follow-up
 
+BUG-093 is corrected locally in story 25.19; human validation and integration remain pending.
+
 BUG-081 is closed as an accepted shared-browser-subscription behavior; the Advent opt-out isolation is covered by targeted tests.
 
 BUG-082 is corrected locally in the unintegrated story 25.7 worktree; integration remains pending.
@@ -74,6 +76,14 @@ BUG-024, and BUG-021 have local fixes but still require their stated review,
 human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
+
+### BUG-093 — Development future gift access changed calendar appearance and locked day 25
+- **Status**: Corrected locally; awaiting human verification and integration.
+- **Severity**: Medium.
+- **Affected area**: Advent calendar for authorized development testers.
+- **Observed behavior**: Available future gifts appeared red and day 25 remained locked.
+- **Expected behavior**: Preserve the usual future appearance while allowing access; the authorized tester can open the existing day 25 recap.
+- **Notes**: Reported during story 25.19 human testing. Production preview's current code also locks day 25; production behavior is unchanged by this development correction.
 
 ### BUG-092 — Advent domain contract disagrees with production preview replay
 - **Status**: Resolved 2026-11-02.

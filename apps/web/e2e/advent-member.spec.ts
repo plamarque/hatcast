@@ -775,7 +775,7 @@ test('authorized future gift works without test mode on mobile', async ({ page }
   await page.getByRole('button', { name: 'Confirmer ma réponse' }).click()
   await expect(page.getByText('Explication fictive')).toBeVisible()
   await expect(page.getByText('Ce score est provisoire', { exact: false })).toBeVisible()
-  await page.getByRole('button', { name: 'Actions de prévisualisation' }).click()
+  await page.getByRole('button', { name: 'Actions du cadeau' }).click()
   await page.getByRole('menuitem', { name: 'Effacer ma réponse et rejouer' }).click()
   await page.getByRole('button', { name: 'Effacer ma réponse', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Confirmer ma réponse' })).toBeVisible()

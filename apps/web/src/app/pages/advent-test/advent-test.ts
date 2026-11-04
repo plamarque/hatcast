@@ -223,7 +223,7 @@ export class AdventTest {
       this.projectionEpoch++
       this.calendarDays.set([]); this.calendarOpen.set(false); this.welcome.set(false); this.discoveryError.set(false)
       this.result.set(null); this.resultContent.set(null); this.history.set(null)
-      this.ranking.set(null); this.fictionalRanking.set(null); this.lastFictionalRanking = null; this.rankingOpen.set(false); this.christmasScore.set(null)
+      this.ranking.set(null); this.fictionalRanking.set(null); this.lastFictionalRanking = null; this.rankingOpen.set(false); this.christmasScore.set(null); this.christmasPreviewOpen.set(false)
       this.quiz.set(null); this.preview.set(null); this.clearVisibilityListener(); this.stopWaiting()
       this.loading.set(false); this.submitting.set(false); this.closingDay.set(null)
       this.error.set(false); this.rankingError.set(false); this.christmasError.set(false); this.calendarActionMessage.set('')
@@ -238,6 +238,7 @@ export class AdventTest {
   readonly discoveryError = signal(false)
   private discoveryAttempt: string | null = null
   @ViewChild("welcomeHeading") private welcomeHeading?: ElementRef<HTMLElement>
+  @ViewChild("christmasHeading") private christmasHeading?: ElementRef<HTMLElement>
   readonly testControls = signal(false)
   readonly testMode = signal(false)
   readonly productionPreview = signal(false)
@@ -315,6 +316,7 @@ export class AdventTest {
   readonly christmasError = signal(false)
   readonly history = signal<History | null>(null)
   readonly christmasScore = signal<number | null>(null)
+  readonly christmasPreviewOpen = signal(false)
   @ViewChild('calendarHeading') private calendarHeading?: ElementRef<HTMLElement>
   @ViewChild('historyHeading') private historyHeading?: ElementRef<HTMLElement>
   readonly rankingOpen = signal(false)
@@ -475,7 +477,7 @@ export class AdventTest {
     this.stopWaiting()
     this.projectionEpoch++
     this.welcome.set(false); this.welcomePreview.set(false); this.confirmationPreview.set(false); this.discoveryError.set(false)
-    this.calendarOpen.set(false); this.calendarDays.set([]); this.history.set(null); this.christmasScore.set(null); this.lateDiscovery.set(false)
+    this.calendarOpen.set(false); this.calendarDays.set([]); this.history.set(null); this.christmasScore.set(null); this.christmasPreviewOpen.set(false); this.lateDiscovery.set(false)
     this.rankingOpen.set(false)
     this.ranking.set(null)
     this.fictionalRanking.set(null)
@@ -612,7 +614,7 @@ export class AdventTest {
     this.projectionEpoch++
     const returnToCalendar = this.calendarOpen()
     this.closeRanking()
-    this.calendarOpen.set(false); this.calendarDays.set([]); this.history.set(null); this.christmasScore.set(null); this.lateDiscovery.set(false)
+    this.calendarOpen.set(false); this.calendarDays.set([]); this.history.set(null); this.christmasScore.set(null); this.christmasPreviewOpen.set(false); this.lateDiscovery.set(false)
     this.clearVisibilityListener()
     this.result.set(null); this.resultContent.set(null); this.quiz.set(null); this.preview.set(null)
     this.generation = null; this.replayToken = null; this.choice.set(null)
@@ -645,7 +647,7 @@ export class AdventTest {
 
   private async loadChristmasScore(): Promise<void> {
     const response = await this.requestJson<{ ranking: AdventRanking | null; priorityResult: AdventResult | null }>('/v1/advent-test/ranking', { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
-    if (response.priorityResult) { await this.showResult(response.priorityResult); return }
+    if (response.priorityResult) { await this.showResult(response.priorityResult); if (!this.result()) throw new Error('Priority result unavailable'); return }
     if (!response.ranking) throw new Error('Ranking unavailable')
     this.christmasScore.set(response.ranking.score)
   }
@@ -661,6 +663,11 @@ export class AdventTest {
 
   isCalendarToday(day: CalendarDay): boolean {
     return this.clockDate() === `2026-12-${String(day.day).padStart(2, '0')}`
+  }
+
+  futureGiftAppearance(day: CalendarDay): boolean {
+    const date = this.clockDate()
+    return this.testControls() && !this.productionPreview() && date !== null && date < `2026-12-${String(day.day).padStart(2, '0')}` && (day.state === 'today' || day.state === 'christmas')
   }
 
   calendarLabel(day: CalendarDay): string {
@@ -683,7 +690,7 @@ export class AdventTest {
       if (response.priorityResult) { this.calendarOpen.set(false); this.history.set(null); await this.showResult(response.priorityResult); if (previousWaiting && !this.result()) throw new Error('Priority result unavailable'); return }
       if (!response.days) throw new Error('Calendar unavailable')
       this.replayReloadFailed.set(false)
-      this.calendarDays.set(response.days); this.history.set(null); this.closeRanking(); this.calendarOpen.set(true)
+      this.calendarDays.set(response.days); this.history.set(null); this.closeRanking(); this.christmasPreviewOpen.set(false); this.calendarOpen.set(true)
       if (this.confirmationPreview()) { this.confirmationPreview.set(false); this.quiz.set(null) }
       setTimeout(() => this.calendarHeading?.nativeElement.focus())
     } catch (error) {
@@ -749,7 +756,7 @@ export class AdventTest {
       this.christmasError.set(false); this.loading.set(true)
       try {
         await this.loadChristmasScore()
-        if (!this.result()) { this.calendarOpen.set(false); this.history.set(null); this.quiz.set(null); this.preview.set(null); this.unavailable.set(false) }
+        if (!this.result()) { this.christmasPreviewOpen.set((this.clockDate() ?? '') < '2026-12-25'); this.calendarOpen.set(false); this.history.set(null); this.quiz.set(null); this.preview.set(null); this.unavailable.set(false); setTimeout(() => this.christmasHeading?.nativeElement.focus()) }
       } catch (error) {
       if (error instanceof StaleRequestError || !this.contextCurrent(epoch, identity)) return
         this.christmasError.set(true) }

@@ -53,7 +53,9 @@ class AdventMemberGameTest {
         assertEquals("locked", game.calendar(member).days!![1].state)
         assertThrows(ResponseStatusException::class.java) { game.quiz(2) }
         assertEquals("today", game.calendar(member, testFuture = true).days!![1].state)
-        assertEquals("locked", game.calendar(member, testFuture = true).days!![24].state)
+        assertEquals("christmas", game.calendar(member, testFuture = true).days!![24].state)
+        assertEquals("locked", game.calendar(member).days!![24].state)
+        assertEquals("locked", game.calendar(member, preview = true).days!![24].state)
         val generation = game.reconcile(member, 2, operator = true, testFuture = true).generation!!
         val attempt = UUID.randomUUID()
         assertEquals("available", game.reserve(member, 2, attempt, generation, operator = true, testFuture = true).status)
@@ -73,7 +75,7 @@ class AdventMemberGameTest {
         val beforeOther = game.calendar(other).days
         val calendar = game.calendar(operator, testFuture = true).days!!
         assertEquals("missing", calendar[2].state)
-        assertEquals("locked", calendar[24].state)
+        assertEquals("christmas", calendar[24].state)
         assertNull(game.quiz(3, testFuture = true))
         assertEquals("unavailable", game.state(operator, 3, testFuture = true).status)
         assertThrows(ResponseStatusException::class.java) { game.quiz(25, testFuture = true) }

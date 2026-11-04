@@ -23,7 +23,7 @@ context:
 
 ## Boundaries & Constraints
 
-**Always:** Authorize the exception on the server for isolated development testers, regardless of test mode. Preserve isolated test data, personal privacy and the ordinary member journey. Keep the simulated date and shared clock unchanged by selecting a gift. Preserve the Advent visual contract, keyboard access and accessible states. Respect existing missing-content and day 25 behavior.
+**Always:** Authorize the exception on the server for isolated development testers, regardless of test mode. Preserve isolated test data, personal privacy and the ordinary member journey. Keep the simulated date and shared clock unchanged by selecting a gift. Preserve the Advent visual contract, keyboard access and accessible states. Respect existing missing-content behavior; allow authorized development testers to open the day 25 recap before its date.
 
 **Never:** Enable future access for ordinary members or through an untrusted client flag; broaden production preview authorization; mix development test answers with production data; change rankings or other members' state as a side effect; deploy or push.
 
@@ -34,7 +34,7 @@ context:
 | Future quiz | Authorized isolated development tester, with test mode on or off | Future gift can be selected and played; personal result and explanation are immediately accessible. |
 | Revisit | Tester returns to a played future gift | Personal state is consistent and existing authorized replay controls remain usable. |
 | Normal journey | Ordinary member or unauthorized production request | Existing date and authorization restrictions remain in force. |
-| Missing content or day 25 | Future gift has no quiz, or is the day 25 review | Existing safe unavailable/review behavior applies; no invented quiz. |
+| Missing content or day 25 | Future gift has no quiz, or is the day 25 review | Missing quizzes remain unavailable; day 25 opens the existing review early for authorized testers, without inventing a quiz. |
 | Navigation | Tester selects a future gift | No simulated or shared clock is changed; other users' state remains private. |
 
 </frozen-after-approval>
@@ -107,3 +107,5 @@ Review-loop verification: 47 API tests, 164 Angular tests and one mocked mobile 
 Final verification after review patches: 47 focused API tests, 164 Angular tests and one isolated Chromium scenario with a mocked API passed. The real-API offline H2 journey was verified before the wording-only final patch. Text enlargement and focus restoration after replay remain unmeasured.
 
 User clarification: future gifts must open implicitly for authorized development testers without switching on test mode. The separate correction spec records the implementation and verification.
+
+User clarification: future gifts retain their usual dark appearance while remaining clickable; day 25 opens the existing Christmas recap early for authorized development testers. The separate follow-up spec records verification.

@@ -16,7 +16,7 @@ context:
 
 ## Intent
 
-Authorized development testers can open, answer, revisit and personally replay future quiz gifts without enabling test mode, and immediately see their personal provisional result, as with the private production preview. This capability is implicit and verified server-side on every request; it never enables simulated time, shared reset or the test toolbar. Preserve production and ordinary-member restrictions, current-day secrecy, existing member entry dates, personal isolation, day 25 behavior and missing-content handling. The existing explicit test mode remains available for its other controls. This decision supersedes the mode-on requirement in story 25.19.
+Authorized development testers can open, answer, revisit and personally replay future quiz gifts without enabling test mode, and immediately see their personal provisional result, as with the private production preview. This capability is implicit and verified server-side on every request; it never enables simulated time, shared reset or the test toolbar. Preserve production and ordinary-member restrictions, current-day secrecy, existing member entry dates, personal isolation and missing-content handling; authorized development testers may open the day 25 recap early. The existing explicit test mode remains available for its other controls. This decision supersedes the mode-on requirement in story 25.19.
 
 </frozen-after-approval>
 

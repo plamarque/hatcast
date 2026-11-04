@@ -1319,6 +1319,24 @@ describe('AdventTest', () => {
     expect(fixture.nativeElement.querySelector('#advent-ranking-panel')).toBeNull()
   })
 
+  it('keeps future gifts dark but clickable and opens the Christmas recap without changing the date', async () => {
+    const component = fixture.componentInstance
+    component.testControls.set(true); component.testMode.set(false); component.clockDate.set('2026-12-01')
+    component.calendarOpen.set(true); component.welcome.set(false); component.loading.set(false)
+    component.calendarDays.set([{ day: 2, state: 'today' }, { day: 25, state: 'christmas' }])
+    fixture.detectChanges()
+    const future = fixture.nativeElement.querySelector('[data-day="2"]') as HTMLButtonElement
+    const christmas = fixture.nativeElement.querySelector('[data-day="25"]') as HTMLButtonElement
+    expect(future.disabled).toBe(false); expect(future.getAttribute('data-future')).toBe('true')
+    expect(christmas.disabled).toBe(false); expect(christmas.getAttribute('data-future')).toBe('true')
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ ranking: { score: 11, rank: null, entries: [] }, priorityResult: null })))
+    await component.openCalendarDay({ day: 25, state: 'christmas' }); fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('Joyeux Noël')
+    expect(fixture.nativeElement.textContent).toContain('Ton score actuel')
+    expect(component.clockDate()).toBe('2026-12-01')
+    expect(component.testMode()).toBe(false)
+  })
+
   it('keeps the calendar and offers retry when loading the Christmas score fails', async () => {
     const component = fixture.componentInstance
     component.clockDate.set('2026-12-25'); component.calendarOpen.set(true)
