@@ -373,3 +373,5 @@ The shared private Advent bucket stores the canonical catalogue under `catalogue
 La préférence de rappel Avent appartient au membre et est commune à ses appareils. L’autorisation de notification et l’abonnement push sont propres à chaque appareil. Une tentative d’invitation est unique par membre et par jour de quiz ; elle ne prouve pas la livraison. Elle ne constitue pas un événement de spectacle ni une réponse au quiz.
 
 La projection fictive du classement en mode test conserve la liste et les exclusions calculées ; ses scores et rangs affichés sont temporaires et ne représentent aucune réponse. Les égalités utilisent le dernier rang du groupe et un compte exclu reste sans rang.
+
+En développement isolé, un testeur vérifié peut ouvrir et répondre à un cadeau futur sans activer le mode test. La confirmation reste neutre et le résultat personnel n’est révélable qu’à minuit Europe/Paris suivant le jour du cadeau ; le mode test explicitement activé peut atteindre cette échéance par sa date simulée. La prévisualisation personnelle de production conserve son résultat immédiat.

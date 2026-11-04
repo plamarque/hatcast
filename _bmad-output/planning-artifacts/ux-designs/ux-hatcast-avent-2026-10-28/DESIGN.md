@@ -98,3 +98,8 @@ En mode test isolé activé, le menu à trois points du mode test permet de gén
 ### Résultats — composition validée
 
 La bonne réponse associe un lutin joyeux sur fond vert et un bandeau crème courbe ; la mauvaise réponse présente un lutin déçu sur fond rouge et un titre encourageant. Les points et anecdotes sont intégrés au fond clair, sans empiler de panneaux dorés. Le portrait personnel reste en médaillon ; les informations, les commandes et les règles de révélation restent inchangées. Sur les écrans étroits avec texte agrandi, la composition se réorganise pour préserver lisibilité et accès aux commandes.
+
+
+### Accès anticipé en test de développement isolé
+
+En développement isolé, le testeur autorisé par le serveur peut, sans activer le mode test, ouvrir et répondre à un quiz futur disponible ; son résultat personnel détaillé reste indisponible jusqu’à minuit Europe/Paris suivant le jour du cadeau, y compris en mode test. Le classement du mode test explicitement activé peut toutefois afficher des points avant révélation et donner un indice ; une date simulée peut atteindre cette échéance. La sélection ne change pas la date simulée ni l’horloge partagée ; les réponses et le rejeu restent personnels. Les cadeaux futurs conservent leur apparence habituelle ; le 25 ouvre le bilan de Noël avec le score actuel, et les contenus manquants conservent leur comportement existant. Les règles de production, de classement et de révélation du jour restent inchangées.
