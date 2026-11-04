@@ -58,6 +58,19 @@ python3 {project-root}/scripts/v2/github_review_decision_controller.py \
 `record` writes the explicitly authorised lane and attestation, then re-reads
 and validates it; `preflight` only captures and validates.
 
+## Local stack ports
+
+Story provisioning reserves a reusable front/API port pair for the worktree.
+For a local human smoke, use the assigned pair and the actual URLs printed by
+`start-dev.sh`; for phone testing, use its explicit-port Tailscale URL when
+available. If a reserved port is occupied, let the launcher allocate a new
+pair; never stop an unrelated process. Stopping the stack retains its worktree
+reservation. During authorised cleanup, stop only owned processes and routes;
+removing the worktree releases its reservation for subsequent allocations.
+The independent E2E contract uses fixed ports 4200 and 8080. For commands,
+recovery and platform limitations, follow `{project-root}/DEVELOPMENT.md`
+and `{project-root}/_bmad/custom/story-branch-workflow.md`.
+
 ## Choose the operation
 
 - **Provision or repair** — from a clean `v2`, run
