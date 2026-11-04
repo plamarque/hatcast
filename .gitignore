@@ -85,3 +85,10 @@ skills-lock.json
 .bmad-loop/cache/
 .bmad-loop/policy.toml
 _bmad/render/
+
+# Shared local-stack reservations and per-worktree metadata
+.local/worktree-ports/
+.local/worktree-ports.json
+.local/worktree-stack.lock/
+.local/worktree-proxy.json
+__pycache__/
