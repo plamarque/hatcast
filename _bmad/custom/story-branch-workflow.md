@@ -59,11 +59,11 @@ copies ignored files or shares `node_modules`.
 ```
 
 An existing or broken `.env` is an operator conflict and is never replaced.
-Ports `8080` and `4200` must be free; readiness only reports the unavailable
+For the independent E2E contract, ports `8080` and `4200` must be free; readiness only reports the unavailable
 port and never identifies or stops a process. A ready result is a handoff, not
 an E2E run: execute isolated E2E separately with
 `PLAYWRIGHT_REUSE_SERVERS=0`; never use `start-dev.sh` or a normal development
-API as E2E evidence. Human smoke remains a separate, later action.
+API as E2E evidence. Human smoke remains a separate, later action. Its local stack uses the worktree reservation; `python3 scripts/v2/worktree-ports.py inspect` displays that pair, independently of E2E.
 
 ### Preuve E2E ciblée (Epic 21)
 
@@ -106,7 +106,7 @@ depuis le worktree `feat/{story-key}` :
 ./scripts/v2/story-human-smoke-handoff.sh start --guide docs/v2/smoke/story-guide.json
 ```
 
-La sortie fournit `https://localhost:4200`, le guide complété, l'identité de
+La sortie fournit l’URL HTTPS locale attribuée à ce worktree, le guide complété, l'identité de
 branche/baseline et la référence E2E. Elle démarre exclusivement
 `start-dev.sh --no-tailscale` dans son propre groupe de processus. Ce smoke ne
 remplace ni l'E2E isolé, ni une approbation humaine, ni l'autorisation
