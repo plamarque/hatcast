@@ -98,3 +98,8 @@ En mode test isolé activé, le menu à trois points du mode test permet de gén
 ### Résultats — composition validée
 
 La bonne réponse associe un lutin joyeux sur fond vert et un bandeau crème courbe ; la mauvaise réponse présente un lutin déçu sur fond rouge et un titre encourageant. Les points et anecdotes sont intégrés au fond clair, sans empiler de panneaux dorés. Le portrait personnel reste en médaillon ; les informations, les commandes et les règles de révélation restent inchangées. Sur les écrans étroits avec texte agrandi, la composition se réorganise pour préserver lisibilité et accès aux commandes.
+
+
+### Accès anticipé en test de développement isolé
+
+En mode test de développement isolé explicitement activé et autorisé par le serveur, le testeur peut ouvrir un quiz futur disponible et consulter immédiatement son résultat personnel. La sélection ne change pas la date simulée ni l’horloge partagée ; les réponses et le rejeu restent personnels. Le 25 et les contenus manquants conservent leurs comportements existants. Les règles de production, de classement et de révélation du jour restent inchangées.

@@ -111,7 +111,7 @@
             <li>{{ statement }} @if ($index === past.falseChoice) { <strong> — anecdote fausse</strong> } @if (past.result && $index === past.result.selectedChoice) { <strong> — ton choix</strong> }</li>
           }
         </ul>
-        @if (past.result; as result) { @if (productionPreview()) { <p>Ce score est provisoire : répondre à des jours précédents peut modifier le bonus de série.</p> } <p>Tu as gagné {{ result.responsePoints + result.participationPoints + result.bonusPoints }} points pour ce jour.</p> }
+        @if (past.result; as result) { @if (productionPreview() || selectedFutureTestDay()) { <p>Ce score est provisoire : répondre à des jours précédents ou révéler leurs réponses peut modifier le bonus de série.</p> } <p>Tu as gagné {{ result.responsePoints + result.participationPoints + result.bonusPoints }} points pour ce jour.</p> }
         @if (past.result) { <ng-container [ngTemplateOutlet]="reminderControl" /> }
       </section>
     } @else if (calendarOpen()) {
@@ -194,7 +194,7 @@
               </h1>
               <span class="advent__banner-star" aria-hidden="true">✦</span>
             </div>
-            @if (productionPreview()) { <p>Ce score est provisoire : répondre à des jours précédents peut modifier le bonus de série.</p> }
+            @if (productionPreview() || selectedFutureTestDay()) { <p>Ce score est provisoire : répondre à des jours précédents ou révéler leurs réponses peut modifier le bonus de série.</p> }
             <p class="advent__result-points"><strong>+{{ reveal.responsePoints + reveal.participationPoints + reveal.bonusPoints }}</strong> {{ reveal.responsePoints + reveal.participationPoints + reveal.bonusPoints === 1 ? 'point gagné' : 'points gagnés' }} @if (reveal.late) { <span> · réponse après le jour du quiz</span> }</p>
           </div>
           <div class="advent__result-card">

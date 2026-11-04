@@ -200,3 +200,8 @@ Avant chaque tentative Avent, l’émetteur vérifie à nouveau que l’appareil
 En mode test Avent autorisé, la case de rappel est une simulation limitée à la page : elle ne modifie aucune préférence ni aucun abonnement et ne déclenche aucun envoi.
 
 La projection fictive du classement est calculée uniquement dans la mémoire de l’onglet, à partir de la liste autorisée reçue du serveur. Elle ne modifie ni réponses ni classement calculé, ne traverse pas les changements de compte, mode ou session et est détruite à la sortie du classement ou au rechargement.
+
+
+### Accès anticipé en test de développement isolé
+
+En mode test de développement isolé explicitement activé et autorisé par le serveur, le testeur peut ouvrir un quiz futur disponible et consulter immédiatement son résultat personnel. La sélection ne change pas la date simulée ni l’horloge partagée ; les réponses et le rejeu restent personnels. Le 25 et les contenus manquants conservent leurs comportements existants. Les règles de production, de classement et de révélation du jour restent inchangées.

@@ -214,6 +214,33 @@ describe('AdventTest', () => {
     const root = fixture.nativeElement.querySelector('main.advent') as HTMLElement
     expect(root.classList.contains('ph-no-capture')).toBe(true)
   })
+  it('opens a future test gift without changing the simulated date', async () => {
+    const component = fixture.componentInstance
+    component.testMode.set(true); component.testControls.set(true)
+    component.clockDate.set('2026-12-01'); (component as any).simulatedDate.set('2026-12-01')
+    const select = vi.spyOn(component, 'selectDay').mockResolvedValue()
+    const gift = { day: 23, state: 'today' as const }
+    expect(component.calendarLabel(gift)).toBe('Cadeau disponible')
+    await component.openCalendarDay(gift)
+    expect(select).toHaveBeenCalledWith(23, false)
+    expect((component as any).simulatedDate()).toBe('2026-12-01')
+    await component.openCalendarDay({ day: 23, state: 'played', outcome: 'correct' })
+    expect(select).toHaveBeenLastCalledWith(23, false)
+    expect((component as any).simulatedDate()).toBe('2026-12-01')
+  })
+  it('labels future test results as provisional without changing today results', () => {
+    const component = fixture.componentInstance
+    component.testMode.set(true); component.productionPreview.set(false)
+    component.clockDate.set('2026-12-01'); component.selectedDay.set(3)
+    component.result.set({ answerId: 'a', day: 3, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 22, seen: true })
+    component.resultContent.set({ day: 3, name: 'Fictif', portrait: '', statements: ['un', 'deux', 'trois'], genericElf: true })
+    component.calendarOpen.set(false); component.welcome.set(false); component.loading.set(false)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('répondre à des jours précédents ou révéler leurs réponses peut modifier le bonus de série')
+    component.clockDate.set('2026-12-03')
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).not.toContain('Ce score est provisoire')
+  })
   it('opens the authorized direct preview, records a final answer and recovers it', async () => {
     const component = fixture.componentInstance
     vi.spyOn(TestBed.inject(Router), 'url', 'get').mockReturnValue('/avent?preview=1')
@@ -1866,6 +1893,7 @@ describe('AdventTest', () => {
     replacement.destroy()
   })
   it('sends the selected option to the selected quiz', async () => {
+    fixture.componentInstance.clockDate.set('2026-12-12')
     await fixture.componentInstance.selectDay(12)
     await fixture.componentInstance.openDoor()
     fixture.componentInstance.choice.set(2)
@@ -2010,6 +2038,7 @@ describe('AdventTest', () => {
       token = 'token-after'
       return new Response(JSON.stringify({ status: 'recorded', replayToken: token }))
     })
+    fixture.componentInstance.clockDate.set('2026-12-12')
     await fixture.componentInstance.selectDay(12)
     await fixture.componentInstance.openDoor()
     fixture.detectChanges()

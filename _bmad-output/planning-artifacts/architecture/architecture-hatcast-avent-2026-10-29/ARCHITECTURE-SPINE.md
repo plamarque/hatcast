@@ -131,3 +131,8 @@ The shared private Advent bucket stores the canonical catalogue under `catalogue
 The V82 reservation and updated workstation operator describe the implementation under review; actual Cloud Run deployment and effective bucket access require separate authorization and verification.
 
 La projection de classement fictif du mode test isolé reste en mémoire dans l’onglet et utilise la liste fournie par le serveur. Aucun score fictif ni réponse ne sont persistés ou partagés ; la projection disparaît à la sortie du classement et aux transitions de session.
+
+
+### Accès anticipé en test de développement isolé
+
+En mode test de développement isolé explicitement activé et autorisé par le serveur, le testeur peut ouvrir un quiz futur disponible et consulter immédiatement son résultat personnel. La sélection ne change pas la date simulée ni l’horloge partagée ; les réponses et le rejeu restent personnels. Le 25 et les contenus manquants conservent leurs comportements existants. Les règles de production, de classement et de révélation du jour restent inchangées.

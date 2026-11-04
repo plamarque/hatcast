@@ -737,3 +737,45 @@ test('isolated tester can project and restore a fictional ranking', async ({ pag
   await expect(page.locator('.advent__ranking-summary')).toContainText('0 points')
   expect(methods.every(method => method === 'GET')).toBe(true)
 })
+
+test('future test gift works with keyboard on mobile', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 700 })
+  let recorded = false
+  const dates: string[] = []
+  const quiz = { day: 23, name: 'Lutin fictif', portrait: '', genericElf: true, statements: ['Un', 'Deux', 'Trois'] }
+  const result = { answerId: 'fictif', day: 23, selectedChoice: 1, falseChoice: 1, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: true, explanation: 'Explication fictive' }
+  await page.route('**/v1/**', async route => {
+    const req = route.request(), path = new URL(req.url()).pathname
+    if (path.includes('/doors/23')) dates.push(req.headers()['x-advent-simulated-date'])
+    if (path === '/v1/auth/me') return route.fulfill({ json: { user: { id: 'operator', slug: 'operator', displayName: 'Fictif', email: 'fixture@example.test', avatarUrl: null }, platformAdmin: false } })
+    if (path === '/v1/troupes') return route.fulfill({ json: [] })
+    if (path === '/v1/me/preferences') return route.fulfill({ json: { memberDisplayName: 'Fictif', preferredRoleKeys: [] } })
+    if (path === '/v1/advent/session') return route.fulfill({ json: { testControls: true, sessionId: 'fixture-session' } })
+    if (path.endsWith('/clock')) return route.fulfill({ json: { date: '2026-12-01', effectiveInstant: '2026-12-01T12:00:00Z', nextMidnight: '2026-12-01T23:00:00Z', simulated: req.headers()['x-advent-test-mode'] === 'true' } })
+    if (path.endsWith('/discovery')) return route.fulfill({ json: { discovered: true } })
+    if (path.endsWith('/results/latest-unseen')) return route.fulfill({ json: { result: null } })
+    if (path.endsWith('/calendar')) return route.fulfill({ json: { days: [{ day: 23, state: recorded ? 'played' : 'today', outcome: recorded ? 'correct' : null }, { day: 25, state: 'locked' }], priorityResult: null } })
+    if (path.endsWith('/doors/23')) return route.fulfill({ json: quiz })
+    if (path.endsWith('/answer/reconcile')) return route.fulfill({ json: { status: 'available', generation: 'fixture' } })
+    if (path.endsWith('/answer/reserve')) return route.fulfill({ json: { status: 'available' } })
+    if (path.endsWith('/answer') && req.method() === 'POST') { recorded = true; return route.fulfill({ json: { status: 'recorded', replayToken: 'fictif' } }) }
+    if (path.endsWith('/answer')) return route.fulfill({ json: { status: recorded ? 'recorded' : 'available', ...(recorded ? { replayToken: 'fictif' } : {}) } })
+    if (path.endsWith('/result')) return recorded ? route.fulfill({ json: result }) : route.fulfill({ status: 404 })
+    return route.fulfill({ json: {} })
+  })
+  await page.goto('/avent')
+  await page.getByRole('button', { name: 'Activer le mode test' }).click()
+  await expect(page.getByRole('button', { name: 'Désactiver le mode test' })).toHaveAttribute('aria-pressed', 'true')
+  await page.getByRole('button', { name: 'Voir le calendrier' }).click()
+  const gift = page.getByRole('button', { name: '23 décembre : Cadeau disponible' })
+  await expect(page.getByRole('button', { name: '25 décembre : Verrouillé' })).toBeDisabled()
+  await gift.focus(); await page.keyboard.press('Enter')
+  await page.getByRole('button', { name: 'Ouvrir le cadeau du jour 23' }).click()
+  await page.getByRole('radio').nth(1).check()
+  await page.getByRole('button', { name: 'Confirmer ma réponse' }).click()
+  await expect(page.getByText('Explication fictive')).toBeVisible()
+  await expect(page.getByText('Ce score est provisoire', { exact: false })).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320)
+  expect(dates.length).toBeGreaterThan(0)
+  expect(dates.every(date => date === '2026-12-01')).toBe(true)
+})

@@ -650,6 +650,11 @@ export class AdventTest {
     this.christmasScore.set(response.ranking.score)
   }
 
+  selectedFutureTestDay(): boolean {
+    const date = this.clockDate()
+    return this.testMode() && date !== null && date < `2026-12-${String(this.selectedDay()).padStart(2, '0')}`
+  }
+
   selectedDayIsPast(): boolean {
     return (this.clockDate() ?? '') > `2026-12-${String(this.selectedDay()).padStart(2, '0')}`
   }
@@ -660,7 +665,7 @@ export class AdventTest {
 
   calendarLabel(day: CalendarDay): string {
     if (day.state === 'played') return ({ pending: 'Réponse enregistrée, résultat en attente', correct: 'Bonne réponse', incorrect: 'Mauvaise réponse' })[day.outcome ?? 'pending']
-    if (this.productionPreview() && day.state === 'today' && !this.isCalendarToday(day)) return 'Cadeau disponible'
+    if ((this.productionPreview() || this.testMode()) && day.state === 'today' && !this.isCalendarToday(day)) return 'Cadeau disponible'
     return ({ locked: 'Verrouillé', played: 'Réponse enregistrée', today: 'Aujourd’hui', 'past-unplayed': 'Cadeau fermé', missing: 'Sans contenu', christmas: 'Résumé de Noël' })[day.state]
   }
 
@@ -751,7 +756,7 @@ export class AdventTest {
       finally { if (this.contextCurrent(epoch, identity)) this.loading.set(false) }
       return
     }
-    if (day.state === 'today' || (day.state === 'played' && this.clockDate() === `2026-12-${String(day.day).padStart(2, '0')}`)) {
+    if (day.state === 'today' || (day.state === 'played' && (this.clockDate() === `2026-12-${String(day.day).padStart(2, '0')}` || (this.testMode() && (this.clockDate() ?? '') < `2026-12-${String(day.day).padStart(2, '0')}`)))) {
       this.lateDiscovery.set(false)
       this.calendarOpen.set(false); this.history.set(null); this.unavailable.set(false); await this.selectDay(day.day, day.state === 'played' && day.outcome === 'pending'); return
     }
@@ -1004,7 +1009,7 @@ export class AdventTest {
       this.answerState.set(data.status)
       this.recordedLate = data.late === true
       if (data.status === 'recorded' && !this.submitting()) {
-        if (this.productionPreview()) await this.showPreviewResult()
+        if (this.productionPreview() || this.selectedFutureTestDay()) await this.showPreviewResult()
         else if (this.recordedLate) await this.showLateResult()
       }
     } catch (error) { if (!(error instanceof StaleRequestError)) { this.generation = null; this.answerState.set('uncertain') } }
@@ -1105,7 +1110,7 @@ export class AdventTest {
     finally {
       if (!this.contextCurrent(epoch, identity)) return
       this.submitting.set(false)
-      if (this.answerState() === 'recorded' && this.productionPreview()) {
+      if (this.answerState() === 'recorded' && (this.productionPreview() || this.selectedFutureTestDay())) {
         try { await this.showPreviewResult(); return } catch (error) {
           if (error instanceof StaleRequestError || !this.contextCurrent(epoch, identity)) return
           this.answerState.set('uncertain'); return
