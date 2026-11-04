@@ -3783,6 +3783,15 @@ As an authorized development tester, I want to open future quiz gifts directly, 
 
 **Material 3 and references:** Apply `docs/v2/technical/FRONTEND_UI.md`, Advent DESIGN, EXPERIENCE and AD-7; see `spec-25-19-open-future-advent-gifts-in-development-test-mode.md` for the approved scope.
 
+
+### Story 25.20: Record the complete Advent member journey
+
+As a member, I want the Advent journey checked day by day from December 1 through December 26, so that the screens, timing, scores and navigation can be reviewed in a recorded Playwright session.
+
+**Acceptance criteria:** Use a normal member account and fictional content in an isolated local environment, exercising the ordinary application paths without the Advent test mode or API clock override. Advance the system clock day by day and restore its previous automatic-time setting and actual time after the run, including on failure. Check correct and incorrect answers, same-day return before revelation, ranking, calendar, previously played and missed days, locked future gifts, Christmas and the following day. Retain a reviewable video and report failures and coverage limitations. Verify notification preference where possible and distinguish it from actual push delivery; do not send notifications to real members or use production data.
+
+**References:** `spec-avent-recette-25-jours-video.md`; Advent DESIGN, EXPERIENCE and AD-7.
+
 ## Final validation
 
 
