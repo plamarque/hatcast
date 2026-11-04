@@ -652,7 +652,7 @@ export class AdventTest {
 
   selectedFutureTestDay(): boolean {
     const date = this.clockDate()
-    return this.testMode() && date !== null && date < `2026-12-${String(this.selectedDay()).padStart(2, '0')}`
+    return this.testControls() && date !== null && date < `2026-12-${String(this.selectedDay()).padStart(2, '0')}`
   }
 
   selectedDayIsPast(): boolean {
@@ -665,7 +665,7 @@ export class AdventTest {
 
   calendarLabel(day: CalendarDay): string {
     if (day.state === 'played') return ({ pending: 'Réponse enregistrée, résultat en attente', correct: 'Bonne réponse', incorrect: 'Mauvaise réponse' })[day.outcome ?? 'pending']
-    if ((this.productionPreview() || this.testMode()) && day.state === 'today' && !this.isCalendarToday(day)) return 'Cadeau disponible'
+    if ((this.productionPreview() || this.testControls()) && day.state === 'today' && !this.isCalendarToday(day)) return 'Cadeau disponible'
     return ({ locked: 'Verrouillé', played: 'Réponse enregistrée', today: 'Aujourd’hui', 'past-unplayed': 'Cadeau fermé', missing: 'Sans contenu', christmas: 'Résumé de Noël' })[day.state]
   }
 
@@ -706,13 +706,13 @@ export class AdventTest {
 
   cancelPersonalReset(): void {
     this.personalResetConfirm.set(null)
-    setTimeout(() => (this.productionPreview() ? this.previewReplayButton : this.openingReplayButton)?.nativeElement.focus())
+    setTimeout(() => ((this.productionPreview() || (!this.testMode() && this.selectedFutureTestDay())) ? this.previewReplayButton : this.openingReplayButton)?.nativeElement.focus())
   }
 
   async confirmPersonalReset(): Promise<void> {
     const action = this.personalResetConfirm()
     this.personalResetConfirm.set(null)
-    if (!this.testMode() && !this.productionPreview()) return
+    if (!this.testMode() && !this.productionPreview() && !this.selectedFutureTestDay()) return
     if (action === 'calendar') await this.closeCalendarDay()
     if (action === 'replay') await this.replay()
   }
@@ -756,7 +756,7 @@ export class AdventTest {
       finally { if (this.contextCurrent(epoch, identity)) this.loading.set(false) }
       return
     }
-    if (day.state === 'today' || (day.state === 'played' && (this.clockDate() === `2026-12-${String(day.day).padStart(2, '0')}` || (this.testMode() && (this.clockDate() ?? '') < `2026-12-${String(day.day).padStart(2, '0')}`)))) {
+    if (day.state === 'today' || (day.state === 'played' && (this.clockDate() === `2026-12-${String(day.day).padStart(2, '0')}` || (this.testControls() && (this.clockDate() ?? '') < `2026-12-${String(day.day).padStart(2, '0')}`)))) {
       this.lateDiscovery.set(false)
       this.calendarOpen.set(false); this.history.set(null); this.unavailable.set(false); await this.selectDay(day.day, day.state === 'played' && day.outcome === 'pending'); return
     }
@@ -935,7 +935,7 @@ export class AdventTest {
       if (state.status === 'recorded') {
         const result = await this.requestJson<AdventResult | null>(`/v1/advent-test/doors/${day}/result`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() }, true)
         if (result) {
-          await this.showResult(result, this.productionPreview())
+          await this.showResult(result, this.productionPreview() || this.selectedFutureTestDay())
           return
         }
         this.replayToken = state.replayToken ?? null
@@ -1052,7 +1052,7 @@ export class AdventTest {
         this.resultContent.set(null)
         this.quiz.set(null)
         this.preview.set(null)
-        if (this.productionPreview()) {
+        if (this.productionPreview() || this.selectedFutureTestDay()) {
           this.replayReloadFailed.set(false)
           this.replayReloading.set(true)
           try {

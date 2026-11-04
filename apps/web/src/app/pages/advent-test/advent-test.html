@@ -52,7 +52,7 @@
       </mat-menu>
     </div>
     }
-  @if (productionPreview() && !calendarOpen() && !rankingOpen() && result() && answerState() === 'recorded') {
+  @if ((productionPreview() || (!testMode() && selectedFutureTestDay())) && !calendarOpen() && !rankingOpen() && result() && answerState() === 'recorded') {
     <div class="advent__test-actions" aria-label="Actions de prévisualisation">
       <span class="advent__preview-actions-label">Actions de prévisualisation</span>
       <button #previewReplayButton mat-icon-button type="button" class="advent__test-menu-trigger" [matMenuTriggerFor]="previewActionsMenu" aria-label="Actions de prévisualisation" title="Actions de prévisualisation"><mat-icon aria-hidden="true">more_vert</mat-icon></button>
@@ -63,7 +63,7 @@
   }
   <div class="advent__content" [class.advent__content--ranking]="rankingOpen()">
     @if (closeError()) { <p role="alert">Impossible d’enregistrer la fermeture pour aujourd’hui. Réessaie ou quitte sans l’enregistrer.</p><button mat-stroked-button type="button" (click)="leaveExperience()">Quitter sans enregistrer</button> }
-    @if (personalResetConfirm() && (!memberMode || productionPreview())) {
+    @if (personalResetConfirm() && (!memberMode || productionPreview() || selectedFutureTestDay())) {
       <section aria-labelledby="advent-personal-reset-title">
         <h2 #personalResetHeading id="advent-personal-reset-title" tabindex="-1">Effacer ta réponse du {{ personalResetConfirm() === 'calendar' ? currentPlayedDay()?.day : selectedDay() }} décembre ?</h2>
         <p>Ta réponse à ce cadeau sera effacée. Tu pourras rejouer.</p>

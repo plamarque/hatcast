@@ -738,7 +738,7 @@ test('isolated tester can project and restore a fictional ranking', async ({ pag
   expect(methods.every(method => method === 'GET')).toBe(true)
 })
 
-test('future test gift works with keyboard on mobile', async ({ page }) => {
+test('authorized future gift works without test mode on mobile', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 700 })
   let recorded = false
   const dates: string[] = []
@@ -756,6 +756,7 @@ test('future test gift works with keyboard on mobile', async ({ page }) => {
     if (path.endsWith('/results/latest-unseen')) return route.fulfill({ json: { result: null } })
     if (path.endsWith('/calendar')) return route.fulfill({ json: { days: [{ day: 23, state: recorded ? 'played' : 'today', outcome: recorded ? 'correct' : null }, { day: 25, state: 'locked' }], priorityResult: null } })
     if (path.endsWith('/doors/23')) return route.fulfill({ json: quiz })
+    if (path.endsWith('/answer/replay')) { recorded = false; return route.fulfill({ json: { status: 'available' } }) }
     if (path.endsWith('/answer/reconcile')) return route.fulfill({ json: { status: 'available', generation: 'fixture' } })
     if (path.endsWith('/answer/reserve')) return route.fulfill({ json: { status: 'available' } })
     if (path.endsWith('/answer') && req.method() === 'POST') { recorded = true; return route.fulfill({ json: { status: 'recorded', replayToken: 'fictif' } }) }
@@ -764,8 +765,7 @@ test('future test gift works with keyboard on mobile', async ({ page }) => {
     return route.fulfill({ json: {} })
   })
   await page.goto('/avent')
-  await page.getByRole('button', { name: 'Activer le mode test' }).click()
-  await expect(page.getByRole('button', { name: 'Désactiver le mode test' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('button', { name: 'Activer le mode test' })).toHaveAttribute('aria-pressed', 'false')
   await page.getByRole('button', { name: 'Voir le calendrier' }).click()
   const gift = page.getByRole('button', { name: '23 décembre : Cadeau disponible' })
   await expect(page.getByRole('button', { name: '25 décembre : Verrouillé' })).toBeDisabled()
@@ -775,7 +775,11 @@ test('future test gift works with keyboard on mobile', async ({ page }) => {
   await page.getByRole('button', { name: 'Confirmer ma réponse' }).click()
   await expect(page.getByText('Explication fictive')).toBeVisible()
   await expect(page.getByText('Ce score est provisoire', { exact: false })).toBeVisible()
+  await page.getByRole('button', { name: 'Actions de prévisualisation' }).click()
+  await page.getByRole('menuitem', { name: 'Effacer ma réponse et rejouer' }).click()
+  await page.getByRole('button', { name: 'Effacer ma réponse', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Confirmer ma réponse' })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320)
   expect(dates.length).toBeGreaterThan(0)
-  expect(dates.every(date => date === '2026-12-01')).toBe(true)
+  expect(dates.every(date => date === undefined)).toBe(true)
 })

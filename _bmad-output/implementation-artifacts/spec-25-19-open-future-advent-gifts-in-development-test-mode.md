@@ -19,11 +19,11 @@ context:
 
 **Problem:** A development tester must change the simulated date to open a future Advent gift, making it difficult to inspect gifts directly.
 
-**Approach:** In authorized development test mode, allow a tester to select and play future quiz gifts directly, like the existing production preview, including immediate access to their personal result.
+**Approach:** For an authorized development tester, without requiring test mode, allow a tester to select and play future quiz gifts directly, like the existing production preview, including immediate access to their personal result.
 
 ## Boundaries & Constraints
 
-**Always:** Authorize the exception on the server for isolated development test mode only. Preserve isolated test data, personal privacy and the ordinary member journey. Keep the simulated date and shared clock unchanged by selecting a gift. Preserve the Advent visual contract, keyboard access and accessible states. Respect existing missing-content and day 25 behavior.
+**Always:** Authorize the exception on the server for isolated development testers, regardless of test mode. Preserve isolated test data, personal privacy and the ordinary member journey. Keep the simulated date and shared clock unchanged by selecting a gift. Preserve the Advent visual contract, keyboard access and accessible states. Respect existing missing-content and day 25 behavior.
 
 **Never:** Enable future access for ordinary members or through an untrusted client flag; broaden production preview authorization; mix development test answers with production data; change rankings or other members' state as a side effect; deploy or push.
 
@@ -31,9 +31,9 @@ context:
 
 | Scenario | Input / State | Expected behavior |
 |----------|---------------|-------------------|
-| Future quiz | Authorized tester, isolated test mode on | Future gift can be selected and played; personal result and explanation are immediately accessible. |
+| Future quiz | Authorized isolated development tester, with test mode on or off | Future gift can be selected and played; personal result and explanation are immediately accessible. |
 | Revisit | Tester returns to a played future gift | Personal state is consistent and existing authorized replay controls remain usable. |
-| Normal journey | Test mode off, ordinary member, or production request | Existing date and authorization restrictions remain in force. |
+| Normal journey | Ordinary member or unauthorized production request | Existing date and authorization restrictions remain in force. |
 | Missing content or day 25 | Future gift has no quiz, or is the day 25 review | Existing safe unavailable/review behavior applies; no invented quiz. |
 | Navigation | Tester selects a future gift | No simulated or shared clock is changed; other users' state remains private. |
 
@@ -56,7 +56,7 @@ context:
 - [x] Relevant architecture and Advent UX documents — record the scoped exception without changing normal behavior.
 
 **Acceptance Criteria:**
-- Given an authorized development tester with test mode enabled, when they select a future quiz gift, then they can play it and see their personal result immediately.
+- Given an authorized development tester, whether test mode is enabled or not, when they select a future quiz gift, then they can play it and see their personal result immediately.
 - Given an ordinary member or a production request, when future access is attempted, then the existing server authorization and disclosure restrictions remain effective.
 - Given keyboard and mobile use, when the tester opens the calendar, then eligible gifts are discoverable and operable with accessible labels and no changes to other HatCast screens.
 
@@ -105,3 +105,5 @@ Full-stack verification: an offline H2 stack and Chromium at 320 × 700 exercise
 Review-loop verification: 47 API tests, 164 Angular tests and one mocked mobile Chromium scenario passed, including the provisional-score notice and future HTTP flow. Text enlargement and focus restoration after replay were not measured.
 
 Final verification after review patches: 47 focused API tests, 164 Angular tests and one isolated Chromium scenario with a mocked API passed. The real-API offline H2 journey was verified before the wording-only final patch. Text enlargement and focus restoration after replay remain unmeasured.
+
+User clarification: future gifts must open implicitly for authorized development testers without switching on test mode. The separate correction spec records the implementation and verification.

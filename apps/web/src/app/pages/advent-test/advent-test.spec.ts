@@ -216,7 +216,7 @@ describe('AdventTest', () => {
   })
   it('opens a future test gift without changing the simulated date', async () => {
     const component = fixture.componentInstance
-    component.testMode.set(true); component.testControls.set(true)
+    component.testMode.set(false); component.testControls.set(true)
     component.clockDate.set('2026-12-01'); (component as any).simulatedDate.set('2026-12-01')
     const select = vi.spyOn(component, 'selectDay').mockResolvedValue()
     const gift = { day: 23, state: 'today' as const }
