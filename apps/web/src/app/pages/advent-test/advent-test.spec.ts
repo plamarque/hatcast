@@ -504,6 +504,46 @@ describe('AdventTest', () => {
     expect(clocks).toBe(2)
     component.ngOnDestroy()
   })
+  it('waits through intermediate Paris midnights before revealing a future gift', async () => {
+    const component = fixture.componentInstance as any
+    component.testMode.set(false); component.clockDate.set('2026-12-01'); component.selectedDay.set(3); component.answerState.set('recorded')
+    component.quiz.set({ day: 3, name: 'Lutin', portrait: '/elf', statements: ['A', 'B', 'C'], genericElf: true })
+    const result = { answerId: 'future-answer', day: 3, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false }
+    const dates = ['2026-12-01', '2026-12-02', '2026-12-03', '2026-12-04']
+    let clocks = 0, priorityReads = 0
+    vi.useFakeTimers()
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url = String(input)
+      if (url.endsWith('/clock')) {
+        const date = dates[clocks++]
+        return new Response(JSON.stringify({ date, effectiveInstant: `${date}T22:59:59Z`, nextMidnight: `${date}T23:00:00Z`, simulated: false }))
+      }
+      if (url.endsWith('/results/latest-unseen')) { priorityReads++; return new Response(JSON.stringify({ result })) }
+      if (url.endsWith('/doors/3')) return new Response(JSON.stringify({ day: 3, name: 'Lutin', portrait: '/elf', statements: ['A', 'B', 'C'], genericElf: true }))
+      if (url.endsWith('/answer')) return new Response(JSON.stringify({ status: 'recorded' }))
+      if (url.endsWith('/result')) return new Response(JSON.stringify(result))
+      throw new Error(url)
+    })
+    await component.beginWaiting()
+    expect(component.remainingSeconds()).toBeNull()
+    await vi.advanceTimersByTimeAsync(1100)
+    expect(clocks).toBe(2)
+    expect(component.waiting()).toBe(true)
+    expect(component.remainingSeconds()).toBeNull()
+    expect(component.result()).toBeNull()
+    expect(priorityReads).toBe(0)
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(clocks).toBe(3)
+    expect(component.waiting()).toBe(true)
+    expect(component.result()).toBeNull()
+    expect(priorityReads).toBe(0)
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(clocks).toBe(4)
+    expect(priorityReads).toBe(1)
+    expect(component.result()?.answerId).toBe('future-answer')
+    expect(component.clockDate()).toBe('2026-12-04')
+    component.ngOnDestroy()
+  })
   it('does not consume a slow request duration as elapsed server time', async () => {
     const component = fixture.componentInstance as any
     component.testMode.set(false); component.selectedDay.set(1)
@@ -1317,6 +1357,23 @@ describe('AdventTest', () => {
     expect(fixture.nativeElement.querySelector('#advent-result-title')).not.toBeNull()
     expect(fixture.nativeElement.querySelector('#advent-calendar-panel')).toBeNull()
     expect(fixture.nativeElement.querySelector('#advent-ranking-panel')).toBeNull()
+  })
+
+  it('keeps a future recorded answer neutral without a premature countdown', async () => {
+    const component = fixture.componentInstance
+    component.testControls.set(true); component.testMode.set(false); component.clockDate.set('2026-12-01')
+    component.welcome.set(false); component.loading.set(false)
+    const quiz = { day: 3, name: 'Fictif', portrait: '', genericElf: true, statements: ['A', 'B', 'C'] }
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify(quiz)))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'recorded', replayToken: 'own' })))
+      .mockResolvedValueOnce(new Response('', { status: 404 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ date: '2026-12-01', effectiveInstant: '2026-12-01T12:00:00Z', nextMidnight: '2026-12-01T23:00:00Z', simulated: false })))
+    await component.openCalendarDay({ day: 3, state: 'played', outcome: 'pending' })
+    fixture.detectChanges()
+    expect(component.result()).toBeNull()
+    expect(component.waiting()).toBe(true)
+    expect(fixture.nativeElement.textContent).toContain('après le 3 décembre')
+    expect(fixture.nativeElement.querySelector('[role="timer"]')).toBeNull()
   })
 
   it('keeps future gifts dark but clickable and opens the Christmas recap without changing the date', async () => {

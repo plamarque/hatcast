@@ -386,7 +386,7 @@ export class AdventTest {
       if (!Number.isFinite(effective) || !Number.isFinite(midnight) || midnight <= effective || clock.simulated !== this.testMode()) throw new Error('Invalid clock projection')
       this.waitingError.set(false)
       const expectedDate = `2026-12-${String(this.selectedDay()).padStart(2, '0')}`
-      if (clock.date !== expectedDate) {
+      if (clock.date > expectedDate) {
         // The clock is only a hint. Read the server-authorized priority result.
         const latest = await this.requestJson<{ result: AdventResult | null }>('/v1/advent-test/results/latest-unseen', { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
         if (!this.waiting() || generation !== this.waitingGeneration) return
@@ -400,6 +400,17 @@ export class AdventTest {
           if (!result) throw new Error('Result requires refresh')
           await this.showResult(result, true, generation)
           if (this.result()?.answerId === result.answerId) this.clockDate.set(clock.date)
+        }
+        return
+      }
+      if (clock.date < expectedDate) {
+        this.remainingSeconds.set(null)
+        // Refresh at each real Paris midnight without presenting it as the gift's reveal.
+        if (!clock.simulated) {
+          const sample = performance.now()
+          this.waitingTimer = setInterval(() => {
+            if (performance.now() - sample >= midnight - effective) void this.refreshWaiting(generation)
+          }, 1000)
         }
         return
       }
@@ -1016,7 +1027,7 @@ export class AdventTest {
       this.answerState.set(data.status)
       this.recordedLate = data.late === true
       if (data.status === 'recorded' && !this.submitting()) {
-        if (this.productionPreview() || this.selectedFutureTestDay()) await this.showPreviewResult()
+        if (this.productionPreview()) await this.showPreviewResult()
         else if (this.recordedLate) await this.showLateResult()
       }
     } catch (error) { if (!(error instanceof StaleRequestError)) { this.generation = null; this.answerState.set('uncertain') } }
@@ -1117,7 +1128,7 @@ export class AdventTest {
     finally {
       if (!this.contextCurrent(epoch, identity)) return
       this.submitting.set(false)
-      if (this.answerState() === 'recorded' && (this.productionPreview() || this.selectedFutureTestDay())) {
+      if (this.answerState() === 'recorded' && this.productionPreview()) {
         try { await this.showPreviewResult(); return } catch (error) {
           if (error instanceof StaleRequestError || !this.contextCurrent(epoch, identity)) return
           this.answerState.set('uncertain'); return

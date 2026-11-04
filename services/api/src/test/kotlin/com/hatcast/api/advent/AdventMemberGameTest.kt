@@ -46,7 +46,7 @@ class AdventMemberGameTest {
         jdbc.update("INSERT INTO advent_quizzes (quiz_day, display_name, statement_0, statement_1, statement_2, false_choice) VALUES (1, 'Personnage fictif', 'A', 'B', 'C', 0)")
         at("2026-12-01T12:00:00Z")
     }
-    @Test fun `isolated future gift has personal result without changing the clock`() {
+    @Test fun `isolated future gift waits for its reveal without changing the clock`() {
         jdbc.update("DELETE FROM advent_quizzes WHERE quiz_day = 2")
         jdbc.update("INSERT INTO advent_quizzes (quiz_day, display_name, statement_0, statement_1, statement_2, false_choice) VALUES (2, 'Fictif', 'A', 'B', 'C', 0)")
         val before = game.clockProjection().date
@@ -63,9 +63,36 @@ class AdventMemberGameTest {
         assertEquals("recorded", answer.status)
         assertNull(game.result(member, 2))
         assertNull(game.result(other, 2, testFuture = true))
-        assertTrue(game.result(member, 2, testFuture = true)!!.correct)
+        assertNull(game.result(member, 2, testFuture = true))
+        assertEquals("pending", game.calendar(member, testFuture = true).days!![1].outcome)
+        assertThrows(ResponseStatusException::class.java) { game.acknowledge(member, 2, answer.replayToken!!, testFuture = true) }
+        assertThrows(ResponseStatusException::class.java) { game.history(member, 2, testFuture = true) }
+        assertTrue(game.result(member, 2, preview = true)!!.correct)
         assertEquals(before, game.clockProjection().date)
         assertEquals("available", game.replay(member, 2, answer.replayToken!!, game.session(), testFuture = true).status)
+    }
+    @Test fun `previously acknowledged future answer remains seen and accessible only after reveal`() {
+        jdbc.update("DELETE FROM advent_quizzes WHERE quiz_day = 2")
+        jdbc.update("INSERT INTO advent_quizzes (quiz_day, display_name, statement_0, statement_1, statement_2, false_choice) VALUES (2, 'Fictif', 'A', 'B', 'C', 0)")
+        val answerId = UUID.randomUUID()
+        val seenAt = Instant.parse("2026-12-01T12:01:00Z")
+        val revealAt = Instant.parse("2026-12-02T23:00:00Z")
+        jdbc.update("INSERT INTO advent_member_answers (user_id, quiz_day, answer_id, choice, correct_choice, answered_at, reveal_at, seen_at, late) VALUES (?, 2, ?, 0, 0, ?, ?, ?, FALSE)", member, answerId, Timestamp.from(Instant.parse("2026-12-01T12:00:00Z")), Timestamp.from(revealAt), Timestamp.from(seenAt))
+
+        at("2026-12-02T22:59:59Z")
+        assertNull(game.result(member, 2, testFuture = true))
+        assertNull(game.latestUnseen(member))
+        assertThrows(ResponseStatusException::class.java) { game.history(member, 2, testFuture = true) }
+        assertEquals("pending", game.calendar(member, testFuture = true).days!![1].outcome)
+
+        at("2026-12-02T23:00:00Z")
+        assertNull(game.latestUnseen(member))
+        val history = game.history(member, 2).history!!
+        assertEquals(answerId.toString(), history.result!!.answerId)
+        assertTrue(history.result!!.seen)
+        assertTrue(history.result!!.correct)
+        assertEquals(seenAt, jdbc.queryForObject("SELECT seen_at FROM advent_member_answers WHERE user_id = ? AND quiz_day = 2", Timestamp::class.java, member)!!.toInstant())
+        assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM advent_member_answers WHERE user_id = ? AND quiz_day = 2", Int::class.java, member))
     }
     @Test fun `future test access preserves missing content and other members ranking`() {
         val operator = excluded.first()
@@ -87,7 +114,7 @@ class AdventMemberGameTest {
         assertEquals(beforeRanking, game.ranking(other, troupe, excluded, operator = true).ranking)
         assertNull(game.result(other, 2, testFuture = true))
         assertEquals("played", game.calendar(operator, testFuture = true).days!![1].state)
-        assertTrue(game.result(operator, 2, testFuture = true)!!.correct)
+        assertNull(game.result(operator, 2, testFuture = true))
     }
     @Test fun `future score omits pending today and changes only after reveal`() {
         `when`(clock.isolatedControlsAllowed()).thenReturn(true)
@@ -101,18 +128,14 @@ class AdventMemberGameTest {
             assertEquals("available", game.reserve(member, day, attempt, generation, operator = true, testFuture = true).status)
             assertEquals("recorded", game.confirm(member, day, 0, attempt, operator = true, testFuture = true).status)
         }
-        val first = game.result(member, 3, testFuture = true)!!
-        assertEquals(22, first.totalPoints)
-        assertEquals(0, first.bonusPoints)
+        assertNull(game.result(member, 3, testFuture = true))
         assertNull(game.result(member, 1, testFuture = true))
         val dayTwo = LocalDate.of(2026, 12, 2)
         assertNull(game.result(member, 2, simulated = dayTwo, testFuture = true))
         val revealedDayOne = game.result(member, 1, simulated = dayTwo)!!
         game.acknowledge(member, 1, UUID.fromString(revealedDayOne.answerId), simulated = dayTwo)
         assertEquals("pending", game.calendar(member, simulated = dayTwo, testFuture = true).days!![1].outcome)
-        val stillProvisional = game.result(member, 3, simulated = dayTwo, testFuture = true)!!
-        assertEquals(22, stillProvisional.totalPoints)
-        assertEquals(0, stillProvisional.bonusPoints)
+        assertNull(game.result(member, 3, simulated = dayTwo, testFuture = true))
         val dayThree = LocalDate.of(2026, 12, 3)
         assertNull(game.result(member, 3, simulated = dayThree, testFuture = true))
         val revealed = game.result(member, 3, simulated = LocalDate.of(2026, 12, 4), testFuture = true)!!

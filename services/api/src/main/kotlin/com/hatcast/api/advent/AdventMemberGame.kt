@@ -261,15 +261,15 @@ class AdventMemberGame(private val jdbc: JdbcTemplate, private val clock: Advent
     fun result(user: UUID, day: Int, expected: UUID? = null, simulated: LocalDate? = null, preview: Boolean = false, testFuture: Boolean = false): AdventResult? {
         checkDay(day)
         val time = now(expected, simulated, preview)
-        return resultAt(user, day, time, preview, testFuture && LocalDate.of(2026, 12, day).isAfter(date(time)))
+        return resultAt(user, day, time, preview)
     }
 
-    private fun resultAt(user: UUID, day: Int, time: Instant, preview: Boolean = false, testFuture: Boolean = false): AdventResult? {
+    private fun resultAt(user: UUID, day: Int, time: Instant, preview: Boolean = false): AdventResult? {
         val quiz = memberQuiz(day) ?: return null
         val conflictFilter = if ("offline" in environment.activeProfiles) " AND quiz_day NOT IN (SELECT quiz_day FROM advent_offline_content_conflicts)" else ""
-        val rows = jdbc.query("SELECT quiz_day, answer_id, choice, correct_choice, seen_at, late FROM advent_member_answers WHERE user_id = ? AND (reveal_at <= ? OR ? = TRUE OR (? = TRUE AND quiz_day > ?))$conflictFilter ORDER BY quiz_day", { rs, _ ->
+        val rows = jdbc.query("SELECT quiz_day, answer_id, choice, correct_choice, seen_at, late FROM advent_member_answers WHERE user_id = ? AND (reveal_at <= ? OR ? = TRUE)$conflictFilter ORDER BY quiz_day", { rs, _ ->
             MemberResultRow(rs.getInt(1), rs.getString(2), rs.getInt(3), rs.getInt(4), rs.getTimestamp(5) != null, rs.getBoolean(6))
-        }, user, Timestamp.from(time), preview, testFuture, if (date(time).year == 2026 && date(time).monthValue == 12) date(time).dayOfMonth else 24)
+        }, user, Timestamp.from(time), preview)
         val row = rows.firstOrNull { it.day == day } ?: return null
         var streak = 0
         var bonus = 0
@@ -289,7 +289,7 @@ class AdventMemberGame(private val jdbc: JdbcTemplate, private val clock: Advent
     fun acknowledge(user: UUID, day: Int, answerId: UUID, expected: UUID? = null, simulated: LocalDate? = null, preview: Boolean = false, testFuture: Boolean = false) {
         checkDay(day)
         val time = now(expected, simulated, preview)
-        val access = preview || (testFuture && LocalDate.of(2026, 12, day).isAfter(date(time)))
+        val access = preview
         if (jdbc.update("UPDATE advent_member_answers SET seen_at = COALESCE(seen_at, ?) WHERE user_id = ? AND quiz_day = ? AND answer_id = ? AND (reveal_at <= ? OR ? = TRUE)", Timestamp.from(clock.instant()), user, day, answerId, Timestamp.from(time), access) == 0)
             throw ResponseStatusException(HttpStatus.NOT_FOUND)
     }
@@ -320,7 +320,7 @@ class AdventMemberGame(private val jdbc: JdbcTemplate, private val clock: Advent
         }
         if (unseen != null && !initialDiscovery) return AdventCalendarResponse(priorityResult = resultAt(user, unseen, time, preview))
         val answered = jdbc.query("SELECT quiz_day, reveal_at, choice, correct_choice FROM advent_member_answers WHERE user_id = ?", { rs, _ ->
-            val outcome = if ((!preview && !(testFuture && LocalDate.of(2026, 12, rs.getInt(1)).isAfter(today)) && rs.getTimestamp(2).toInstant().isAfter(time))) "pending" else if (rs.getInt(3) == rs.getInt(4)) "correct" else "incorrect"
+            val outcome = if ((!preview && rs.getTimestamp(2).toInstant().isAfter(time))) "pending" else if (rs.getInt(3) == rs.getInt(4)) "correct" else "incorrect"
             rs.getInt(1) to outcome
         }, user).toMap()
         val days = (1..25).map { day ->
@@ -343,15 +343,14 @@ class AdventMemberGame(private val jdbc: JdbcTemplate, private val clock: Advent
     fun history(user: UUID, day: Int, expected: UUID? = null, simulated: LocalDate? = null, preview: Boolean = false, testFuture: Boolean = false): AdventHistoryRead {
         checkDay(day)
         val time = now(expected, simulated, preview)
-        val access = preview || (testFuture && LocalDate.of(2026, 12, day).isAfter(date(time)))
-        if (!access && !LocalDate.of(2026, 12, day).isBefore(date(time))) throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        if (!preview && !LocalDate.of(2026, 12, day).isBefore(date(time))) throw ResponseStatusException(HttpStatus.NOT_FOUND)
         val unseen = jdbc.query("SELECT quiz_day FROM advent_member_answers WHERE user_id = ? AND seen_at IS NULL AND (reveal_at <= ? OR ? = TRUE) ORDER BY quiz_day DESC", { rs, _ -> rs.getInt(1) }, user, Timestamp.from(time), preview).firstOrNull { day ->
             val conflict = "offline" in environment.activeProfiles && jdbc.queryForObject("SELECT COUNT(*) FROM advent_offline_content_conflicts WHERE quiz_day = ?", Int::class.java, day) != 0
             !conflict && memberQuiz(day) != null
         }
         if (unseen != null) return AdventHistoryRead(priorityResult = resultAt(user, unseen, time, preview))
         val quiz = memberQuiz(day) ?: return AdventHistoryRead()
-        val result = resultAt(user, day, time, preview, testFuture && LocalDate.of(2026, 12, day).isAfter(date(time)))
+        val result = resultAt(user, day, time, preview)
         return AdventHistoryRead(history = AdventHistory(quiz, result, result?.falseChoice))
     }
 
