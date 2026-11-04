@@ -16,7 +16,7 @@ context:
 
 ## Intent
 
-Authorized development testers can open, answer, revisit and personally replay future quiz gifts without enabling test mode, and immediately see their personal provisional result, as with the private production preview. This capability is implicit and verified server-side on every request; it never enables simulated time, shared reset or the test toolbar. Preserve production and ordinary-member restrictions, current-day secrecy, existing member entry dates, personal isolation and missing-content handling; authorized development testers may open the day 25 recap early. The existing explicit test mode remains available for its other controls. This decision supersedes the mode-on requirement in story 25.19.
+Authorized development testers can open, answer, revisit and personally replay future quiz gifts without enabling test mode, and see a neutral confirmation until their personal result is revealed at Paris midnight after the gift’s day. This capability is implicit and verified server-side on every request; it never enables simulated time, shared reset or the test toolbar. Preserve production and ordinary-member restrictions, current-day secrecy, existing member entry dates, personal isolation and missing-content handling; authorized development testers may open the day 25 recap early. The existing explicit test mode remains available for its other controls. This decision supersedes the mode-on requirement in story 25.19.
 
 </frozen-after-approval>
 
@@ -37,3 +37,5 @@ Verification: 47 focused API tests, 164 Angular tests and one mocked mobile Chro
 - medium — The no-mode result and replay UI needed coverage; the mobile Chromium scenario now exercises both with a mocked API.
 - low — Dedicated browser coverage for reloading an already-played future gift remains absent; the existing service and previous full-stack revisit cover the underlying path, and the current UI reuses it.
 - false — Current-day disclosure and shared controls remain guarded by the existing date and active-mode paths; the API security suite verifies reset and other member boundaries.
+
+Superseding decision: the user approved delayed revelation for development testers; the later delayed-result specification governs this behavior. Earlier implementation and review notes below are historical.

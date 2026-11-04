@@ -95,3 +95,5 @@ Run focused Advent API, Angular and browser tests with synthetic fixtures. Verif
 - `git diff --check`: passed.
 
 Final review verification: 48 targeted API tests passed in the preceding run; 167 Angular tests and two synthetic mobile Chromium scenarios passed after review fixes. A separate full-stack H2 browser run covered simulated date advance without touching the existing user database. The explicitly enabled test ranking still includes unrevealed scores.
+
+Human acceptance: Patrice confirmed on his phone that the delayed-result flow works and approved local closure on 2026-11-05.

@@ -19,7 +19,7 @@ context:
 
 **Problem:** A development tester must change the simulated date to open a future Advent gift, making it difficult to inspect gifts directly.
 
-**Approach:** For an authorized development tester, without requiring test mode, allow a tester to select and play future quiz gifts directly, like the existing production preview, including immediate access to their personal result.
+**Approach:** For an authorized development tester, without requiring test mode, allow a tester to select and play future quiz gifts directly, like the existing production preview, with neutral confirmation and the personal result revealed at Paris midnight after the gift’s day.
 
 ## Boundaries & Constraints
 
@@ -31,7 +31,7 @@ context:
 
 | Scenario | Input / State | Expected behavior |
 |----------|---------------|-------------------|
-| Future quiz | Authorized isolated development tester, with test mode on or off | Future gift can be selected and played; personal result and explanation are immediately accessible. |
+| Future quiz | Authorized isolated development tester, with test mode on or off | Future gift can be selected and played; personal result and explanation become accessible at Paris midnight after the gift’s day. |
 | Revisit | Tester returns to a played future gift | Personal state is consistent and existing authorized replay controls remain usable. |
 | Normal journey | Ordinary member or unauthorized production request | Existing date and authorization restrictions remain in force. |
 | Missing content or day 25 | Future gift has no quiz, or is the day 25 review | Missing quizzes remain unavailable; day 25 opens the existing review early for authorized testers, without inventing a quiz. |
@@ -56,7 +56,7 @@ context:
 - [x] Relevant architecture and Advent UX documents — record the scoped exception without changing normal behavior.
 
 **Acceptance Criteria:**
-- Given an authorized development tester, whether test mode is enabled or not, when they select a future quiz gift, then they can play it and see their personal result immediately.
+- Given an authorized development tester, whether test mode is enabled or not, when they select a future quiz gift, then they can play it and see their personal result at Paris midnight after the gift’s day.
 - Given an ordinary member or a production request, when future access is attempted, then the existing server authorization and disclosure restrictions remain effective.
 - Given keyboard and mobile use, when the tester opens the calendar, then eligible gifts are discoverable and operable with accessible labels and no changes to other HatCast screens.
 
@@ -109,3 +109,5 @@ Final verification after review patches: 47 focused API tests, 164 Angular tests
 User clarification: future gifts must open implicitly for authorized development testers without switching on test mode. The separate correction spec records the implementation and verification.
 
 User clarification: future gifts retain their usual dark appearance while remaining clickable; day 25 opens the existing Christmas recap early for authorized development testers. The separate follow-up spec records verification.
+
+Human validation: Patrice confirmed the corrected flow works on his phone and approved local story closure on 2026-11-05. The earlier immediate-result descriptions and verification entries are historical; the approved delayed-result specification defines the final behavior.

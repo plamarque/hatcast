@@ -51,9 +51,9 @@ integration database).
 
 ### Pending verification or operational follow-up
 
-BUG-094 is corrected and verified locally; integration remains pending.
+BUG-094 is corrected locally and validated by Patrice on a phone; deployment remains separate.
 
-BUG-093 is corrected locally in story 25.19; human validation and integration remain pending.
+BUG-093 is corrected locally and validated by Patrice on a phone; deployment remains separate.
 
 BUG-081 is closed as an accepted shared-browser-subscription behavior; the Advent opt-out isolation is covered by targeted tests.
 
@@ -80,7 +80,7 @@ human-smoke, integration, or validation gate.
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
 
 ### BUG-094 — Development tester sees a future Advent result immediately
-- **Status**: Corrected and verified locally; integration remains pending. Reported during story 25.19 human testing.
+- **Status**: Corrected locally and validated by Patrice on a phone; deployment remains separate. Reported during story 25.19 human testing.
 - **Severity**: Medium.
 - **Affected area**: Advent gift access for authorized development testers.
 - **Observed behavior**: After a future quiz answer, the neutral confirmation is followed by the personal result; API result, calendar and history paths also permit early disclosure to that tester.
@@ -88,7 +88,7 @@ BUG-037 and BUG-029 have fixture-only corrections verified by the complete API s
 - **Notes**: The implementation intentionally extended private production-preview immediate result semantics to development testers; ordinary-member and production-preview paths are distinct. Existing test-mode rankings can include unrevealed scores. Previously acknowledged answers remain seen and are available in history after revelation; they do not reappear as unseen priority results.
 
 ### BUG-093 — Development future gift access changed calendar appearance and locked day 25
-- **Status**: Corrected locally; awaiting human verification and integration.
+- **Status**: Corrected locally and validated by Patrice on a phone; deployment remains separate.
 - **Severity**: Medium.
 - **Affected area**: Advent calendar for authorized development testers.
 - **Observed behavior**: Available future gifts appeared red and day 25 remained locked.
