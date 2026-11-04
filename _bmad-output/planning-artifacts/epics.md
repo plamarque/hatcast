@@ -3774,6 +3774,15 @@ As an authorized organizer using the installed PWA, I want to open the private A
 
 **Material 3 and references:** Reuse the existing account menu and Material components; apply `docs/v2/technical/FRONTEND_UI.md`, Advent DESIGN, EXPERIENCE and AD-7. Story 25.15 defines production preview.
 
+
+### Story 25.19: Open future Advent gifts in development test mode
+
+As an authorized development tester, I want to open future quiz gifts directly, so I can inspect and play them without changing the simulated date.
+
+**Acceptance criteria:** In isolated test mode, allow eligible future quiz gifts to be opened and played and show the tester their personal result immediately, as in the production preview. Preserve the simulated and shared clocks, isolated test data, privacy, replay rules, missing-content handling and the day 25 review. Ordinary members, test mode off and production retain their existing authorization and date restrictions. Verify server authorization, keyboard and mobile use, and Advent visual isolation.
+
+**Material 3 and references:** Apply `docs/v2/technical/FRONTEND_UI.md`, Advent DESIGN, EXPERIENCE and AD-7; see `spec-25-19-open-future-advent-gifts-in-development-test-mode.md` for the approved scope.
+
 ## Final validation
 
 
