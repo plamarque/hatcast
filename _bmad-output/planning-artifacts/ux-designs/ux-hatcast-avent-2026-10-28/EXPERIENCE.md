@@ -207,3 +207,9 @@ Dans le classement, les testeurs autorisés en mode test isolé peuvent génére
 ### Accès anticipé en test de développement isolé
 
 En développement isolé, le testeur autorisé par le serveur peut, sans activer le mode test, ouvrir et répondre à un quiz futur disponible ; son résultat personnel détaillé reste indisponible jusqu’à minuit Europe/Paris suivant le jour du cadeau, y compris en mode test. Le classement du mode test explicitement activé peut toutefois afficher des points avant révélation et donner un indice ; une date simulée peut atteindre cette échéance. La sélection ne change pas la date simulée ni l’horloge partagée ; les réponses et le rejeu restent personnels. Les cadeaux futurs conservent leur apparence habituelle ; le 25 ouvre le bilan de Noël avec le score actuel, et les contenus manquants conservent leur comportement existant. Les règles de production, de classement et de révélation du jour restent inchangées.
+
+### Bilan de Noël — variantes approuvées
+
+Après la révélation prioritaire, le membre classable dont le score positif égale le meilleur score est félicité comme gagnant ; si plusieurs membres partagent ce score, le message précise « ex æquo », indépendamment des rangs numériques. Les comptes exclus ne gagnent pas. Un autre membre ayant un score positif est félicité pour sa participation ; à zéro, aucune participation n’est supposée. Le score personnel, le message de fêtes, le classement et le retour à HatCast restent accessibles ; le calendrier demeure accessible dans la barre.
+
+Pour un score positif sans victoire, le bilan affiche le rang serveur lorsqu’il existe, en précisant « ex æquo » selon les rangs du classement, puis le score et « Merci pour ta participation ! ». Un compte hors classement voit son score et ce remerciement sans rang. À zéro, aucun rang ni participation ne sont affirmés. En mode test isolé, un aperçu supplémentaire permet de vérifier une place ex æquo hors victoire avec le même bilan.

@@ -2213,6 +2213,194 @@ describe('AdventTest', () => {
     expect(fixture.nativeElement.querySelector('.advent__gift')).toBeNull()
   })
 
+  it.each([
+    { score: 30, entries: [{ name: 'Moi', score: 30, rank: 1, mine: true }, { name: 'Autre', score: 20, rank: 2, mine: false }], message: 'Bravo, tu remportes le quiz de l’Avent !', victory: 'sole' },
+    { score: 30, entries: [{ name: 'Moi', score: 30, rank: 2, mine: true }, { name: 'Autre', score: 30, rank: 2, mine: false }], message: 'Bravo, tu remportes le quiz de l’Avent ex æquo !', victory: 'shared' },
+    { score: 20, entries: [{ name: 'Moi', score: 20, rank: 2, mine: true }, { name: 'Autre', score: 30, rank: 1, mine: false }], message: 'Merci pour ta participation !', victory: null },
+    { score: 40, entries: [{ name: 'Autre', score: 30, rank: 1, mine: false }], message: 'Merci pour ta participation !', victory: null },
+    { score: 0, entries: [{ name: 'Moi', score: 0, rank: 2, mine: true }, { name: 'Autre', score: 0, rank: 2, mine: false }], message: '', victory: null },
+  ])('presents the authorized Christmas outcome %#', async ({ score, entries, message, victory }) => {
+    const component = fixture.componentInstance
+    component.clockDate.set('2026-12-25'); component.quiz.set(null); component.preview.set(null); component.result.set(null)
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ priorityResult: null, ranking: { score, rank: null, entries } })))
+    await (component as any).loadChristmasScore()
+    fixture.detectChanges()
+    expect(component.christmasVictory()).toBe(victory)
+    expect(fixture.nativeElement.querySelector('.advent__christmas-score').textContent).toContain(`${score} points`)
+    if (message) expect(fixture.nativeElement.textContent).toContain(message)
+    else expect(fixture.nativeElement.textContent).not.toContain('participation')
+    expect(fixture.nativeElement.textContent).toContain('Revenir à HatCast')
+  })
+
+  it.each([
+    { score: 20, rank: 2, entries: [{ name: 'Autre', score: 30, rank: 1, mine: false }, { name: 'Moi', score: 20, rank: 2, mine: true }], place: '2ᵉ place', message: 'Bravo, tu termines à la' },
+    { score: 20, rank: 3, entries: [{ name: 'Autre', score: 30, rank: 1, mine: false }, { name: 'Moi', score: 20, rank: 3, mine: true }, { name: 'Autre', score: 20, rank: 3, mine: false }], place: '3ᵉ place', message: 'Bravo, tu termines ex æquo à la' },
+    { score: 40, rank: null, entries: [{ name: 'Autre', score: 30, rank: 1, mine: false }], place: null, message: null },
+    { score: 0, rank: 2, entries: [{ name: 'Moi', score: 0, rank: 2, mine: true }, { name: 'Autre', score: 0, rank: 2, mine: false }], place: null, message: null },
+  ])('uses the server rank for a non-winning Christmas score %#', async ({ score, rank, entries, place, message }) => {
+    const component = fixture.componentInstance
+    component.clockDate.set('2026-12-25'); component.quiz.set(null); component.preview.set(null); component.result.set(null)
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ priorityResult: null, ranking: { score, rank, entries } })))
+    await (component as any).loadChristmasScore()
+    fixture.detectChanges()
+    const content = fixture.nativeElement.querySelector('.advent__christmas') as HTMLElement
+    if (place) { expect(content.querySelector('.advent__christmas-place')?.textContent).toContain(place); expect(content.textContent).toContain(message) }
+    else expect(content.querySelector('.advent__christmas-place')).toBeNull()
+    if (score > 0) expect(content.textContent).toContain('Merci pour ta participation !')
+    else expect(content.textContent).not.toContain('participation')
+  })
+
+  it('uses the existing close flow from the Christmas return button', () => {
+    const component = fixture.componentInstance
+    component.clockDate.set('2026-12-25'); component.quiz.set(null); component.preview.set(null); component.result.set(null)
+    component.christmasScore.set(10); component.loading.set(false)
+    const close = vi.spyOn(component, 'closeExperience').mockResolvedValue(undefined)
+    fixture.detectChanges()
+    const button = [...fixture.nativeElement.querySelectorAll('button')].find((item: any) => item.textContent.includes('Revenir à HatCast')) as HTMLButtonElement
+    button.click()
+    expect(close).toHaveBeenCalledOnce()
+  })
+
+  it('opens a Christmas preview from welcome and clears it when returning', async () => {
+    const component = fixture.componentInstance
+    component.testControls.set(true); component.testMode.set(true); component.welcome.set(true)
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ result: null })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ priorityResult: null, ranking: { score: 0, rank: null, entries: [] } })))
+    await component.previewChristmas('sole')
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('Bravo, tu remportes le quiz')
+    component.previewWelcome()
+    expect(component.christmasFixture()).toBeNull()
+  })
+
+  it('keeps an early Christmas score provisional and allows return to HatCast', () => {
+    const component = fixture.componentInstance
+    component.clockDate.set('2026-12-10'); component.christmasPreviewOpen.set(true); component.preview.set(null); component.quiz.set(null); component.welcome.set(false)
+    component.christmasScore.set(30); component.christmasVictory.set('sole'); component.loading.set(false)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('Ton score actuel')
+    expect(fixture.nativeElement.textContent).not.toContain('tu remportes')
+    expect(fixture.nativeElement.textContent).toContain('Revenir à HatCast')
+  })
+
+  it('keeps Christmas entry loading until ranking resolves', async () => {
+    const component = fixture.componentInstance
+    component.testControls.set(true); component.testMode.set(true)
+    let resolve!: (response: Response) => void
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ result: null })))
+      .mockReturnValueOnce(new Promise<Response>(r => { resolve = r }))
+    const pending = component.previewChristmas('sole')
+    await vi.waitFor(() => expect(resolve).toBeDefined())
+    expect(component.loading()).toBe(true)
+    fixture.detectChanges()
+    expect((fixture.nativeElement.querySelector('[aria-label="Voir le calendrier"]') as HTMLButtonElement).disabled).toBe(true)
+    resolve(new Response(JSON.stringify({ priorityResult: null, ranking: { score: 0, rank: null, entries: [] } })))
+    await pending
+    expect(component.loading()).toBe(false)
+    expect(component.christmasVictory()).toBe('sole')
+  })
+
+  it('discards a Christmas response after navigation changes', async () => {
+    const component = fixture.componentInstance
+    let resolve!: (response: Response) => void
+    vi.mocked(window.fetch).mockReturnValueOnce(new Promise<Response>(r => { resolve = r }))
+    const pending = (component as any).loadChristmasScore()
+    component.calendarOpen.set(true)
+    resolve(new Response(JSON.stringify({ priorityResult: null, ranking: { score: 30, rank: 1, entries: [{ name: 'Moi', score: 30, rank: 1, mine: true }] } })))
+    await expect(pending).rejects.toThrow()
+    expect(component.christmasScore()).toBeNull()
+    expect(component.christmasVictory()).toBeNull()
+  })
+
+  it('does not retain a Christmas outcome across a new session', async () => {
+    const component = fixture.componentInstance
+    component.christmasScore.set(30); component.christmasVictory.set('sole')
+    await component.start()
+    expect(component.christmasScore()).toBeNull()
+    expect(component.christmasVictory()).toBeNull()
+  })
+
+  it('gives a priority result precedence over a Christmas score', async () => {
+    const component = fixture.componentInstance
+    const result = { answerId: 'last', day: 24, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false }
+    const show = vi.spyOn(component as any, 'showResult').mockImplementation(async () => { component.result.set(result) })
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ priorityResult: result, ranking: null })))
+    await (component as any).loadChristmasScore()
+    expect(show).toHaveBeenCalledWith(result)
+    expect(component.christmasScore()).toBeNull()
+  })
+
+  it('discards a Christmas ranking returned for an old account', async () => {
+    const component = fixture.componentInstance
+    const auth = TestBed.inject(AuthApiService) as unknown as { sessionUserSignal: WritableSignal<UserSummary | null> }
+    auth.sessionUserSignal.set({ id: 'first', slug: 'first', email: null, displayName: 'First' })
+    let resolve!: (response: Response) => void
+    vi.mocked(window.fetch).mockReturnValueOnce(new Promise<Response>(r => { resolve = r }))
+    const pending = (component as any).loadChristmasScore()
+    auth.sessionUserSignal.set({ id: 'second', slug: 'second', email: null, displayName: 'Second' })
+    resolve(new Response(JSON.stringify({ priorityResult: null, ranking: { score: 30, rank: 1, entries: [{ name: 'First', score: 30, rank: 1, mine: true }] } })))
+    await expect(pending).rejects.toThrow()
+    expect(component.christmasScore()).toBeNull()
+    expect(component.christmasVictory()).toBeNull()
+  })
+
+  it.each([
+    ['sole', 'Bravo, tu remportes le quiz de l’Avent !', '250 points'],
+    ['shared', 'Bravo, tu remportes le quiz de l’Avent ex æquo !', '250 points'],
+    ['participant', 'Bravo, tu termines à la', '143 points'],
+    ['participant-tied', 'Bravo, tu termines ex æquo à la', '143 points'],
+    ['zero', '', '0 points'],
+  ] as const)('routes the %s test preview through the real Christmas flow', async (kind, message, score) => {
+    const component = fixture.componentInstance
+    component.testControls.set(true); component.testMode.set(true)
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ result: null })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ priorityResult: null, ranking: { score: 5, rank: null, entries: [] } })))
+    await component.previewChristmas(kind)
+    fixture.detectChanges()
+    expect(vi.mocked(window.fetch).mock.calls.at(-2)?.[0]).toContain('/results/latest-unseen')
+    expect(vi.mocked(window.fetch).mock.calls.at(-1)?.[0]).toContain('/ranking')
+    expect(component.clockDate()).toBe('2026-12-25')
+    expect(fixture.nativeElement.querySelector('.advent__christmas-score').textContent).toContain(score)
+    if (message) expect(fixture.nativeElement.textContent).toContain(message)
+    else expect(fixture.nativeElement.textContent).not.toContain('participation')
+    expect(fixture.nativeElement.textContent).toContain('Voir le classement')
+  })
+
+  it('keeps the server priority reveal ahead of the test Christmas preview', async () => {
+    const component = fixture.componentInstance
+    component.testControls.set(true); component.testMode.set(true)
+    const result = { answerId: 'last', day: 24, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false }
+    const show = vi.spyOn(component as any, 'showResult').mockResolvedValue(undefined)
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ result })))
+    await component.previewChristmas('sole')
+    expect(show).toHaveBeenCalledWith(result)
+    expect(component.christmasScore()).toBeNull()
+  })
+
+  it('does not allow Christmas fixtures outside authorized test mode', async () => {
+    const component = fixture.componentInstance
+    component.testMode.set(false); component.testControls.set(false)
+    const calls = vi.mocked(window.fetch).mock.calls.length
+    await component.previewChristmas('sole')
+    expect(vi.mocked(window.fetch).mock.calls.length).toBe(calls)
+    expect(component.christmasScore()).toBeNull()
+  })
+
+  it('shows the real ranking after a Christmas preview', async () => {
+    const component = fixture.componentInstance
+    component.testControls.set(true); component.testMode.set(true)
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ result: null })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ priorityResult: null, ranking: { score: 5, rank: null, entries: [] } })))
+    await component.previewChristmas('sole')
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ priorityResult: null, ranking: { score: 5, rank: null, entries: [] } })))
+    await component.openRanking()
+    expect(component.ranking()?.score).toBe(5)
+    component.closeRanking()
+    expect(component.christmasScore()).toBe(5)
+    expect(component.christmasVictory()).toBeNull()
+    expect(component.christmasFixture()).toBeNull()
+  })
+
   it('shows Christmas after leaving an unavailable quiz', async () => {
     const component = fixture.componentInstance
     component.unavailable.set(true)

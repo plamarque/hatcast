@@ -3792,6 +3792,14 @@ As a member, I want the Advent journey checked day by day from December 1 throug
 
 **References:** `spec-avent-recette-25-jours-video.md`; Advent DESIGN, EXPERIENCE and AD-7.
 
+### Story 25.21: Célébrer le bilan de Noël
+
+En tant que membre, je veux découvrir mon bilan de Noël et ma place au classement, afin de célébrer le parcours et la victoire avec les lutins.
+
+**Critères :** Après la révélation prioritaire, distinguer victoire seule ou ex æquo, place individuelle ou ex æquo, compte hors classement et score nul ; utiliser le classement final autorisé et conserver score, navigation et confidentialité. Présenter le Père Noël et la direction artistique validée ; permettre aux opérateurs isolés de visualiser ces variantes avec le même écran et des données fictives.
+
+**Material 3 et références :** réutiliser les commandes Material et appliquer DESIGN, EXPERIENCE, AD-7, la checklist FRONTEND_UI et la stratégie de tests visuels Avent. Vérifier mobile, clavier, mouvement réduit et isolation HatCast.
+
 ## Final validation
 
 
