@@ -51,6 +51,12 @@ integration database).
 
 ### Pending verification or operational follow-up
 
+BUG-095 is corrected locally; the development deployment must be verified.
+
+BUG-094 is corrected locally and validated by Patrice on a phone; deployment remains separate.
+
+BUG-093 is corrected locally and validated by Patrice on a phone; deployment remains separate.
+
 BUG-081 is closed as an accepted shared-browser-subscription behavior; the Advent opt-out isolation is covered by targeted tests.
 
 BUG-082 is corrected locally in the unintegrated story 25.7 worktree; integration remains pending.
@@ -74,6 +80,30 @@ BUG-024, and BUG-021 have local fixes but still require their stated review,
 human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
+
+### BUG-095 — Advent browser gate rejects changed waiting text
+- **Status**: Corrected locally; development deployment pending.
+- **Severity**: Medium.
+- **Affected area**: Advent waiting screen and deployment regression gate.
+- **Observed behavior**: Story 25.19 changed the ordinary waiting message; its existing browser test failed and blocked the development deploy.
+- **Expected behavior**: Keep the ordinary waiting message, with a specific later-date message when revisiting a future gift.
+- **Notes**: Reported by GitHub Actions deployment run 41934865531; no test was disabled.
+
+### BUG-094 — Development tester sees a future Advent result immediately
+- **Status**: Corrected locally and validated by Patrice on a phone; deployment remains separate. Reported during story 25.19 human testing.
+- **Severity**: Medium.
+- **Affected area**: Advent gift access for authorized development testers.
+- **Observed behavior**: After a future quiz answer, the neutral confirmation is followed by the personal result; API result, calendar and history paths also permit early disclosure to that tester.
+- **Expected behavior**: The tester remains on neutral confirmation until the applicable reveal boundary, while retaining future gift access. The boundary is midnight Europe/Paris following the gift’s calendar day.
+- **Notes**: The implementation intentionally extended private production-preview immediate result semantics to development testers; ordinary-member and production-preview paths are distinct. Existing test-mode rankings can include unrevealed scores. Previously acknowledged answers remain seen and are available in history after revelation; they do not reappear as unseen priority results.
+
+### BUG-093 — Development future gift access changed calendar appearance and locked day 25
+- **Status**: Corrected locally and validated by Patrice on a phone; deployment remains separate.
+- **Severity**: Medium.
+- **Affected area**: Advent calendar for authorized development testers.
+- **Observed behavior**: Available future gifts appeared red and day 25 remained locked.
+- **Expected behavior**: Preserve the usual future appearance while allowing access; the authorized tester can open the existing day 25 recap.
+- **Notes**: Reported during story 25.19 human testing. Production preview's current code also locks day 25; production behavior is unchanged by this development correction.
 
 ### BUG-092 — Advent domain contract disagrees with production preview replay
 - **Status**: Resolved 2026-11-02.

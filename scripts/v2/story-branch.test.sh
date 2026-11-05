@@ -112,9 +112,12 @@ assert_eq "${beta_before_reopen}" "$(git -C "${unit_beta}" rev-parse HEAD)"
 rm "${unit_beta}/dirty-reopen.txt"
 
 run_story "${integration}" start 21-3-stale-unit >/dev/null
+cp "${integration}-21-3-stale-unit/.local/worktree-ports.json" "${tmp_root}/stale-ports.json"
 rm -rf "${integration}-21-3-stale-unit"
 mkdir "${integration}-21-3-stale-unit"
 expect_fail env HATCAST_BMAD_TEST_MODE=1 HATCAST_BMAD_PROVISIONER="${integration}/scripts/v2/test-fixtures/mock-bmad-provisioner.sh" bash "${integration}/scripts/v2/story-branch.sh" start 21-3-stale-unit
+mkdir -p "${integration}-21-3-stale-unit/.local"
+cp "${tmp_root}/stale-ports.json" "${integration}-21-3-stale-unit/.local/worktree-ports.json"
 
 printf 'dirty\n' >"${integration}/dirty.txt"
 expect_fail env HATCAST_BMAD_TEST_MODE=1 HATCAST_BMAD_PROVISIONER="${integration}/scripts/v2/test-fixtures/mock-bmad-provisioner.sh" bash "${integration}/scripts/v2/story-branch.sh" start 21-4-dirty-unit

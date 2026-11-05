@@ -8,7 +8,17 @@ runtime="${script_dir}/story-worktree-runtime.sh"
 starter="${root}/scripts/start-dev.sh"
 url="https://localhost:4200"
 health_url="http://127.0.0.1:8080/actuator/health"
-owned_group_id=""; owned_marker=""; launch_active=false
+front_port=4200; api_port=8080
+load_ports() {
+  local assignment
+  assignment="$(python3 "${script_dir}/worktree-ports.py" "$1" --worktree "${root}")" || die "port reservation unavailable"
+  front_port="$(sed -n 's/^FRONT_PORT=//p' <<<"${assignment}")"
+  api_port="$(sed -n 's/^API_PORT=//p' <<<"${assignment}")"
+  [[ "${front_port}" =~ ^[0-9]+$ && "${api_port}" =~ ^[0-9]+$ ]] || die "invalid ports"
+  url="https://localhost:${front_port}"
+  health_url="http://127.0.0.1:${api_port}/actuator/health"
+}
+owned_group_id=""; owned_marker=""; launch_active=false; handshake_file=""
 
 usage() {
   cat >&2 <<'EOF'
@@ -166,13 +176,13 @@ write_state() {
   local result="$1" group="$2" marker="$3" story="$4" baseline="$5" guide="$6" evidence="$7" outcome="$8" state temporary
   state="$(state_path)"; ensure_state_parent "${state}"; [[ ! -L "${root}/${state}" ]] || die "state destination must not be a symlink"
   temporary="$(mktemp "${root}/${state}.tmp.XXXXXX")"
-  python3 - "${temporary}" "${story}" "${baseline}" "${guide}" "${evidence}" "${outcome}" "${url}" "$(id -un)" "${result}" "${group}" "${marker}" <<'PY'
+  python3 - "${temporary}" "${story}" "${baseline}" "${guide}" "${evidence}" "${outcome}" "${url}" "$(id -un)" "${result}" "${group}" "${marker}" "${api_port}" <<'PY'
 import json, sys
-path, story, baseline, guide, evidence, outcome, url, owner, result, group, marker = sys.argv[1:]
+path, story, baseline, guide, evidence, outcome, url, owner, result, group, marker, api_port = sys.argv[1:]
 json.dump({'schema': 'hatcast.story-human-smoke-handoff.v1', 'branch': 'feat/' + story,
            'baseline_commit': baseline, 'guide_reference': guide, 'e2e_reference': evidence,
            'e2e_outcome': outcome, 'url': url, 'owner': owner, 'result': result,
-           'owned_process_group': group, 'owned_process_marker': marker}, open(path, 'w', encoding='utf-8'), indent=2, sort_keys=True)
+           'owned_process_group': group, 'owned_process_marker': marker, 'api_port': int(api_port)}, open(path, 'w', encoding='utf-8'), indent=2, sort_keys=True)
 open(path, 'a', encoding='utf-8').write('\n')
 PY
   mv -f "${temporary}" "${root}/${state}"
@@ -185,15 +195,30 @@ import json, re, sys
 try:
     data=json.load(open(sys.argv[1], encoding='utf-8')); story=sys.argv[2]
     required={'schema','branch','baseline_commit','guide_reference','e2e_reference','e2e_outcome','url','owner','result','owned_process_group','owned_process_marker'}
-    assert set(data) == required and data['schema']=='hatcast.story-human-smoke-handoff.v1'
+    assert set(data) in (required, required | {'api_port'}) and data['schema']=='hatcast.story-human-smoke-handoff.v1'
     assert data['branch']=='feat/'+story and re.fullmatch(r'[0-9a-fA-F]{7,40}', data['baseline_commit'])
     assert re.fullmatch(r'[A-Za-z0-9._/-]+', data['guide_reference']) and re.fullmatch(r'[A-Za-z0-9._/-]+', data['e2e_reference'])
-    assert data['url']=='https://localhost:4200' and re.fullmatch(r'[A-Za-z0-9._-]+', data['owner'])
+    match = re.fullmatch(r'https://localhost:([0-9]{1,5})', data['url']); assert match and 1024 <= int(match.group(1)) <= 65535
+    assert re.fullmatch(r'[A-Za-z0-9._-]+', data['owner'])
+    api = data.get('api_port', 'legacy'); assert api == 'legacy' or (type(api) is int and 1024 <= api <= 65535)
     assert re.fullmatch(r'(running|startup-failed|stopped|stopped:ports-unreleased)', data['result'])
     assert re.fullmatch(r'[0-9]+', data['owned_process_group']) and re.fullmatch(r'[A-Za-z0-9-]+', data['owned_process_marker'])
-    print('\t'.join(str(data[k]) for k in ('baseline_commit','guide_reference','e2e_reference','e2e_outcome','owner','result','owned_process_group','owned_process_marker')))
+    print('\t'.join([*(str(data[k]) for k in ('baseline_commit','guide_reference','e2e_reference','e2e_outcome','owner','result','owned_process_group','owned_process_marker')), data['url'], str(api)]))
 except Exception: raise SystemExit(1)
 PY
+}
+restore_state_ports() {
+  local saved_url="$1" saved_api="$2" saved_front="${1##*:}"
+  if [[ "$saved_api" == legacy ]]; then
+    if [[ "$saved_front" == 4200 ]]; then saved_api=8080
+    else
+      load_ports inspect
+      [[ "$front_port" == "$saved_front" ]] || die "legacy smoke API port is unavailable for the saved front"
+      saved_api="$api_port"
+    fi
+  fi
+  front_port="$saved_front"; api_port="$saved_api"
+  url="$saved_url"; health_url="http://127.0.0.1:${api_port}/actuator/health"
 }
 owned_group() {
   local group="$1" marker="$2" pgid command
@@ -215,7 +240,11 @@ wait_for_endpoints() {
   local attempts="${HATCAST_SMOKE_WAIT_ATTEMPTS:-180}" i
   [[ "${attempts}" =~ ^[1-9][0-9]*$ && "${attempts}" -le 300 ]] || attempts=180
   for ((i=0; i<attempts; i++)); do
-    curl -kfsS "${health_url}" >/dev/null 2>&1 && curl -kfsS "${url}" >/dev/null 2>&1 && return 0
+    owned_group "${owned_group_id}" "${owned_marker}" || return 1
+    if curl -kfsS "${health_url}" >/dev/null 2>&1 && curl -kfsS "${url}" >/dev/null 2>&1; then
+      owned_group "${owned_group_id}" "${owned_marker}" && return 0
+      return 1
+    fi
     sleep 1
   done
   return 1
@@ -233,7 +262,7 @@ wait_for_ports_release() {
   local attempts="${HATCAST_SMOKE_STOP_PORT_WAIT_ATTEMPTS:-10}" i
   [[ "${attempts}" =~ ^[1-9][0-9]*$ && "${attempts}" -le 30 ]] || attempts=10
   for ((i=0; i<attempts; i++)); do
-    [[ "$(port_state 8080)" == free && "$(port_state 4200)" == free ]] && return 0
+    [[ "$(port_state "${api_port}")" == free && "$(port_state "${front_port}")" == free ]] && return 0
     (( i + 1 < attempts )) && sleep 0.2
   done
   return 1
@@ -243,17 +272,18 @@ cleanup_owned_launch() {
   if [[ "${launch_active}" == true && -n "${owned_group_id}" ]] && owned_group "${owned_group_id}" "${owned_marker}"; then
     stop_group "${owned_group_id}" || true
   fi
+  [[ -z "${handshake_file}" ]] || rm -f "${handshake_file}"
   exit "${ec}"
 }
 trap cleanup_owned_launch EXIT INT TERM
 emit_handoff() {
   local story="$1" baseline="$2" guide="$3" evidence="$4" outcome="$5" owner="$6" result="$7"
-  python3 - "${root}/${guide}" "${story}" "${baseline}" "${guide}" "${evidence}" "${outcome}" "${owner}" "${result}" <<'PY'
+  python3 - "${root}/${guide}" "${story}" "${baseline}" "${guide}" "${evidence}" "${outcome}" "${owner}" "${result}" "${url}" <<'PY'
 import json, sys
-guide, story, baseline, guide_ref, evidence, outcome, owner, result = sys.argv[1:]
+guide, story, baseline, guide_ref, evidence, outcome, owner, result, url = sys.argv[1:]
 data=json.load(open(guide, encoding='utf-8'))
-data.update({'e2e_result': outcome, 'url': 'https://localhost:4200', 'stop_command': 'scripts/v2/story-human-smoke-handoff.sh stop'})
-print(json.dumps({'branch': 'feat/' + story, 'baseline_commit': baseline, 'guide_reference': guide_ref, 'guide': data, 'e2e_reference': evidence, 'owner': owner, 'url': 'https://localhost:4200', 'result': result}, indent=2, sort_keys=True))
+data.update({'e2e_result': outcome, 'url': url, 'stop_command': 'scripts/v2/story-human-smoke-handoff.sh stop'})
+print(json.dumps({'branch': 'feat/' + story, 'baseline_commit': baseline, 'guide_reference': guide_ref, 'guide': data, 'e2e_reference': evidence, 'owner': owner, 'url': url, 'result': result}, indent=2, sort_keys=True))
 PY
 }
 start() {
@@ -272,22 +302,39 @@ PY
     [[ "${old_result}" == stopped || "${old_result}" == stopped:ports-unreleased || "${old_result}" == startup-failed ]] || die "existing smoke state is not demonstrably owned by this controller"
     previous_result="${old_result}"
   fi
-  set +e; runtime_output="$(bash "${runtime}" inspect 2>&1)"; status=$?; set -e
+  set +e; runtime_output="$(bash "${runtime}" inspect-local 2>&1)"; status=$?; set -e
   (( status == 0 )) && grep -Fqx 'READINESS=ready' <<<"${runtime_output}" || die "runtime readiness is not ready"
-  [[ "$(port_state 8080)" == free && "$(port_state 4200)" == free ]] || die "reserved ports are unavailable"
-  marker="smoke-$(date +%s)-$$"; python3 -c 'import os,sys; os.setsid(); os.execv(sys.argv[1], sys.argv[1:])' "${starter}" --no-tailscale "--human-smoke-owner=${marker}" >/dev/null 2>&1 & group=$!
+  load_ports start
+  [[ "$(port_state "${api_port}")" == free && "$(port_state "${front_port}")" == free ]] || die "reserved ports are unavailable"
+  marker="smoke-$(date +%s)-$$"
+  handshake_file="$(mktemp "${TMPDIR:-/tmp}/hatcast-smoke-ports.XXXXXX")"
+  python3 -c 'import os,sys; os.setsid(); os.execv(sys.argv[1], sys.argv[1:])' "${starter}" --no-tailscale "--human-smoke-owner=${marker}" >"${handshake_file}" 2>&1 & group=$!
   owned_group_id="${group}"; owned_marker="${marker}"; launch_active=true
-  write_state running "${group}" "${marker}" "${story}" "${baseline}" "${guide}" "${evidence}" "${evidence_outcome}"
-  if wait_for_endpoints; then emit_handoff "${story}" "${baseline}" "${guide}" "${evidence}" "${evidence_outcome}" "$(id -un)" running; launch_active=false; return 0; fi
+  local line attempt found=false
+  for ((attempt=0; attempt<100; attempt++)); do
+    line="$(sed -n "s/^HUMAN_SMOKE_PORTS=${marker}://p" "${handshake_file}")"
+    if [[ "$line" =~ ^([0-9]+):([0-9]+)$ ]] && owned_group "${group}" "${marker}"; then
+      front_port="${BASH_REMATCH[1]}"; api_port="${BASH_REMATCH[2]}"
+      if (( front_port >= 1024 && front_port <= 65535 && api_port >= 1024 && api_port <= 65535 && front_port != api_port )); then found=true; break; fi
+    fi
+    kill -0 "${group}" 2>/dev/null || break
+    sleep 0.1
+  done
+  if [[ "$found" == true ]]; then
+    url="https://localhost:${front_port}"; health_url="http://127.0.0.1:${api_port}/actuator/health"
+    write_state running "${group}" "${marker}" "${story}" "${baseline}" "${guide}" "${evidence}" "${evidence_outcome}"
+    if wait_for_endpoints; then emit_handoff "${story}" "${baseline}" "${guide}" "${evidence}" "${evidence_outcome}" "$(id -un)" running; launch_active=false; return 0; fi
+  fi
   owned_group "${group}" "${marker}" && stop_group "${group}" || true
   write_state startup-failed "${group}" "${marker}" "${story}" "${baseline}" "${guide}" "${evidence}" "${evidence_outcome}"
   launch_active=false
   die "startup did not expose both required endpoints"
+
 }
 status() {
-  local values baseline guide evidence outcome owner result group marker canonical baseline_info
-  unit_valid || die "must run from a registered feat/{story-key} worktree"; values="$(read_state)"; IFS=$'\t' read -r baseline guide evidence outcome owner result group marker <<<"${values}"
-  [[ "${result}" == running ]] || die "smoke handoff is not running"; owned_group "${group}" "${marker}" || die "smoke state is not demonstrably owned by this controller"
+  local values baseline guide evidence outcome owner result group marker canonical baseline_info saved_url saved_api
+  unit_valid || die "must run from a registered feat/{story-key} worktree"; values="$(read_state)"; IFS=$'\t' read -r baseline guide evidence outcome owner result group marker saved_url saved_api <<<"${values}"
+  [[ "${result}" == running ]] || die "smoke handoff is not running"; restore_state_ports "${saved_url}" "${saved_api}"; owned_group "${group}" "${marker}" || die "smoke state is not demonstrably owned by this controller"
   baseline_info="$(story_baseline "$(story_key)")" || die "canonical story baseline is unavailable"; IFS=$'\t' read -r _ canonical <<<"${baseline_info}"
   [[ "${baseline}" == "${canonical}" ]] || die "smoke state baseline no longer matches the story"
   [[ "$(validate_evidence "$(story_key)")" == "${evidence}" ]] || die "smoke state evidence no longer matches the canonical attestation"
@@ -300,9 +347,10 @@ PY
   validate_guide "${guide}"; emit_handoff "$(story_key)" "${baseline}" "${guide}" "${evidence}" "${outcome}" "${owner}" "${result}"
 }
 stop() {
-  local values baseline guide evidence outcome owner result group marker story
-  unit_valid || die "must run from a registered feat/{story-key} worktree"; values="$(read_state)"; IFS=$'\t' read -r baseline guide evidence outcome owner result group marker <<<"${values}"
+  local values baseline guide evidence outcome owner result group marker story saved_url saved_api
+  unit_valid || die "must run from a registered feat/{story-key} worktree"; values="$(read_state)"; IFS=$'\t' read -r baseline guide evidence outcome owner result group marker saved_url saved_api <<<"${values}"
   [[ "${result}" == running ]] || die "smoke handoff is not running"
+  restore_state_ports "${saved_url}" "${saved_api}"
   if owned_group "${group}" "${marker}"; then
     stop_group "${group}" || die "owned smoke process group did not stop"
   else

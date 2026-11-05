@@ -112,7 +112,8 @@ Pour préparer ou ajouter une contribution au catalogue privé de l’Avent, sui
 For a requested manual test from a V2 worktree, use the documented full stack in [DEVELOPMENT.md](DEVELOPMENT.md#recette-manuelle-v2-depuis-un-worktree): `./scripts/start-dev.sh --offline` unless the user explicitly needs the configured Neon or production-local path.
 
 - Do **not** hand off a user test from `npm run dev:web:v2` or `ng serve` alone: those commands start only the Angular proxy and assume a compatible API is already listening on port `8080`.
-- Before sharing `https://localhost:4200`, verify both the front and API/proxy are responding. Keep the launched stack running for the user’s test.
+- Use the actual front and API URLs printed by the script; verify both the front and API/proxy are responding before sharing the link. Keep the launched stack running for the user’s test.
+- Local stacks use a persistent worktree port reservation: `python3 scripts/v2/worktree-ports.py reserve` assigns it on demand and `inspect` displays it. A port occupied at startup causes a new pair to be assigned. The independent E2E contract still uses ports 4200 and 8080. Tailscale phone access, when available, uses the explicit front port.
 - The startup script safely reuses the `v2` checkout’s local `.env` and TLS certificate when invoked from a worktree; `--offline` instead uses that worktree’s gitignored H2 seed database and requires no `.env`.
 
 ---

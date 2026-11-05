@@ -99,6 +99,8 @@ expect_fail "${base_env[@]}" bash "${runtime}" prepare
 rm "${unit}/.env"; ln -s ../integration/.env "${unit}/.env"
 "${base_env[@]}" RUNTIME_PORT_CONFLICT=8080 bash "${runtime}" inspect >"${tmp_root}/port.out" 2>&1 && fail "port conflict unexpectedly ready"; expect "${tmp_root}/port.out" 'PORT_8080=unavailable'
 "${base_env[@]}" RUNTIME_PORT_CONFLICT=4200 bash "${runtime}" inspect >"${tmp_root}/port4200.out" 2>&1 && fail "port conflict unexpectedly ready"; expect "${tmp_root}/port4200.out" 'PORT_4200=unavailable'
+mkdir -p "${tmp_root}/browser-cache/chromium-test"; : >"${tmp_root}/browser-cache/chromium-test/INSTALLATION_COMPLETE"
+"${base_env[@]}" RUNTIME_PORT_CONFLICT=8080 bash "${runtime}" inspect-local >"${tmp_root}/local-port.out" 2>&1 || fail "fixed E2E port blocked local smoke"; expect "${tmp_root}/local-port.out" 'PORT_8080=unavailable'; expect "${tmp_root}/local-port.out" 'READINESS=ready'
 "${base_env[@]}" RUNTIME_LSOF_ERROR=1 bash "${runtime}" inspect >"${tmp_root}/lsof-error.out" 2>&1 && fail "lsof error unexpectedly ready"; expect "${tmp_root}/lsof-error.out" 'PORT_8080=unknown'; expect "${tmp_root}/lsof-error.out" 'PORT_4200=unknown'
 no_lsof_bin="${tmp_root}/no-lsof-bin"; mkdir "${no_lsof_bin}"
 for command in bash git awk dirname uname sed python3 node npm npx ln; do if [[ -e "${bin}/${command}" ]]; then /bin/ln -s "${bin}/${command}" "${no_lsof_bin}/${command}"; else /bin/ln -s "$(command -v "${command}")" "${no_lsof_bin}/${command}"; fi; done

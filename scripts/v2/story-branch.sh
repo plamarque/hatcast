@@ -204,6 +204,7 @@ start_story_branch() {
     echo "REOPENED_UNIT_WORKTREE=${unit_path}"
     if bash "${_script_dir}/story-worktree-bootstrap.sh" --verify "${unit_path}"; then
       sync_story_status "${story_key}" "${unit_path}"
+      python3 "${_script_dir}/worktree-ports.py" reserve --worktree "${unit_path}"
       print_metadata "${branch}" "${dev_ref}" "${unit_path}"
       return 0
     fi
@@ -229,6 +230,7 @@ start_story_branch() {
     exit 1
   fi
   sync_story_status "${story_key}" "${unit_path}"
+  python3 "${_script_dir}/worktree-ports.py" reserve --worktree "${unit_path}"
   print_metadata "${branch}" "${dev_ref}" "${unit_path}"
 }
 

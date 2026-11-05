@@ -38,9 +38,9 @@ hatcast:
     no-remember-me-seconds: 1800
     super-admin-emails: ${HATCAST_SUPER_ADMIN_EMAILS:patrice@seed.improbots.test}
   cors:
-    allowed-origins: http://localhost:4200,https://localhost:4200,http://127.0.0.1:4200,https://127.0.0.1:4200
+    allowed-origins: ${HATCAST_CORS_ALLOWED_ORIGINS:http://localhost:4200,https://localhost:4200,http://127.0.0.1:4200,https://127.0.0.1:4200}
     # Accès mobile via Tailscale Serve HTTPS (port standard) ou Angular direct sur :4200.
-    allowed-origin-patterns: https://*.ts.net,https://*.ts.net:4200
+    allowed-origin-patterns: ${HATCAST_CORS_ALLOWED_ORIGIN_PATTERNS:https://*.ts.net,https://*.ts.net:4200}
   avatar:
     storage: local
     local-base-path: ${java.io.tmpdir}/hatcast-avatars-offline

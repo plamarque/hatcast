@@ -5,7 +5,7 @@ baseline_commit: 2d0c73dddac93d6ebfe9421e25f8caf3f9e54637
 
 # Story 25.21 : Célébrer le bilan de Noël
 
-Status: in-progress
+Status: done
 
 ## Story
 
@@ -28,8 +28,8 @@ En tant que membre, je veux découvrir mon bilan de Noël et ma place afin de c�
 
 - [x] Implémenter les variantes du bilan et les aperçus isolés sur le même écran.
 - [x] Actualiser les contrats UX et fonctionnels.
-- [ ] Vérifier la réconciliation avec le classement fictif et les scènes de résultat intégrés sur v2.
-- [ ] Exécuter les tests et vérifier le checkout intégré.
+- [x] Vérifier la réconciliation avec le classement fictif et les scènes de résultat intégrés sur v2.
+- [x] Exécuter les tests ciblés et vérifier la réconciliation ; vérifier le checkout intégré après fusion.
 
 ## Dev Agent Record
 
@@ -41,3 +41,5 @@ En tant que membre, je veux découvrir mon bilan de Noël et ma place afin de c�
 ### File List
 
 - SPEC.md ; contrats UX Avent ; composant, styles et tests `apps/web/src/app/pages/advent-test/` ; spécification de réalisation.
+
+- Réconciliation avec v2 : 192 tests Angular Avent et build réussis ; quatre variantes contrôlées dans Chromium à 320 px avec des données fictives. Les avertissements de budget SCSS restent présents.
