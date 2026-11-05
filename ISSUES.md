@@ -15,6 +15,8 @@ historical registry below.
 
 ### Open defects and limitations
 
+BUG-096 (an Advent contribution was published with incomplete anecdotes).
+
 BUG-071 (Advent catalogue PostgreSQL integration test loses its connection in CI).
 
 BUG-072 (V2 Playwright smoke suite fails on commit b560afa4).
@@ -80,6 +82,14 @@ BUG-024, and BUG-021 have local fixes but still require their stated review,
 human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
+
+### BUG-096 — Advent contribution published with incomplete anecdotes
+- **Status**: Open; correction and synchronized publication pending.
+- **Severity**: Medium.
+- **Affected area**: Private Advent catalogue and synchronized quiz data.
+- **Observed behavior**: A real contribution was prepared from a multi-paragraph draft using an extraction that retained only the first paragraph of each anecdote, and the incomplete text was synchronized to local, development, staging and production data.
+- **Expected behavior**: Prepared quiz content matches the complete approved contribution or a deliberately approved concise version; source narratives are preserved for the agreed reveal experience.
+- **Notes**: The source draft remains private. No personal content or answers are recorded here. A local mockup was approved; application support and content repair are not yet deployed.
 
 ### BUG-095 — Advent browser gate rejects changed waiting text
 - **Status**: Corrected locally; development deployment pending.

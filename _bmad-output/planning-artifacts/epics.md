@@ -3800,6 +3800,14 @@ En tant que membre, je veux découvrir mon bilan de Noël et ma place au classem
 
 **Material 3 et références :** réutiliser les commandes Material et appliquer DESIGN, EXPERIENCE, AD-7, la checklist FRONTEND_UI et la stratégie de tests visuels Avent. Vérifier mobile, clavier, mouvement réduit et isolation HatCast.
 
+### Story 25.22: Discover full Advent stories
+
+As a member, I want to read complete stories after discovering a quiz result, so that concise mobile choices preserve the contributor's full account.
+
+**Acceptance criteria:** Keep short choices and existing results unchanged; optionally associate complete ordered narratives with a quiz and disclose them only through authorized result projections after the applicable reveal. Preserve existing explanations, scoring, privacy, preview and compatibility. Synchronize optional stories through guarded private catalogue and local/cloud operators without deleting game data or silently dropping existing narratives. Verify source completeness and make the existing Advent contribution skill support the workflow. Use fictional fixtures in Git and review real content only in a private isolated local target.
+
+**Material 3 and references:** Apply Advent DESIGN, EXPERIENCE and AD-7, FRONTEND_UI.md and the visual isolation test strategy; verify mobile, enlarged text, keyboard, focus and isolation. See `spec-25-22-advent-long-stories.md` and BUG-096.
+
 ## Final validation
 
 
