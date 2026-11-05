@@ -17,7 +17,7 @@
   <div [attr.inert]="openingReplayBusy() || openingReplayDate() ? '' : null">
   <header class="advent__header">
     @if (testControls()) { <button mat-icon-button type="button" (click)="toggleTestMode()" [disabled]="loading() || submitting() || closingDay() !== null || pendingMutations() > 0" [attr.aria-pressed]="testMode()" [attr.aria-label]="testMode() ? 'Désactiver le mode test' : 'Activer le mode test'" title="Mode test"><mat-icon aria-hidden="true">science</mat-icon></button> }
-    <button #entryHeading mat-button type="button" class="advent__header-title" (click)="previewWelcome()" [disabled]="welcome() || loading() || submitting() || closingDay() !== null || pendingMutations() > 0 || result() !== null || sessionChanged() || transitionRequired() || unavailable()" aria-label="Revoir l’accueil du Quiz de l’Avent">Quiz de l’Avent</button>
+    <button #entryHeading mat-button type="button" class="advent__header-title" (click)="previewWelcome()" [disabled]="welcome() || loading() || submitting() || closingDay() !== null || pendingMutations() > 0 || result() !== null || sessionChanged() || transitionRequired() || unavailable()" aria-label="Revoir l’accueil du Quiz de l’Avent">@if ((clockDate() ?? '') >= '2026-12-25' && !calendarOpen() && !rankingOpen() && !welcome() && !result() && !quiz() && !preview() && !history()) { <img class="advent__christmas-header-logo" src="/advent/logo-la-malice.png" alt="La Malice"> } @else { Quiz de l’Avent }</button>
     <button mat-icon-button type="button" (click)="historicalResult() ? returnToCalendar() : openCalendar()" [disabled]="welcome() || loading() || submitting() || closingDay() !== null || (result() !== null && !historicalResult())" [attr.aria-current]="calendarOpen() ? 'page' : null" aria-label="Voir le calendrier" title="Calendrier"><mat-icon aria-hidden="true">calendar_month</mat-icon></button>
     <button mat-icon-button type="button" (click)="navigateRanking()" [disabled]="welcome() || loading() || submitting() || closingDay() !== null || (result() !== null && !historicalResult())" [attr.aria-current]="rankingOpen() ? 'page' : null" aria-label="Classement" title="Classement"><mat-icon aria-hidden="true">emoji_events</mat-icon></button>
     <button mat-icon-button type="button" (click)="closeExperience()" [disabled]="closingExperience() || loading() || submitting() || pendingMutations() > 0 || closingDay() !== null" aria-label="Fermer le quiz" title="Fermer"><mat-icon aria-hidden="true">close</mat-icon></button>
@@ -39,6 +39,11 @@
         @if (calendarOpen()) {
           <button mat-menu-item type="button" (click)="previewConfirmation()" [disabled]="loading() || submitting() || closingDay() !== null" aria-label="Revoir la confirmation de réponse"><mat-icon aria-hidden="true">mark_email_read</mat-icon><span>Revoir la confirmation de réponse</span></button>
         }
+        <button mat-menu-item type="button" (click)="previewChristmas('sole')" [disabled]="loading() || submitting() || !!result()">Aperçu Noël : victoire</button>
+        <button mat-menu-item type="button" (click)="previewChristmas('shared')" [disabled]="loading() || submitting() || !!result()">Aperçu Noël : ex æquo</button>
+        <button mat-menu-item type="button" (click)="previewChristmas('participant')" [disabled]="loading() || submitting() || !!result()">Aperçu Noël : participation</button>
+        <button mat-menu-item type="button" (click)="previewChristmas('participant-tied')" [disabled]="loading() || submitting() || !!result()">Aperçu Noël : place ex æquo</button>
+        <button mat-menu-item type="button" (click)="previewChristmas('zero')" [disabled]="loading() || submitting() || !!result()">Aperçu Noël : zéro point</button>
         <button mat-menu-item type="button" (click)="prepareOpeningReplay()" [disabled]="openingReplayBusy() || closingExperience() || loading() || submitting() || closingDay() !== null || pendingMutations() > 0"><mat-icon aria-hidden="true">login</mat-icon><span>Rejouer l’ouverture à la connexion</span></button>
         @if (calendarOpen() && currentPlayedDay()) {
           <button mat-menu-item type="button" (click)="requestPersonalReset('calendar')" [disabled]="loading() || submitting() || closingDay() !== null" aria-label="Refermer mon cadeau du jour et effacer ma réponse"><mat-icon aria-hidden="true">card_giftcard</mat-icon><span>Refermer mon cadeau et effacer ma réponse</span></button>
@@ -51,6 +56,7 @@
         }
       </mat-menu>
     </div>
+    @if (christmasFixture(); as fixture) { <p class="advent__state" role="status">Aperçu Noël : {{ fixture === 'sole' ? 'victoire' : fixture === 'shared' ? 'ex æquo' : fixture === 'participant' ? 'participation' : fixture === 'participant-tied' ? 'place ex æquo' : 'zéro point' }}</p> }
     }
   @if (productionPreview() && !calendarOpen() && !rankingOpen() && result() && answerState() === 'recorded') {
     <div class="advent__test-actions" aria-label="Actions de prévisualisation">
@@ -219,13 +225,39 @@
           <img class="advent__santa" src="/advent/pere-noel-cadeau.png" alt="">
           <span class="advent__santa-label"><img class="advent__santa-logo" src="/advent/logo-la-malice.png" alt=""></span>
         </div>
-        <h1 id="christmas-title">Joyeux Noël !</h1>
-        <p>Bravo pour ta participation ! Profite bien des fêtes et rendez-vous à la rentrée.</p>
-        @if (christmasScore() !== null) { <p>Ton score : <strong>{{ christmasScore() }} {{ christmasScore() === 1 ? 'point' : 'points' }}</strong></p> }
+        <div class="advent__christmas-card">
+          @if (christmasScore() !== null) {
+            <svg class="advent__christmas-emblem" viewBox="0 0 120 65" aria-hidden="true">
+              @if (christmasVictory()) {
+                <path d="M20 18 30 53H90L100 18 75 35 60 10 45 35Z" fill="#eeb32e" stroke="#a86400" stroke-width="3" stroke-linejoin="round"/>
+                <path d="M30 53H90V59H30Z" fill="#c58000" stroke="#a86400" stroke-width="2"/>
+                <path d="M60 34 66 40 60 46 54 40Z" fill="#bd2030"/>
+                <circle cx="20" cy="17" r="4" fill="#eeb32e"/><circle cx="60" cy="9" r="4" fill="#eeb32e"/><circle cx="100" cy="17" r="4" fill="#eeb32e"/>
+              } @else {
+                <path d="M60 8 67 27 87 28 71 40 77 59 60 48 43 59 49 40 33 28 53 27Z" fill="#eeb32e" stroke="#a86400" stroke-width="3" stroke-linejoin="round"/>
+              }
+            </svg>
+          }
+          <h1 id="christmas-title">Joyeux <span>Noël !</span></h1>
+          @if (christmasScore() !== null) {
+            @if (christmasVictory() === 'sole') { <p class="advent__christmas-message">Bravo, tu remportes le quiz de l’Avent !</p> }
+            @else if (christmasVictory() === 'shared') { <p class="advent__christmas-message">Bravo, tu remportes le quiz de l’Avent ex æquo !</p> }
+            @else if (christmasPlace(); as place) {
+              <p class="advent__christmas-message">{{ place.tied ? 'Bravo, tu termines ex æquo à la' : 'Bravo, tu termines à la' }}</p>
+              <p class="advent__christmas-place">{{ place.rank }}ᵉ place</p>
+            }
+            <p class="advent__christmas-score">{{ christmasScore() }} {{ christmasScore() === 1 ? 'point' : 'points' }}</p>
+            @if (!christmasVictory() && christmasScore()! > 0) { <p class="advent__christmas-message">Merci pour ta participation !</p> }
+            <p class="advent__christmas-message">Belles fêtes et à la rentrée !</p>
+            @if (!loading() && finalRankingAvailable()) {
+              <div class="advent__entry-actions advent__christmas-actions">
+                <button #rankingButton mat-flat-button type="button" (click)="openRanking()" [disabled]="submitting()">Voir le classement <mat-icon iconPositionEnd aria-hidden="true">arrow_forward</mat-icon></button>
+                <button mat-stroked-button class="advent__return-button" type="button" (click)="closeExperience()" [disabled]="closingExperience()"><mat-icon aria-hidden="true">arrow_back</mat-icon>Revenir à HatCast</button>
+              </div>
+            }
+          }
+        </div>
       </section>
-      @if (!loading() && finalRankingAvailable()) {
-        <div class="advent__entry-actions"><button #rankingButton mat-flat-button type="button" (click)="openRanking()" [disabled]="submitting()">Voir le classement <mat-icon iconPositionEnd aria-hidden="true">arrow_forward</mat-icon></button></div>
-      }
     } @else if (!quiz()) {
       @if (preview(); as character) {
         <div class="advent__heading">

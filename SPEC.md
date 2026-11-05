@@ -515,3 +515,9 @@ Le membre qui rouvre une réponse normale du jour encore en attente depuis le ca
 En mode test, un opérateur autorisé dans un environnement de développement isolé peut préparer le rejeu de son ouverture automatique à la connexion. Après confirmation de la date ordinaire de développement et de l’effacement éventuel de sa propre réponse, seule sa réponse et sa fermeture enregistrée pour cette date sont effacées, puis il est déconnecté. La date simulée de l’onglet ne détermine pas cette opération. Si la date est hors période ou si le quiz manque, aucune suppression ni déconnexion ne sont effectuées. Les découvertes et les résultats non vus des autres jours sont conservés.
 
 En mode test explicitement activé en développement isolé, le classement propose une projection fictive des scores, signalée comme telle. Elle conserve les membres et exclusions du classement reçu, permet de revenir au classement calculé et disparaît en quittant cet écran ou lors d’un changement de session.
+
+### Bilan de Noël — variantes
+
+Après la révélation prioritaire, le bilan félicite les membres classables ayant le meilleur score positif comme gagnants, en précisant les victoires ex æquo. Les comptes exclus ne gagnent pas. Les autres membres ayant un score positif sont félicités pour leur participation ; à zéro, aucune participation n’est présumée. Le score personnel, les vœux, le classement et le retour à HatCast sont présentés ; le calendrier reste accessible par sa navigation.
+
+Pour un score positif sans victoire, le bilan affiche le rang serveur lorsqu’il existe, en précisant « ex æquo » selon les rangs du classement, puis le score et « Merci pour ta participation ! ». Un compte hors classement voit son score et ce remerciement sans rang. À zéro, aucun rang ni participation ne sont affirmés. En mode test isolé, un aperçu supplémentaire permet de vérifier une place ex æquo hors victoire avec le même bilan.

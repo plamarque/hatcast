@@ -98,3 +98,9 @@ En mode test isolé activé, le menu à trois points du mode test permet de gén
 ### Résultats — composition validée
 
 La bonne réponse associe un lutin joyeux sur fond vert et un bandeau crème courbe ; la mauvaise réponse présente un lutin déçu sur fond rouge et un titre encourageant. Les points et anecdotes sont intégrés au fond clair, sans empiler de panneaux dorés. Le portrait personnel reste en médaillon ; les informations, les commandes et les règles de révélation restent inchangées. Sur les écrans étroits avec texte agrandi, la composition se réorganise pour préserver lisibilité et accès aux commandes.
+
+### Bilan de Noël — victoire
+
+La scène conserve le Père Noël et le cadeau La Malice. Une couronne accompagne le message de victoire, adapté aux ex æquo ; une étoile accueille les autres membres. Le score réel, le message de fêtes et les boutons Material « Voir le classement » et « Revenir à HatCast » sont lisibles et accessibles. Le calendrier reste accessible par la navigation existante. Les maquettes approuvées guident la composition sans remplacer les textes ni les commandes.
+
+Pour un score positif sans victoire, le bilan affiche le rang serveur lorsqu’il existe, en précisant « ex æquo » selon les rangs du classement, puis le score et « Merci pour ta participation ! ». Un compte hors classement voit son score et ce remerciement sans rang. À zéro, aucun rang ni participation ne sont affirmés. En mode test isolé, un aperçu supplémentaire permet de vérifier une place ex æquo hors victoire avec le même bilan.

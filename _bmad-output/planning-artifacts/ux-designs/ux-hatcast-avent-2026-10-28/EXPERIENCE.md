@@ -202,3 +202,9 @@ La route directe réservée aux deux personnes autorisées ouvre le calendrier e
 La barre de test propose à l’opérateur autorisé une action explicite pour préparer sa prochaine connexion. La confirmation indique la date ordinaire de développement et prévient que sa réponse à cette date sera effacée avant la déconnexion. Une date simulée différente ne change pas cette cible. Une date hors période, un quiz manquant ou un échec sont expliqués sans annoncer une réussite ; les résultats non vus conservent leur priorité normale.
 
 Dans le classement, les testeurs autorisés en mode test isolé peuvent générer des scores fictifs, puis régénérer ou revenir au classement calculé. La projection disparaît en quittant le classement, au rechargement ou au changement de mode, compte ou session ; elle ne modifie aucune réponse.
+
+### Bilan de Noël — variantes approuvées
+
+Après la révélation prioritaire, le membre classable dont le score positif égale le meilleur score est félicité comme gagnant ; si plusieurs membres partagent ce score, le message précise « ex æquo », indépendamment des rangs numériques. Les comptes exclus ne gagnent pas. Un autre membre ayant un score positif est félicité pour sa participation ; à zéro, aucune participation n’est supposée. Le score personnel, le message de fêtes, le classement et le retour à HatCast restent accessibles ; le calendrier demeure accessible dans la barre.
+
+Pour un score positif sans victoire, le bilan affiche le rang serveur lorsqu’il existe, en précisant « ex æquo » selon les rangs du classement, puis le score et « Merci pour ta participation ! ». Un compte hors classement voit son score et ce remerciement sans rang. À zéro, aucun rang ni participation ne sont affirmés. En mode test isolé, un aperçu supplémentaire permet de vérifier une place ex æquo hors victoire avec le même bilan.
