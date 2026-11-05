@@ -67,7 +67,7 @@ async function main() {
       return;
     }
     if(operation) {await runCloudContent({source,store,db,days,operation,environment,ask,write:line=>console.log(line)});return;}
-    const target={sharedPortraits:true,verify:forWrite=>store.verify(forWrite),inspect:async snapshot=>({identity,rows:(await db.query('SELECT quiz_day, display_name, portrait_ref, statement_0, statement_1, statement_2, false_choice, explanation FROM advent_quizzes WHERE quiz_day=ANY($1::int[])',[snapshot.rows.map(row=>row.quiz_day)])).rows,portraits:snapshot.portraits.map(p=>({ref:p.ref,status:'unchanged'}))}),insert:(rows,reviewed,previous)=>insertReviewedQuizzes(db,rows,reviewed,previous)};
+    const target={sharedPortraits:true,verify:forWrite=>store.verify(forWrite),inspect:async snapshot=>({identity,rows:(await db.query('SELECT quiz_day, display_name, portrait_ref, statement_0, statement_1, statement_2, false_choice, explanation, story_0, story_1, story_2 FROM advent_quizzes WHERE quiz_day=ANY($1::int[])',[snapshot.rows.map(row=>row.quiz_day)])).rows,portraits:snapshot.portraits.map(p=>({ref:p.ref,status:'unchanged'}))}),insert:(rows,reviewed,previous)=>insertReviewedQuizzes(db,rows,reviewed,previous)};
     await runOperator(source,target,days,{environment,write:line=>console.log(line),
       describeTarget:identity=>{const value=JSON.parse(identity);return `Projet Neon : ${value.neon.projectId} ; branche : ${value.neon.branchId} ; révision : ${value.run.revision} ; bucket : ${value.run.bucket}`;},
       beforeApply:async()=>{if(environment==='production')await db.query('ROLLBACK');},

@@ -1,6 +1,6 @@
 import { compareQuizzes } from './advent-catalogue-compare.mjs';
 
-const columns = ['quiz_day', 'display_name', 'portrait_ref', 'statement_0', 'statement_1', 'statement_2', 'false_choice', 'explanation'];
+const columns = ['quiz_day', 'display_name', 'portrait_ref', 'statement_0', 'statement_1', 'statement_2', 'false_choice', 'explanation', 'story_0', 'story_1', 'story_2'];
 const gameTables = ['advent_member_answers', 'advent_member_attempts', 'advent_member_generations', 'advent_member_replays', 'advent_test_answers', 'advent_test_attempts', 'advent_test_generations', 'advent_test_replays'];
 export class SynchronizationConflict extends Error {
   constructor() { super('Synchronization stopped; compare again and resolve the conflict privately'); this.name = 'SynchronizationConflict'; }
@@ -31,11 +31,12 @@ export async function insertReviewedQuizzes(client, selected, reviewed, expected
       const activity = await client.query(`SELECT 1 FROM (${activitySql}) activity LIMIT 1`, [days]);
       if (activity.rowCount) throw new SynchronizationConflict();
       for (const row of replacements) {
-        const updated=await client.query(`UPDATE advent_quizzes SET display_name=$2, portrait_ref=$3, statement_0=$4, statement_1=$5, statement_2=$6, false_choice=$7, explanation=$8 WHERE quiz_day=$1`,columns.map(c=>row[c]));
+        const previous=current.rows.find(q=>q.quiz_day===row.quiz_day);
+        const updated=await client.query(`UPDATE advent_quizzes SET display_name=$2, portrait_ref=$3, statement_0=$4, statement_1=$5, statement_2=$6, false_choice=$7, explanation=$8, story_0=$9, story_1=$10, story_2=$11 WHERE quiz_day=$1`,columns.map(c=>row[c] === undefined ? previous[c] : row[c]));
         if(updated.rowCount!==1)throw new SynchronizationConflict();
       }
       for (const row of additions) {
-        const inserted = await client.query(`INSERT INTO advent_quizzes (${columns.join(', ')}) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT DO NOTHING`, columns.map(c => row[c]));
+        const inserted = await client.query(`INSERT INTO advent_quizzes (${columns.join(', ')}) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) ON CONFLICT DO NOTHING`, columns.map(c => row[c]));
         if (inserted.rowCount !== 1) throw new SynchronizationConflict();
       }
     }

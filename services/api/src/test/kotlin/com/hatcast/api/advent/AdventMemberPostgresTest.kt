@@ -38,8 +38,8 @@ class AdventMemberPostgresTest {
                 "CREATE TABLE advent_member_attempts (id UUID PRIMARY KEY, user_id UUID, quiz_day INTEGER, late BOOLEAN NOT NULL DEFAULT FALSE, cancelled BOOLEAN NOT NULL DEFAULT FALSE)",
                 "CREATE TABLE advent_member_generations (user_id UUID, quiz_day INTEGER, generation UUID, late BOOLEAN NOT NULL DEFAULT FALSE)",
                 "CREATE TABLE advent_member_replays (user_id UUID, quiz_day INTEGER, late BOOLEAN NOT NULL DEFAULT FALSE)",
-                "CREATE TABLE advent_quizzes (quiz_day INTEGER, display_name TEXT, portrait_ref TEXT, statement_0 TEXT, statement_1 TEXT, statement_2 TEXT, false_choice INTEGER, explanation TEXT)",
-                "INSERT INTO advent_quizzes VALUES (23, 'Fictif', NULL, 'A', 'B', 'C', 1, 'Explication fictive')"
+                "CREATE TABLE advent_quizzes (quiz_day INTEGER, display_name TEXT, portrait_ref TEXT, statement_0 TEXT, statement_1 TEXT, statement_2 TEXT, false_choice INTEGER, explanation TEXT, story_0 TEXT, story_1 TEXT, story_2 TEXT)",
+                "INSERT INTO advent_quizzes (quiz_day,display_name,portrait_ref,statement_0,statement_1,statement_2,false_choice,explanation) VALUES (23, 'Fictif', NULL, 'A', 'B', 'C', 1, 'Explication fictive')"
             ).forEach(jdbc::execute)
             val owner = UUID.randomUUID(); val other = UUID.randomUUID()
             jdbc.update("INSERT INTO advent_member_answers VALUES (?, 23, ?, 1, 1, ?, ?, ?, FALSE)", owner, UUID.randomUUID(), Timestamp.from(Instant.parse("2026-11-30T12:00:00Z")), Timestamp.from(Instant.parse("2026-12-23T23:00:00Z")), Timestamp.from(Instant.parse("2026-11-30T12:00:00Z")))
@@ -149,8 +149,8 @@ class AdventMemberPostgresTest {
                 "CREATE TABLE users (id UUID PRIMARY KEY)",
                 "CREATE TABLE troupe_memberships (troupe_id UUID, user_id UUID, display_name VARCHAR(255), status VARCHAR(32), baseline_role VARCHAR(32))",
                 "CREATE TABLE advent_member_answers (user_id UUID, quiz_day INTEGER, answer_id UUID, choice INTEGER, correct_choice INTEGER, answered_at TIMESTAMPTZ, reveal_at TIMESTAMPTZ, seen_at TIMESTAMPTZ, late BOOLEAN NOT NULL DEFAULT FALSE)",
-                "CREATE TABLE advent_quizzes (quiz_day INTEGER, display_name TEXT, portrait_ref TEXT, statement_0 TEXT, statement_1 TEXT, statement_2 TEXT, false_choice INTEGER, explanation TEXT)",
-                "INSERT INTO advent_quizzes VALUES (1, 'Fictif', NULL, 'A', 'B', 'C', 0, NULL)"
+                "CREATE TABLE advent_quizzes (quiz_day INTEGER, display_name TEXT, portrait_ref TEXT, statement_0 TEXT, statement_1 TEXT, statement_2 TEXT, false_choice INTEGER, explanation TEXT, story_0 TEXT, story_1 TEXT, story_2 TEXT)",
+                "INSERT INTO advent_quizzes (quiz_day,display_name,portrait_ref,statement_0,statement_1,statement_2,false_choice,explanation) VALUES (1, 'Fictif', NULL, 'A', 'B', 'C', 0, NULL)"
             ).forEach(jdbc::execute)
             val member = UUID.randomUUID(); val troupe = UUID.randomUUID(); val excluded = setOf(UUID.randomUUID(), UUID.randomUUID())
             (excluded + member).forEach { jdbc.update("INSERT INTO users VALUES (?)", it) }

@@ -241,6 +241,23 @@ describe('AdventTest', () => {
     fixture.detectChanges()
     expect(fixture.nativeElement.textContent).not.toContain('Ce score est provisoire')
   })
+  it('shows only supplied ordered stories in initially collapsed accessible panels', async () => {
+    const component = fixture.componentInstance
+    component.result.set({ answerId: 'a', day: 1, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: true, stories: ['Paragraphe un\n\nParagraphe deux', null, 'Dernier récit'] })
+    component.resultContent.set({ day: 1, name: 'Fictif', portrait: '', statements: ['un', 'deux', 'trois'], genericElf: true })
+    component.calendarOpen.set(false); component.welcome.set(false); component.loading.set(false)
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges()
+    const headers = fixture.nativeElement.querySelectorAll('mat-expansion-panel-header') as NodeListOf<HTMLElement>
+    expect(headers.length).toBe(2)
+    expect(headers[0].textContent).toContain('un'); expect(headers[1].textContent).toContain('trois')
+    expect(headers[0].getAttribute('aria-expanded')).toBe('false')
+    headers[0].click(); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges()
+    expect(headers[0].getAttribute('aria-expanded')).toBe('true')
+    expect(fixture.nativeElement.querySelector('.advent__story-text')?.textContent).toContain('Paragraphe un\n\nParagraphe deux')
+    component.result.update(result => result ? { ...result, stories: null } : result)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.advent__stories')).toBeNull()
+  })
   it('opens the authorized direct preview, records a final answer and recovers it', async () => {
     const component = fixture.componentInstance
     vi.spyOn(TestBed.inject(Router), 'url', 'get').mockReturnValue('/avent?preview=1')

@@ -49,6 +49,7 @@ class AdventMemberGameTest {
     @Test fun `isolated future gift waits for its reveal without changing the clock`() {
         jdbc.update("DELETE FROM advent_quizzes WHERE quiz_day = 2")
         jdbc.update("INSERT INTO advent_quizzes (quiz_day, display_name, statement_0, statement_1, statement_2, false_choice) VALUES (2, 'Fictif', 'A', 'B', 'C', 0)")
+        jdbc.update("UPDATE advent_quizzes SET story_0 = ?, story_2 = ? WHERE quiz_day = 2", "Première\n\nDeuxième", "Fin")
         val before = game.clockProjection().date
         assertEquals("locked", game.calendar(member).days!![1].state)
         assertThrows(ResponseStatusException::class.java) { game.quiz(2) }
@@ -67,7 +68,9 @@ class AdventMemberGameTest {
         assertEquals("pending", game.calendar(member, testFuture = true).days!![1].outcome)
         assertThrows(ResponseStatusException::class.java) { game.acknowledge(member, 2, answer.replayToken!!, testFuture = true) }
         assertThrows(ResponseStatusException::class.java) { game.history(member, 2, testFuture = true) }
-        assertTrue(game.result(member, 2, preview = true)!!.correct)
+        val previewResult = game.result(member, 2, preview = true)!!
+        assertTrue(previewResult.correct)
+        assertEquals(listOf("Première\n\nDeuxième", null, "Fin"), previewResult.stories)
         assertEquals(before, game.clockProjection().date)
         assertEquals("available", game.replay(member, 2, answer.replayToken!!, game.session(), testFuture = true).status)
     }
@@ -372,6 +375,8 @@ class AdventMemberGameTest {
     }
 
     @Test fun `explicit late answer persists without affecting ranking participation or streak`() {
+        val stories = listOf("Premier\n\nÉté", null, "Troisième")
+        jdbc.update("UPDATE advent_quizzes SET story_0 = ?, story_2 = ? WHERE quiz_day = 1", stories[0], stories[2])
         at("2026-12-02T12:00:00Z")
         assertEquals("closed", game.reconcile(member, 1).status)
         assertNull(game.history(member, 1).history!!.falseChoice)
@@ -384,6 +389,8 @@ class AdventMemberGameTest {
         assertTrue(game.confirm(member, 1, 0, attempt).late)
         val result = game.result(member, 1)!!
         assertTrue(result.late)
+        assertEquals(stories, result.stories)
+        assertEquals(stories, game.history(member, 1).history!!.result!!.stories)
         assertEquals("incorrect", game.calendar(member).days!![0].outcome)
         assertFalse(result.correct)
         assertEquals(0, result.responsePoints + result.participationPoints + result.bonusPoints)
@@ -433,6 +440,8 @@ class AdventMemberGameTest {
     }
 
     @Test fun `late replay on its simulated day remains unscored and hidden until reveal`() {
+        val stories = listOf("Premier\n\nÉté", null, "Troisième")
+        jdbc.update("UPDATE advent_quizzes SET story_0 = ?, story_2 = ? WHERE quiz_day = 1", stories[0], stories[2])
         `when`(clock.isolatedControlsAllowed()).thenReturn(true)
         at("2026-12-02T12:00:00Z")
         val session = game.session()
@@ -452,7 +461,9 @@ class AdventMemberGameTest {
         assertNull(game.result(member, 1, session, today))
         assertEquals(0, game.ranking(member, troupe, excluded, true, session, today).ranking!!.score)
         assertTrue(game.result(member, 1, session, later)!!.late)
-        assertEquals(1, game.latestUnseen(member, session, later)!!.day)
+        val priority = game.latestUnseen(member, session, later)!!
+        assertEquals(1, priority.day)
+        assertEquals(stories, priority.stories)
     }
 
     @Test fun `late reservations are fenced by generation and simulation date`() {

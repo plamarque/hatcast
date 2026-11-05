@@ -28,6 +28,12 @@ class AdventTestAnswers(private val jdbc: JdbcTemplate) {
         }
     }
 
+    // Called only after the result's existing reveal and authorization checks have passed.
+    fun revealedStories(day: Int): List<String?>? = jdbc.query(
+        "SELECT story_0, story_1, story_2 FROM advent_quizzes WHERE quiz_day = ?", { rs, _ ->
+            listOf(rs.getString(1), rs.getString(2), rs.getString(3))
+        }, day).singleOrNull()?.takeIf { stories -> stories.any { it != null } }
+
     /** The clock row is the serialization point for every test-session operation. */
     @Transactional
     fun session(): UUID {
@@ -168,7 +174,7 @@ class AdventTestAnswers(private val jdbc: JdbcTemplate) {
             listOf(rs.getInt(1), rs.getInt(2), rs.getInt(3), rs.getInt(4), rs.getInt(5), if (rs.getTimestamp(6) == null) 0 else 1)
         }, user, day, Timestamp.from(now)).singleOrNull() ?: return null
         val total = jdbc.queryForObject("SELECT COALESCE(SUM(response_points + participation_points + bonus_points), 0) FROM advent_test_answers WHERE user_id = ? AND reveal_at <= ?", Int::class.java, user, Timestamp.from(now)) ?: 0
-        return AdventResult(answerId, day, values[0], values[1], values[0] == values[1], values[2], values[3], values[4], total, values[5] == 1, quiz(day)?.explanation)
+        return AdventResult(answerId, day, values[0], values[1], values[0] == values[1], values[2], values[3], values[4], total, values[5] == 1, quiz(day)?.explanation, stories = revealedStories(day))
     }
 
     @Transactional
@@ -286,7 +292,7 @@ class AdventTestAnswers(private val jdbc: JdbcTemplate) {
     private fun validateDay(day: Int) { if (day !in 1..24) throw ResponseStatusException(HttpStatus.NOT_FOUND) }
 }
 
-data class AdventResult(val answerId: String, val day: Int, val selectedChoice: Int, val falseChoice: Int, val correct: Boolean, val responsePoints: Int, val participationPoints: Int, val bonusPoints: Int, val totalPoints: Int, val seen: Boolean, val explanation: String? = null, val late: Boolean = false)
+data class AdventResult(val answerId: String, val day: Int, val selectedChoice: Int, val falseChoice: Int, val correct: Boolean, val responsePoints: Int, val participationPoints: Int, val bonusPoints: Int, val totalPoints: Int, val seen: Boolean, val explanation: String? = null, val late: Boolean = false, val stories: List<String?>? = null)
 
 data class AnswerState(val status: String, val generation: UUID? = null, val replayToken: UUID? = null, val late: Boolean = false, val priorityResult: AdventResult? = null)
 data class ReplayAnswer(val replayToken: UUID?, val close: Boolean = false)

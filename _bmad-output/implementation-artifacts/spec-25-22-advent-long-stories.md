@@ -2,9 +2,10 @@
 title: 'Optional long Advent stories after reveal'
 type: 'feature'
 created: '2026-11-05'
-status: 'ready-for-dev'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 0
+baseline_commit: 41f193d6a5f9487c919ef957fcec4046ad34c41c
 context:
   - '{project-root}/docs/v2/technical/FRONTEND_UI.md'
   - '{project-root}/_bmad-output/planning-artifacts/ux-designs/ux-hatcast-avent-2026-10-28/DESIGN.md'
@@ -52,14 +53,14 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] Register the story through the repository's planned tracking and worktree lifecycle; keep unrelated work and existing completed stories intact.
-- [ ] Implement the additive data representation and migration; validate optional story cardinality, ordering, multiline Unicode and backward compatibility.
-- [ ] Extend private catalogue compare and guarded cloud/local synchronization; maintain exact source text and avoid accidental deletion when older catalogue data omits stories.
-- [ ] Return stories only in authorized revealed result projections, including priority, past, late, test and preview paths where applicable; retain every existing security boundary.
-- [ ] Implement optional accessible story panels after the existing result card and explanation; preserve normal result when absent.
-- [ ] Update normative documentation and extend the existing elf skill to cover complete contribution preparation, catalogue publication and database synchronization; check that each prepared story retains all paragraphs and matches the approved source.
-- [ ] Prepare the approved content only in a verified isolated local test target; provide a working full-stack link for human review when feasible. Do not write the canonical catalogue.
-- [ ] Verify synthetic cloud/local sync, migration, API privacy and reveal, frontend behavior and mobile visuals; check M3 and Advent isolation.
+- [x] Register the story through the repository's planned tracking and worktree lifecycle; keep unrelated work and existing completed stories intact.
+- [x] Implement the additive data representation and migration; validate optional story cardinality, ordering, multiline Unicode and backward compatibility.
+- [x] Extend private catalogue compare and guarded cloud/local synchronization; maintain exact source text and avoid accidental deletion when older catalogue data omits stories.
+- [x] Return stories only in authorized revealed result projections, including priority, past, late, test and preview paths where applicable; retain every existing security boundary.
+- [x] Implement optional accessible story panels after the existing result card and explanation; preserve normal result when absent.
+- [x] Update normative documentation and extend the existing elf skill to cover complete contribution preparation, catalogue publication and database synchronization; check that each prepared story retains all paragraphs and matches the approved source.
+- [x] Prepare the approved content only in a verified isolated local test target; provide a working full-stack link for human review when feasible. Do not write the canonical catalogue.
+- [x] Verify synthetic cloud/local sync, migration, API privacy and reveal, frontend behavior and mobile visuals; check M3 and Advent isolation.
 
 **Acceptance Criteria:**
 - Given a quiz with full stories, when an ordinary member requests playable content or a pending result before the permitted instant, then no story is present in any response; after authorization and reveal, the exact ordered stories are available.
@@ -77,6 +78,20 @@ context:
 - The integration checkout currently has a local-only preview specification commit ahead of `origin/v2`; the normal story controller starts from the remote baseline and must not discard it or push it without authorization.
 - The existing installed skill was updated and validated outside the repository; confirm it matches the final implementation.
 
+- API, catalogue operators, additive migration and optional result panels are implemented. Synthetic H2, PostgreSQL, API, Angular and visual isolation checks passed. The private isolated authenticated browser journey verified pre-reveal no-store privacy and exact revealed narratives. Phone acceptance remains a separate human review.
+
 ## Spec Change Log
 
 ## Review Triage Log
+
+- Medium: H2 fixture omitted migration V83; corrected the migration range.
+- Medium: synchronization plans did not identify explicit story deletion; added per-choice addition, modification and removal summaries without content.
+- Medium: automated HTTP secrecy coverage needed strengthening; added targeted result and reveal coverage; authenticated private journey also verified pre-reveal no-store responses.
+- Medium: priority result story ordering lacked dedicated coverage; added result assertions.
+- Medium: historical and late results lacked dedicated story coverage; added assertions.
+- Medium: test-mode result and latest-unseen lacked story coverage; added ordered multiline assertions.
+- Medium: local independent quiz updates lacked explicit story removal coverage; added H2 integration test.
+- Low: validation edge cases lacked coverage for all-null stories and reserved entries; added tests.
+- False: enlarged-text story overflow was claimed unverified; the synthetic mobile browser check and inspected 320px screenshot cover the open panel at 200%.
+- Medium: edge-case reviewer independently identified the H2 migration omission; same corrected root cause as the first finding.
+- Medium: verification-gap reviewer independently identified the test-mode result gap; same corrected root cause as the sixth finding.
