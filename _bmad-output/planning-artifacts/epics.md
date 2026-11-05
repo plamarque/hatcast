@@ -3808,6 +3808,14 @@ As a member, I want to read complete stories after discovering a quiz result, so
 
 **Material 3 and references:** Apply Advent DESIGN, EXPERIENCE and AD-7, FRONTEND_UI.md and the visual isolation test strategy; verify mobile, enlarged text, keyboard, focus and isolation. See `spec-25-22-advent-long-stories.md` and BUG-096.
 
+### Story 25.23: Ouvrir un quiz Avent par son URL
+
+En tant qu’organisateur, je veux accéder à une case Avent par un lien contenant son jour, afin de vérifier facilement un lutin ou son quiz après modification.
+
+**Critères :** `/avent?jour=N` cible le quiz correspondant (1 à 24), y compris avec `preview=1` pour un compte autorisé. Le lien respecte les autorisations serveur, la découverte initiale, la priorité des révélations, l’état personnel et les règles de chaque environnement ; il ne déverrouille rien par lui-même. Après connexion ou une étape prioritaire, reprendre la destination si elle reste autorisée. Pour un jour invalide, indisponible ou interdit, revenir à un parcours autorisé sans divulguer de contenu. Vérifier les parcours et l’isolation avec des données fictives.
+
+**Material 3 et références :** appliquer FRONTEND_UI, Advent DESIGN, EXPERIENCE, AD-7 et la stratégie de tests visuels ; voir la story détaillée 25.23. Dépend des parcours et droits existants des stories 25.5, 25.15, 25.18 et 25.19.
+
 ## Final validation
 
 
