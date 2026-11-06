@@ -31,6 +31,7 @@
       <span class="advent__simulated-day" role="status" aria-live="polite" [attr.aria-label]="clockDate() === null ? 'Jour simulé non disponible' : 'Jour simulé : ' + simulatedDateLabel()">{{ clockDate() === null ? '–' : simulatedDateLabel(true) }}</span>
       <button mat-icon-button type="button" (click)="nextDay()" [disabled]="welcome() || transitionRequired() || loading() || submitting() || closingDay() !== null || (quiz() && answerState() === 'checking') || !clockDate() || clockDate()! >= '2027-01-15'" aria-label="Avancer au jour suivant" title="Jour suivant"><mat-icon aria-hidden="true">arrow_forward</mat-icon></button>
       }
+      <button mat-icon-button type="button" (click)="sendTestReminder()" [disabled]="testReminderBusy() || loading() || submitting() || !clockDate()" aria-label="Envoyer un rappel test sur cet appareil" title="Envoyer un rappel test"><mat-icon aria-hidden="true">notifications_active</mat-icon></button>
       <button #openingReplayButton mat-icon-button type="button" class="advent__test-menu-trigger" [matMenuTriggerFor]="testActionsMenu" aria-label="Actions du mode test" title="Actions du mode test"><mat-icon aria-hidden="true">more_vert</mat-icon></button>
       <mat-menu #testActionsMenu="matMenu" class="advent-test-menu" xPosition="before">
         @if (rankingOpen() && testControls() && !productionPreview() && !sessionChanged()) {
@@ -68,6 +69,7 @@
     </div>
   }
   <div class="advent__content" [class.advent__content--ranking]="rankingOpen()">
+    @if (testMode() && testReminderMessage()) { <p role="status">{{ testReminderMessage() }}</p> }
     @if (closeError()) { <p role="alert">Impossible d’enregistrer la fermeture pour aujourd’hui. Réessaie ou quitte sans l’enregistrer.</p><button mat-stroked-button type="button" (click)="leaveExperience()">Quitter sans enregistrer</button> }
     @if (personalResetConfirm() && (!memberMode || productionPreview() || selectedFutureTestDay())) {
       <section aria-labelledby="advent-personal-reset-title">

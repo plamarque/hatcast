@@ -217,3 +217,9 @@ Pour un score positif sans victoire, le bilan affiche le rang serveur lorsqu’i
 ### Découverte des récits
 
 Après révélation autorisée, chaque récit fourni peut être ouvert indépendamment sous son choix ; ses paragraphes restent complets. Les parcours sans récit et l'explication existante restent inchangés. Avant révélation, aucun récit ne doit être transmis au client.
+
+### Rappel de test sur appareil
+
+Dans la barre du mode test autorisé, une commande distincte de la case simulée demande un rappel immédiat sur cet appareil. Elle explique le refus ou l’absence d’autorisation et distingue l’acceptation de l’envoi de la réception effective. La date simulée détermine la case ; l’ouverture respecte la découverte et la révélation prioritaire. Une case manquante ou inaccessible conduit au calendrier et à une explication.
+
+Un lien vers une case verrouillée, absente ou indisponible ouvre le calendrier avec une explication, sans divulguer de contenu protégé.

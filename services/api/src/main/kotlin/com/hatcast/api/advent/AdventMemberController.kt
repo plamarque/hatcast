@@ -3,6 +3,9 @@ package com.hatcast.api.advent
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.troupe.TroupeMembershipService
 import com.hatcast.api.notification.UserPushSubscriptionService
+import com.hatcast.api.notification.WebPushNotificationSender
+import com.hatcast.api.notification.NotificationDeliveryStatus
+import com.hatcast.api.notification.adventReminderPayload
 import com.hatcast.api.notification.dto.RegisterPushSubscriptionRequest
 import jakarta.validation.Valid
 import org.springframework.core.env.Environment
@@ -28,6 +31,7 @@ class AdventMemberController(
     private val offlineRoot: AdventOfflineRoot,
     private val portraitStorage: AdventMemberPortraitStorage,
     private val pushSubscriptions: UserPushSubscriptionService,
+    private val pushSender: WebPushNotificationSender,
 ) {
     private fun authorize(principal: SessionUserPrincipal): UUID {
         val troupe = try { UUID.fromString(environment.getProperty("hatcast.advent.troupe-id", "")) }
@@ -124,6 +128,29 @@ class AdventMemberController(
     @PostMapping("/reminder-device/status")
     fun reminderDeviceStatus(@RequestBody body: AdventReminderDevice, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): Map<String, Boolean> {
         return mapOf("owned" to game.reminderDeviceOwned(principal.userId, requireReminderContext(principal, request), body.endpoint))
+    }
+
+    private fun requireTestReminder(principal: SessionUserPrincipal, request: HttpServletRequest): Int {
+        val session = requireControl(principal, request)
+        if (request.getHeader("X-Advent-User") != principal.userId.toString()) throw ResponseStatusException(HttpStatus.CONFLICT)
+        val date = simulated(principal, request) ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST)
+        if (date.year != 2026 || date.monthValue != 12 || date.dayOfMonth !in 1..24) throw ResponseStatusException(HttpStatus.BAD_REQUEST)
+        game.clockProjection(session, date)
+        return date.dayOfMonth
+    }
+
+    @PutMapping("/test-reminder-device")
+    fun registerTestReminderDevice(@Valid @RequestBody body: RegisterPushSubscriptionRequest, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest) {
+        requireTestReminder(principal, request)
+        pushSubscriptions.registerTestAdventDevice(principal.userId, body, request.getHeader("User-Agent"))
+    }
+
+    @PostMapping("/test-reminder")
+    fun sendTestReminder(@Valid @RequestBody body: RegisterPushSubscriptionRequest, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): Map<String, String> {
+        val day = requireTestReminder(principal, request)
+        val result = pushSender.sendTestAdventPush(principal.userId, body, adventReminderPayload(day, test = true))
+        if (result.status != NotificationDeliveryStatus.SENT) throw ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE)
+        return mapOf("status" to "accepted")
     }
 
     @GetMapping("/discovery")

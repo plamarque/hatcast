@@ -34,8 +34,9 @@ class AdventReminderJob(
         if (profiles.any { it in setOf("test", "dev", "offline") }) return
         if ("prod" !in profiles && !(profiles == setOf("cloud") && environment.getProperty("K_SERVICE") == "hatcast-v2")) return
         val troupe = try { UUID.fromString(environment.getProperty("hatcast.advent.troupe-id", "")) } catch (_: IllegalArgumentException) { return }
-        val recipients = reserve(troupe) { realClock.instant() }
-        val payload = NotificationPayload("Quiz de l’Avent", "Le quiz du jour t’attend !", "/avent")
+        var day: Int? = null
+        val recipients = reserve(troupe) { realClock.instant().also { day = adventReminderDay(it) } }
+        val payload = adventReminderPayload(day ?: return)
         recipients.forEach { user ->
             try { sender.sendAdventPush(user, payload) } catch (ex: Exception) { log.warn("advent_reminder_failed userId={}", user, ex) }
         }
@@ -66,3 +67,6 @@ internal fun adventReminderDay(now: Instant): Int? {
     if (date.isBefore(LocalDate.of(2026, 12, 1)) || date.isAfter(LocalDate.of(2026, 12, 24)) || local.toLocalTime().isBefore(LocalTime.of(10, 0))) return null
     return date.dayOfMonth
 }
+
+internal fun adventReminderPayload(day: Int, test: Boolean = false): NotificationPayload =
+    NotificationPayload("Quiz de l’Avent", "Le quiz du jour t’attend !", "/avent?jour=$day" + if (test) "&test=1" else "", kind = "advent")

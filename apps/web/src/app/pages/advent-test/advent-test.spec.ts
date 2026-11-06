@@ -68,8 +68,10 @@ describe('AdventTest', () => {
     expect(requests.some(url => url.endsWith('/calendar'))).toBe(true)
     expect(requests.some(url => url.endsWith('/doors/6'))).toBe(state === 'today')
     if (state === 'today') expect(component.preview()?.day).toBe(6)
-    if (state === 'missing') expect(component.unavailable()).toBe(true)
-    if (state === 'locked' || state === 'absent') expect(component.calendarOpen()).toBe(true)
+    if (state !== 'today') {
+      expect(component.calendarOpen()).toBe(true)
+      expect(component.calendarActionMessage()).toContain('pas disponible')
+    }
   })
 
   it('reopens the requested day after first discovery', async () => {
@@ -389,6 +391,87 @@ describe('AdventTest', () => {
     expect(checkbox.checked).toBe(true)
     expect(activate).not.toHaveBeenCalled()
     expect(vi.mocked(window.fetch).mock.calls.length).toBe(calls)
+  })
+  it('sends a test reminder only after registering the current device', async () => {
+    const component = fixture.componentInstance
+    component.testControls.set(true); component.testMode.set(true)
+    ;(component as any).simulatedDate.set('2026-12-05')
+    const subscription = { endpoint: 'https://push.example/device', keys: { p256dh: 'key', auth: 'auth' } }
+    vi.spyOn(TestBed.inject(PushNotificationsService), 'activateAdventDevice').mockImplementation(async register => {
+      expect(await register(subscription)).toBe(true)
+      return { endpoint: subscription.endpoint }
+    })
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response('', { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'accepted' }), { status: 200 }))
+    await component.sendTestReminder()
+    const calls = vi.mocked(window.fetch).mock.calls.slice(-2)
+    expect(calls.map(call => call[0])).toEqual(['/v1/advent/test-reminder-device', '/v1/advent/test-reminder'])
+    expect((calls[1][1]?.headers as Record<string, string>)['X-Advent-Simulated-Date']).toBe('2026-12-05')
+    expect(component.testReminderMessage()).toContain('accepté')
+  })
+  it('does not send when the permission is absent or the simulated date is outside the quiz', async () => {
+    const component = fixture.componentInstance
+    component.testControls.set(true); component.testMode.set(true)
+    const activate = vi.spyOn(TestBed.inject(PushNotificationsService), 'activateAdventDevice').mockResolvedValue({ message: 'Autorise les alertes.' })
+    ;(component as any).simulatedDate.set('2026-12-25')
+    await component.sendTestReminder()
+    expect(activate).not.toHaveBeenCalled()
+    ;(component as any).simulatedDate.set('2026-12-05')
+    const before = vi.mocked(window.fetch).mock.calls.length
+    await component.sendTestReminder()
+    expect(component.testReminderMessage()).toContain('Autorise')
+    expect(vi.mocked(window.fetch).mock.calls.length).toBe(before)
+  })
+  it('restores notification test mode only after capability validation and only once', async () => {
+    const component = fixture.componentInstance
+    const router = TestBed.inject(Router)
+    vi.spyOn(router, 'url', 'get').mockReturnValue('/avent?jour=5&test=1')
+    ;(component as any).notificationParametersConsumed = false
+    component.testMode.set(false)
+    await component.start()
+    expect(component.testMode()).toBe(true)
+    expect((component as any).simulatedDate()).toBe('2026-12-05')
+    component.testMode.set(false)
+    await component.start()
+    expect(component.testMode()).toBe(false)
+  })
+  it('opens a test notification through the shared day intent', async () => {
+    const component = fixture.componentInstance
+    vi.spyOn(TestBed.inject(Router), 'url', 'get').mockReturnValue('/avent?jour=5&test=1')
+    ;(component as any).requestedDay = 5
+    ;(component as any).notificationParametersConsumed = false
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url = String(input)
+      if (url.endsWith('/session')) return Response.json({ sessionId: 'fictional', testControls: true })
+      if (url.endsWith('/clock')) return Response.json({ date: '2026-12-05' })
+      if (url.endsWith('/discovery')) return Response.json({ discovered: true })
+      if (url.endsWith('/latest-unseen')) return Response.json({ result: null })
+      if (url.endsWith('/calendar')) return Response.json({ days: [{ day: 5, state: 'missing' }], priorityResult: null })
+      return Response.json({ status: 'available' })
+    })
+    await component.start()
+    expect(component.testMode()).toBe(true)
+    expect(component.calendarOpen()).toBe(true)
+    expect(component.calendarActionMessage()).toContain('pas disponible')
+    expect((component as any).requestedDay).toBeNull()
+  })
+  it('never restores notification test mode when the server denies the capability', async () => {
+    const component = fixture.componentInstance
+    vi.spyOn(TestBed.inject(Router), 'url', 'get').mockReturnValue('/avent?jour=5&test=1')
+    ;(component as any).notificationParametersConsumed = false
+    component.testMode.set(false)
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url = String(input)
+      if (url.endsWith('/session')) return new Response(JSON.stringify({ sessionId: 'test-session', testControls: false }))
+      if (url.endsWith('/clock')) return new Response(JSON.stringify({ date: '2026-12-05' }))
+      if (url.endsWith('/discovery')) return new Response(JSON.stringify({ discovered: true }))
+      if (url.endsWith('/results/latest-unseen')) return new Response(JSON.stringify({ result: null }))
+      if (url.includes('/answer')) return new Response(JSON.stringify({ status: 'available' }))
+      return new Response(JSON.stringify({ day: 5, name: 'Lutin', portrait: '', statements: [] }))
+    })
+    await component.start()
+    expect(component.testMode()).toBe(false)
+    expect((component as any).simulatedDate()).toBeNull()
   })
   it('hides the reminder when its initial preference cannot be loaded', async () => {
     const component = fixture.componentInstance

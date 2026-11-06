@@ -7,12 +7,15 @@ import nl.martijndwars.webpush.Subscription
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import java.util.UUID
+import com.hatcast.api.notification.dto.RegisterPushSubscriptionRequest
+import org.springframework.transaction.annotation.Transactional
 
 @Component
 class WebPushNotificationSender(
     private val webPushProperties: WebPushProperties,
     private val subscriptionRepository: UserPushSubscriptionRepository,
     private val adventDevices: AdventReminderDeviceRepository,
+    private val pushSubscriptions: UserPushSubscriptionService,
 ) : NotificationDeliveryPort {
     private val log = LoggerFactory.getLogger(javaClass)
     private val mapper = jacksonObjectMapper()
@@ -28,9 +31,20 @@ class WebPushNotificationSender(
     fun sendAdventPush(userId: UUID, payload: NotificationPayload): NotificationDeliveryResult =
         send(userId, payload, "ADVENT_REMINDER", null, true)
 
+    @Transactional
+    fun sendTestAdventPush(userId: UUID, device: RegisterPushSubscriptionRequest, payload: NotificationPayload): NotificationDeliveryResult {
+        val endpoint = device.endpoint.trim()
+        // Account switches and both registration paths use the same endpoint lock.
+        // Keep ownership stable until the push provider has accepted or rejected this one send.
+        pushSubscriptions.lockEndpoint(endpoint)
+        if (!pushSubscriptions.ownsTestAdventDevice(userId, device))
+            return NotificationDeliveryResult(NotificationChannel.PUSH, NotificationDeliveryStatus.SKIPPED, "device_owner_changed")
+        return send(userId, payload, "ADVENT_REMINDER", null, true, endpoint)
+    }
+
     private data class PushTarget(val endpoint: String, val p256dhKey: String, val authKey: String)
 
-    private fun send(userId: UUID, payload: NotificationPayload, intent: String, eventId: UUID?, advent: Boolean): NotificationDeliveryResult {
+    private fun send(userId: UUID, payload: NotificationPayload, intent: String, eventId: UUID?, advent: Boolean, endpoint: String? = null): NotificationDeliveryResult {
         if (webPushProperties.vapidPrivateKey.isBlank()) {
             log.warn(
                 "notification_push_skipped reason=missing_vapid_private_key intent={} userId={} eventId={}",
@@ -45,7 +59,7 @@ class WebPushNotificationSender(
             )
         }
 
-        val subscriptions = if (advent) adventDevices.findByUserId(userId).map { PushTarget(it.endpoint, it.p256dhKey, it.authKey) }
+        val subscriptions = if (advent) adventDevices.findByUserId(userId).filter { endpoint == null || it.endpoint == endpoint }.map { PushTarget(it.endpoint, it.p256dhKey, it.authKey) }
             else subscriptionRepository.findByUserId(userId).map { PushTarget(it.endpoint, it.p256dhKey, it.authKey) }
         if (subscriptions.isEmpty()) {
             return NotificationDeliveryResult(
@@ -83,6 +97,7 @@ class WebPushNotificationSender(
                     "title" to payload.title,
                     "body" to payload.body,
                     "url" to payload.url,
+                    "kind" to payload.kind,
                 ),
             )
 
@@ -103,7 +118,9 @@ class WebPushNotificationSender(
                         Subscription.Keys(subscription.p256dhKey, subscription.authKey),
                     )
                 val notification = Notification(webPushSubscription, jsonPayload)
-                pushService.send(notification)
+                val response = pushService.send(notification)
+                if (advent && response.statusLine.statusCode !in 200..299)
+                    throw IllegalStateException("push_provider_rejected_" + response.statusLine.statusCode)
                 sentCount++
             } catch (ex: Exception) {
                 lastError = ex.javaClass.simpleName + ": " + (ex.message ?: "unknown")

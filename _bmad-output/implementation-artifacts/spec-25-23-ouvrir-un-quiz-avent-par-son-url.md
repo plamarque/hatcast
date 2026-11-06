@@ -30,7 +30,7 @@ context: []
 | Eligible day | `jour=6`, authorized calendar | Open day 6 using the same state and rules as the calendar |
 | Prerequisite | Signed out, undiscovered, or priority result | Complete authentication, discovery or each priority reveal first; then recheck access and resume |
 | Preview | `preview=1&jour=6` | Preserve server-authorized private preview; denial grants nothing |
-| Unavailable | Locked, missing or forbidden day | Follow existing permitted calendar behavior without disclosing protected content |
+| Unavailable | Locked, missing or forbidden day | Show the calendar with an explanation without disclosing protected content |
 | Invalid | Missing, repeated, noninteger or outside 1–24 | Normal Advent journey without blocking error |
 | Session | Reload or account switch | Re-evaluate authorization and avoid applying stale asynchronous results to another identity |
 

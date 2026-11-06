@@ -491,7 +491,7 @@ La route directe partagée propose le quiz du jour et le classement ; seuls les 
 
 ### Lien direct vers un quiz Avent
 
-Un lien `/avent?jour=N` désigne une case de 1 à 24 et peut conserver les autres paramètres, dont `preview=1`. Après authentification, première découverte et présentation de chaque résultat prioritaire, le calendrier autorisé par le serveur détermine si et comment la case est ouverte. Le lien ne confère aucun accès et ne modifie ni les réponses ni les règles de date, de prévisualisation ou de mode test. Une case verrouillée, absente ou indisponible conserve le comportement permis du calendrier ; un paramètre invalide ou répété laisse suivre le parcours normal. La case 25 conserve son parcours habituel.
+Un lien `/avent?jour=N` désigne une case de 1 à 24 et peut conserver les autres paramètres, dont `preview=1`. Après authentification, première découverte et présentation de chaque résultat prioritaire, le calendrier autorisé par le serveur détermine si et comment la case est ouverte. Le lien ne confère aucun accès et ne modifie ni les réponses ni les règles de date, de prévisualisation ou de mode test. Une case verrouillée, absente ou indisponible ouvre le calendrier avec une explication ; un paramètre invalide ou répété laisse suivre le parcours normal. La case 25 conserve son parcours habituel.
 
 ### Entrée dans le calendrier Avent
 
@@ -508,7 +508,7 @@ The shared private Advent bucket stores the canonical catalogue under `catalogue
 
 Sur l’attente après réponse et les résultats, chaque membre peut choisir un rappel Avent partagé entre ses appareils. L’activation sur un appareil nécessite son autorisation et un abonnement de cet appareil ; un autre appareil peut nécessiter sa propre activation. La désactivation du rappel Avent ne modifie pas les autres notifications. Du 1er au 24 décembre 2026, un traitement à partir de 10 h à Paris tente au plus une invitation par membre et quiz disponible si le membre actif n’a pas répondu. Les invitations ne contiennent ni anecdote ni résultat ; elles ne sont ni reprises ni garanties. Le parcours conserve la découverte et les révélations prioritaires.
 
-Dans le mode test Avent autorisé, la case de rappel peut être manipulée en simulation sans activer un rappel réel ni modifier les abonnements.
+Dans le mode test Avent autorisé, la case de rappel peut être manipulée en simulation sans activer un rappel réel ni modifier les abonnements. Un geste distinct permet à l’opérateur de demander immédiatement un rappel sur son appareil courant, après autorisation et enregistrement de cet appareil. Le jour simulé détermine la destination ; la tentative ne change ni les préférences, ni les réponses, ni la réservation quotidienne. Son ouverture respecte la découverte et les révélations prioritaires ; si la case est inaccessible, le calendrier en explique la raison.
 
 ### Retour sur une réponse Avent en attente
 
