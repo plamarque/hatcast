@@ -213,3 +213,7 @@ En développement isolé, le testeur autorisé par le serveur peut, sans activer
 Après la révélation prioritaire, le membre classable dont le score positif égale le meilleur score est félicité comme gagnant ; si plusieurs membres partagent ce score, le message précise « ex æquo », indépendamment des rangs numériques. Les comptes exclus ne gagnent pas. Un autre membre ayant un score positif est félicité pour sa participation ; à zéro, aucune participation n’est supposée. Le score personnel, le message de fêtes, le classement et le retour à HatCast restent accessibles ; le calendrier demeure accessible dans la barre.
 
 Pour un score positif sans victoire, le bilan affiche le rang serveur lorsqu’il existe, en précisant « ex æquo » selon les rangs du classement, puis le score et « Merci pour ta participation ! ». Un compte hors classement voit son score et ce remerciement sans rang. À zéro, aucun rang ni participation ne sont affirmés. En mode test isolé, un aperçu supplémentaire permet de vérifier une place ex æquo hors victoire avec le même bilan.
+
+### Découverte des récits
+
+Après révélation autorisée, chaque récit fourni peut être ouvert indépendamment sous son choix ; ses paragraphes restent complets. Les parcours sans récit et l'explication existante restent inchangés. Avant révélation, aucun récit ne doit être transmis au client.

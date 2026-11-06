@@ -1,3 +1,4 @@
+import { MatExpansionModule } from '@angular/material/expansion';
 import { Component, ElementRef, ViewChild, signal, inject, effect } from '@angular/core'
 import { NgTemplateOutlet } from '@angular/common'
 import { MatButtonModule } from '@angular/material/button'
@@ -13,7 +14,7 @@ const REQUEST_TIMEOUT_MS = 10_000
 class TransientReadError extends Error {}
 class StaleRequestError extends Error {}
 
-interface AdventResult { answerId: string; day: number; selectedChoice: number; falseChoice: number; correct: boolean; responsePoints: number; participationPoints: number; bonusPoints: number; totalPoints: number; seen: boolean; explanation?: string | null; late?: boolean }
+interface AdventResult { answerId: string; day: number; selectedChoice: number; falseChoice: number; correct: boolean; responsePoints: number; participationPoints: number; bonusPoints: number; totalPoints: number; seen: boolean; explanation?: string | null; late?: boolean; stories?: (string | null)[] | null }
 
 interface ClockProjection { date: string; effectiveInstant: string; nextMidnight: string; simulated: boolean }
 
@@ -28,7 +29,7 @@ interface FictionalQuiz { day: number; name: string; portrait: string; statement
 @Component({
   selector: 'app-advent-test',
   standalone: true,
-  imports: [MatButtonModule, MatIconModule, MatMenuModule, MatRadioModule, NgTemplateOutlet],
+  imports: [MatExpansionModule, MatButtonModule, MatIconModule, MatMenuModule, MatRadioModule, NgTemplateOutlet],
   templateUrl: './advent-test.html',
   styleUrls: ['./advent-christmas.scss', './advent-test.scss', './advent-result.scss', './advent-ranking.scss', './advent-calendar.scss', './advent-illustrated.scss', './advent-welcome.scss', './advent-controls.scss', './advent-reminder.scss'],
 })

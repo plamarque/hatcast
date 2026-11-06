@@ -230,7 +230,7 @@ test('reveals the most recent result accessibly after advancing the tab date', a
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.addInitScript(() => localStorage.setItem('hatcast-pwa-banner-dismissed', String(Date.now())))
   let seen = false
-  const result = { answerId: 'answer-one', day: 8, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false, explanation: 'Explication fictive du résultat.' }
+  const result = { answerId: 'answer-one', day: 8, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false, explanation: 'Explication fictive du résultat.', stories: ['Premier paragraphe.\n\nSecond paragraphe.', 'Deuxième récit fictif.', 'Troisième récit fictif.'] }
   await page.route('**/v1/**', async route => {
     const path = new URL(route.request().url()).pathname
     const date = route.request().headers()['x-advent-simulated-date'] ?? '2026-12-08'
@@ -267,6 +267,16 @@ test('reveals the most recent result accessibly after advancing the tab date', a
   await expect(title).toBeFocused()
   await expect(page.locator('.advent__result-answer--truth')).toContainText('L’anecdote qui était fausse')
   await expect(page.locator('.advent__result-answer--truth')).toContainText('Une')
+  const storyHeaders = page.locator('mat-expansion-panel-header')
+  await expect(storyHeaders).toHaveCount(3)
+  for (let i = 0; i < 3; i++) {
+    const header = storyHeaders.nth(i)
+    await expect(header).toHaveAttribute('aria-expanded', 'false')
+    await header.focus(); await page.keyboard.press('Enter')
+    await expect(header).toHaveAttribute('aria-expanded', 'true')
+    await expect(page.locator('.advent__story-text').nth(i)).toHaveText(result.stories[i])
+    const box = await header.boundingBox(); expect(box!.height).toBeGreaterThanOrEqual(44)
+  }
   await expect(page.locator('.advent__result-points')).toHaveText('+11 points gagnés')
   await expect(page.locator('.advent__reveal-mood img')).toHaveAttribute('src', '/advent/elf-celebration-v1.webp')
   await expect.poll(() => page.locator('.advent__reveal-mood img').evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0)

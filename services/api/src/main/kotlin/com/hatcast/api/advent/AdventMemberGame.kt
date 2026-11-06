@@ -282,7 +282,7 @@ class AdventMemberGame(private val jdbc: JdbcTemplate, private val clock: Advent
             if (r.day == day) bonus = currentBonus
         }
         return AdventResult(row.answerId, day, row.choice, row.correctChoice, row.choice == row.correctChoice,
-            if (!row.late && row.choice == row.correctChoice) 10 else 0, if (row.late) 0 else 1, if (row.late) 0 else bonus, total, row.seen, quiz.explanation, row.late)
+            if (!row.late && row.choice == row.correctChoice) 10 else 0, if (row.late) 0 else 1, if (row.late) 0 else bonus, total, row.seen, quiz.explanation, row.late, quizzes.revealedStories(day))
     }
 
     @Transactional

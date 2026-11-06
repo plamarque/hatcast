@@ -34,3 +34,24 @@ test('accepts a reserved character without quiz and rejects incomplete and dupli
   q.quizzes[0].false_statement_index=1;assert.throws(()=>validateCatalogue(q,[1]),CatalogueValidationError);
   q.quizzes[0].false_statement_index=null;q.quizzes[1].character_id='fiction-1';assert.throws(()=>validateCatalogue(q,[1]),CatalogueValidationError);
 });
+
+test('validates ordered multiline stories without normalizing them', () => {
+  const q = fixture();
+  q.quizzes[1].stories = ['Premier\n\nÉté', null, 'Troisième'];
+  const row = validateCatalogue(q, [2])[0];
+  assert.equal(row.story_0, 'Premier\n\nÉté');
+  assert.equal(row.story_1, null);
+  assert.equal(row.story_2, 'Troisième');
+  q.quizzes[1].stories = ['one', 'two'];
+  assert.throws(() => validateCatalogue(q, [2]));
+  q.quizzes[1].stories = ['one', '', null];
+  assert.throws(() => validateCatalogue(q, [2]));
+});
+
+test('accepts three explicit null stories and rejects stories on a reservation', () => {
+  const q=fixture(); q.quizzes[0].stories=[null,null,null];
+  const row=validateCatalogue(q,[1])[0];
+  assert.deepEqual([row.story_0,row.story_1,row.story_2],[null,null,null]);
+  q.quizzes[0].statements=null; q.quizzes[0].false_statement_index=null; q.quizzes[0].reveal=null;
+  assert.throws(()=>validateCatalogue(q,[1]),CatalogueValidationError);
+});
