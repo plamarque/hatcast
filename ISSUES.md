@@ -83,6 +83,14 @@ human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
 
+### BUG-100 — Offline CORS test reads an unresolved placeholder
+- **Status**: Correction in progress; CI validation pending.
+- **Severity**: Medium.
+- **Affected area**: API regression suite, offline CORS configuration test.
+- **Observed behavior**: The test reads a raw YAML value containing an environment placeholder and treats it as a resolved list, causing its Tailscale origin assertion to fail.
+- **Expected behavior**: Resolve the property through a Spring environment before checking the configured default origins.
+- **Notes**: Observed in GitHub Actions run 42199681602; this is a test failure and does not establish a runtime CORS defect.
+
 ### BUG-099 — Catalogue database test can connect during initialization
 - **Status**: Correction in progress; CI validation pending.
 - **Severity**: Medium.

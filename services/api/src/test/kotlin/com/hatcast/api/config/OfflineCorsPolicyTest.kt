@@ -5,12 +5,14 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.springframework.boot.env.YamlPropertySourceLoader
 import org.springframework.core.io.ClassPathResource
+import org.springframework.mock.env.MockEnvironment
 import org.springframework.web.cors.CorsConfiguration
 
 class OfflineCorsPolicyTest {
     @Test fun `offline profile accepts Tailscale Serve and direct Angular but rejects unrelated origins`() {
         val source = YamlPropertySourceLoader().load("offline", ClassPathResource("application-offline.yml")).single()
-        val patterns = source.getProperty("hatcast.cors.allowed-origin-patterns").toString().split(",")
+        val environment = MockEnvironment().apply { propertySources.addFirst(source) }
+        val patterns = environment.getRequiredProperty("hatcast.cors.allowed-origin-patterns").split(",")
         val cors = CorsConfiguration().apply { allowedOriginPatterns = patterns }
         val serve = "https://fictional.tailnet.ts.net"
         val direct = "https://fictional.tailnet.ts.net:4200"
