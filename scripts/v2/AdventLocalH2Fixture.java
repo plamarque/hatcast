@@ -7,20 +7,20 @@ public class AdventLocalH2Fixture {
  s.execute("INSERT INTO users VALUES ('00000000-0000-0000-0000-000000000001')");
  java.nio.file.Path dir=java.nio.file.Paths.get(a[2]);
  try(java.util.stream.Stream<java.nio.file.Path> files=java.nio.file.Files.list(dir)){
-  for(java.nio.file.Path file:(Iterable<java.nio.file.Path>)files.filter(p->p.getFileName().toString().matches("V(7[0-9]|8[0-2])__.*\\.sql")).sorted()::iterator)
+  for(java.nio.file.Path file:(Iterable<java.nio.file.Path>)files.filter(p->p.getFileName().toString().matches("V(7[0-9]|8[0-4])__.*\\.sql")).sorted()::iterator)
    s.execute("RUNSCRIPT FROM '"+file.toAbsolutePath().toString().replace("'","''")+"'");
  }
  }}else if(a[1].equals("hold")){System.out.println("READY");System.out.flush();System.in.read();}
  else if(a[1].equals("legacy-valid")){try(Statement q=c.createStatement()){
- q.execute("INSERT INTO advent_quizzes VALUES (1,'Fiction','fiction.png','one','two','three',2,NULL)");
+ q.execute("INSERT INTO advent_quizzes (quiz_day,display_name,portrait_ref,statement_0,statement_1,statement_2,false_choice,explanation) VALUES (1,'Fiction','fiction.png','one','two','three',2,NULL)");
  q.execute("INSERT INTO advent_character_reservations(quiz_day,character_key,display_name,portrait_ref) VALUES (1,NULL,'Fiction','fiction.png')");
  }}
  else if(a[1].equals("legacy-fixture")){try(Statement q=c.createStatement()){
- q.execute("INSERT INTO advent_quizzes VALUES (1,'Fictional fixture','fixture.png','a','b','c',0,NULL)");
+ q.execute("INSERT INTO advent_quizzes (quiz_day,display_name,portrait_ref,statement_0,statement_1,statement_2,false_choice,explanation) VALUES (1,'Fictional fixture','fixture.png','a','b','c',0,NULL)");
  q.execute("INSERT INTO advent_character_reservations(quiz_day,character_key,display_name,portrait_ref) VALUES (1,NULL,'Fictional fixture','fixture.png')");
  }}
  else if(a[1].equals("activity")){c.createStatement().execute("INSERT INTO advent_test_generations(user_id,quiz_day,generation) VALUES ('00000000-0000-0000-0000-000000000001',"+(a.length>2?Integer.parseInt(a[2]):1)+",'00000000-0000-0000-0000-000000000002')");}
- else if(a[1].equals("conflict")){c.createStatement().execute("INSERT INTO advent_quizzes VALUES (1,'other','other.png','a','b','c',0,NULL)");}
+ else if(a[1].equals("conflict")){c.createStatement().execute("INSERT INTO advent_quizzes (quiz_day,display_name,portrait_ref,statement_0,statement_1,statement_2,false_choice,explanation) VALUES (1,'other','other.png','a','b','c',0,NULL)");}
  else if(a[1].equals("score-seed")){try(Statement q=c.createStatement()){
  for(int day:new int[]{10,11,12,13})q.execute("INSERT INTO advent_test_answers(user_id,quiz_day,choice,correct_choice,response_points,participation_points,bonus_points,received_at,reveal_at) VALUES ('00000000-0000-0000-0000-000000000001',"+day+",0,0,10,1,"+(day==12?2:0)+",CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)");
  q.execute("INSERT INTO advent_test_member_state(user_id,correct_streak) VALUES ('00000000-0000-0000-0000-000000000001',4)");

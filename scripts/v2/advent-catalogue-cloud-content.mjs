@@ -1,4 +1,5 @@
 import {createHash,randomBytes} from 'node:crypto';
+import {storyChanges} from './advent-catalogue-compare.mjs';
 import {inspectSelectedContent,applySelectedContent} from './advent-catalogue-reservations.mjs';
 const refuse=()=>{throw Error('Content operation refused')};
 export async function runCloudContent({source,store,db,days,operation,environment,ask,write}) {
@@ -11,10 +12,11 @@ export async function runCloudContent({source,store,db,days,operation,environmen
         const existing=reviewed.reservations.find(r=>r.quiz_day===row.quiz_day);
         if(reviewed.reservations.some(r=>r.character_key===row.character_key&&r.quiz_day!==row.quiz_day) || (existing?.character_key && existing.character_key!==row.character_key) || (operation==='quiz'&&!existing))refuse();
         const quiz=reviewed.quizzes.find(q=>q.quiz_day===row.quiz_day);
-        const fields=operation==='character'?['character_key','display_name','portrait_ref']:['statement_0','statement_1','statement_2','false_choice','explanation'];
+        const fields=operation==='character'?['character_key','display_name','portrait_ref']:['statement_0','statement_1','statement_2','false_choice','explanation','story_0','story_1','story_2'];
         const previous=operation==='character'?existing:quiz;
-        const status=!previous?'addition':fields.every(field=>previous[field]===row[field])?'unchanged':'divergence';
+        const status=!previous?'addition':fields.every(field=>(field.startsWith('story_') && row[field]===undefined) || previous[field]===row[field])?'unchanged':'divergence';
         write(`Jour ${row.quiz_day} : ${status}`);
+        if(operation==='quiz') for(const change of storyChanges(row,quiz)) write(change);
       }
       const phrase=`APPLIQUER ${operation} ${[...days].sort((a,b)=>a-b).join(',')}`;
       if(await ask(`Cible ${environment} : saisir ${phrase} : `)!==phrase)refuse();

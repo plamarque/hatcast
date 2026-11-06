@@ -10,3 +10,9 @@ test('compares every field and returns only day and status', () => {
     assert.equal(compareQuizzes([first],[{...first,[field]:'changed'}])[0].status,'divergence');
   }
 });
+
+test('an omitted story field preserves existing content while explicit removal is a divergence', () => {
+  const old = {...quiz(1), story_0: 'First\n\nSecond', story_1: null, story_2: 'Third'};
+  assert.equal(compareQuizzes([quiz(1)], [old])[0].status, 'unchanged');
+  assert.equal(compareQuizzes([{...quiz(1), story_0: null, story_1: null, story_2: 'Third'}], [old])[0].status, 'divergence');
+});

@@ -23,6 +23,7 @@ export function validateCatalogue(root, selectedDays) {
           (q.kind === 'contribution' && q.statements == null && q.false_statement_index == null && q.reveal == null)) || !q.portrait ||
         !((q.portrait.type === 'bucket-object' && typeof q.portrait.object === 'string' && portraitPattern.test(q.portrait.object) && q.portrait.object.slice('portraits/'.length).length <= 255) ||
           (q.portrait.type === 'application-resource' && q.portrait.path === 'advent/lutin-generique-net.png'))) fail();
+    if (q.stories !== undefined && (!Array.isArray(q.stories) || q.stories.length !== 3 || !q.stories.every(v => v === null || nonempty(v)) || q.statements == null)) fail();
     days.add(q.day);
     if (q.kind === 'contribution' && q.portrait.type === 'bucket-object') {
       const identity = q.character_id ?? (q.portrait.type === 'bucket-object' ? `legacy:${q.portrait.object}` : null);
@@ -36,6 +37,7 @@ export function validateCatalogue(root, selectedDays) {
     return { quiz_day: day, display_name: q.name, portrait_ref: q.portrait.object.slice('portraits/'.length),
       statement_0: q.statements?.[0] ?? null, statement_1: q.statements?.[1] ?? null, statement_2: q.statements?.[2] ?? null,
       false_choice: q.false_statement_index ?? null, explanation: q.reveal ?? null,
+      ...(q.stories === undefined ? {} : Object.fromEntries(q.stories.map((v, i) => [`story_${i}`, v]))),
       character_key: q.character_id ?? `legacy:${q.portrait.object}` };
   });
 }
