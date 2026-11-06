@@ -83,6 +83,30 @@ human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
 
+### BUG-099 — Catalogue database test can connect during initialization
+- **Status**: Correction in progress; CI validation pending.
+- **Severity**: Medium.
+- **Affected area**: Advent catalogue PostgreSQL test.
+- **Observed behavior**: The disposable database test reported an unexpectedly terminated connection immediately after its readiness check in GitHub Actions run 42198776176.
+- **Expected behavior**: Wait for the final PostgreSQL server to accept TCP connections before running integration tests.
+- **Notes**: The local-socket readiness check can succeed during PostgreSQL's temporary initialization server; this is a suspected race, pending validation.
+
+### BUG-098 — Advent test action changes keyboard regression order
+- **Status**: Correction in progress; CI validation pending.
+- **Severity**: Medium.
+- **Affected area**: Advent browser regression gate.
+- **Observed behavior**: The new reminder test button takes keyboard focus before the test actions menu, so the existing test fails on its previous tab-order assertion.
+- **Expected behavior**: Verify that both buttons are reached in order and the menu remains usable by keyboard.
+- **Notes**: Observed in GitHub Actions run 42198776314.
+
+### BUG-097 — Advent result PostgreSQL fixture lacks story columns
+- **Status**: Correction in progress; CI validation pending.
+- **Severity**: Medium.
+- **Affected area**: Advent PostgreSQL regression gate.
+- **Observed behavior**: The result test creates the quiz schema with migration V75 alone, while result reads now require the story columns introduced by V84.
+- **Expected behavior**: The fixture applies the relevant migration and continues exercising reveal serialization against PostgreSQL.
+- **Notes**: Observed in GitHub Actions run 42198776314; no production database was modified.
+
 ### BUG-096 — Advent contribution published with incomplete anecdotes
 - **Status**: Open; correction and synchronized publication pending.
 - **Severity**: Medium.

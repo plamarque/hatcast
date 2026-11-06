@@ -720,6 +720,8 @@ test('isolated tester can project and restore a fictional ranking', async ({ pag
   const generate = page.getByRole('menuitem', { name: 'Générer un classement fictif', exact: true })
   await page.getByRole('button', { name: 'Fermer le quiz' }).focus()
   await page.keyboard.press('Tab')
+  await expect(page.getByRole('button', { name: 'Envoyer un rappel test sur cet appareil' })).toBeFocused()
+  await page.keyboard.press('Tab')
   await expect(menu).toBeFocused()
   await page.keyboard.press('Enter')
   await expect(generate).toBeVisible()
