@@ -825,3 +825,30 @@ test('future answer reveals only after advancing the simulated date past its gif
   await expect(page.getByText('Explication fictive')).toBeVisible()
   expect(headersSeen).toContain('2026-12-03')
 })
+
+
+test('direct day link opens the authorized calendar destination and survives reload', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 700 })
+  await page.route('**/v1/**', async route => {
+    const request = route.request(), path = new URL(request.url()).pathname
+    if (path === '/v1/auth/me') return route.fulfill({ json: { user: { id: 'fiction', slug: 'fiction', displayName: 'Fictif', email: 'fiction@example.test', avatarUrl: null }, platformAdmin: false } })
+    if (path === '/v1/troupes') return route.fulfill({ json: [] })
+    if (path === '/v1/me/preferences') return route.fulfill({ json: { memberDisplayName: 'Fictif', preferredRoleKeys: [] } })
+    if (path === '/v1/advent/session') return route.fulfill({ json: { testControls: false, productionPreview: true, sessionId: 'fixture' } })
+    if (path === '/v1/advent/clock') return route.fulfill({ json: { date: '2026-11-30' } })
+    if (path === '/v1/advent/discovery') return route.fulfill({ json: { discovered: true } })
+    if (path === '/v1/advent/calendar') return route.fulfill({ json: { days: [{ day: 6, state: 'today' }], priorityResult: null } })
+    if (path === '/v1/advent/doors/6') return route.fulfill({ json: { day: 6, name: 'Lutin fictif', portrait: '', genericElf: true, statements: ['Un', 'Deux', 'Trois'] } })
+    if (path.endsWith('/answer')) return route.fulfill({ json: { status: 'available' } })
+    return route.fulfill({ json: {} })
+  })
+  await page.goto('/avent?preview=1&jour=6&source=notification')
+  const gift = page.getByRole('button', { name: 'Ouvrir le cadeau du jour 6' })
+  await expect(gift).toBeVisible()
+  await gift.focus(); await page.keyboard.press('Enter')
+  await expect(page.locator('#quiz-title')).toBeFocused()
+  expect(await page.locator('main.advent').evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
+  await page.reload()
+  await expect(gift).toBeVisible()
+  expect(new URL(page.url()).search).toBe('?preview=1&jour=6&source=notification')
+})

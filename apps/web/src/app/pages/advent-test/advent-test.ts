@@ -4,7 +4,8 @@ import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatRadioModule } from '@angular/material/radio'
-import { Router } from '@angular/router'
+import { NavigationEnd, Router } from '@angular/router'
+import { Subscription } from 'rxjs'
 import { AuthApiService } from '../../core/auth/auth-api.service'
 import { PushNotificationsService } from '../../core/push/push-notifications.service'
 
@@ -202,6 +203,17 @@ export class AdventTest {
       sessionStorage.removeItem('hatcast-advent-return')
       await this.router.navigateByUrl(target.startsWith('/') && !target.startsWith('//') && !target.startsWith('/avent') ? target : '/accueil')
   }
+  private requestedDay: number | null = this.dayFromUrl()
+  private dayQueryKey = this.dayKeyFromUrl()
+  private navigationSubscription?: Subscription
+  private dayKeyFromUrl(): string {
+    return JSON.stringify(this.router.parseUrl(this.router.url).queryParamMap.getAll('jour'))
+  }
+  private dayFromUrl(): number | null {
+    const values = this.router.parseUrl(this.router.url).queryParamMap.getAll('jour')
+    if (values.length !== 1 || !/^(?:[1-9]|1[0-9]|2[0-4])$/.test(values[0])) return null
+    return Number(values[0])
+  }
   private identity = this.auth.sessionUser()?.id ?? null
   private projectionEpoch = 0
   private identityEpoch = 0
@@ -216,6 +228,7 @@ export class AdventTest {
       const identity = this.auth.sessionUser()?.id ?? null
       if (identity === this.identity) return
       this.identity = identity
+      this.requestedDay = this.dayFromUrl()
       this.reminderLoadFailed.set(false); this.previewReminderEnabled.set(false); this.reminderEnabled.set(null); this.reminderDeviceOwned.set(false); this.reminderBusy.set(false); this.reminderMessage.set('')
       this.discoveryAttempt = null
       this.identityEpoch++
@@ -480,8 +493,18 @@ export class AdventTest {
     return /^[aeiouyàâéèêëîïôùûü]/i.test(name) ? `d’${name}` : `de ${name}`
   }
 
-  ngOnInit(): void { void this.start(); setTimeout(() => this.entryHeading?.nativeElement.focus()) }
-  ngOnDestroy(): void { this.projectionEpoch++; this.clearVisibilityListener(); this.stopWaiting() }
+  ngOnInit(): void {
+    this.navigationSubscription = this.router.events.subscribe(event => {
+      if (!(event instanceof NavigationEnd)) return
+      const key = this.dayKeyFromUrl()
+      if (key === this.dayQueryKey) return
+      this.dayQueryKey = key
+      this.requestedDay = this.dayFromUrl()
+      void this.start()
+    })
+    void this.start(); setTimeout(() => this.entryHeading?.nativeElement.focus())
+  }
+  ngOnDestroy(): void { this.navigationSubscription?.unsubscribe(); this.projectionEpoch++; this.clearVisibilityListener(); this.stopWaiting() }
   private clearVisibilityListener(): void {
     if (this.visibilityListener) document.removeEventListener('visibilitychange', this.visibilityListener)
     this.visibilityListener = null
@@ -569,6 +592,7 @@ export class AdventTest {
       if (!response.days) throw new Error('Calendar unavailable')
       this.discoveryAttempt = null
       this.calendarDays.set(response.days); this.welcome.set(false); this.calendarOpen.set(true)
+      if (this.requestedDay !== null) { this.loading.set(false); await this.openCalendar(); return }
       setTimeout(() => this.calendarHeading?.nativeElement.focus())
     } catch (error) {
       if (!(error instanceof StaleRequestError) && this.contextCurrent(epoch, identity)) this.discoveryError.set(true)
@@ -647,6 +671,7 @@ export class AdventTest {
       this.result.set(null); this.resultContent.set(null); this.quiz.set(null); this.preview.set(null)
       this.replayToken = null
       this.unavailable.set(false)
+      if (this.requestedDay !== null) { this.loading.set(false); await this.openCalendar(); return }
       if (!returnToCalendar && date === '2026-12-25') {
         const epoch = this.projectionEpoch
         const identity = this.auth.sessionUser()?.id ?? null
@@ -763,7 +788,14 @@ export class AdventTest {
       this.christmasFixture.set(null)
       this.calendarDays.set(response.days); this.history.set(null); this.closeRanking(); this.christmasPreviewOpen.set(false); this.calendarOpen.set(true)
       if (this.confirmationPreview()) { this.confirmationPreview.set(false); this.quiz.set(null) }
-      setTimeout(() => this.calendarHeading?.nativeElement.focus())
+      if (this.requestedDay !== null) {
+        const requested = this.requestedDay
+        const day = response.days.find(item => item.day === requested)
+        this.loading.set(false)
+        const priorityInterrupt = day ? await this.openCalendarDay(day) : false
+        if (this.contextCurrent(epoch, identity) && !priorityInterrupt && !this.error() && !this.sessionChanged()) this.requestedDay = null
+      }
+      if (this.calendarOpen()) setTimeout(() => this.calendarHeading?.nativeElement.focus())
     } catch (error) {
       if (error instanceof StaleRequestError || !this.contextCurrent(epoch, identity)) return
       this.error.set(true)
@@ -819,7 +851,7 @@ export class AdventTest {
     } finally { if (this.contextCurrent(epoch, identity)) this.closingDay.set(null) }
   }
 
-  async openCalendarDay(day: CalendarDay): Promise<void> {
+  async openCalendarDay(day: CalendarDay): Promise<boolean | void> {
     const epoch = this.projectionEpoch
     const identity = this.auth.sessionUser()?.id ?? null
     if (day.state === 'locked' || this.loading()) return
@@ -842,7 +874,7 @@ export class AdventTest {
     this.loading.set(true); this.error.set(false)
     try {
       const history = await this.requestJson<History & { priorityResult: AdventResult | null }>(`/v1/advent-test/doors/${day.day}/history`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
-      if (history.priorityResult) { this.calendarOpen.set(false); await this.showResult(history.priorityResult); return }
+      if (history.priorityResult) { this.calendarOpen.set(false); await this.showResult(history.priorityResult); return true }
       if (!history.quiz) throw new Error('History unavailable')
       this.calendarOpen.set(false)
       if (history.result) { await this.showResult(history.result, true); return }
@@ -965,6 +997,7 @@ export class AdventTest {
       this.resultContent.set(null)
       this.replayToken = null
       this.unavailable.set(false)
+      if (this.requestedDay !== null) { this.loading.set(false); await this.openCalendar(); return }
       if (clock.date === '2026-12-25') {
         const epoch = this.projectionEpoch
         const identity = this.auth.sessionUser()?.id ?? null

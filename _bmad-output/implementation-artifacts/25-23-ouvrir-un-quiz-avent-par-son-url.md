@@ -1,11 +1,11 @@
 ---
 feature_branch: feat/25-23-ouvrir-un-quiz-avent-par-son-url
-baseline_commit:
+baseline_commit: b9b61145e80df267a3921326a6649b46b2f12c77
 ---
 
 # Story 25.23 : Ouvrir un quiz Avent par son URL
 
-Status: backlog
+Status: done
 
 ## Story
 
@@ -27,10 +27,10 @@ En tant qu’organisateur, je veux ouvrir une case Avent par un lien contenant s
 
 ## Tasks / Subtasks
 
-- [ ] Examiner les parcours d’entrée, de connexion et de calendrier ; conserver les contrôles d’autorisation serveur (AC 1–4).
-- [ ] Ajouter la sélection par jour et la reprise après étapes prioritaires, sans modifier les droits ou données (AC 1–4).
-- [ ] Ajouter des tests pertinents Angular et navigateur ; exécuter les suites concernées et vérifier responsive, accessibilité et isolation visuelle (AC 5, M3-1–2). Exécuter les tests API concernés si le serveur change.
-- [ ] Mettre à jour les contrats fonctionnels ou d’architecture concernés lors de l’implémentation et documenter un exemple de lien (AC 1–4).
+- [x] Examiner les parcours d’entrée, de connexion et de calendrier ; conserver les contrôles d’autorisation serveur (AC 1–4).
+- [x] Ajouter la sélection par jour et la reprise après étapes prioritaires, sans modifier les droits ou données (AC 1–4).
+- [x] Ajouter des tests pertinents Angular et navigateur ; exécuter les suites concernées et vérifier responsive, accessibilité et isolation visuelle (AC 5, M3-1–2). Exécuter les tests API concernés si le serveur change.
+- [x] Mettre à jour les contrats fonctionnels ou d’architecture concernés lors de l’implémentation et documenter un exemple de lien (AC 1–4).
 
 ## Dev Notes
 
@@ -43,16 +43,18 @@ En tant qu’organisateur, je veux ouvrir une case Avent par un lien contenant s
 
 ### Agent Model Used
 
-À renseigner lors de l’implémentation.
+Codex
 
 ### Completion Notes List
 
-- À renseigner.
+- Validated by Patrice after a local video covering past, current and future days for an ordinary member and a test operator.
+- Local checks: 244 targeted Angular tests; targeted Advent server security and game suites; one mocked Chromium journey; real local API access checks for ordinary and authorized test accounts. Login was verified at the service/API level; no deployed-environment proof is claimed.
 
 ### File List
 
-- À renseigner.
+- SPEC.md; Advent component and tests; login navigation test; browser test; sprint tracker and story specifications.
 
 ### Change Log
 
 - 2026-11-05 : création de la story.
+- 2026-11-06 : validation utilisateur et clôture locale.

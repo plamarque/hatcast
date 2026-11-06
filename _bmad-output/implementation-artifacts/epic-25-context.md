@@ -28,6 +28,12 @@ Give active La Malice members a festive way to discover each other through 24 da
 - Story 25.15: Preserve the Advent surprise and preview production content
 - Story 25.16: Test Advent reminders on a real device
 - Story 25.17: Make Advent result screens more expressive
+- Story 25.18: Open the private Advent preview from the account menu
+- Story 25.19: Open future Advent gifts in development test mode
+- Story 25.20: Record the complete Advent member journey
+- Story 25.21: Celebrate the Christmas recap
+- Story 25.22: Discover full Advent stories
+- Story 25.23: Open an Advent quiz by URL
 
 ## Requirements & Constraints
 
@@ -55,6 +61,7 @@ Give active La Malice members a festive way to discover each other through 24 da
 - Use the approved independent Advent visual identity, scoped styles, tokens, typography and components without changing HatCast's design system. Keep French, festive language, Material behaviors, visible focus, keyboard operation, meaningful portrait alternatives, accessible states, responsive layouts and reduced-motion equivalents.
 - First discovery presents the welcome before the personal calendar; the action opening it persists discovery across devices. Later journeys respect priority revelation and ordinary daily entry. The gift's brief animation respects reduced motion and daily dismissal or recorded answers prevent repeated automatic opening.
 - The calendar contains 24 numbered quiz cases and a Christmas case, distinguishes relevant states without relying on color alone, and permits accessible navigation. The approved preview adds a direct-URL journey to future gifts, immediate personal results and the persisted final-answer state without exposing these to ordinary members.
+- A direct day link must follow existing discovery, priority reveal, identity, environment and server authorization rules; the URL itself grants no extra access. The destination can be resumed after prerequisite steps when still authorized.
 - A played current-day quiz can return to the sleeping elf and countdown until its result; the server remains authoritative for revelation. Revisited revealed results do not replay celebration. Validate small screens, enlarged text, touch targets and isolation from unrelated HatCast screens.
 - Result scenes use expressive generic elves and accessible text while retaining the personal portrait, existing scores and reveal rules for all result journeys.
 

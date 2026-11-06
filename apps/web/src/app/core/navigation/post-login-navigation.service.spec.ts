@@ -123,6 +123,11 @@ describe('PostLoginNavigationService', () => {
     expect(url).toEqual(['/saison', 'la-malice', 'festibask'])
   })
 
+  it('preserves the Advent day and preview query through post-login navigation', async () => {
+    rememberPendingPostLoginRedirect('/avent?preview=1&jour=6&source=notification')
+    expect(await service().resolveAuthenticatedEntryUrl()).toBe('/avent?preview=1&jour=6&source=notification')
+  })
+
   it('prefers pending redirect over last visited slug', async () => {
     rememberPendingPostLoginRedirect('/agenda')
     rememberLastVisitedSeasonSlug('festibask')

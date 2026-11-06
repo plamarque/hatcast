@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing'
-import { provideRouter, Router } from '@angular/router'
+import { NavigationEnd, provideRouter, Router } from '@angular/router'
+import { Subject } from 'rxjs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AdventTest } from './advent-test'
 import { AuthApiService, UserSummary } from '../../core/auth/auth-api.service'
@@ -36,6 +37,262 @@ describe('AdventTest', () => {
     await fixture.whenStable()
     fixture.detectChanges()
   }
+  it.each(['', '0', '25', '06', '-1', '1.5', 'x', '6&jour=7'])('ignores invalid or repeated day parameter %s', value => {
+    vi.spyOn(TestBed.inject(Router), 'url', 'get').mockReturnValue(`/avent?jour=${value}`)
+    const internal = fixture.componentInstance as unknown as { dayFromUrl(): number | null }
+    expect(internal.dayFromUrl()).toBeNull()
+  })
+
+  it.each([1, 6, 24])('parses one strict day %i while retaining other parameters', day => {
+    vi.spyOn(TestBed.inject(Router), 'url', 'get').mockReturnValue(`/avent?preview=1&jour=${day}&source=notification`)
+    const internal = fixture.componentInstance as unknown as { dayFromUrl(): number | null }
+    expect(internal.dayFromUrl()).toBe(day)
+  })
+
+  it.each(['today', 'locked', 'missing', 'absent'] as const)('uses the authorized calendar for a requested %s day', async state => {
+    const component = fixture.componentInstance
+    ;(component as unknown as { requestedDay: number | null }).requestedDay = 6
+    component.testMode.set(false)
+    const requests: string[] = []
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url = String(input); requests.push(url)
+      if (url.endsWith('/session')) return Response.json({ sessionId: 'fictional', testControls: false })
+      if (url.endsWith('/clock')) return Response.json({ date: '2026-12-06' })
+      if (url.endsWith('/discovery')) return Response.json({ discovered: true })
+      if (url.endsWith('/latest-unseen')) return Response.json({ result: null })
+      if (url.endsWith('/calendar')) return Response.json({ days: state === 'absent' ? [] : [{ day: 6, state }], priorityResult: null })
+      if (url.endsWith('/answer')) return Response.json({ status: 'available' })
+      return Response.json({ day: 6, name: 'Fictif', portrait: '', statements: ['A', 'B', 'C'] })
+    })
+    await component.start()
+    expect(requests.some(url => url.endsWith('/calendar'))).toBe(true)
+    expect(requests.some(url => url.endsWith('/doors/6'))).toBe(state === 'today')
+    if (state === 'today') expect(component.preview()?.day).toBe(6)
+    if (state === 'missing') expect(component.unavailable()).toBe(true)
+    if (state === 'locked' || state === 'absent') expect(component.calendarOpen()).toBe(true)
+  })
+
+  it('reopens the requested day after first discovery', async () => {
+    const component = fixture.componentInstance
+    ;(component as unknown as { requestedDay: number | null }).requestedDay = 6
+    vi.mocked(window.fetch).mockImplementation(async (input, options) => {
+      const url = String(input)
+      if (url.endsWith('/session')) return Response.json({ sessionId: 'fictional', testControls: false })
+      if (url.endsWith('/clock')) return Response.json({ date: '2026-12-06' })
+      if (url.endsWith('/discovery')) return Response.json(options?.method === 'POST' ? { days: [{ day: 6, state: 'today' }] } : { discovered: false, attemptId: 'fictional' })
+      if (url.endsWith('/calendar')) return Response.json({ days: [{ day: 6, state: 'today' }], priorityResult: null })
+      if (url.endsWith('/answer')) return Response.json({ status: 'available' })
+      return Response.json({ day: 6, name: 'Fictif', portrait: '', statements: ['A', 'B', 'C'] })
+    })
+    await component.start(); expect(component.welcome()).toBe(true)
+    await component.discoverCalendar(); expect(component.preview()?.day).toBe(6)
+  })
+
+  it.each(['past-unplayed', 'played'] as const)('uses calendar history for a %s day', async state => {
+    const component = fixture.componentInstance
+    ;(component as unknown as { requestedDay: number | null }).requestedDay = 6
+    const calls: string[] = []
+    const quiz = { day: 6, name: 'Fictif', portrait: '', statements: ['A', 'B', 'C'] }
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url = String(input); calls.push(url)
+      if (url.endsWith('/session')) return Response.json({ sessionId: 'fictional', testControls: false })
+      if (url.endsWith('/clock')) return Response.json({ date: '2026-12-07' })
+      if (url.endsWith('/discovery')) return Response.json({ discovered: true })
+      if (url.endsWith('/latest-unseen')) return Response.json({ result: null })
+      if (url.endsWith('/calendar')) return Response.json({ days: [{ day: 6, state }], priorityResult: null })
+      if (url.endsWith('/history')) return Response.json({ quiz, result: null, priorityResult: null })
+      if (url.endsWith('/answer')) return Response.json({ status: 'available' })
+      return Response.json(quiz)
+    })
+    await component.start()
+    expect(calls.some(url => url.endsWith('/doors/6/history'))).toBe(true)
+    expect(component.preview()?.day).toBe(6)
+  })
+
+  it('opens an already played past day as its historical result without reopening it later', async () => {
+    const component = fixture.componentInstance
+    const internal = component as unknown as { requestedDay: number | null; showResult(result: unknown, historical?: boolean): Promise<void> }
+    internal.requestedDay = 6
+    const result = { answerId: 'fictional', day: 6 }
+    const show = vi.spyOn(internal, 'showResult').mockImplementation(async (value, historical) => { component.historicalResult.set(!!historical); component.result.set(value as never); component.loading.set(false) })
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url = String(input)
+      if (url.endsWith('/session')) return Response.json({ sessionId: 'fictional', testControls: false })
+      if (url.endsWith('/clock')) return Response.json({ date: '2026-12-07' })
+      if (url.endsWith('/discovery')) return Response.json({ discovered: true })
+      if (url.endsWith('/latest-unseen')) return Response.json({ result: null })
+      if (url.endsWith('/calendar')) return Response.json({ days: [{ day: 6, state: 'played' }], priorityResult: null })
+      if (url.endsWith('/history')) return Response.json({ quiz: { day: 6 }, result, priorityResult: null })
+      return Response.json({ status: 'available' })
+    })
+    await component.start()
+    expect(show).toHaveBeenCalledWith(result, true)
+    expect(internal.requestedDay).toBeNull()
+  })
+
+  it('keeps the requested day pending across successive priority results', async () => {
+    const component = fixture.componentInstance
+    const internal = component as unknown as { requestedDay: number | null; showResult(result: unknown): Promise<void> }
+    internal.requestedDay = 6
+    const results = [{ answerId: 'a', day: 1 }, { answerId: 'b', day: 2 }]
+    let calendarReads = 0
+    vi.spyOn(internal, 'showResult').mockImplementation(async result => { component.result.set(result as never); component.loading.set(false) })
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url = String(input)
+      if (url.endsWith('/session')) return Response.json({ sessionId: 'fictional', testControls: false })
+      if (url.endsWith('/clock')) return Response.json({ date: '2026-12-06' })
+      if (url.endsWith('/discovery')) return Response.json({ discovered: true })
+      if (url.endsWith('/latest-unseen')) return Response.json({ result: results[0] })
+      if (url.endsWith('/calendar')) return Response.json(++calendarReads === 1 ? { priorityResult: results[1], days: null } : { priorityResult: null, days: [{ day: 6, state: 'today' }] })
+      if (url.endsWith('/answer')) return Response.json({ status: 'available' })
+      return Response.json({ day: 6, name: 'Fictif', portrait: '', statements: ['A', 'B', 'C'] })
+    })
+    await component.start(); expect(component.result()?.answerId).toBe('a')
+    await component.continueAfterResult(); expect(component.result()?.answerId).toBe('b')
+    await component.continueAfterResult(); expect(component.preview()?.day).toBe(6)
+  })
+
+  it('does not use preview authority when the server denies preview', async () => {
+    const component = fixture.componentInstance
+    vi.spyOn(TestBed.inject(Router), 'url', 'get').mockReturnValue('/avent?preview=1&jour=6')
+    ;(component as unknown as { requestedDay: number | null }).requestedDay = 6
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url = String(input)
+      if (url.endsWith('/session')) return Response.json({ sessionId: 'fictional', testControls: false, productionPreview: false })
+      if (url.endsWith('/clock')) return new Response('', { status: 404 })
+      throw new Error('Protected data should not be requested')
+    })
+    await component.start()
+    expect(component.productionPreview()).toBe(false)
+    expect(component.unavailable()).toBe(true)
+    expect(vi.mocked(window.fetch).mock.calls.some(([url]) => String(url).includes('/calendar'))).toBe(false)
+  })
+
+  it('discards a stale calendar when the account changes', async () => {
+    const component = fixture.componentInstance
+    const auth = TestBed.inject(AuthApiService) as unknown as { sessionUserSignal: WritableSignal<UserSummary | null> }
+    auth.sessionUserSignal.set({ id: 'first', slug: 'first', email: null, displayName: 'Premier' }); fixture.detectChanges(); await fixture.whenStable()
+    ;(component as unknown as { requestedDay: number | null }).requestedDay = 6
+    component.loading.set(false); component.result.set(null)
+    let resolve!: (response: Response) => void
+    vi.mocked(window.fetch).mockImplementationOnce(() => new Promise<Response>(r => { resolve = r }))
+    const pending = component.openCalendar()
+    auth.sessionUserSignal.set(null); fixture.detectChanges()
+    resolve(Response.json({ days: [{ day: 6, state: 'today' }], priorityResult: null }))
+    await pending
+    expect(component.preview()).toBeNull()
+    expect(component.calendarDays()).toEqual([])
+  })
+
+  it('rechecks the link for a second account and discards the first account calendar', async () => {
+    const component = fixture.componentInstance
+    const auth = TestBed.inject(AuthApiService) as unknown as { sessionUserSignal: WritableSignal<UserSummary | null> }
+    vi.spyOn(TestBed.inject(Router), 'url', 'get').mockReturnValue('/avent?jour=6')
+    let second = false
+    let resolveFirst!: (response: Response) => void
+    let firstCalendarStarted!: () => void
+    const firstCalendar = new Promise<void>(resolve => { firstCalendarStarted = resolve })
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url = String(input)
+      if (url.endsWith('/session')) return Response.json({ sessionId: second ? 'second' : 'first', testControls: false })
+      if (url.endsWith('/clock')) return Response.json({ date: '2026-12-06' })
+      if (url.endsWith('/discovery')) return Response.json({ discovered: true })
+      if (url.endsWith('/latest-unseen')) return Response.json({ result: null })
+      if (url.endsWith('/calendar')) {
+        if (!second) { firstCalendarStarted(); return new Promise<Response>(resolve => { resolveFirst = resolve }) }
+        return Response.json({ days: [{ day: 6, state: 'locked' }], priorityResult: null })
+      }
+      if (url.endsWith('/answer')) return Response.json({ status: 'available' })
+      return Response.json({ day: 6, name: 'Premier compte', portrait: '', statements: ['A', 'B', 'C'] })
+    })
+    auth.sessionUserSignal.set({ id: 'first', slug: 'first', email: null, displayName: 'Premier' }); fixture.detectChanges()
+    await firstCalendar
+    second = true
+    auth.sessionUserSignal.set({ id: 'second', slug: 'second', email: null, displayName: 'Second' }); fixture.detectChanges()
+    await vi.waitFor(() => expect(component.calendarDays()[0]?.state).toBe('locked'))
+    resolveFirst(Response.json({ days: [{ day: 6, state: 'today' }], priorityResult: null }))
+    await vi.waitFor(() => expect(component.calendarOpen()).toBe(true))
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(component.calendarDays()[0]?.state).toBe('locked')
+    expect(component.calendarOpen()).toBe(true)
+    expect(component.preview()).toBeNull()
+    expect(vi.mocked(window.fetch).mock.calls.some(([url]) => String(url).endsWith('/doors/6'))).toBe(false)
+  })
+
+  it('rechecks prerequisites and opens a new day when the active URL changes', async () => {
+    const component = fixture.componentInstance
+    const router = TestBed.inject(Router)
+    vi.spyOn(router, 'url', 'get').mockReturnValue('/avent?jour=6')
+    const calls: string[] = []
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url = String(input); calls.push(url)
+      if (url.endsWith('/session')) return Response.json({ sessionId: 'fictional', testControls: false })
+      if (url.endsWith('/clock')) return Response.json({ date: '2026-12-06' })
+      if (url.endsWith('/discovery')) return Response.json({ discovered: true })
+      if (url.endsWith('/latest-unseen')) return Response.json({ result: null })
+      if (url.endsWith('/calendar')) return Response.json({ days: [{ day: 6, state: 'today' }], priorityResult: null })
+      if (url.endsWith('/answer')) return Response.json({ status: 'available' })
+      return Response.json({ day: 6, name: 'Fictif', portrait: '', statements: ['A', 'B', 'C'] })
+    })
+    ;(router.events as Subject<unknown>).next(new NavigationEnd(1, '/avent?jour=6', '/avent?jour=6'))
+    await vi.waitFor(() => expect(component.preview()?.day).toBe(6))
+    expect(calls.findIndex(url => url.endsWith('/discovery'))).toBeLessThan(calls.findIndex(url => url.endsWith('/calendar')))
+    expect(calls.findIndex(url => url.endsWith('/calendar'))).toBeLessThan(calls.findIndex(url => url.endsWith('/doors/6')))
+  })
+
+  it.each(['history', 'quiz'] as const)('retains the requested day after a failed %s read and retries it', async failure => {
+    const component = fixture.componentInstance
+    const internal = component as unknown as { requestedDay: number | null }
+    internal.requestedDay = 6
+    let fail = true
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url = String(input)
+      if (url.endsWith('/session')) return Response.json({ sessionId: 'fictional', testControls: false })
+      if (url.endsWith('/clock')) return Response.json({ date: '2026-12-07' })
+      if (url.endsWith('/discovery')) return Response.json({ discovered: true })
+      if (url.endsWith('/latest-unseen')) return Response.json({ result: null })
+      if (url.endsWith('/calendar')) return Response.json({ days: [{ day: 6, state: failure === 'history' ? 'past-unplayed' : 'today' }], priorityResult: null })
+      if (url.endsWith('/history')) return fail && failure === 'history' ? new Response('', { status: 500 }) : Response.json({ quiz: { day: 6 }, result: null, priorityResult: null })
+      if (url.endsWith('/doors/6') && fail && failure === 'quiz') return new Response('', { status: 500 })
+      if (url.endsWith('/answer')) return Response.json({ status: 'available' })
+      return Response.json({ day: 6, name: 'Fictif', portrait: '', statements: ['A', 'B', 'C'] })
+    })
+    await component.start()
+    expect(component.error()).toBe(true)
+    expect(internal.requestedDay).toBe(6)
+    fail = false
+    await component.start()
+    expect(component.preview()?.day).toBe(6)
+    expect(internal.requestedDay).toBeNull()
+  })
+
+  it('resumes the requested day after a priority result returned by history', async () => {
+    const component = fixture.componentInstance
+    const internal = component as unknown as { requestedDay: number | null; showResult(result: unknown): Promise<void> }
+    internal.requestedDay = 6
+    const result = { answerId: 'priority', day: 5 }
+    let historyReads = 0
+    vi.spyOn(internal, 'showResult').mockImplementation(async value => { component.result.set(value as never); component.loading.set(false) })
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url = String(input)
+      if (url.endsWith('/session')) return Response.json({ sessionId: 'fictional', testControls: false })
+      if (url.endsWith('/clock')) return Response.json({ date: '2026-12-07' })
+      if (url.endsWith('/discovery')) return Response.json({ discovered: true })
+      if (url.endsWith('/latest-unseen')) return Response.json({ result: null })
+      if (url.endsWith('/calendar')) return Response.json({ days: [{ day: 6, state: 'past-unplayed' }], priorityResult: null })
+      if (url.endsWith('/history')) return Response.json(++historyReads === 1 ? { priorityResult: result } : { quiz: { day: 6 }, result: null, priorityResult: null })
+      if (url.endsWith('/answer')) return Response.json({ status: 'available' })
+      return Response.json({ day: 6, name: 'Fictif', portrait: '', statements: ['A', 'B', 'C'] })
+    })
+    await component.start()
+    expect(component.result()?.answerId).toBe('priority')
+    expect(internal.requestedDay).toBe(6)
+    await component.continueAfterResult()
+    expect(component.preview()?.day).toBe(6)
+    expect(internal.requestedDay).toBeNull()
+    expect(historyReads).toBe(2)
+  })
+
   it('confirms the ordinary date and signs out without recording a dismissal', async () => {
     const component = fixture.componentInstance
     const auth = TestBed.inject(AuthApiService) as unknown as { sessionUserSignal: WritableSignal<UserSummary | null> }
