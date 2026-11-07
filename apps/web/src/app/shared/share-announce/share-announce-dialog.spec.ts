@@ -291,6 +291,61 @@ describe('ShareAnnounceDialog', () => {
     TestBed.inject(MatDialog).closeAll()
   })
 
+  it('replaces the form with a compact success and the names notified', async () => {
+    const getRecipients = vi.fn().mockResolvedValue({ ...recipientsMock, data: { ...recipientsMock.data, confirmationFingerprint: 'preview-1' } })
+    const sendNotifications = vi.fn().mockResolvedValue({ ok: true, status: 200, data: { accepted: true, acceptedCount: 1, acceptedRecipients: [{ participantId: 'p-3', displayName: 'Chloé' }] } })
+    const dialog = { open: vi.fn().mockReturnValue({ afterClosed: () => of(['p-1', 'p-3']) }) }
+    const fixture = await configureDialog({ ...baseDialogData, intent: 'availability_nudge', allRecipients: true }, { getRecipients, sendNotifications, dialog })
+    await vi.waitFor(() => { fixture.detectChanges(); expect(fixture.nativeElement.querySelector('button[aria-label="Notifier"]')?.disabled).toBe(false) })
+    fixture.nativeElement.querySelector('button[aria-label="Notifier"]').click()
+    await vi.waitFor(() => {
+      fixture.detectChanges()
+      const status = fixture.nativeElement.querySelector('section[role="status"]')
+      expect(status?.textContent).toContain('Chloé')
+      expect(status?.textContent).toContain('Les personnes suivantes ont été notifiées')
+      expect(status?.querySelectorAll('li')).toHaveLength(1)
+      expect(fixture.nativeElement.textContent).toContain('Relance envoyée')
+      expect(fixture.nativeElement.querySelector('textarea')).toBeNull()
+      expect(fixture.nativeElement.querySelector('button[aria-label="Notifier"]')).toBeNull()
+    })
+  })
+
+  it('reports an empty accepted audience without success names', async () => {
+    const getRecipients = vi.fn().mockResolvedValue({ ...recipientsMock, data: { ...recipientsMock.data, confirmationFingerprint: 'preview-1' } })
+    const sendNotifications = vi.fn().mockResolvedValue({ ok: true, status: 200, data: { accepted: true, acceptedCount: 0, acceptedRecipients: [] } })
+    const dialog = { open: vi.fn().mockReturnValue({ afterClosed: () => of(['p-1']) }) }
+    const fixture = await configureDialog({ ...baseDialogData, intent: 'availability_nudge', allRecipients: true }, { getRecipients, sendNotifications, dialog })
+    await vi.waitFor(() => { fixture.detectChanges(); expect(fixture.nativeElement.querySelector('button[aria-label="Notifier"]')?.disabled).toBe(false) })
+    fixture.nativeElement.querySelector('button[aria-label="Notifier"]').click()
+    await vi.waitFor(() => {
+      fixture.detectChanges()
+      const status = fixture.nativeElement.querySelector('section[role="status"]')
+      expect(status?.textContent).toContain('Aucune notification')
+      expect(fixture.nativeElement.textContent).toContain('Relance non envoyée')
+      expect(fixture.nativeElement.textContent).toContain('Réessayer')
+      expect(status?.querySelectorAll('li')).toHaveLength(0)
+    })
+  })
+
+  it('separates failed people from successful ones in a partial result', async () => {
+    const getRecipients = vi.fn().mockResolvedValue({ ...recipientsMock, data: { ...recipientsMock.data, confirmationFingerprint: 'preview-1' } })
+    const sendNotifications = vi.fn().mockResolvedValue({ ok: true, status: 200, data: { accepted: true, acceptedCount: 1, acceptedRecipients: [{ participantId: 'p-1', displayName: 'Alice' }], failedRecipients: [{ participantId: 'p-2', displayName: 'Bob' }] } })
+    const dialog = { open: vi.fn().mockReturnValue({ afterClosed: () => of(['p-1', 'p-2']) }) }
+    const fixture = await configureDialog({ ...baseDialogData, intent: 'availability_nudge', allRecipients: true }, { getRecipients, sendNotifications, dialog })
+    await vi.waitFor(() => { fixture.detectChanges(); expect(fixture.nativeElement.querySelector('button[aria-label="Notifier"]')?.disabled).toBe(false) })
+    fixture.nativeElement.querySelector('button[aria-label="Notifier"]').click()
+    await vi.waitFor(() => {
+      fixture.detectChanges()
+      const status = fixture.nativeElement.querySelector('section[role="status"]')
+      expect(fixture.nativeElement.textContent).toContain('Relance partiellement envoyée')
+      expect(status?.textContent).toContain('Alice')
+      expect(status?.textContent).toContain('La relance n’a pas pu être envoyée à')
+      expect(status?.textContent).toContain('Bob')
+      expect(fixture.nativeElement.querySelector('textarea')).toBeNull()
+      expect(fixture.nativeElement.textContent).not.toContain('Réessayer')
+    })
+  })
+
   it('does not send when the all-recipient confirmation is cancelled', async () => {
     const getRecipients = vi.fn().mockResolvedValue({ ...recipientsMock, data: { ...recipientsMock.data, confirmationFingerprint: 'preview-1' } })
     const sendNotifications = vi.fn()
@@ -366,7 +421,7 @@ describe('ShareAnnounceDialog', () => {
       )
       expect(captureReminder).toHaveBeenCalledWith(
         expect.objectContaining({ event_id: 'event-1' }),
-        { outcome: 'succeeded', recipient_count_bucket: '0' },
+        { outcome: 'failed', recipient_count_bucket: '0' },
       )
     })
   })

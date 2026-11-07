@@ -802,7 +802,7 @@ components:
 
     ShareNotifyResponse:
       type: object
-      required: [accepted, notifiedCount, manualCount, acceptedCount, intent]
+      required: [accepted, notifiedCount, manualCount, acceptedCount, acceptedRecipients, failedRecipients, intent]
       properties:
         accepted:
           type: boolean
@@ -812,6 +812,30 @@ components:
           type: integer
         acceptedCount:
           type: integer
+        acceptedRecipients:
+          type: array
+          description: Accounts with at least one successfully sent or partially sent notification.
+          items:
+            type: object
+            required: [participantId, displayName]
+            properties:
+              participantId:
+                type: string
+                format: uuid
+              displayName:
+                type: string
+        failedRecipients:
+          type: array
+          description: Eligible unanswered accounts without a successful notification.
+          items:
+            type: object
+            required: [participantId, displayName]
+            properties:
+              participantId:
+                type: string
+                format: uuid
+              displayName:
+                type: string
         intent:
           type: string
 

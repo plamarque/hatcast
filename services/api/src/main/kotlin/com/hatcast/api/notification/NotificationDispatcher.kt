@@ -28,7 +28,8 @@ class NotificationDispatcher(
     private val log = LoggerFactory.getLogger(javaClass)
 
     @Transactional
-    fun dispatch(context: NotificationDispatchContext) {
+    fun dispatch(context: NotificationDispatchContext): Set<UUID> {
+        val processed = mutableSetOf<UUID>()
         try {
             val event =
                 eventRepository.findById(context.eventId).orElseThrow {
@@ -41,7 +42,7 @@ class NotificationDispatcher(
                     context.intent,
                     context.eventId,
                 )
-                return
+                return emptySet()
             }
 
             val category = context.intent.toCategory(context.reminderWindow)
@@ -55,7 +56,9 @@ class NotificationDispatcher(
                         .associate { it.id to it.gender }
                 }
             for (recipient in recipients) {
-                deliverToRecipient(context, recipient, event, category, genderByUserId)
+                if (deliverToRecipient(context, recipient, event, category, genderByUserId)) {
+                    recipient.userId?.let(processed::add)
+                }
             }
         } catch (ex: Exception) {
             log.error(
@@ -66,6 +69,7 @@ class NotificationDispatcher(
                 ex,
             )
         }
+        return processed
     }
 
     private fun deliverToRecipient(
@@ -74,11 +78,12 @@ class NotificationDispatcher(
         event: EventEntity,
         category: NotificationCategory,
         genderByUserId: Map<UUID, MemberGender?>,
-    ) {
+    ): Boolean {
+        var processed = false
         try {
             if (recipient.userId == null) {
                 deliverGuestEmailOnly(context, recipient, event, category)
-                return
+                return false
             }
             val recipientGender = genderByUserId[recipient.userId]
             val payload =
@@ -119,8 +124,9 @@ class NotificationDispatcher(
                     relativeUrl = payload.url,
                 )
             val confirmedChannels = context.recipientChannels[recipient.userId]
-            deliverPush(recipient.userId, category, payload, context.intent, context.eventId, confirmedChannels)
-            deliverEmail(recipient.userId, category, emailSubject, htmlBody, context.intent, context.eventId, confirmedChannels)
+            processed = deliverPush(recipient.userId, category, payload, context.intent, context.eventId, confirmedChannels)
+            val emailProcessed = deliverEmail(recipient.userId, category, emailSubject, htmlBody, context.intent, context.eventId, confirmedChannels)
+            return processed || emailProcessed
         } catch (ex: Exception) {
             log.error(
                 "notification_recipient_unexpected_error intent={} userId={} eventId={} error={}",
@@ -130,6 +136,7 @@ class NotificationDispatcher(
                 ex.message,
                 ex,
             )
+            return processed
         }
     }
 
@@ -359,8 +366,8 @@ class NotificationDispatcher(
         intent: NotificationIntent,
         eventId: UUID,
         confirmedChannels: Set<NotificationChannel>? = null,
-    ) {
-        if (confirmedChannels != null && NotificationChannel.PUSH !in confirmedChannels) return
+    ): Boolean {
+        if (confirmedChannels != null && NotificationChannel.PUSH !in confirmedChannels) return false
         if (!pushEligibilityPort.isPushAllowedForCategory(userId, category)) {
             persistDeliveryLogSafely(
                 intent,
@@ -372,11 +379,12 @@ class NotificationDispatcher(
                 ),
                 eventId,
             )
-            return
+            return false
         }
         try {
             val result = pushSender.sendPush(userId, payload, intent, eventId)
             persistDeliveryLogSafely(intent, userId, result, eventId)
+            return result.status in setOf(NotificationDeliveryStatus.SENT, NotificationDeliveryStatus.PARTIAL)
         } catch (ex: Exception) {
             log.warn(
                 "notification_push_unexpected_error intent={} userId={} eventId={} channel=PUSH error={}",
@@ -397,6 +405,7 @@ class NotificationDispatcher(
                 eventId,
             )
         }
+        return false
     }
 
     private fun deliverEmail(
@@ -407,8 +416,8 @@ class NotificationDispatcher(
         intent: NotificationIntent,
         eventId: UUID,
         confirmedChannels: Set<NotificationChannel>? = null,
-    ) {
-        if (confirmedChannels != null && NotificationChannel.EMAIL !in confirmedChannels) return
+    ): Boolean {
+        if (confirmedChannels != null && NotificationChannel.EMAIL !in confirmedChannels) return false
         if (!isChannelAllowed(userId, category, NotificationChannel.EMAIL)) {
             persistDeliveryLogSafely(
                 intent,
@@ -420,11 +429,11 @@ class NotificationDispatcher(
                 ),
                 eventId,
             )
-            return
+            return false
         }
         val user = userRepository.findById(userId).orElse(null)
         if (user == null) {
-            return
+            return false
         }
         val email = user.email?.trim().orEmpty()
         if (email.isBlank()) {
@@ -438,11 +447,12 @@ class NotificationDispatcher(
                 ),
                 eventId,
             )
-            return
+            return false
         }
         try {
             val result = emailSender.sendEmail(userId, email, subject, htmlBody, intent, eventId)
             persistDeliveryLogSafely(intent, userId, result, eventId)
+            return result.status in setOf(NotificationDeliveryStatus.SENT, NotificationDeliveryStatus.PARTIAL)
         } catch (ex: Exception) {
             log.warn(
                 "notification_email_unexpected_error intent={} userId={} eventId={} channel=EMAIL error={}",
@@ -463,6 +473,7 @@ class NotificationDispatcher(
                 eventId,
             )
         }
+        return false
     }
 
 

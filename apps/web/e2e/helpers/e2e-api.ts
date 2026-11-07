@@ -3,6 +3,9 @@ import type { APIRequestContext, Page } from '@playwright/test'
 import { E2E_API_KEY } from '../fixtures/e1-cutover.constants'
 
 const apiBase = process.env.PLAYWRIGHT_API_BASE_URL ?? 'http://127.0.0.1:8080'
+if (process.env.PLAYWRIGHT_SAFE_REMINDER_E2E === '1' && apiBase !== `http://127.0.0.1:${process.env.PLAYWRIGHT_API_PORT}`) {
+  throw new Error('Isolated reminder E2E requires PLAYWRIGHT_API_BASE_URL to match PLAYWRIGHT_API_PORT')
+}
 
 export type E1CutoverFixture = {
   troupeSlug: string

@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 import { prepareE1Run, resolveE1Context } from './helpers/e1-staging'
 import { openEventTab } from './helpers/e1.ui'
 import { assertNoHorizontalOverflow } from './helpers/e1-layout'
+import { seedMemberDisposRoles } from './helpers/dispos-poll.ui'
 
 test('organizer can review and cancel reminders for unanswered people', async ({ page, request }) => {
   const sends: string[] = []
@@ -26,4 +27,57 @@ test('organizer can review and cancel reminders for unanswered people', async ({
   await expect(confirm).toHaveCount(0)
   await expect(reminder).toBeVisible()
   expect(sends).toEqual([])
+})
+
+
+test('isolated reminder confirmation names only unanswered recipients', async ({ page, request, browser }) => {
+  test.skip(process.env.PLAYWRIGHT_SAFE_REMINDER_E2E !== '1' || process.env.PLAYWRIGHT_STAGING_E2E === '1', 'Requires isolated local servers with transports disabled')
+  await prepareE1Run(page, request)
+  const fx = await resolveE1Context(request)
+  const memberContext = await browser.newContext({ storageState: 'e2e/.auth/member.json', ignoreHTTPSErrors: true, baseURL: process.env.PLAYWRIGHT_BASE_URL })
+  const memberPage = await memberContext.newPage()
+  await seedMemberDisposRoles(memberPage, fx, fx.eventReminderSlug, ['player'], 'available')
+  await memberContext.close()
+  await openEventTab(page, fx, fx.eventReminderSlug, 'dispos')
+  const unansweredPanel = page.getByRole('region', { name: 'Personnes sans réponse' })
+  await unansweredPanel.getByRole('button', { name: 'Afficher les personnes sans réponse' }).click()
+  await expect(unansweredPanel.locator('#unanswered-list li').first()).toBeVisible()
+  await expect(unansweredPanel.locator('#unanswered-list')).not.toContainText(fx.memberDisplayName)
+  await page.waitForTimeout(1500)
+  const previewPromise = page.waitForResponse((response) => response.request().method() === 'GET' && response.url().includes('/share-recipients?'))
+  await page.getByRole('region', { name: 'Personnes sans réponse' }).getByRole('button', { name: 'Relancer' }).click()
+  const preview = await (await previewPromise).json() as { recipients: { participantId: string; displayName: string; channels: { email: { eligible: boolean }; push: { eligible: boolean } } }[] }
+  expect(preview.recipients.map((person) => person.participantId)).not.toContain(fx.memberSeasonParticipantId)
+  const excluded = preview.recipients.filter((person) => !person.channels.email.eligible && !person.channels.push.eligible)
+  expect(excluded.length).toBeGreaterThan(0)
+  const reminder = page.getByRole('dialog').filter({ has: page.getByRole('heading', { name: 'Rappel disponibilité' }) })
+  await page.waitForTimeout(1500)
+  await reminder.getByRole('button', { name: 'Notifier' }).click()
+  const confirm = page.getByRole('dialog').filter({ has: page.getByRole('heading', { name: 'Confirmer le rappel' }) })
+  await page.waitForTimeout(1500)
+  const responsePromise = page.waitForResponse((response) => response.request().method() === 'POST' && response.url().includes('/share-recipients/notify'))
+  await confirm.getByRole('button', { name: /^Envoyer à/ }).click()
+  const response = await responsePromise
+  expect(response.ok(), `Reminder request failed: ${response.status()} ${await response.text()}`).toBeTruthy()
+  const body = await response.json() as { acceptedCount: number; acceptedRecipients: { participantId: string; displayName: string }[] }
+  expect(body.acceptedCount).toBeGreaterThan(1)
+  expect(body.acceptedRecipients).toHaveLength(body.acceptedCount)
+  expect(body.acceptedRecipients.map((person) => person.participantId)).not.toContain(fx.memberSeasonParticipantId)
+  expect(body.acceptedRecipients.map((person) => person.displayName)).not.toContain(fx.memberDisplayName)
+  for (const person of excluded) expect(body.acceptedRecipients.map((r) => r.participantId)).not.toContain(person.participantId)
+  const resultDialog = page.getByRole('dialog').filter({ has: page.getByRole('heading', { name: 'Relance envoyée' }) })
+  await expect(resultDialog).toBeVisible()
+  await expect(resultDialog.locator('textarea')).toHaveCount(0)
+  await expect(resultDialog.getByRole('button', { name: 'Notifier' })).toHaveCount(0)
+  await expect(resultDialog.getByRole('button', { name: 'Fermer' })).toBeVisible()
+  const status = resultDialog.locator('section[role="status"]')
+  await expect(status.locator('li')).toHaveCount(body.acceptedCount)
+  for (const recipient of body.acceptedRecipients) await expect(status.getByText(recipient.displayName, { exact: true })).toBeVisible()
+  await expect(status).toContainText('Les personnes suivantes ont été notifiées')
+  await status.locator('p').first().scrollIntoViewIfNeeded()
+  await page.waitForTimeout(5000)
+  await resultDialog.getByRole('button', { name: 'Fermer' }).click()
+  await expect(resultDialog).toHaveCount(0)
+  await expect(unansweredPanel).toBeVisible()
+  await page.waitForTimeout(1500)
 })

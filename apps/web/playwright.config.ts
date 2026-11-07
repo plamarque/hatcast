@@ -1,12 +1,30 @@
+import { readFileSync } from 'node:fs'
 import { defineConfig, devices } from '@playwright/test'
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'https://localhost:4200'
 const apiHealthUrl = process.env.PLAYWRIGHT_API_HEALTH_URL ?? 'http://127.0.0.1:8080/actuator/health'
 /** Local: reuse servers on 4200/8080 when start-dev is already up. CI: always boot fresh. Force off: PLAYWRIGHT_REUSE_SERVERS=0 */
-const reuseServers =
+const safeReminderE2e = process.env.PLAYWRIGHT_SAFE_REMINDER_E2E === '1'
+const apiPort = Number(process.env.PLAYWRIGHT_API_PORT ?? 8080)
+const webPort = Number(process.env.PLAYWRIGHT_WEB_PORT ?? 4200)
+if (!Number.isInteger(webPort) || webPort < 1 || webPort > 65535) throw new Error('Invalid Playwright web port')
+if (!Number.isInteger(apiPort) || apiPort < 1 || apiPort > 65535) throw new Error('Invalid Playwright API port')
+const proxyConfig = process.env.PLAYWRIGHT_PROXY_CONFIG
+if (proxyConfig && !/^[A-Za-z0-9_./-]+$/.test(proxyConfig)) throw new Error('Invalid Playwright proxy config path')
+const reuseServers = !safeReminderE2e && (
   process.env.PLAYWRIGHT_REUSE_SERVERS === '1' ||
-  (!process.env.CI && process.env.PLAYWRIGHT_REUSE_SERVERS !== '0')
+  (!process.env.CI && process.env.PLAYWRIGHT_REUSE_SERVERS !== '0'))
 const isStagingTarget = !!process.env.PLAYWRIGHT_STAGING_E2E
+if (safeReminderE2e && (isStagingTarget || baseURL !== `https://localhost:${webPort}` || apiHealthUrl !== `http://127.0.0.1:${apiPort}/actuator/health`)) {
+  throw new Error('Isolated reminder E2E requires local front and API servers')
+}
+if (safeReminderE2e) {
+  if (!proxyConfig) throw new Error('Isolated reminder E2E requires a proxy config')
+  const proxy = JSON.parse(readFileSync(proxyConfig, 'utf8')) as Record<string, { target?: string }>
+  if (proxy['/v1']?.target !== `http://127.0.0.1:${apiPort}`) {
+    throw new Error('Isolated reminder E2E proxy must target its local API')
+  }
+}
 
 export default defineConfig({
   testDir: './e2e',
@@ -20,7 +38,7 @@ export default defineConfig({
     baseURL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
+    video: safeReminderE2e ? 'on' : 'retain-on-failure',
     ignoreHTTPSErrors: true,
   },
   projects: [
@@ -34,7 +52,7 @@ export default defineConfig({
       name: 'chromium-5-10-organizer',
       testMatch: /story-5-10-organizer\.spec\.ts/,
       use: { ...devices['Pixel 5'], storageState: 'e2e/.auth/admin.json' },
-      dependencies: ['setup-admin'],
+      dependencies: ['setup-admin', 'setup-member'],
     },
     {
       name: 'chromium-5-10-desktop-member',
@@ -204,13 +222,13 @@ export default defineConfig({
     : [
         {
           command:
-            'cd ../../services/api && env -u HATCAST_DATASOURCE_URL -u HATCAST_DATASOURCE_USERNAME -u HATCAST_DATASOURCE_PASSWORD HATCAST_SPRING_PROFILE=e2e ./gradlew bootRun --no-daemon',
+            `cd ../../services/api && env -u HATCAST_DATASOURCE_URL -u HATCAST_DATASOURCE_USERNAME -u HATCAST_DATASOURCE_PASSWORD -u SPRING_DATASOURCE_URL -u SPRING_DATASOURCE_USERNAME -u SPRING_DATASOURCE_PASSWORD -u SPRING_APPLICATION_JSON SPRING_PROFILES_ACTIVE=e2e HATCAST_NOTIFICATION_EMAIL_ENABLED=false HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY= HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY= HATCAST_SPRING_PROFILE=e2e ${safeReminderE2e ? `HATCAST_CORS_ALLOWED_ORIGINS=https://localhost:${webPort}` : ""} HATCAST_SERVER_PORT=${apiPort} SERVER_PORT=${apiPort} ./gradlew bootRun --no-daemon`,
           url: apiHealthUrl,
           reuseExistingServer: reuseServers,
           timeout: 240_000,
         },
         {
-          command: `npm run dev -- --port ${Number(process.env.PLAYWRIGHT_WEB_PORT ?? 4200)} --host 127.0.0.1`,
+          command: `npm run dev -- --port ${webPort} --host 127.0.0.1${proxyConfig ? ` --proxy-config ${proxyConfig}` : ''}`,
           url: baseURL,
           reuseExistingServer: reuseServers,
           timeout: 180_000,

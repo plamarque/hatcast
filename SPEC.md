@@ -71,6 +71,8 @@ On an event’s availability tab, any viewer authorized to read the availability
 
 An organizer eligible to send an availability reminder can use the bell-labelled **Relancer** action beside the list heading. It opens the existing availability reminder dialog; Notifier then opens a confirmation before requesting reminders for all currently eligible unanswered participants. Existing authorization, recipient revalidation, channel preferences and delivery reporting continue to apply; no individual recipient selection is introduced in this entry point.
 
+Les demandes de rappel de disponibilité confirment les personnes retenues après la dernière vérification de leurs réponses, une fois par compte. La confirmation distingue les personnes avec au moins un canal envoyé ou partiellement envoyé des personnes dont la notification n’a pas abouti ; si personne ne reste éligible, elle le précise.
+
 ---
 
 ## Organizer share and announce (V2 target)
