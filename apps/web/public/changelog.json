@@ -1,5 +1,14 @@
 [
   {
+    "version": "2.8.0",
+    "date": "2026-11-07",
+    "changes": [
+      "🔧 Spectacle — retrouve les informations essentielles dans un bandeau et accède plus directement aux dispos et à l’équipe.",
+      "✨ Dispos — vois combien de personnes n’ont pas encore répondu et affiche leurs noms.",
+      "✨ Relances — les orgas peuvent relancer les personnes concernées depuis les dispos et voir qui a été inclus."
+    ]
+  },
+  {
     "version": "2.7.0",
     "date": "2026-10-23",
     "changes": [
