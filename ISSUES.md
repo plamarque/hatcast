@@ -313,6 +313,13 @@ BUG-037 and BUG-029 have fixture-only corrections verified by the complete API s
 - **Expected behavior**: Each scenario starts only once the previous isolated servers have released their ports, or fails if they do not stop.
 - **Notes/context**: GitHub run 41357887231 passed the first scenario before failing to start the next one. All three scenarios passed locally after the correction.
 
+### BUG-082 — Event details E2E expects removed dialog
+- **Status**: Corrected locally; full release and CI verification pending.
+- **Severity**: High (staging gate blocked).
+- **Affected area**: Event details Playwright regression.
+- **Observed behavior**: The test waits for the removed « Plus d’informations » dialog while the current interface uses expandable « Voir plus » details.
+- **Expected behavior**: The test exercises expansion, season information and collapse in the current interface.
+
 ### BUG-081 — Release 2.8.0 checks fail on Advent and event tests
 - **Status**: Corrected locally; full release and CI verification pending.
 - **Severity**: High (release checks blocked).
