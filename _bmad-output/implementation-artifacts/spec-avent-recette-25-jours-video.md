@@ -2,7 +2,7 @@
 title: 'Advent 26-day filmed acceptance journey'
 type: 'chore'
 created: '2026-11-04'
-status: 'in-progress'
+status: 'done'
 baseline_commit: 'cee8dcdea658612f46ac9717175a2c162bc58da5'
 route: 'dispatch'
 review_loop_iteration: 0
@@ -49,9 +49,9 @@ context: []
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] Inspect applicable contracts, local fixtures, and isolation controls; prepare a disposable application and securely load and verify the available official catalogue.
-- [ ] Implement and run a Playwright journey with chronological system-clock changes, persistent answers, navigation assertions and recorded video.
-- [ ] Provide the video and a concise dated evidence report, including failures and notification limitations.
+- [x] Inspect applicable contracts, local fixtures, and isolation controls; prepare a disposable application and securely load and verify the available official catalogue.
+- [x] Implement and run a Playwright journey with chronological system-clock changes, persistent answers, navigation assertions and recorded video.
+- [x] Provide the video and a concise dated evidence report, including failures and notification limitations.
 
 **Acceptance Criteria:**
 - Given an isolated normal member account with authorized official content, when the 26-day scenario runs, then each exercised screen and transition is checked against the contract and the recording is preserved even on failure.
@@ -60,6 +60,10 @@ context: []
 - Given notifications enabled, when local push delivery cannot be observed, then the report explicitly separates preference checks from delivery evidence.
 
 ## Implementation Notes
+
+- On 2026-11-07, the isolated real-clock journey reached December 26 and produced a playable 92-second private recording and evidence report. Eleven complete official quizzes were available; days 12–24 had no complete official quiz. A missed day was played late without points. The video samples screens at a fixed rate rather than recording continuous motion.
+- The reminder preference was disabled and push delivery was not verified in this isolated profile. The day-26 ranking was asserted by the journey; its visible coverage must be judged from the recording. The user was informed of these limitations.
+- After reconciliation with current `v2`, the web build, isolated catalogue/API preflight, 11 guardian/validation tests and 7 targeted browser/recording tests passed. Private quiz content and video remain outside Git.
 
 ## Spec Change Log
 
