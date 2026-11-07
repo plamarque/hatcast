@@ -1,5 +1,5 @@
 import { TextFieldModule } from '@angular/cdk/text-field'
-import { Component, computed, inject, signal } from '@angular/core'
+import { afterNextRender, Component, computed, ElementRef, inject, Injector, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
 import { MatChipsModule } from '@angular/material/chips'
@@ -85,6 +85,8 @@ function isAlreadyNotified(card: RecipientCard): boolean {
 })
 export class ShareAnnounceDialog {
   private readonly ref = inject(MatDialogRef<ShareAnnounceDialog, void>)
+  private readonly host = inject(ElementRef<HTMLElement>)
+  private readonly injector = inject(Injector)
   private readonly api = inject(ShareAnnounceApiService)
   private readonly snack = inject(MatSnackBar)
   private readonly dialog = inject(MatDialog)
@@ -128,6 +130,8 @@ export class ShareAnnounceDialog {
   protected readonly recipientsError = signal(false)
   protected readonly recipientCards = signal<RecipientCard[]>([])
   private readonly reminderFingerprint = signal<string | null>(null)
+  protected readonly acceptedRecipients = signal<{ participantId: string; displayName: string }[] | null>(null)
+  protected readonly failedRecipients = signal<{ participantId: string; displayName: string }[]>([])
   protected readonly sendingReminder = signal(false)
   private readonly confirmationOpen = signal(false)
   protected readonly lastManualNotifyAt = signal<string | null>(null)
@@ -206,6 +210,7 @@ export class ShareAnnounceDialog {
 
   protected openNotificationConfirmation(): void {
     if (this.confirmationOpen() || this.sendingReminder() || this.loadingRecipients() || this.recipientsError() || !this.reminderFingerprint() || !this.hasNotifiableRecipient()) return
+    this.acceptedRecipients.set(null)
     this.confirmationOpen.set(true)
     const ref = this.dialog.open(AvailabilityReminderConfirmDialog, { data: { recipients: this.recipientCards(), messageText: this.messageText, allRecipients: this.data.allRecipients, lastManualNotifyAt: this.lastManualNotifyAt(), guardDays: this.guardDays() }, autoFocus: 'dialog', restoreFocus: true })
     ref.afterClosed().subscribe((participantIds) => {
@@ -220,6 +225,7 @@ export class ShareAnnounceDialog {
 
   private async sendReminder(recipientParticipantIds: string[]): Promise<void> {
     if (this.sendingReminder()) return
+    this.acceptedRecipients.set(null)
     this.sendingReminder.set(true)
     try {
       const result = await this.api.sendNotifications(this.data.seasonId, this.data.eventId, 'availability_nudge', this.messageText, this.reminderFingerprint(), recipientParticipantIds)
@@ -227,10 +233,12 @@ export class ShareAnnounceDialog {
         if (this.data.intent === 'availability_nudge' && this.data.troupeId) {
           const ctx = this.analytics.eventContext(this.data.eventId, this.data.seasonId, this.data.troupeId)
           this.analytics.captureAvailabilityReminder({ ...ctx, actor_scope: this.data.actorScope }, {
-            outcome: 'succeeded', recipient_count_bucket: recipientCountBucket(result.data?.acceptedCount ?? 0),
+            outcome: (result.data?.acceptedCount ?? 0) > 0 ? 'succeeded' : 'failed', recipient_count_bucket: recipientCountBucket(result.data?.acceptedCount ?? 0),
           })
         }
-        this.snack.open('Demande de rappel prise en compte', 'OK', { duration: 4000 })
+        this.failedRecipients.set(Array.isArray(result.data.failedRecipients) ? result.data.failedRecipients : [])
+        this.acceptedRecipients.set(Array.isArray(result.data.acceptedRecipients) ? result.data.acceptedRecipients : [])
+        afterNextRender(() => (this.host.nativeElement.querySelector('[mat-dialog-title]') as HTMLElement | null)?.focus(), { injector: this.injector })
         void this.loadRecipients()
       } else if (result.status === 409) {
         this.captureReminderOutcome('refused')
@@ -246,6 +254,12 @@ export class ShareAnnounceDialog {
     } finally {
       this.sendingReminder.set(false)
     }
+  }
+
+  protected retryReminder(): void {
+    this.acceptedRecipients.set(null)
+    this.failedRecipients.set([])
+    void this.loadRecipients()
   }
 
   private captureReminderOutcome(outcome: 'failed' | 'refused'): void {

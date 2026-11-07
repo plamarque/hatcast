@@ -3,7 +3,7 @@ import { signal, WritableSignal } from '@angular/core'
 import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router'
 import { MatDialog } from '@angular/material/dialog'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
-import { BehaviorSubject } from 'rxjs'
+import { BehaviorSubject, Subject } from 'rxjs'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
@@ -304,7 +304,7 @@ describe('EventDetail', () => {
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(getEventPage).toHaveBeenCalledWith('season-1', 'event-2', expect.objectContaining({ tab: 'infos', bySlug: true }))
+      expect(getEventPage).toHaveBeenCalledWith('season-1', 'event-2', expect.objectContaining({ tab: 'dispos', bySlug: true }))
     })
     expect((fixture.componentInstance as unknown as EventDetailHarness).event()?.id).toBe('event-2')
   })
@@ -413,17 +413,14 @@ describe('EventDetail', () => {
     })
   })
 
-  it('renders Infos labeled fields', async () => {
+  it('renders date, location and format in the compact header', async () => {
     fixture.detectChanges()
-
-    await vi.waitFor(() => {
-      const labels = [...fixture.nativeElement.querySelectorAll('.event-infos__label')].map(
-        (el: Element) => el.textContent?.trim(),
-      )
-      expect(labels).toEqual(['Date', 'Lieu', 'Format et besoins', 'Catégorie', 'Saison'])
-    })
-    expect(fixture.nativeElement.textContent).toContain('Description test')
-    expect(fixture.nativeElement.textContent).toContain('Paris')
+    await vi.waitFor(() => expect(fixture.nativeElement.querySelector('.event-infos__banner')).not.toBeNull())
+    const banner = fixture.nativeElement.querySelector('.event-infos__banner') as HTMLElement
+    expect(banner.querySelector('time')?.getAttribute('aria-label')).toBeTruthy()
+    expect(banner.textContent).toContain('Paris')
+    expect(banner.textContent).toContain('Autre')
+    expect(banner.querySelector('.event-infos__details-action')).not.toBeNull()
   })
 
   it('hides admin gear on Infos without any admin rights', async () => {
@@ -433,6 +430,13 @@ describe('EventDetail', () => {
       expect(getEventPage).toHaveBeenCalled()
     })
     expect(fixture.nativeElement.querySelector('.event-detail-header__admin .scope-admin-menu__trigger')).toBeNull()
+  })
+
+  it('shows no edit or administration controls to a member without management rights', async () => {
+    fixture.detectChanges()
+    await vi.waitFor(() => expect((fixture.componentInstance as unknown as EventDetailHarness).event()).not.toBeNull())
+    expect(fixture.nativeElement.querySelector('button[aria-label="Modifier le spectacle"]')).toBeNull()
+    expect(fixture.nativeElement.querySelector('.scope-admin-menu__trigger')).toBeNull()
   })
 
   it('shows unified admin gear on Infos when canManageEvents', async () => {
@@ -461,7 +465,6 @@ describe('EventDetail', () => {
       eventAdminItems: () => Array<{ label: string }>
     }
     expect(cmp.eventAdminItems().map((i) => i.label)).toEqual([
-      'Modifier',
       'Annoncer',
       'Participants',
       'Désactiver',
@@ -493,7 +496,6 @@ describe('EventDetail', () => {
       eventAdminItems: () => Array<{ label: string }>
     }
     expect(cmp.eventAdminItems().map((i) => i.label)).toEqual([
-      'Modifier',
       'Annoncer',
       'Participants',
       'Désactiver',
@@ -575,6 +577,7 @@ describe('EventDetail', () => {
   })
 
   it('includes Relance dispos after Annoncer when unknown participants exist', async () => {
+    queryParamMap$.next(convertToParamMap({ tab: 'equipe' }))
     mockEventPageResponse(ev('event-2', { availabilityOpenedAt: '2026-01-01T00:00:00.000Z' }), {
       hasUnknownAvailability: true,
     })
@@ -598,7 +601,6 @@ describe('EventDetail', () => {
     }
     await vi.waitFor(() => {
       expect(cmp.eventAdminItems().map((i) => i.label)).toEqual([
-        'Modifier',
         'Annoncer',
         'Relance dispos',
         'Participants',
@@ -708,6 +710,7 @@ describe('EventDetail', () => {
   })
 
   it('hides Relance dispos after Dispos summary has no unknowns even if page flag was true', async () => {
+    queryParamMap$.next(convertToParamMap({ tab: 'equipe' }))
     mockEventPageResponse(ev('event-2', { availabilityOpenedAt: '2026-01-01T00:00:00.000Z' }), {
       hasUnknownAvailability: true,
     })
@@ -836,6 +839,7 @@ describe('EventDetail', () => {
   })
 
   it('opens nudge dialog from Relance dispos admin menu action', async () => {
+    queryParamMap$.next(convertToParamMap({ tab: 'equipe' }))
     mockEventPageResponse(ev('event-2', { availabilityOpenedAt: '2026-01-01T00:00:00.000Z' }), {
       hasUnknownAvailability: true,
     })
@@ -1126,7 +1130,7 @@ describe('EventDetail', () => {
     })
   })
 
-  it('shows composition status on équipe tab without draft banner in header', async () => {
+  it('shows composition status in the header without duplicating it in Équipe', async () => {
     pagePermissions = {
         isTroupeAdmin: true,
         isSeasonOrganizer: true,
@@ -1152,12 +1156,81 @@ describe('EventDetail', () => {
     await vi.waitFor(() => {
       expect(getComposition).not.toHaveBeenCalled()
       expect(fixture.nativeElement.querySelector('.event-detail__status')).toBeNull()
-      const statusChrome = fixture.nativeElement.querySelector('.event-equipe-tab__status') as HTMLElement
+      expect(fixture.nativeElement.querySelector('.event-equipe-tab__status')).toBeNull()
+      const statusChrome = fixture.nativeElement.querySelector('.event-infos__banner') as HTMLElement
       expect(statusChrome?.textContent ?? '').not.toContain('Composition en brouillon')
       expect(
         statusChrome?.querySelector('[data-testid="composition-status-help-trigger"]'),
       ).not.toBeNull()
     })
+  })
+
+  it.each([
+    { label: 'Confirmations en cours', status: 'pending' as const, filled: 2, hint: 'confirmations' },
+    { label: 'À compléter', status: 'confirmed' as const, filled: 1, hint: 'emplacements' },
+  ])('shows $label and its organizer help only in the header', async ({ label, status, filled, hint }) => {
+    pagePermissions = { ...defaultSeasonPermissions, isTroupeAdmin: true, canManageEvents: true }
+    const slots = Array.from({ length: filled }, (_, slotIndex) => ({
+      roleKey: 'player', slotIndex, participantId: `p-${slotIndex}`, participationStatus: status,
+    }))
+    mockEventPageResponse(ev('event-2', { roleSlots: { ...emptyRoleSlots(), player: 2 } }), {
+      composition: { publishedAt: null, validatedAt: '2026-01-01T00:00:00Z', visibility: 'validated', slots },
+    })
+    queryParamMap$.next(convertToParamMap({ tab: 'equipe' }))
+    fixture.detectChanges()
+    await vi.waitFor(() => {
+      fixture.detectChanges()
+      expect(fixture.nativeElement.querySelector('.event-infos__banner')?.textContent).toContain(label)
+    })
+    expect(fixture.nativeElement.querySelector('.event-equipe-tab__status')).toBeNull()
+    const trigger = fixture.nativeElement.querySelector('.event-infos__banner [data-testid="composition-status-help-trigger"]') as HTMLButtonElement
+    expect(trigger).not.toBeNull()
+    trigger.click()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('[data-testid="composition-status-hint"]')?.textContent?.toLowerCase()).toContain(hint)
+  })
+
+  it('ignores a late Équipe status after switching to Dispos', () => {
+    const component = fixture.componentInstance as unknown as EventDetailHarness & {
+      equipeStatus: () => unknown
+      onEquipeStatusChanged: (status: unknown) => void
+    }
+    component.activeTab.set('dispos')
+    component.onEquipeStatusChanged({ type: 'pending_confirmation', label: 'Confirmations en cours', tone: 'info', managerGuideline: null })
+    expect(component.equipeStatus()).toBeNull()
+  })
+
+  it('refreshes organizer data immediately even if the form is later cancelled', async () => {
+    pagePermissions = { ...defaultSeasonPermissions, isTroupeAdmin: true, canManageEvents: true }
+    fixture.detectChanges()
+    await vi.waitFor(() => expect((fixture.componentInstance as unknown as EventDetailHarness).event()).not.toBeNull())
+    await fixture.whenStable()
+    const changes = new Subject<void>()
+    dialogOpen.mockReturnValueOnce({ componentInstance: { organizersChanged: changes }, afterClosed: () => new BehaviorSubject(undefined).asObservable() })
+    const button = fixture.nativeElement.querySelector('button[aria-label="Modifier le spectacle"]') as HTMLButtonElement
+    button.click()
+    getEventPage.mockClear()
+    changes.next()
+    await vi.waitFor(() => expect(getEventPage).toHaveBeenCalledWith('season-1', 'event-2', expect.objectContaining({ tab: 'infos' })))
+  })
+
+  it('opens the unified editor and tracks a saved format change', async () => {
+    pagePermissions = { ...defaultSeasonPermissions, isTroupeAdmin: true, canManageEvents: true }
+    fixture.detectChanges()
+    await vi.waitFor(() => expect((fixture.componentInstance as unknown as EventDetailHarness).event()).not.toBeNull())
+    const updated = ev('event-2', { templateType: 'match', roleSlots: { ...emptyRoleSlots(), player: 5 } })
+    dialogOpen.mockReturnValueOnce({ afterClosed: () => new BehaviorSubject(updated).asObservable() })
+    const capture = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureCompositionMutation')
+    const button = fixture.nativeElement.querySelector('button[aria-label="Modifier le spectacle"]') as HTMLButtonElement
+    expect(button).not.toBeNull()
+    expect(button.closest('.event-infos__banner')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('.event-detail-header [aria-label="Modifier le spectacle"]')).toBeNull()
+    button.click()
+    expect(dialogOpen).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+      data: expect.objectContaining({ mode: 'edit', canManageEvents: true, canManageComposition: true }),
+    }))
+    expect((fixture.componentInstance as unknown as EventDetailHarness).event()?.templateType).toBe('match')
+    expect(capture).toHaveBeenCalledWith(expect.anything(), { action: 'slot', outcome: 'succeeded' })
   })
 
   it('syncs tab changes to URL query', async () => {
@@ -1169,7 +1242,7 @@ describe('EventDetail', () => {
     expect(router.navigate).toHaveBeenCalledWith(
       [],
       expect.objectContaining({
-        queryParams: { tab: 'dispos' },
+        queryParams: { tab: 'equipe' },
         replaceUrl: true,
       }),
     )
@@ -1193,7 +1266,7 @@ describe('EventDetail', () => {
     expect(getComputedStyle(indicator).display).toBe('none')
 
     const tabs = tabGroup!.querySelectorAll('.mat-mdc-tab') as NodeListOf<HTMLElement>
-    expect(tabs.length).toBeGreaterThanOrEqual(3)
+    expect(tabs.length).toBeGreaterThanOrEqual(2)
     expect(parseFloat(getComputedStyle(tabs[0]!).opacity)).toBe(1)
 
     const activeTab = tabGroup!.querySelector('.mat-mdc-tab.mdc-tab--active') as HTMLElement
@@ -1473,20 +1546,19 @@ describe('EventDetail', () => {
     expect(fixture.nativeElement.querySelector('.event-detail-header__back')).toBeNull()
   })
 
-  it('shows Saison section with troupe and season nav chips at end of Infos tab', async () => {
+  it('expands additional information inline and retains season navigation', async () => {
     fixture.detectChanges()
-
-    await vi.waitFor(() => {
-      expect(fixture.nativeElement.querySelector('.event-infos__saison')).toBeTruthy()
-    })
-
-    const saison = fixture.nativeElement.querySelector('.event-infos__saison') as HTMLElement
-    expect(saison.querySelector('#event-infos-saison-label')?.textContent?.trim()).toBe('Saison')
-    expect(saison.textContent).toContain('Troupe')
-    expect(saison.textContent).toContain('Saison')
-    expect(saison.querySelector('a.event-infos__scope-chip[href="/saison/troupe/season-a"]')).not.toBeNull()
-    expect(saison.querySelector('a.event-infos__scope-chip[href="/troupes/troupe"]')).not.toBeNull()
-    expect(fixture.nativeElement.querySelector('.event-infos')?.lastElementChild).toBe(saison)
+    await vi.waitFor(() => expect(fixture.nativeElement.querySelector('.event-infos__details-action')).not.toBeNull())
+    const action = fixture.nativeElement.querySelector('.event-infos__details-action') as HTMLButtonElement
+    action.click()
+    fixture.detectChanges()
+    const expanded = fixture.nativeElement.querySelector('.event-infos__expanded') as HTMLElement
+    expect(expanded).not.toBeNull()
+    expect(expanded.querySelector('a[href="/saison/troupe/season-a"]')).not.toBeNull()
+    expect(action.getAttribute('aria-expanded')).toBe('true')
+    action.click()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.event-infos__expanded')).toBeNull()
   })
 
   it('shows event title in context row after successful load', async () => {
@@ -1526,7 +1598,7 @@ describe('EventDetail', () => {
       expect(router.navigate).toHaveBeenCalledWith(
         [],
         expect.objectContaining({
-          queryParams: { tab: 'infos' },
+          queryParams: { tab: 'dispos' },
           replaceUrl: true,
         }),
       )
@@ -1614,7 +1686,7 @@ describe('EventDetail', () => {
       }))
     fixture.detectChanges()
 
-    await vi.waitFor(() => expect(getEventPage).toHaveBeenCalledTimes(1))
+    await vi.waitFor(() => expect(getEventPage.mock.calls.filter(([, , options]) => options?.tab !== 'infos')).toHaveLength(1))
 
     const cmp = fixture.componentInstance as unknown as {
       syncCompositionFromEquipe(composition: CompositionResponse): void
@@ -1638,7 +1710,7 @@ describe('EventDetail', () => {
 
     expect(cmp.event()?.compositionLifecycle).toBe('gapsToFill')
     expect(cmp.event()?.teamStatusBadge?.shortLabel).toBe('Préparation')
-    expect(getEventPage).toHaveBeenCalledTimes(1)
+    expect(getEventPage.mock.calls.filter(([, , options]) => options?.tab !== 'infos')).toHaveLength(1)
   })
 
   it('synchronizes the real parent lifecycle and badges after a child unlock conflict', async () => {
@@ -1683,7 +1755,7 @@ describe('EventDetail', () => {
       expect(fixture.nativeElement.querySelector('.event-equipe-tab__unlock')).toBeNull()
       expect(fixture.nativeElement.textContent).toContain('Publier')
     })
-    expect(getEventPage).toHaveBeenCalledTimes(1)
+    expect(getEventPage.mock.calls.filter(([, , options]) => options?.tab !== 'infos')).toHaveLength(1)
   })
 
   it('does not prefetch composition or dispos summary on Infos tab (PERF-03)', async () => {
@@ -1786,13 +1858,14 @@ describe('EventDetail', () => {
     cmp.onTabChange(equipeIndex)
     fixture.detectChanges()
 
-    expect(getEventPage).toHaveBeenCalledTimes(2)
+    expect(getEventPage.mock.calls.filter(([, , options]) => options?.tab !== 'infos')).toHaveLength(2)
     expect(getComposition).not.toHaveBeenCalled()
   })
 
   it('serializes rapid tab bootstraps and loads the latest tab once (PERF-03)', async () => {
+    queryParamMap$.next(convertToParamMap({ tab: 'equipe' }))
     fixture.detectChanges()
-    await vi.waitFor(() => expect(getEventPage).toHaveBeenCalledTimes(1))
+    await vi.waitFor(() => expect(getEventPage.mock.calls.filter(([, , options]) => options?.tab !== 'infos')).toHaveLength(1))
 
     let resolveDispos: ((value: unknown) => void) | undefined
     getEventPage.mockImplementation(async (_seasonId: string, _ref: string, options: { tab?: string } = {}) => {
@@ -1819,6 +1892,7 @@ describe('EventDetail', () => {
       event: () => EventResponse | null
       onTabChange(index: number): void
       visibleTabs: () => string[]
+      tabBootstrapInFlight: unknown
     }
     const disposIndex = cmp.visibleTabs().indexOf('dispos')
     const equipeIndex = cmp.visibleTabs().indexOf('equipe')
@@ -1834,7 +1908,7 @@ describe('EventDetail', () => {
 
     cmp.onTabChange(equipeIndex)
     fixture.detectChanges()
-    expect(getEventPage).toHaveBeenCalledTimes(2)
+    expect(getEventPage.mock.calls.filter(([, , options]) => options?.tab !== 'infos')).toHaveLength(2)
 
     expect(resolveDispos).toBeDefined()
     resolveDispos!({
@@ -1847,39 +1921,29 @@ describe('EventDetail', () => {
       ),
     })
 
-    await vi.waitFor(() =>
-      expect(getEventPage).toHaveBeenCalledWith(
-        'season-1',
-        'event-2',
-        expect.objectContaining({ tab: 'equipe' }),
-      ),
-    )
-    expect(getEventPage).toHaveBeenCalledTimes(3)
     await vi.waitFor(() => {
       expect(cmp.activeTab()).toBe('equipe')
-      expect(cmp.event()?.title).toBe('Équipe à jour')
+      expect(cmp.event()?.title).not.toBe('Dispos obsolète')
       expect(cmp.composition()).not.toBeNull()
     })
-
+    expect(getEventPage.mock.calls.filter(([, , options]) => options?.tab !== 'infos')).toHaveLength(2)
+    await vi.waitFor(() => expect(cmp.tabBootstrapInFlight).toBeNull())
     cmp.onTabChange(disposIndex)
     fixture.detectChanges()
-    await vi.waitFor(() => expect(getEventPage).toHaveBeenCalledTimes(4))
+    await vi.waitFor(() => expect(getEventPage.mock.calls.filter(([, , options]) => options?.tab !== 'infos')).toHaveLength(3))
     expect(getEventPage).toHaveBeenLastCalledWith(
-      'season-1',
-      'event-2',
-      expect.objectContaining({ tab: 'dispos' }),
+      'season-1', 'event-2', expect.objectContaining({ tab: 'dispos' }),
     )
   })
 
-  it('does not prefetch dispos summary on Infos; Dispos tab fetches via child (PERF-03 AC3)', async () => {
+  it('does not prefetch dispos summary on Équipe; Dispos loads when selected (PERF-03 AC3)', async () => {
     mockEventPageResponse(ev('event-2', {
         availabilityOpenedAt: '2026-01-01T00:00:00.000Z',
       }))
-    queryParamMap$.next(convertToParamMap({ tab: 'infos' }))
+    queryParamMap$.next(convertToParamMap({ tab: 'equipe' }))
     fixture.detectChanges()
     await vi.waitFor(() => expect(getEventPage).toHaveBeenCalled())
     expect(getEventAvailabilitySummary).not.toHaveBeenCalled()
-    expect(getComposition).not.toHaveBeenCalled()
 
     getEventPage.mockClear()
     queryParamMap$.next(convertToParamMap({ tab: 'dispos' }))
@@ -1889,4 +1953,103 @@ describe('EventDetail', () => {
       expect(getEventAvailabilitySummary).not.toHaveBeenCalled()
     })
   })
+  it('opens the remaining Dispos tab for a legacy Infos link', async () => {
+    queryParamMap$.next(convertToParamMap({ tab: 'infos', showConfirm: 'true' }))
+    fixture.detectChanges()
+    await vi.waitFor(() => expect(fixture.nativeElement.querySelector('.event-infos__banner')).not.toBeNull())
+    expect((fixture.componentInstance as unknown as EventDetailHarness).activeTab()).toBe('dispos')
+    expect(fixture.nativeElement.querySelector('.event-detail__tabs').textContent).not.toContain('Infos')
+    expect(fixture.nativeElement.querySelector('.event-detail__tabs').textContent).toContain('Équipe')
+  })
+
+  it('loads guest category labels from the independent event Infos bootstrap', async () => {
+    let resolveInfos!: (value: unknown) => void
+    getEventPage.mockImplementation(async (_season: string, _ref: string, options: { tab: string }) => {
+      if (options.tab === 'infos') return new Promise(resolve => { resolveInfos = resolve })
+      return { ok: true, status: 200, data: buildEventPage(ev('event-2', { category: 'deplacements' }), 'dispos', { permissions: pagePermissions }) }
+    })
+    fixture.detectChanges()
+    await vi.waitFor(() => expect(resolveInfos).toBeDefined())
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.event-detail__tabs')).not.toBeNull()
+    expect(TestBed.inject(TroupeApiService).listCategories).not.toHaveBeenCalled()
+    resolveInfos({ ok: true, status: 200, data: buildEventPage(ev('event-2'), 'infos', { categories: [{ slug: 'principal', label: 'Nos spectacles' }, { slug: 'deplacements', label: 'En tournée' }] }) })
+    await vi.waitFor(() => { fixture.detectChanges(); expect((fixture.componentInstance as unknown as { infosCategories: () => Array<{ label: string }> }).infosCategories()?.some(c => c.label === 'En tournée')).toBe(true) })
+    ;(fixture.nativeElement.querySelector('.event-infos__details-action') as HTMLButtonElement).click()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.event-infos__expanded')?.textContent).toContain('En tournée')
+    expect((fixture.componentInstance as unknown as EventDetailHarness).event()?.category).toBe('deplacements')
+  })
+
+  it('offers retry when the independent Infos bootstrap fails without blocking tabs', async () => {
+    let infosCalls = 0
+    getEventPage.mockImplementation(async (_season: string, _ref: string, options: { tab: string }) => {
+      if (options.tab === 'infos') {
+        infosCalls++
+        return infosCalls === 1 ? { ok: false, status: 500 } : { ok: true, status: 200, data: buildEventPage(ev('event-2'), 'infos', { categories: [{ slug: 'principal', label: 'Nos spectacles' }] }) }
+      }
+      return { ok: true, status: 200, data: buildEventPage(ev('event-2'), 'dispos', { permissions: pagePermissions }) }
+    })
+    fixture.detectChanges()
+    await vi.waitFor(() => { fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain('Impossible de charger les informations du spectacle.') })
+    expect(fixture.nativeElement.querySelector('.event-detail__tabs')).not.toBeNull()
+    const retry = [...fixture.nativeElement.querySelectorAll('button')].find((button: HTMLButtonElement) => button.textContent?.includes('Réessayer')) as HTMLButtonElement
+    retry.click()
+    await vi.waitFor(() => expect((fixture.componentInstance as unknown as { infosCategories: () => Array<{ label: string }> }).infosCategories()?.[0].label).toBe('Nos spectacles'))
+    expect(infosCalls).toBe(2)
+    expect(TestBed.inject(TroupeApiService).listCategories).not.toHaveBeenCalled()
+  })
+
+  it('ignores an Infos response for the previously displayed event', async () => {
+    let resolveOld!: (value: unknown) => void
+    getEventPage.mockImplementation(async (_season: string, ref: string, options: { tab: string }) => {
+      if (options.tab === 'infos' && ref === 'event-2') return new Promise(resolve => { resolveOld = resolve })
+      const current = ev(ref, { category: 'deplacements' })
+      const categories = [{ slug: 'deplacements', label: 'Nouvelle catégorie' }]
+      return { ok: true, status: 200, data: buildEventPage(current, options.tab as 'infos' | 'dispos' | 'equipe', { permissions: pagePermissions, ...(options.tab === 'infos' ? { categories } : {}) }) }
+    })
+    fixture.detectChanges()
+    await vi.waitFor(() => expect(resolveOld).toBeDefined())
+    paramMap$.next(convertToParamMap({ troupeSlug: 'troupe', seasonSlug: 'season-a', eventSlug: 'event-3' }))
+    await vi.waitFor(() => { fixture.detectChanges(); expect((fixture.componentInstance as unknown as { infosCategories: () => Array<{ label: string }> }).infosCategories()?.some(c => c.label === 'Nouvelle catégorie')).toBe(true) })
+    ;(fixture.nativeElement.querySelector('.event-infos__details-action') as HTMLButtonElement).click()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.event-infos__expanded')?.textContent).toContain('Nouvelle catégorie')
+    resolveOld({ ok: true, status: 200, data: buildEventPage(ev('event-2'), 'infos', { categories: [{ slug: 'deplacements', label: 'Ancienne catégorie' }] }) })
+    await Promise.resolve()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.event-infos__expanded')?.textContent).not.toContain('Ancienne catégorie')
+  })
+
+  it('offers a retry when a delayed Dispos bootstrap fails', async () => {
+    queryParamMap$.next(convertToParamMap({ tab: 'equipe' }))
+    fixture.detectChanges()
+    await vi.waitFor(() => expect((fixture.componentInstance as unknown as EventDetailHarness).event()).not.toBeNull())
+    await fixture.whenStable()
+    fixture.detectChanges()
+    const component = fixture.componentInstance as unknown as EventDetailHarness & { tabBootstrapLoaded: WritableSignal<Record<string, boolean>>; disposBootstrapError: () => boolean; tabBootstrapInFlight: unknown }
+    expect(component.activeTab()).toBe('equipe')
+    await vi.waitFor(() => expect(component.tabBootstrapInFlight).toBeNull())
+    component.tabBootstrapLoaded.set({ infos: false, dispos: false, equipe: true })
+    getEventPage.mockClear()
+    let rejectDispos!: (result: unknown) => void
+    getEventPage.mockImplementationOnce(() => new Promise(resolve => { rejectDispos = resolve }))
+    queryParamMap$.next(convertToParamMap({ tab: 'dispos' }))
+    fixture.detectChanges()
+    await vi.waitFor(() => expect(getEventPage).toHaveBeenCalledTimes(1))
+    expect(getEventPage.mock.calls[0]?.[2]?.tab).toBe('dispos')
+    expect(component.activeTab()).toBe('dispos')
+    await fixture.whenStable()
+    fixture.detectChanges()
+    rejectDispos({ ok: false, status: 500 })
+    await vi.waitFor(() => expect(component.tabBootstrapInFlight).toBeNull())
+    expect(component.disposBootstrapError()).toBe(true)
+    await vi.waitFor(() => { fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain('Impossible de charger les disponibilités.') })
+    getEventPage.mockResolvedValueOnce({ ok: true, status: 200, data: buildEventPage(ev('event-2'), 'dispos', { permissions: pagePermissions }) })
+    const retry = [...fixture.nativeElement.querySelectorAll('button')].find((button: HTMLButtonElement) => button.textContent?.includes('Réessayer')) as HTMLButtonElement
+    retry.click()
+    await vi.waitFor(() => { fixture.detectChanges(); expect(fixture.nativeElement.textContent).not.toContain('Impossible de charger les disponibilités.') })
+    expect(getEventPage).toHaveBeenCalledTimes(2)
+  })
+
 })

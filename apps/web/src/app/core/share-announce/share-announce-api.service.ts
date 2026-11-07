@@ -90,6 +90,8 @@ export interface ShareNotifyResponse {
   manualCount: number
   intent: ShareAnnounceIntent
   acceptedCount: number
+  acceptedRecipients: { participantId: string; displayName: string }[]
+  failedRecipients?: { participantId: string; displayName: string }[]
 }
 
 type ShareApiResult<T> =

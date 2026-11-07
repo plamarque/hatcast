@@ -38,7 +38,7 @@ stakeholderSignOff: '2026-06-06 — Patrice (shipped in apps/web event-detail) �
 |----|----------|------------------|
 | **E7** | **Title in sticky header** (all breakpoints): same row as chevron back — `h1.event-detail__event-title`, ellipsis on narrow viewports. `aria-current="page"` on the `h1`. Tabs **below** header. | 2026-06-06 title row **above** tabs with badge right. |
 | **E8** | ~~Breadcrumb troupe › saison on event detail~~ — **superseded by ED1** (no breadcrumb). Admin sub-pages unchanged. | E5 breadcrumb leaf = event title. |
-| **E9** | Composition status badge + help **`?`** : **Équipe tab only** (top of `event-equipe-tab`), centered row — **not** in header, **not** on Infos/Dispos. Help panel below badge row when open. | E6 centered badge on Infos ; 2026-06-06 title row badge. |
+| **E9** | Composition status badge + help **`?`** : **event header** above the tabs (story 17.46); detailed Équipe status and organizer help appear there without duplication in the Équipe tab. | E6 centered badge on Infos ; 2026-06-06 title row badge. |
 | **E10** | **Infos tab:** no **Titre** field. **Description:** no section label; show text in value card **only when** `description.trim()` is non-empty. **Saison** section (last block): chips `{troupeName}` + `{seasonTitle}` → hub / workspace. | Prior « Contexte » first block + buttons (ED4 initial). |
 | **E11** | Tab body content: **≥ 1.5rem** padding-top below pill tab bar (all tabs). | — |
 | **E12** | Barre d’onglets : pattern **capsule M3** (coque `surface-container-high` + pastille active `primary-container`) — spec normative [ux-design-pill-tab-bar.md](./ux-design-pill-tab-bar.md) ; mixin `_hatcast-pill-tab-bar.scss`. | Ancien style pastilles isolées + `rgba(255,255,255,0.1)`. |
@@ -53,7 +53,7 @@ stakeholderSignOff: '2026-06-06 — Patrice (shipped in apps/web event-detail) �
 ┌──────────────────────────────────────────────────────────────────────┐
 │ [←] Spectacle title (ellipsis…)                           [ ⚙ ] [av] │  ← sticky header
 ├──────────────────────────────────────────────────────────────────────┤
-│              [ Infos | Dispos | Équipe | Activité ]                     │
+│              [ Dispos | Équipe | Activité* ]                     │
 ├──────────────────────────────────────────────────────────────────────┤
 │ (1.5rem gap)                                                          │
 │ Infos: … · Catégorie · Saison [chip troupe] [chip saison]             │
@@ -105,7 +105,7 @@ stakeholderSignOff: '2026-06-06 — Patrice (shipped in apps/web event-detail) �
 
 ### Composition status
 
-- [ ] **E9** Badge + help on **Équipe tab** top only; not on Infos/Dispos/header.
+- [ ] **E9** Badge + help in the event header, with detailed status when available; no duplicate in Équipe.
 - [ ] Help panel opens below badge row on Équipe tab.
 - [ ] When composition draft zone shows on Équipe, it appears below status chrome without overlap.
 
@@ -159,3 +159,5 @@ stakeholderSignOff: '2026-06-06 — Patrice (shipped in apps/web event-detail) �
 | 2026-06-06 | Sally / Patrice | Amendment E7–E11 after mobile + desktop shipping |
 | 2026-06-09 | Sally / Paige | E12 — barre onglets capsule M3 ; lien ux-design-pill-tab-bar.md |
 | 2026-06-12 | Sally / Patrice | **17.43 retro-doc** — titre inline header ; badge Équipe only ; Infos › Saison (chips, dernier bloc) ; supersedes E8 breadcrumb omit + E9 title-row badge |
+
+**Amendement 17.46 :** Le bandeau commun remplace Infos ; il contient le statut et son aide. Les informations complémentaires conservent les liens troupe et saison ; Activité reste soumise aux droits existants.

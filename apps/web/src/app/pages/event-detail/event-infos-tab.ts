@@ -1,6 +1,8 @@
 import { Component, computed, effect, inject, input, output, signal } from '@angular/core'
 import { DOCUMENT } from '@angular/common'
 import { Router, RouterLink } from '@angular/router'
+import { resolveCompositionEquipeStatusFromEvent, type CompositionEquipeStatus } from '../../core/composition/composition-equipe-status'
+import { CompositionStatusBadge } from '../../shared/composition/composition-status-badge'
 import { MatButtonModule } from '@angular/material/button'
 import { MatChipsModule } from '@angular/material/chips'
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
@@ -9,6 +11,9 @@ import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 
+import { isEventDraft } from '../../core/events/event-draft'
+import { openEventAnnounceDialog } from '../../shared/share-announce/share-announce-open'
+import { ConfirmDialog, type ConfirmDialogData } from '../seasons-list/confirm-dialog'
 import type { EventResponse } from '../../core/events/event-api.service'
 import { EventApiService } from '../../core/events/event-api.service'
 import {
@@ -48,7 +53,6 @@ import {
   CATEGORY_HELP,
   defaultCategoryLabelFromGlossary,
 } from './event-category.constants'
-import { EventCategorySelectChipSet } from './event-category-select-chip-set'
 import {
   OrganizerApiService,
   type OrganizerResponse,
@@ -63,6 +67,7 @@ import { ORGANIZERS_HELP } from './event-organizers-dialog'
   selector: 'app-event-infos-tab',
   imports: [
     MatButtonModule,
+    CompositionStatusBadge,
     MatChipsModule,
     MatDialogModule,
     MatIconModule,
@@ -71,7 +76,6 @@ import { ORGANIZERS_HELP } from './event-organizers-dialog'
     MatSnackBarModule,
     RouterLink,
     RoleDisplayChipSet,
-    EventCategorySelectChipSet,
   ],
   templateUrl: './event-infos-tab.html',
   styleUrl: './event-infos-tab.scss',
@@ -92,16 +96,27 @@ export class EventInfosTab {
   readonly seasonSlug = input.required<string>()
   readonly troupeName = input<string | null>(null)
   readonly seasonTitle = input<string | null>(null)
+  readonly canEdit = input(false)
+  readonly edit = output<void>()
   readonly canManageEvents = input(false)
+  readonly canManageComposition = input(false)
+  readonly detailedStatus = input<CompositionEquipeStatus | null>(null)
   readonly canManageTroupe = input(false)
   readonly canManageEventOrganizers = input(false)
   /** Incremented by parent when organizers change via admin menu dialog. */
   readonly organizersReloadTrigger = input(0)
+  readonly bootstrapManagedByParent = input(false)
+  readonly bootstrapError = input(false)
+  readonly retryBootstrap = output<void>()
   readonly bootstrapOrganizers = input<OrganizerResponse[] | null>(null)
   readonly bootstrapCategories = input<TroupeCategory[] | null>(null)
 
   readonly eventUpdated = output<EventResponse>()
 
+  protected readonly isDraft = computed(() => isEventDraft(this.event()))
+  protected readonly publishing = signal(false)
+  protected readonly detailsExpanded = signal(false)
+  protected readonly statusHelpOpen = signal(false)
   protected readonly glossary = signal<TroupeCategory[]>([])
   protected readonly glossaryLoading = signal(true)
   protected readonly organizers = signal<OrganizerResponse[]>([])
@@ -141,6 +156,33 @@ export class EventInfosTab {
     ),
   )
 
+  protected readonly eventStatus = computed(() =>
+    this.detailedStatus() ?? resolveCompositionEquipeStatusFromEvent(this.event(), this.canManageComposition()),
+  )
+
+  protected readonly statusHelpText = computed(() => {
+    switch (this.eventStatus()?.type) {
+      case 'none': return 'La composition de l’équipe reste à préparer.'
+      case 'complete': return 'L’équipe est complète et ses participations sont confirmées.'
+      case 'slots_to_complete': return 'La composition est validée mais certains emplacements restent à compléter.'
+      case 'has_declined': return 'Des retraits sont enregistrés dans la composition.'
+      case 'pending_confirmation': return 'Certaines participations attendent une confirmation.'
+      case 'draft': return 'La composition de l’équipe est en préparation.'
+    }
+    switch (this.event().teamStatusBadge?.key) {
+      case 'draft': return 'La composition est en préparation.'
+      case 'preparing': return 'La composition de l’équipe est en cours.'
+      case 'confirmed': return 'La composition de l’équipe est confirmée.'
+      default: return 'Les disponibilités sont en cours de collecte.'
+    }
+  })
+
+  protected readonly defaultCategoryLabel = computed(() => defaultCategoryLabelFromGlossary(this.glossary()))
+
+  protected readonly categoryLabel = computed(() =>
+    this.glossary().find((category) => category.slug === this.event().category)?.label ?? this.event().category ?? '',
+  )
+
   protected readonly selectedCategorySlug = computed(() => this.event().category ?? null)
 
   protected readonly categoryOptions = computed(() =>
@@ -170,7 +212,7 @@ export class EventInfosTab {
         this.glossaryLoading.set(false)
         return
       }
-      if (troupeId) {
+      if (troupeId && !this.bootstrapManagedByParent()) {
         void this.loadGlossary(troupeId)
       }
     })
@@ -183,7 +225,7 @@ export class EventInfosTab {
         this.organizers.set(bootstrap)
         return
       }
-      if (seasonId && eventId) {
+      if (seasonId && eventId && (!this.bootstrapManagedByParent() || trigger > 0)) {
         void this.loadOrganizers(seasonId, eventId)
       }
     })
@@ -194,15 +236,58 @@ export class EventInfosTab {
     if (Number.isNaN(date.getTime())) {
       return 'Date invalide'
     }
+    const time = new Intl.DateTimeFormat('fr-FR', {
+      hour: '2-digit', minute: '2-digit', timeZone: AGENDA_TIME_ZONE,
+    }).format(date)
     return new Intl.DateTimeFormat('fr-FR', {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
       year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+      ...(time === '00:00' ? {} : { hour: '2-digit', minute: '2-digit' }),
       timeZone: AGENDA_TIME_ZONE,
-    }).format(new Date(iso))
+    }).format(date)
+  }
+
+  protected readonly dateParts = computed(() => {
+    const date = new Date(this.event().startsAt)
+    if (Number.isNaN(date.getTime())) return null
+    return {
+      day: new Intl.DateTimeFormat('fr-FR', { day: 'numeric', timeZone: AGENDA_TIME_ZONE }).format(date),
+      weekday: new Intl.DateTimeFormat('fr-FR', { weekday: 'short', timeZone: AGENDA_TIME_ZONE }).format(date),
+      monthYear: new Intl.DateTimeFormat('fr-FR', { month: 'short', year: 'numeric', timeZone: AGENDA_TIME_ZONE }).format(date),
+      time: new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: AGENDA_TIME_ZONE }).format(date),
+    }
+  })
+
+  protected confirmPublish(): void {
+    const ev = this.event()
+    if (!this.canManageComposition() || !this.isDraft() || this.publishing()) return
+    const ref = this.dialog.open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
+      data: {
+        title: 'Publier le spectacle',
+        message: `Publier « ${ev.title} » ? Les membres verront le spectacle dans l’agenda et pourront déposer leurs disponibilités. Tu pourras ensuite l’annoncer (message, WhatsApp…).`,
+        confirmLabel: 'Publier',
+      },
+      width: 'min(100vw - 2rem, 28rem)',
+    })
+    ref.afterClosed().subscribe((ok) => { if (ok) void this.runPublish(ev) })
+  }
+
+  private async runPublish(ev: EventResponse): Promise<void> {
+    const seasonId = this.seasonId()
+    if (!seasonId || !this.canManageComposition() || !this.isDraft() || this.event().id !== ev.id) return
+    this.publishing.set(true)
+    try {
+      const result = await this.eventsApi.openAvailabilityResilient(seasonId, ev.id)
+      if (!result.ok || !result.data) {
+        this.snack.open(result.errorMessage ?? 'Publication impossible.', 'OK', { duration: 6000 })
+        return
+      }
+      this.eventUpdated.emit(result.data)
+      this.snack.open('Spectacle publié.', 'OK', { duration: 4000 })
+      openEventAnnounceDialog(this.dialog, { seasonId, seasonSlug: this.seasonSlug(), troupeSlug: this.troupeSlug(), event: result.data })
+    } finally { this.publishing.set(false) }
   }
 
   protected onCalendarMenuOpened(): void {

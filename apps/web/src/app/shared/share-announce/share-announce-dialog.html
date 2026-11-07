@@ -1,10 +1,46 @@
-<h2 mat-dialog-title [id]="dialogTitleId">{{ dialogTitle }}</h2>
+<h2 mat-dialog-title [id]="dialogTitleId" [attr.tabindex]="acceptedRecipients() ? -1 : null">
+  @if (acceptedRecipients(); as accepted) {
+    @if (accepted.length > 0 && failedRecipients().length === 0) {
+      <mat-icon class="share-announce-dialog__success-icon" aria-hidden="true">check_circle</mat-icon>Relance envoyée
+    } @else if (accepted.length > 0) {
+      Relance partiellement envoyée
+    } @else {
+      Relance non envoyée
+    }
+  } @else {
+    {{ dialogTitle }}
+  }
+</h2>
 
-<mat-dialog-content class="share-announce-dialog__content">
+<mat-dialog-content class="share-announce-dialog__content" [class.share-announce-dialog__result-content]="acceptedRecipients() !== null">
   <p class="share-announce-dialog__subtitle">
     {{ data.eventTitle }} — {{ subtitleDate }}
   </p>
 
+  @if (acceptedRecipients(); as accepted) {
+    <section class="share-announce-dialog__result" role="status" aria-live="polite">
+      <div class="share-announce-dialog__result-lists" tabindex="0" role="region" aria-label="Résultat des notifications">
+        @if (accepted.length > 0) {
+          <p>Les personnes suivantes ont été notifiées :</p>
+          <ul class="share-announce-dialog__names">
+            @for (recipient of accepted; track recipient.participantId) {
+              <li>{{ recipient.displayName }}</li>
+            }
+          </ul>
+        }
+        @if (failedRecipients().length > 0) {
+          <p>La relance n’a pas pu être envoyée à :</p>
+          <ul class="share-announce-dialog__names">
+            @for (recipient of failedRecipients(); track recipient.participantId) {
+              <li>{{ recipient.displayName }}</li>
+            }
+          </ul>
+        } @else if (accepted.length === 0) {
+          <p>Aucune notification n’a pu être envoyée.</p>
+        }
+      </div>
+    </section>
+  } @else {
   <mat-form-field appearance="outline" subscriptSizing="dynamic" class="share-announce-dialog__message-field">
     <mat-label>{{ messageLabel }}</mat-label>
     <textarea
@@ -101,8 +137,12 @@
   } @else {
     <p class="share-announce-dialog__recipients-text">Aucun destinataire pour cette action.</p>
   }
+  }
 </mat-dialog-content>
 
 <mat-dialog-actions align="end" class="share-announce-dialog__footer">
+  @if (acceptedRecipients() !== null && acceptedRecipients()!.length === 0) {
+    <button type="button" mat-button (click)="retryReminder()">Réessayer</button>
+  }
   <app-hatcast-dialog-dismiss label="fermer" [dialogClose]="true" (clicked)="dismissCompositionAnnouncement()" />
 </mat-dialog-actions>

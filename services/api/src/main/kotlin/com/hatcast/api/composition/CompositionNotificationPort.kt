@@ -23,6 +23,7 @@ interface CompositionNotificationPort {
         actorUserId: UUID,
     )
 
+    /** Returns participant IDs still unanswered whose account had at least one successful or partial delivery. */
     fun requestManualAnnouncement(
         eventId: UUID,
         seasonId: UUID,
@@ -30,7 +31,8 @@ interface CompositionNotificationPort {
         messagePreview: String,
         actorUserId: UUID,
         recipientChannels: Map<UUID, Set<com.hatcast.api.notification.NotificationChannel>> = emptyMap(),
-    )
+        selectedParticipantIds: Set<UUID>? = null,
+    ): Set<UUID>
 
     fun notifyTeamValidatedFyi(
         eventId: UUID,
@@ -127,7 +129,8 @@ class NoOpCompositionNotificationAdapter : CompositionNotificationPort {
         messagePreview: String,
         actorUserId: UUID,
         recipientChannels: Map<UUID, Set<com.hatcast.api.notification.NotificationChannel>>,
-    ) {
+        selectedParticipantIds: Set<UUID>?,
+    ): Set<UUID> {
         log.debug(
             "manual_announcement_requested eventId={} seasonId={} intent={} messagePreviewLength={} actorUserId={}",
             eventId,
@@ -136,6 +139,7 @@ class NoOpCompositionNotificationAdapter : CompositionNotificationPort {
             messagePreview.length,
             actorUserId,
         )
+        return emptySet()
     }
 
     override fun notifyTeamValidatedFyi(

@@ -362,21 +362,6 @@ Remplace le hub `/seasons`, introduit `/troupes` et `/troupes/:slug`, breadcrumb
 **Design :** [_bmad-output/design-thinking-2026-05-25.md](../design-thinking-2026-05-25.md) ; **UX :** [ux-design-journey-league-agenda.md](./ux-design-journey-league-agenda.md) (amended 2026-05-25, UX-DR19–21)  
 **Supersedes :** **Epic 14** (hub troupe — stories 14.1–14.5), ADR 0012 §3 (travel league), Story **13.6** (reportée)
 
-#### Story 17.46 : Détail spectacle — remplacer Infos par un bandeau
-
-En tant que membre ou organisateur·ice, je veux accéder aux trois autres onglets du spectacle avec un bandeau d’en-tête au-dessus, afin de simplifier la consultation du spectacle.
-
-**Acceptance Criteria (résumé)**
-
-- **Given** le détail d’un spectacle, **when** il est affiché, **then** l’onglet Infos est supprimé et un bandeau d’en-tête est présenté au-dessus des autres onglets, dans l’esprit de celui de l’agenda.
-- **Given** les autres onglets et les droits existants, **when** la navigation est utilisée, **then** ils restent accessibles selon les mêmes autorisations.
-- **Given** les informations et actions actuellement présentes dans Infos, **when** le design est étudié, **then** leur devenir est déterminé sans perte involontaire de fonctionnalité ni de contrôle d’accès.
-- Le contenu et le design détaillés du bandeau sont définis pendant le traitement de la story, avec vérifications mobile, accessibilité et Material 3.
-
-**Depends :** 17.43 ; 17.8 ; 17.14 ; 17.15.
-
----
-
 ### Epic 18 — Troupe Démo & politique d’adhésion (onboarding prod V2)
 
 Sandbox partagée **Démo** en production, seed pédagogique (~20 spectacles), participants fictifs, **self-join** pour tout utilisateur authentifié, modèle **`join_policy`** (`OPEN` | `INVITE_ONLY`), gouvernance **super-admin** uniquement pour changer la politique. Remplace le branchement provisoire « seed troupe = La Malice » (Story 2.1).
@@ -2391,6 +2376,21 @@ afin de **retrouver plus naturellement** ma vue perso avant l’espace collectif
 
 ---
 
+#### Story 17.46 : Détail spectacle — remplacer Infos par un bandeau
+
+En tant que membre ou organisateur·ice, je veux accéder aux trois autres onglets du spectacle avec un bandeau d’en-tête au-dessus, afin de simplifier la consultation du spectacle.
+
+**Acceptance Criteria (résumé)**
+
+- **Given** le détail d’un spectacle, **when** il est affiché, **then** l’onglet Infos est supprimé et un bandeau d’en-tête est présenté au-dessus des autres onglets, dans l’esprit de celui de l’agenda.
+- **Given** les autres onglets et les droits existants, **when** la navigation est utilisée, **then** ils restent accessibles selon les mêmes autorisations.
+- **Given** les informations et actions actuellement présentes dans Infos, **when** le spectacle est consulté, **then** elles restent accessibles selon leurs autorisations.
+- Le bandeau présente date, lieu, statut et aide, format et catégorie non principale ; le formulaire unifié respecte les droits de chaque champ. Vérifications mobile, accessibilité et Material 3.
+
+**Depends :** 17.43 ; 17.8 ; 17.14 ; 17.15.
+
+---
+
 ### Epic 18 — Troupe Démo & politique d’adhésion (onboarding prod V2)
 
 **Décisions produit (2026-05-28) :** sandbox **partagée** ; admin contenu par **super-admin** ; participants fictifs obligatoires ; `join_policy` sans paywall premium ; **Démo prod** via **`db/migration` idempotent (Option A)** ; seed dev renommé **Les Improbots** (slug `les-improbots`, emails `@seed.improbots.test`) — **La Malice** réservée à la migration V1 prod réelle.
@@ -3858,6 +3858,14 @@ En tant que membre, je veux découvrir le podium final de l’Avent et comprendr
 **Critères :** Le 25 décembre, après toute révélation prioritaire, présenter les trois premières personnes classables et leurs points, avec les vœux et remerciements adaptés ; s’il n’y a aucun score positif, ne pas afficher de podium. Accéder au classement final et au calendrier. En cas d’égalité de points, départager successivement par nombre de bonnes réponses, nombre de réponses à temps, plus longue série de bonnes réponses, instant où le score final est atteint, nom puis identifiant stable. Appliquer le même ordre au classement final ; ne mentionner sur le podium que le critère effectivement décisif, dans une courte phrase. Préserver confidentialité, exclusions, révélation et parcours de test.
 
 **Material 3 et références :** appliquer FRONTEND_UI, Advent DESIGN, EXPERIENCE, AD-7 et la stratégie de tests visuels ; vérifier mobile, agrandissement du texte, clavier et isolation HatCast.
+
+### Story 25.25: Lire les anecdotes complètes avant de choisir
+
+En tant que membre, je veux pouvoir lire le récit complet associé à chaque proposition avant de répondre, afin de choisir en disposant des informations fournies par les contributeurs.
+
+**Critères :** Présenter les trois propositions courtes sélectionnables et permettre d’ouvrir indépendamment chaque récit disponible, sans modifier le choix. Si un récit manque, conserver la proposition courte sans commande vide. Préserver les récits et paragraphes, leur association aux propositions, le rappel au résultat, les règles d’accès aux jours et la révélation différée de la réponse et des points. Adapter les projections serveur, les contrats documentaires et les tests de confidentialité à cette divulgation volontaire des récits pendant le quiz.
+
+**Material 3 et références :** appliquer FRONTEND_UI, Advent DESIGN, EXPERIENCE, AD-7 et la stratégie de tests visuels ; voir la story détaillée 25.25. Cette décision fait évoluer le contrat « récits uniquement après révélation » de la story 25.22.
 
 ## Final validation
 

@@ -62,7 +62,7 @@ uxDr: UX-DR13 (amended post-login), UX-DR14 (agenda distinction)
 | **MT2** | Mémoriser **`lastVisitedTroupeSlug`** (mise à jour à chaque visite hub troupe ou workspace saison de la troupe) — parallèle à `lastVisitedSeason`. |
 | **MT3** | Nav membre cible : **Accueil · Mon agenda · Mes stats · Ma troupe** (libellés UI ; routes `/accueil`, `/agenda`, `/membre/:userSlug`, `/troupes/:slug`). Amendement PO 2026-07-12 (ex : Ma troupe · Mes stats). |
 | **MT4** | **Mon agenda** reste la chronologie **personnelle cross-troupes** ; **Ma troupe** est le **tableau de bord collectif** — pas un second agenda complet. |
-| **MT5** | Workspace saison (`/saison/:troupeSlug/:seasonSlug`) reste le **drill-down orga** (Agenda \| Historique \| Statistiques \| admin). Depuis le hub : **Voir tous les spectacles**, lien **+N** (section Personnes), tap carte teaser — **pas** de CTA primaire « Ouvrir la saison » sur la carte métriques (amend. 2026-06-12). L’onglet Infos événement : chips **Saison** / troupe (ED4). |
+| **MT5** | Workspace saison (`/saison/:troupeSlug/:seasonSlug`) reste le **drill-down orga** (Agenda \| Historique \| Statistiques \| admin). Depuis le hub : **Voir tous les spectacles**, lien **+N** (section Personnes), tap carte teaser — **pas** de CTA primaire « Ouvrir la saison » sur la carte métriques (amend. 2026-06-12). Les informations complémentaires du spectacle donnent accès aux chips **Saison** / troupe (ED4, amendement 17.46). |
 
 ### Hub troupe (`/troupes/:slug`)
 
@@ -254,7 +254,7 @@ Saison
 ┌─────────────────────────────────────┐
 │ [←] Format long : Science-fi… [⚙]  │  ← une ligne : retour + titre + gear
 ├─────────────────────────────────────┤
-│     [ Infos | Dispos | Équipe ]     │
+│     [ Dispos | Équipe | Activité* ]     │
 ├─────────────────────────────────────┤
 │ Infos : Date · Lieu · Format · …    │
 │   Catégorie                         │
@@ -330,7 +330,7 @@ Saison
 
 - [ ] **ED-AC1** : Pas de `app-context-breadcrumb` sur event detail.
 - [ ] **ED-AC2** : Chevron retour avec fallback intelligent (ED3).
-- [ ] **ED-AC3** : Infos › section **Saison** (dernier bloc) : chips `{troupeName}` + `{seasonTitle}` cliquables vers hub / workspace.
+- [ ] **ED-AC3** : Informations complémentaires › section **Saison** (dernier bloc) : chips `{troupeName}` + `{seasonTitle}` cliquables vers hub / workspace.
 - [ ] **ED-AC4** : Header une ligne : chevron + titre + gear ; **pas** de badge statut dans le header.
 - [ ] **ED-AC5** : Badge statut composition + aide **`?`** visibles **uniquement** sur l’onglet **Équipe** (ED5).
 
@@ -442,3 +442,5 @@ Ajustements validés en recette après implémentation initiale ; ED2–ED5 ci-d
 | Badge statut composition | Title row au-dessus des onglets (E7–E9) | **Onglet Équipe uniquement** (ED5) — lisibilité titre |
 | Infos — contexte troupe/saison | Section **Contexte** (1er bloc) ; ligne résumé + boutons | Section **Saison** (**dernier** bloc) ; **chips** cliquables centrés |
 | Navigation retour hub | `lastMemberEntryPath` sans `/troupes/:slug` | Allowlist étendue à `/troupes/:slug` pour retour depuis hub |
+
+**Amendement 17.46 :** Les liens troupe et saison restent dans les informations complémentaires accessibles depuis le bandeau spectacle ; Infos ne constitue plus un onglet.

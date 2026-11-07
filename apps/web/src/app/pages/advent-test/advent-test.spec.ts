@@ -568,7 +568,7 @@ describe('AdventTest', () => {
     expect(select).toHaveBeenLastCalledWith(23, false)
     expect((component as any).simulatedDate()).toBe('2026-12-01')
   })
-  it('labels future test results as provisional without changing today results', () => {
+  it('does not show the provisional score message on future or today results', () => {
     const component = fixture.componentInstance
     component.testMode.set(true); component.productionPreview.set(false)
     component.clockDate.set('2026-12-01'); component.selectedDay.set(3)
@@ -576,10 +576,58 @@ describe('AdventTest', () => {
     component.resultContent.set({ day: 3, name: 'Fictif', portrait: '', statements: ['un', 'deux', 'trois'], genericElf: true })
     component.calendarOpen.set(false); component.welcome.set(false); component.loading.set(false)
     fixture.detectChanges()
-    expect(fixture.nativeElement.textContent).toContain('répondre à des jours précédents ou révéler leurs réponses peut modifier le bonus de série')
+    expect(fixture.nativeElement.textContent).not.toContain('Ce score est provisoire')
     component.clockDate.set('2026-12-03')
     fixture.detectChanges()
     expect(fixture.nativeElement.textContent).not.toContain('Ce score est provisoire')
+  })
+  it('opens available stories without changing the selected answer', async () => {
+    const component = fixture.componentInstance
+    component.quiz.set({ day: 1, name: 'Fictif', portrait: '', statements: ['un', 'deux', 'trois'], genericElf: true, stories: ['Premier\n\nParagraphe', null, 'Dernier'] })
+    component.calendarOpen.set(false); component.welcome.set(false); component.loading.set(false)
+    component.answerState.set('available'); component.choice.set(1)
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges()
+    const headers = fixture.nativeElement.querySelectorAll('.advent__options .mat-expansion-panel-header') as NodeListOf<HTMLElement>
+    expect(headers.length).toBe(2)
+    expect(headers[0].textContent).toContain('un')
+    expect(headers[1].textContent).toContain('trois')
+    headers[0].click(); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges()
+    expect(component.choice()).toBe(1)
+    expect(fixture.nativeElement.querySelector('.advent__options .advent__story-text')?.textContent).toContain('Premier\n\nParagraphe')
+    headers[1].click(); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges()
+    expect(headers[0].getAttribute('aria-expanded')).toBe('true')
+    expect(headers[1].getAttribute('aria-expanded')).toBe('true')
+    const texts = fixture.nativeElement.querySelectorAll('.advent__options .advent__story-text') as NodeListOf<HTMLElement>
+    expect(texts[1].textContent).toBe('Dernier')
+    expect(component.choice()).toBe(1)
+    headers[0].click(); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges()
+    expect(headers[0].getAttribute('aria-expanded')).toBe('false')
+    expect(headers[1].getAttribute('aria-expanded')).toBe('true')
+    expect(texts[1].textContent).toBe('Dernier')
+    expect(component.choice()).toBe(1)
+    component.quiz.update(quiz => quiz ? { ...quiz, stories: null } : quiz)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelectorAll('.advent__options .mat-expansion-panel-header').length).toBe(0)
+    expect(fixture.nativeElement.querySelectorAll('.advent__options mat-radio-button').length).toBe(3)
+  })
+  it('opens a story when its answer is selected and reopens it on another click', async () => {
+    const component = fixture.componentInstance
+    component.quiz.set({ day: 1, name: 'Fictif', portrait: '', statements: ['un', 'deux', 'trois'], genericElf: true, stories: ['Premier récit', null, 'Dernier récit'] })
+    component.calendarOpen.set(false); component.welcome.set(false); component.loading.set(false)
+    component.answerState.set('available')
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges()
+    const labels = fixture.nativeElement.querySelectorAll('.advent__options mat-radio-button label') as NodeListOf<HTMLElement>
+    const headers = fixture.nativeElement.querySelectorAll('.advent__options .mat-expansion-panel-header') as NodeListOf<HTMLElement>
+    labels[0].click(); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges()
+    expect(component.choice()).toBe(0)
+    expect(headers[0].getAttribute('aria-expanded')).toBe('true')
+    headers[0].click(); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges()
+    expect(headers[0].getAttribute('aria-expanded')).toBe('false')
+    labels[0].click(); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges()
+    expect(headers[0].getAttribute('aria-expanded')).toBe('true')
+    labels[1].click(); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges()
+    expect(component.choice()).toBe(1)
+    expect(headers.length).toBe(2)
   })
   it('shows only supplied ordered stories in initially collapsed accessible panels', async () => {
     const component = fixture.componentInstance
@@ -633,7 +681,7 @@ describe('AdventTest', () => {
     expect(component.result()?.explanation).toBe('Explication fictive')
     fixture.detectChanges()
     expect(fixture.nativeElement.textContent).toContain('tu peux effacer ta réponse pour rejouer')
-    expect(fixture.nativeElement.textContent).toContain('score est provisoire')
+    expect(fixture.nativeElement.textContent).not.toContain('score est provisoire')
     await component.returnToCalendar()
     await component.openCalendarDay(component.calendarDays()[0])
     expect(component.result()?.selectedChoice).toBe(1)
@@ -1526,7 +1574,8 @@ describe('AdventTest', () => {
     await component.confirm()
     fixture.detectChanges()
     expect(component.result()?.late).toBe(true)
-    expect(fixture.nativeElement.textContent).toContain('réponse après le jour du quiz')
+    expect(fixture.nativeElement.textContent).not.toContain('réponse après le jour du quiz')
+    expect(fixture.nativeElement.querySelector('.advent__result-title-band .advent__result-points')?.textContent).toContain('+0 points gagnés')
     expect(fixture.nativeElement.querySelector('.advent__reveal button[mat-flat-button]')?.textContent).toContain('Voir le classement')
     expect(fixture.nativeElement.querySelector('.advent__confetti')).toBeNull()
   })

@@ -275,7 +275,16 @@ class EventService(
         principal: SessionUserPrincipal,
     ): EventResponseDto {
         val e = loadEventInSeason(seasonId, eventId)
-        troupeAccess.requireCanManageTroupe(principal, e.season.troupe.id)
+        if (!troupeAccess.isTroupeAdmin(principal, e.season.troupe.id)) {
+            val formatOnly =
+                (body.templateType.isPresent || body.roleSlots.isPresent) &&
+                    !body.title.isPresent && !body.startsAt.isPresent &&
+                    !body.description.isPresent && !body.location.isPresent &&
+                    !body.slug.isPresent && !body.category.isPresent
+            if (!formatOnly || !organizerAccess.canManageComposition(eventId, seasonId, principal)) {
+                throw ResponseStatusException(HttpStatus.FORBIDDEN, "Modification non autorisée.")
+            }
+        }
         val beforeSnapshot = AuditSnapshots.event(e)
         val beforeStartsAt = e.startsAt
         val beforeLocation = e.location

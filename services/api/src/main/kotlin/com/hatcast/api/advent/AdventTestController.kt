@@ -40,7 +40,7 @@ class AdventTestController(
         answers.requireContentReady()
         val quiz = answers.quiz(day) ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
         val (image, isGeneric) = previewImage(quiz.portraitRef, cloudPreview)
-        return FictionalQuiz(day, quiz.name, image, quiz.statements, isGeneric)
+        return FictionalQuiz(day, quiz.name, image, quiz.statements, isGeneric, answers.revealedStories(day))
     }
 
     @GetMapping("/session")
@@ -255,7 +255,7 @@ class AdventTestController(
     } catch (_: Exception) { false }
 }
 
-data class FictionalQuiz(val day: Int, val name: String, val portrait: String, val statements: List<String>, val genericElf: Boolean)
+data class FictionalQuiz(val day: Int, val name: String, val portrait: String, val statements: List<String>, val genericElf: Boolean, val stories: List<String?>? = null)
 
 /** Images remain in private development storage and are never exposed as public assets. */
 @Component

@@ -3,7 +3,6 @@
 :host { display: block; min-height: 100dvh; }
 
 .advent__header { display: flex; align-items: center; justify-content: space-between; min-height: 3.5rem; padding: .25rem .375rem; gap: 0; flex-wrap: wrap; background: var(--hatcast-avent-red); color: var(--hatcast-avent-white); font: var(--mat-sys-title-medium); font-family: var(--advent-body-font); }
-.advent__header a { color: inherit; min-height: 3rem; }
 .advent__content { max-width: 31rem; margin: auto; padding: 1.25rem 1.25rem 2.5rem; overflow-wrap: break-word; }
 .advent__hint, .advent__question { text-align: center; }
 .advent__quiz { position: relative; text-align: center; }
@@ -34,7 +33,6 @@
 .advent__header button.advent__header-title:focus-visible { outline: 3px solid var(--advent-snow); outline-offset: -3px; }
 .advent__heading { text-align: center; }
 .advent__date { margin: .2rem 0; text-align: center; font: 700 1rem/1.4 var(--advent-body-font); color: var(--advent-text-muted); text-transform: uppercase; letter-spacing: .07em; }
-.advent__title { margin: .3rem 0; }
 .advent__name { color: var(--hatcast-avent-red); }
 .advent__decoration { position: absolute; z-index: 1; color: var(--hatcast-avent-green); font-size: 1.5rem; pointer-events: none; animation: advent-float 3s ease-in-out infinite alternate; }
 .advent__decoration--one { left: 10%; top: 14%; } .advent__decoration--two { right: 10%; top: 24%; animation-delay: -1s; } .advent__decoration--three { left: 7%; top: 50%; animation-delay: -2s; } .advent__decoration--four { right: 9%; bottom: 16%; animation-delay: -.5s; }
@@ -69,19 +67,24 @@
 }
 .advent__question { font: 700 clamp(1.4rem, 5vw, 1.75rem)/1.3 var(--advent-heading-font); }
 .advent__options mat-radio-button {
-  display: block; min-height: 3rem; text-align: left; box-shadow: 0 .15rem .35rem var(--advent-shadow);
+  display: block; position: relative; min-height: 3rem; text-align: left; box-shadow: 0 .15rem .35rem var(--advent-shadow);
   border: 2px solid var(--advent-choice-border);
   border-radius: 1rem;
   background: var(--hatcast-avent-white);
   padding: .25rem .5rem;
 }
+/* Material's internal flex item must shrink when text is enlarged on narrow screens. */
+:host ::ng-deep .advent__options .mdc-form-field { display: flex; max-width: 100%; }
+:host ::ng-deep .advent__options .mdc-label { min-width: 0; overflow-wrap: anywhere; }
+:host ::ng-deep .advent__options .mdc-label::after { content: ""; position: absolute; inset: 0; cursor: pointer; }
+:host ::ng-deep .advent__options .mdc-radio { z-index: 1; }
 .advent__options mat-radio-button:has(input:checked) {
   border-color: var(--hatcast-avent-red);
   background: var(--advent-choice-selected);
   box-shadow: inset .3rem 0 var(--advent-primary), 0 .15rem .35rem var(--advent-shadow);
 }
 .advent__options mat-radio-button:focus-within { outline: 3px solid var(--hatcast-avent-green); outline-offset: 2px; }
-.advent__quiz button[mat-flat-button] { min-height: 3.5rem; width: 100%; font: 700 1.125rem var(--advent-body-font); border-radius: 1rem; box-shadow: 0 .25rem .5rem var(--advent-shadow); }
+.advent__quiz button[mat-flat-button] { min-height: 3.5rem; height: auto; white-space: normal; padding-block: .75rem; width: 100%; font: 700 1.125rem var(--advent-body-font); border-radius: 1rem; box-shadow: 0 .25rem .5rem var(--advent-shadow); }
 .advent__state { padding: 1rem; text-align: center; font-weight: 700; color: var(--advent-text); }
 .advent__loading { text-align: center; padding: clamp(2rem, 10vh, 5rem) 1rem; color: var(--hatcast-avent-green); }
 .advent__loading p { margin: 1rem 0 0; font: 700 clamp(1.5rem, 6vw, 1.9rem)/1.2 var(--advent-heading-font); }
@@ -89,7 +92,6 @@
 .advent__loading-scene mat-icon { box-sizing: content-box; width: 3rem; height: 3rem; padding: 1.25rem; border: 2px solid var(--hatcast-avent-gold); border-radius: 50%; background: var(--hatcast-avent-cream); color: var(--hatcast-avent-red); font-size: 3rem; line-height: 1; box-shadow: 0 .35rem .8rem var(--advent-shadow); }
 .advent__feedback { padding: 1rem; border: 2px solid var(--hatcast-avent-red); border-radius: 1rem; background: var(--hatcast-avent-white); color: var(--advent-error); }
 
-.advent__recorded-stars { color: var(--advent-gold-ink); font-size: 1.5rem; }
 .advent__recorded-title { margin: .25rem 0; color: var(--hatcast-avent-green); font: 700 clamp(2rem, 9vw, 2.5rem)/1.15 var(--advent-heading-font); }
 .advent__recorded-title strong { display: block; color: var(--hatcast-avent-red); }
 .advent__recorded-message { color: var(--hatcast-avent-green); font-weight: 700; font-size: 1.25rem; line-height: 1.3; margin: 1.5rem 0; }

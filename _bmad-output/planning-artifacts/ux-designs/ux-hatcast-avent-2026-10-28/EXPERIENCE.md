@@ -214,7 +214,9 @@ Après la révélation prioritaire, le bilan présente jusqu’aux trois premier
 
 ### Découverte des récits
 
-Après révélation autorisée, chaque récit fourni peut être ouvert indépendamment sous son choix ; ses paragraphes restent complets. Les parcours sans récit et l'explication existante restent inchangés. Avant révélation, aucun récit ne doit être transmis au client.
+Sélectionner une proposition ouvre automatiquement son récit lorsqu’il existe ; la commande de lecture reste utilisable indépendamment de la sélection.
+
+Dans un quiz jouable autorisé, chaque récit fourni peut être ouvert indépendamment sous son choix, sans modifier la sélection ; ses paragraphes restent complets. Après révélation autorisée, le rappel des récits reste disponible. Les parcours sans récit et l’explication existante restent inchangés.
 
 ### Rappel de test sur appareil
 

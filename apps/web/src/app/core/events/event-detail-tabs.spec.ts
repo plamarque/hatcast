@@ -4,13 +4,13 @@ import { describe, expect, it } from 'vitest'
 import { resolveEventDetailTab, isEventDetailTabParamKnown } from './event-detail-tabs'
 
 describe('resolveEventDetailTab', () => {
-  it('defaults to infos when no query params', () => {
-    expect(resolveEventDetailTab(convertToParamMap({}))).toBe('infos')
+  it('defaults to dispos when no query params', () => {
+    expect(resolveEventDetailTab(convertToParamMap({}))).toBe('dispos')
   })
 
   it.each([
-    ['infos', 'infos'],
-    ['info', 'infos'],
+    ['infos', 'dispos'],
+    ['info', 'dispos'],
     ['dispos', 'dispos'],
     ['team', 'dispos'],
     ['equipe', 'equipe'],
@@ -21,8 +21,8 @@ describe('resolveEventDetailTab', () => {
 
   it('prefers explicit tab over showAvailability', () => {
     expect(
-      resolveEventDetailTab(convertToParamMap({ tab: 'infos', showAvailability: 'true' })),
-    ).toBe('infos')
+      resolveEventDetailTab(convertToParamMap({ tab: 'equipe', showAvailability: 'true' })),
+    ).toBe('equipe')
   })
 
   it('prefers explicit tab over showConfirm', () => {

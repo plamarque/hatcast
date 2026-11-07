@@ -46,10 +46,17 @@ data class ShareNotifyRequestDto(
     val recipientParticipantIds: List<UUID>? = null,
 )
 
+data class AcceptedShareRecipientDto(
+    val participantId: UUID,
+    val displayName: String,
+)
+
 data class ShareNotifyResponseDto(
     val accepted: Boolean = true,
     val notifiedCount: Int = 0,
     val manualCount: Int = 0,
     val intent: String = "",
     val acceptedCount: Int = 0,
+    val acceptedRecipients: List<AcceptedShareRecipientDto> = emptyList(),
+    val failedRecipients: List<AcceptedShareRecipientDto> = emptyList(),
 )

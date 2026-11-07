@@ -35,6 +35,7 @@ Give active La Malice members a festive way to discover one another through 24 d
 - Story 25.22: Discover full Advent stories
 - Story 25.23: Ouvrir un quiz Avent par son URL
 - Story 25.24: Célébrer le podium final
+- Story 25.25: Lire les anecdotes complètes avant de choisir
 
 ## Requirements & Constraints
 
@@ -42,8 +43,9 @@ Give active La Malice members a festive way to discover one another through 24 d
 - Future production content and personal results are available early only to the two explicitly authorized, verified active members. Their preview and personal replay do not grant shared test controls or place excluded accounts in the ranking. Other members must not see future portraits, pending correctness, another person's result or clues through caching, logs, notifications or analytics.
 - Normal answers are unique and final, and are revealed at the next Paris midnight. A previously unplayed quiz can be answered once late for immediate zero-point feedback without affecting streak or ranking. Show an eligible unseen result before the next destination. Missing or late content remains supported.
 - Award 10 points for a correct answer, one for normal participation and two per non-overlapping group of three correct answers; an incorrect answer resets the run while a missed day does not. Final ranking remains accessible from 25 December through 15 January; retain the underlying results thereafter.
-- Existing documents specify tied players sharing the lowest rank and a personal Christmas score. The newly approved Story 25.24 changes the final ranking and Christmas presentation: reconcile normative and UX documents as part of implementation, without weakening prior reveal or privacy rules.
+- Apply the final ranking and Christmas presentation consistently, without weakening reveal or privacy rules.
 - Protect private contributions and answers; do not put them in the public repository. Test data and controls remain isolated from production. Production writes and deployment require separate authorization.
+- The current product direction allows complete optional anecdotes to be read alongside playable short choices, while the correct answer, explanation and points remain protected until the applicable reveal. Update earlier reveal-only narrative contracts when implementing this change.
 
 ## Technical Decisions
 
@@ -57,7 +59,7 @@ Give active La Malice members a festive way to discover one another through 24 d
 
 - Use the approved independent Advent identity with scoped styles, tokens and typography, leaving HatCast's global design system unchanged. Preserve Material behavior, visible focus, keyboard use, reduced motion, responsive presentation, touch targets and readable enlarged text.
 - First discovery precedes the calendar; subsequent navigation respects priority revelation and server-authorized content. Direct day links resume their destination only when permitted and do not bypass discovery, identity or revelation.
-- The calendar contains 24 quiz gifts and a Christmas case; state indicators remain legible without color alone. A current recorded answer returns to a neutral waiting scene until reveal. Result scenes use generic elves and accessible text, and retain authorized personal portraits and content.
+- Three short choices remain independently selectable; available full narratives can be read without changing the choice and remain available as a result reminder. The calendar contains 24 quiz gifts and a Christmas case; state indicators remain legible without color alone. A current recorded answer returns to a neutral waiting scene until reveal. Result scenes use generic elves and accessible text, and retain authorized personal portraits and content.
 - The approved Christmas direction highlights the final podium and uses a single brief sentence identifying a decisive tiebreak criterion. When nobody is eligible for the podium, the Christmas wishes stand alone. Retain access to the final ranking, calendar and HatCast; do not assert participation at zero.
 - Explicit isolated test mode can project fictional ranking data without mutating real answers; leaving the screen, changing session or mode discards the projection. Ordinary ranking remains bounded by authorized reveal time.
 

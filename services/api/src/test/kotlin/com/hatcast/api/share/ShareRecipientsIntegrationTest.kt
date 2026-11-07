@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
+import org.mockito.kotlin.isNull
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.verify
 import org.springframework.beans.factory.annotation.Autowired
@@ -286,6 +287,7 @@ class ShareRecipientsIntegrationTest {
             eq("🎲 TIRAGE test message"),
             any(),
             any(),
+            isNull(),
         )
     }
 
@@ -556,6 +558,7 @@ class ShareRecipientsIntegrationTest {
             eq("📢 Invite dispos test"),
             any(),
             any(),
+            isNull(),
         )
     }
 

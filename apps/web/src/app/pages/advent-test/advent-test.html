@@ -119,7 +119,7 @@
             <li>{{ statement }} @if ($index === past.falseChoice) { <strong> — anecdote fausse</strong> } @if (past.result && $index === past.result.selectedChoice) { <strong> — ton choix</strong> }</li>
           }
         </ul>
-        @if (past.result; as result) { @if (productionPreview() || selectedFutureTestDay()) { <p>Ce score est provisoire : répondre à des jours précédents ou révéler leurs réponses peut modifier le bonus de série.</p> } <p>Tu as gagné {{ result.responsePoints + result.participationPoints + result.bonusPoints }} points pour ce jour.</p> }
+        @if (past.result; as result) { <p>Tu as gagné {{ result.responsePoints + result.participationPoints + result.bonusPoints }} points pour ce jour.</p> }
         @if (past.result) { <ng-container [ngTemplateOutlet]="reminderControl" /> }
       </section>
     } @else if (calendarOpen()) {
@@ -187,6 +187,7 @@
           <div class="advent__result-banner">
             <div class="advent__result-title-band">
               <span class="advent__banner-star" aria-hidden="true">✦</span>
+              <div class="advent__result-title-content">
               <h1 #resultHeading id="advent-result-title" tabindex="-1" [attr.aria-label]="reveal.correct ? 'Bravo, tu as trouvé !' : null">
                 @if (reveal.correct) {
                   <svg viewBox="0 0 420 110" aria-hidden="true" focusable="false">
@@ -200,10 +201,10 @@
                   </svg>
                 } @else { Bien tenté ! }
               </h1>
+              <p class="advent__result-points"><strong>+{{ reveal.responsePoints + reveal.participationPoints + reveal.bonusPoints }}</strong> {{ reveal.responsePoints + reveal.participationPoints + reveal.bonusPoints === 1 ? 'point gagné' : 'points gagnés' }}</p>
+              </div>
               <span class="advent__banner-star" aria-hidden="true">✦</span>
             </div>
-            @if (productionPreview() || selectedFutureTestDay()) { <p>Ce score est provisoire : répondre à des jours précédents ou révéler leurs réponses peut modifier le bonus de série.</p> }
-            <p class="advent__result-points"><strong>+{{ reveal.responsePoints + reveal.participationPoints + reveal.bonusPoints }}</strong> {{ reveal.responsePoints + reveal.participationPoints + reveal.bonusPoints === 1 ? 'point gagné' : 'points gagnés' }} @if (reveal.late) { <span> · réponse après le jour du quiz</span> }</p>
           </div>
           <div class="advent__result-card">
             @if (!reveal.correct) {
@@ -305,7 +306,17 @@
           <p class="advent__question" [hidden]="answerState() === 'recorded'">Quelle affirmation est fausse ?</p>
           @if (lateDiscovery()) { <p>{{ clockDate() === '2026-12-' + (selectedDay() < 10 ? '0' : '') + selectedDay() ? 'Ce rejeu ne rapporte pas de points.' : 'Cette case est passée : tu peux jouer pour le plaisir, sans gagner de points.' }}</p> }
           <mat-radio-group class="advent__options" aria-label="Quelle affirmation est fausse ?" [value]="choice()" (change)="choice.set($event.value)">
-            @for (statement of content.statements; track $index) { <mat-radio-button [value]="$index" [disabled]="submitting()">{{ statement }}</mat-radio-button> }
+            @for (statement of content.statements; track $index) {
+              @if (content.stories?.[$index]; as story) {
+                <mat-radio-button [value]="$index" [disabled]="submitting()" (click)="storyPanel.open()" (change)="storyPanel.open()">{{ statement }}</mat-radio-button>
+                <mat-expansion-panel #storyPanel class="advent__story">
+                  <mat-expansion-panel-header><mat-panel-title>Lire l’histoire : {{ statement }}</mat-panel-title></mat-expansion-panel-header>
+                  <p class="advent__story-text">{{ story }}</p>
+                </mat-expansion-panel>
+              } @else {
+                <mat-radio-button [value]="$index" [disabled]="submitting()">{{ statement }}</mat-radio-button>
+              }
+            }
           </mat-radio-group>
           <button mat-flat-button type="button" [disabled]="choice() === null || submitting()" (click)="confirm()">Confirmer ma réponse</button>
         } @else if (answerState() === 'recorded') {

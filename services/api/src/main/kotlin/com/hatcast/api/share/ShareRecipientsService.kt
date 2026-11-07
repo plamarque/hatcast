@@ -23,6 +23,7 @@ import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.participant.SeasonParticipantService
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.text.sortedByFrenchDisplayName
+import com.hatcast.api.share.dto.AcceptedShareRecipientDto
 import com.hatcast.api.share.dto.ShareNotifyRequestDto
 import com.hatcast.api.share.dto.ShareNotifyResponseDto
 import com.hatcast.api.share.dto.ShareRecipientChannelStatusDto
@@ -134,15 +135,40 @@ class ShareRecipientsService(
         if (intent == ShareRecipientIntent.AVAILABILITY_NUDGE && confirmedChannels.isEmpty()) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Aucun destinataire sélectionné")
         }
-        notificationPort.requestManualAnnouncement(
+        val acceptedParticipantIds = notificationPort.requestManualAnnouncement(
             eventId = eventId,
             seasonId = seasonId,
             intent = intentApiValue(intent),
             messagePreview = preview,
             actorUserId = principal.userId,
             recipientChannels = if (intent == ShareRecipientIntent.AVAILABILITY_NUDGE) confirmedChannels else emptyMap(),
+            selectedParticipantIds = if (intent == ShareRecipientIntent.AVAILABILITY_NUDGE) selectedParticipantIds else null,
         )
-        recordManualNotify(eventId, intent, principal.userId)
+        val acceptedRecipients = previewResponse.recipients
+            .filter { (selectedParticipantIds == null || it.participantId in selectedParticipantIds) &&
+                it.participantId in acceptedParticipantIds &&
+                (it.channels.email.eligible || it.channels.push.eligible) }
+            .sortedWith(compareBy<ShareRecipientDto> { it.displayName }.thenBy { it.participantId })
+            .distinctBy { userIdByParticipant[it.participantId] }
+            .map { AcceptedShareRecipientDto(it.participantId, it.displayName) }
+        // Recheck before naming failed recipients: a participant who answered during the send
+        // should not be presented as an unsuccessful notification.
+        val stillUnansweredIds = if (intent == ShareRecipientIntent.AVAILABILITY_NUDGE) {
+            recipientResolver.resolveUnknownAvailabilityParticipantAccounts(seasonId, eventId).keys
+        } else emptySet()
+        val acceptedUserIds = acceptedRecipients.mapNotNull { userIdByParticipant[it.participantId] }.toSet()
+        val failedRecipients = previewResponse.recipients
+            .filter { it.participantId in stillUnansweredIds &&
+                (selectedParticipantIds == null || it.participantId in selectedParticipantIds) &&
+                userIdByParticipant[it.participantId] != null &&
+                userIdByParticipant[it.participantId] !in acceptedUserIds &&
+                (it.channels.email.eligible || it.channels.push.eligible) }
+            .sortedWith(compareBy<ShareRecipientDto> { it.displayName }.thenBy { it.participantId })
+            .distinctBy { userIdByParticipant[it.participantId] }
+            .map { AcceptedShareRecipientDto(it.participantId, it.displayName) }
+        if (intent != ShareRecipientIntent.AVAILABILITY_NUDGE || acceptedRecipients.isNotEmpty()) {
+            recordManualNotify(eventId, intent, principal.userId)
+        }
         val notifiedCount =
             when (intent) {
                 ShareRecipientIntent.AVAILABILITY_NUDGE,
@@ -157,7 +183,9 @@ class ShareRecipientsService(
             notifiedCount = notifiedCount,
             manualCount = previewResponse.manualCount,
             intent = intentApiValue(intent),
-            acceptedCount = if (intent == ShareRecipientIntent.AVAILABILITY_NUDGE) confirmedChannels.size else 0,
+            acceptedCount = acceptedRecipients.size,
+            acceptedRecipients = acceptedRecipients,
+            failedRecipients = failedRecipients,
         )
     }
 

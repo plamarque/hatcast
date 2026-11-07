@@ -52,6 +52,149 @@ class NotificationDispatcherTest {
         )
 
     @Test
+    fun `dispatch returns no accounts when setup fails`() {
+        val eventId = UUID.randomUUID()
+        whenever(eventRepository.findById(eventId)).thenThrow(IllegalStateException("setup failed"))
+        val result = dispatcher.dispatch(NotificationDispatchContext(
+            intent = NotificationIntent.MANUAL_AVAILABILITY_NUDGE, eventId = eventId,
+            seasonId = UUID.randomUUID(), troupeId = null, recipientUserIds = listOf(UUID.randomUUID()),
+        ))
+        assertEquals(emptySet<UUID>(), result)
+    }
+
+    @Test
+    fun `dispatch excludes failed recipient but retains sent recipient`() {
+        val eventId = UUID.randomUUID()
+        val first = UUID.randomUUID()
+        val second = UUID.randomUUID()
+        whenever(eventRepository.findById(eventId)).thenReturn(Optional.of(notificationEvent(eventId, UUID.randomUUID())))
+        whenever(pushEligibilityPort.isPushAllowedForCategory(any(), any())).thenThrow(IllegalStateException("recipient failed")).thenReturn(true)
+        whenever(pushSender.sendPush(any(), any(), any(), any())).thenReturn(
+            NotificationDeliveryResult(channel = NotificationChannel.PUSH, status = NotificationDeliveryStatus.SENT),
+        )
+        val result = dispatcher.dispatch(NotificationDispatchContext(
+            intent = NotificationIntent.MANUAL_AVAILABILITY_NUDGE, eventId = eventId,
+            seasonId = UUID.randomUUID(), troupeId = null, recipientUserIds = listOf(first, second),
+            recipientChannels = mapOf(first to setOf(NotificationChannel.PUSH), second to setOf(NotificationChannel.PUSH)),
+        ))
+        assertEquals(setOf(second), result)
+        verify(pushSender).sendPush(any(), any(), any(), any())
+        verifyNoInteractions(emailSender)
+    }
+
+    @Test
+    fun `unavailable channels do not count as processed accounts`() {
+        val eventId = UUID.randomUUID()
+        val userId = UUID.randomUUID()
+        val preference: NotificationPreferenceEligibilityPort = mock()
+        whenever(eventRepository.findById(eventId)).thenReturn(Optional.of(notificationEvent(eventId, UUID.randomUUID())))
+        whenever(pushEligibilityPort.isPushAllowedForCategory(any(), any())).thenReturn(false)
+        whenever(preferenceEligibilityPort.ifAvailable).thenReturn(preference)
+        whenever(preference.isAllowed(any(), any(), any())).thenReturn(false)
+        val context = NotificationDispatchContext(
+            intent = NotificationIntent.MANUAL_AVAILABILITY_NUDGE, eventId = eventId,
+            seasonId = UUID.randomUUID(), troupeId = null, recipientUserIds = listOf(userId),
+            recipientChannels = mapOf(userId to setOf(NotificationChannel.PUSH, NotificationChannel.EMAIL)),
+        )
+        assertEquals(emptySet<UUID>(), dispatcher.dispatch(context))
+        verifyNoInteractions(pushSender, emailSender)
+    }
+
+    @Test
+    fun `an error checking email preserves an already sent push`() {
+        val eventId = UUID.randomUUID()
+        val userId = UUID.randomUUID()
+        val preference: NotificationPreferenceEligibilityPort = mock()
+        whenever(eventRepository.findById(eventId)).thenReturn(Optional.of(notificationEvent(eventId, UUID.randomUUID())))
+        whenever(pushEligibilityPort.isPushAllowedForCategory(any(), any())).thenReturn(true)
+        whenever(pushSender.sendPush(any(), any(), any(), any())).thenReturn(
+            NotificationDeliveryResult(channel = NotificationChannel.PUSH, status = NotificationDeliveryStatus.SENT),
+        )
+        whenever(preferenceEligibilityPort.ifAvailable).thenReturn(preference)
+        whenever(preference.isAllowed(any(), any(), any())).thenThrow(IllegalStateException("preference failed"))
+        val context = NotificationDispatchContext(
+            intent = NotificationIntent.MANUAL_AVAILABILITY_NUDGE, eventId = eventId,
+            seasonId = UUID.randomUUID(), troupeId = null, recipientUserIds = listOf(userId),
+            recipientChannels = mapOf(userId to setOf(NotificationChannel.PUSH, NotificationChannel.EMAIL)),
+        )
+        assertEquals(setOf(userId), dispatcher.dispatch(context))
+        verifyNoInteractions(emailSender)
+    }
+
+    @Test
+    fun `email only skipped by sender does not count as processed`() {
+        val eventId = UUID.randomUUID()
+        val userId = UUID.randomUUID()
+        whenever(eventRepository.findById(eventId)).thenReturn(Optional.of(notificationEvent(eventId, UUID.randomUUID())))
+        whenever(preferenceEligibilityPort.ifAvailable).thenReturn(null)
+        whenever(userRepository.findById(userId)).thenReturn(Optional.of(UserEntity(email = "test@example.test")))
+        whenever(emailSender.sendEmail(any(), any(), any(), any(), any(), any())).thenReturn(
+            NotificationDeliveryResult(channel = NotificationChannel.EMAIL, status = NotificationDeliveryStatus.SKIPPED),
+        )
+        val context = NotificationDispatchContext(
+            intent = NotificationIntent.MANUAL_AVAILABILITY_NUDGE, eventId = eventId,
+            seasonId = UUID.randomUUID(), troupeId = null, recipientUserIds = listOf(userId),
+            recipientChannels = mapOf(userId to setOf(NotificationChannel.EMAIL)),
+        )
+        assertEquals(emptySet<UUID>(), dispatcher.dispatch(context))
+        verify(emailSender).sendEmail(any(), any(), any(), any(), any(), any())
+        verifyNoInteractions(pushSender)
+    }
+
+    @Test
+    fun `email only failed attempt is not notified`() {
+        val eventId = UUID.randomUUID()
+        val userId = UUID.randomUUID()
+        whenever(eventRepository.findById(eventId)).thenReturn(Optional.of(notificationEvent(eventId, UUID.randomUUID())))
+        whenever(preferenceEligibilityPort.ifAvailable).thenReturn(null)
+        whenever(userRepository.findById(userId)).thenReturn(Optional.of(UserEntity(email = "test@example.test")))
+        whenever(emailSender.sendEmail(any(), any(), any(), any(), any(), any())).thenReturn(
+            NotificationDeliveryResult(channel = NotificationChannel.EMAIL, status = NotificationDeliveryStatus.FAILED),
+        )
+        val context = NotificationDispatchContext(
+            intent = NotificationIntent.MANUAL_AVAILABILITY_NUDGE, eventId = eventId,
+            seasonId = UUID.randomUUID(), troupeId = null, recipientUserIds = listOf(userId),
+            recipientChannels = mapOf(userId to setOf(NotificationChannel.EMAIL)),
+        )
+        assertEquals(emptySet<UUID>(), dispatcher.dispatch(context))
+        verifyNoInteractions(pushSender)
+    }
+
+    @Test
+    fun `push only skipped by sender does not count as processed`() {
+        val eventId = UUID.randomUUID()
+        val userId = UUID.randomUUID()
+        whenever(eventRepository.findById(eventId)).thenReturn(Optional.of(notificationEvent(eventId, UUID.randomUUID())))
+        whenever(pushEligibilityPort.isPushAllowedForCategory(any(), any())).thenReturn(true)
+        whenever(pushSender.sendPush(any(), any(), any(), any())).thenReturn(
+            NotificationDeliveryResult(channel = NotificationChannel.PUSH, status = NotificationDeliveryStatus.SKIPPED),
+        )
+        val context = NotificationDispatchContext(
+            intent = NotificationIntent.MANUAL_AVAILABILITY_NUDGE, eventId = eventId,
+            seasonId = UUID.randomUUID(), troupeId = null, recipientUserIds = listOf(userId),
+            recipientChannels = mapOf(userId to setOf(NotificationChannel.PUSH)),
+        )
+        assertEquals(emptySet<UUID>(), dispatcher.dispatch(context))
+        verifyNoInteractions(emailSender)
+    }
+
+    @Test
+    fun `missing email after confirmation does not count as processed`() {
+        val eventId = UUID.randomUUID()
+        val userId = UUID.randomUUID()
+        whenever(eventRepository.findById(eventId)).thenReturn(Optional.of(notificationEvent(eventId, UUID.randomUUID())))
+        whenever(preferenceEligibilityPort.ifAvailable).thenReturn(null)
+        whenever(userRepository.findById(userId)).thenReturn(Optional.of(UserEntity(email = null)))
+        val context = NotificationDispatchContext(
+            intent = NotificationIntent.MANUAL_AVAILABILITY_NUDGE, eventId = eventId,
+            seasonId = UUID.randomUUID(), troupeId = null, recipientUserIds = listOf(userId),
+            recipientChannels = mapOf(userId to setOf(NotificationChannel.EMAIL)),
+        )
+        assertEquals(emptySet<UUID>(), dispatcher.dispatch(context))
+        verifyNoInteractions(pushSender, emailSender)
+    }
+
+    @Test
     fun `push failure is logged without propagating to caller`() {
         val eventId = UUID.randomUUID()
         val seasonId = UUID.randomUUID()

@@ -34,43 +34,10 @@
       />
     }
 
-    @if (equipeStatus(); as status) {
+    @if (showStatus() && equipeStatus(); as status) {
       <div class="event-equipe-tab__status">
         <app-composition-equipe-status-header [status]="status" />
       </div>
-    }
-
-    @if (canManageComposition()) {
-      <section class="event-equipe-tab__format" aria-label="Format et besoins">
-        <div class="event-equipe-tab__format-current">
-          <span class="event-equipe-tab__format-label">Format</span>
-          <span class="event-equipe-tab__format-value">
-            <span aria-hidden="true">{{ formatIcon() }}</span>
-            {{ formatLabel() }}
-          </span>
-        </div>
-        <button
-          type="button"
-          mat-stroked-button
-          class="event-equipe-tab__format-edit event-equipe-tab__format-edit--desktop"
-          aria-label="Modifier le format"
-          [disabled]="compositionInteractionBlocked()"
-          (click)="openFormatDialog()"
-        >
-          <mat-icon aria-hidden="true">edit</mat-icon>
-          <span class="event-equipe-tab__format-edit-label">Modifier le format</span>
-        </button>
-        <button
-          type="button"
-          mat-icon-button
-          class="event-equipe-tab__format-edit event-equipe-tab__format-edit--mobile"
-          aria-label="Modifier le format"
-          [disabled]="compositionInteractionBlocked()"
-          (click)="openFormatDialog()"
-        >
-          <mat-icon aria-hidden="true">edit</mat-icon>
-        </button>
-      </section>
     }
 
     <ng-template #slotBody let-row="row">

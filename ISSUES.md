@@ -54,7 +54,10 @@ integration database).
 
 ### Pending verification or operational follow-up
 
+BUG-107 is corrected locally and its desktop screenshot validated; mobile human verification remains pending.
+
 BUG-106 is corrected and verified against local PostgreSQL; staging CI must verify the fix.
+BUG-108 is corrected and verified locally in story 17.46; integration is local.
 
 BUG-095 is corrected locally; the development deployment must be verified.
 
@@ -86,6 +89,14 @@ human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
 
+### BUG-107 — Advent gift shortcut shifted outside desktop rail
+- **Status**: Corrected locally; desktop screenshot validated; mobile human verification pending
+- **Severity**: Low
+- **Affected area**: V2 member desktop navigation
+- **Observed behavior**: The Advent gift shortcut is partly outside the left edge of the navigation rail.
+- **Expected behavior**: The shortcut is centered in the rail above the account control.
+- **Notes**: The desktop button inherited mobile positioning offsets, and its image overflowed the padded button content. The desktop override resets the offsets and centers the image without changing the mobile shortcut.
+
 ### BUG-106 — Advent PostgreSQL ranking fixture lacks received_at
 
 - **Status:** Corrected locally; staging CI verification pending
@@ -103,6 +114,13 @@ BUG-037 and BUG-029 have fixture-only corrections verified by the complete API s
 - **Observed behavior**: In a long-running development session after story changes, the participant selector showed only its arrow. The unanswered-list chevron changed its expanded state, but its list remained empty. Browser logs reported `mat-form-field must contain a MatFormFieldControl` and an Angular expression-changed error.
 - **Expected behavior**: The subject selector renders its selected participant, and expanding the unanswered section renders its names.
 - **Evidence/limits**: The isolated Playwright suite passed with fresh servers before the report. A controlled restart of the same worktree offline stack restored both controls on the same seed event; opening and closing the unanswered list and opening the subject selector were verified in the browser. Hot module replacement or shared development cache state is a hypothesis, not a confirmed cause; persistence across clean production builds has not been demonstrated.
+### BUG-108 — Format editing permission differs between UI and API
+- **Status**: Corrected locally in story 17.46; local integration.
+- **Severity**: Medium (authorized-looking action can fail).
+- **Affected area**: Event format editing for event-scoped organizers.
+- **Observed behavior before correction**: The Équipe format action was exposed to composition managers, but `EventService.update` required troupe management for every update, so event organizers without troupe permission could not save it.
+- **Expected behavior**: The action and server authorization agree with the intended permission policy.
+- **Correction and verification**: The approved event-scoped exception permits composition managers to update only format and role needs. Integration tests pass for authorized organizers, unrelated events, unauthorized members, mixed payloads and troupe administrators; existing assignment-reconciliation tests also pass.
 
 ### BUG-103 — Advent journey can check a late result before confirmation completes
 - **Status**: Corrected locally; subsequent real-clock journey passed the late-answer step.
@@ -294,6 +312,21 @@ BUG-037 and BUG-029 have fixture-only corrections verified by the complete API s
 - **Observed behavior**: The next date-boundary scenario can start while the preceding API still holds port 18080, failing with EADDRINUSE.
 - **Expected behavior**: Each scenario starts only once the previous isolated servers have released their ports, or fails if they do not stop.
 - **Notes/context**: GitHub run 41357887231 passed the first scenario before failing to start the next one. All three scenarios passed locally after the correction.
+
+### BUG-082 — Event details E2E expects removed dialog
+- **Status**: Corrected locally; full release and CI verification pending.
+- **Severity**: High (staging gate blocked).
+- **Affected area**: Event details Playwright regression.
+- **Observed behavior**: The test waits for the removed « Plus d’informations » dialog while the current interface uses expandable « Voir plus » details.
+- **Expected behavior**: The test exercises expansion, season information and collapse in the current interface.
+
+### BUG-081 — Release 2.8.0 checks fail on Advent and event tests
+- **Status**: Corrected locally; full release and CI verification pending.
+- **Severity**: High (release checks blocked).
+- **Affected area**: Advent answer cards, production CSS budget, event update unit tests.
+- **Observed behavior**: The answer label overlay intercepts radio clicks; the Advent stylesheet exceeds its 12 kB error budget; seven event update tests receive 403 after an authorization check was added. An Advent E2E assertion still expects a late-answer label removed by the approved result simplification.
+- **Expected behavior**: Radio and card remain clickable, the production build stays within budget, and tests configure the authorized actor explicitly.
+- **Notes/context**: Observed in the local staging gate and CI runs 42377114305, 42376385968 and 42376385972.
 
 ### BUG-080 — Availability E2E interception races with navigation
 - **Status**: Mitigation verified locally; CI verification pending.
@@ -592,12 +625,12 @@ BUG-037 and BUG-029 have fixture-only corrections verified by the complete API s
 - **Evidence**: [Release chain audit](docs/v2/technical/RELEASE_CHAIN_AUDIT_2026-10-23.md); [E1 run](https://github.com/plamarque/hatcast/actions/runs/39897194431).
 
 ### BUG-047 — Google sign-in reports an unapproved V2 staging origin
-- **Status**: Observed during the 2.7.0-rc.1 browser smoke; Google sign-in itself was not exercised.
-- **Severity**: Low (staging-only console finding; impact on Google sign-in requires verification).
+- **Status**: Open — Google sign-in failure reported on 2.7.1-rc.1; OAuth configuration investigation in progress.
+- **Severity**: High (Google sign-in blocked on the staging URL provided for release testing).
 - **Affected area**: Google Identity Services on `https://hatcast-v2-staging-gz5evlelnq-od.a.run.app/connexion`.
 - **Observed behavior**: The login page emits `[GSI_LOGGER]: The given origin is not allowed for the given client ID.` Browser extensions emit separate unrelated warnings.
 - **Expected behavior**: A supported staging login origin is accepted by the configured Google OAuth web client.
-- **Evidence and limits**: Browser console during the 2026-10-23 RC smoke, revision `hatcast-v2-staging-00127-r66`; email/password login passed for both configured E2E roles. No Google login attempt, client configuration change, or production impact is established.
+- **Evidence and limits**: Browser console during the 2026-10-23 RC smoke, revision `hatcast-v2-staging-00127-r66`; email/password login passed for both configured E2E roles. On 2026-11-07, the user reported Google OAuth HTTP 400 `origin_mismatch` when attempting staging sign-in after deployment of 2.7.1-rc.1. The exact origin in the Google error details has not been independently verified; no production impact is established.
 
 ### BUG-046 — Guest navigation E2E expects an incomplete fixture title
 - **Status**: Fixed locally — complete E2E suite passed (100 passed, 4 skipped); CI verification pending.

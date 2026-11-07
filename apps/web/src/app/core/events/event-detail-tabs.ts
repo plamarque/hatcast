@@ -1,10 +1,10 @@
 import type { ParamMap } from '@angular/router'
 
-export type EventDetailTab = 'infos' | 'dispos' | 'equipe' | 'activite'
+export type EventDetailTab = 'dispos' | 'equipe' | 'activite'
 
 const TAB_ALIASES: Record<string, EventDetailTab> = {
-  infos: 'infos',
-  info: 'infos',
+  infos: 'dispos',
+  info: 'dispos',
   dispos: 'dispos',
   team: 'dispos',
   equipe: 'equipe',
@@ -33,7 +33,7 @@ export function resolveEventDetailTab(params: ParamMap): EventDetailTab {
   if (params.get('showConfirm') === 'true') {
     return 'equipe'
   }
-  return 'infos'
+  return 'dispos'
 }
 
 export function eventDetailTabToQuery(tab: EventDetailTab): string {
