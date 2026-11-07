@@ -1,101 +1,90 @@
 <main class="event-infos">
+  <section class="event-infos__banner" aria-label="Informations du spectacle">
+    <div class="event-infos__date">
+      @if (dateParts(); as date) {
+        <time [attr.datetime]="event().startsAt" [attr.aria-label]="formatDate(event().startsAt)">
+          <span class="event-infos__day" aria-hidden="true">{{ date.day }}</span>
+          <span class="event-infos__weekday" aria-hidden="true">{{ date.weekday }}</span>
+          <span class="event-infos__month-year" aria-hidden="true">{{ date.monthYear }}</span>
+          <span class="event-infos__time" aria-hidden="true">{{ date.time }}</span>
+        </time>
+      } @else {
+        <span class="event-infos__empty">Date invalide</span>
+      }
+      @if (dateExportEnabled()) {
+        <button type="button" mat-icon-button class="event-infos__calendar"
+          [matMenuTriggerFor]="calendarMenu" aria-haspopup="menu"
+          [attr.aria-expanded]="calendarMenuOpen()"
+          [attr.aria-label]="'Ajouter à votre agenda : ' + formatDate(event().startsAt)"
+          (menuOpened)="onCalendarMenuOpened()" (menuClosed)="onCalendarMenuClosed()">
+          <mat-icon aria-hidden="true">event</mat-icon>
+        </button>
+        <mat-menu #calendarMenu="matMenu" class="event-infos__menu-panel" aria-label="Options d'agenda">
+          <div class="event-infos__menu-header" matMenuItem disabled>Ajouter à votre agenda :</div>
+          <button type="button" mat-menu-item (click)="exportToGoogleCalendar()">Google</button>
+          <button type="button" mat-menu-item (click)="exportToOutlook()">Outlook</button>
+          <button type="button" mat-menu-item (click)="exportToAppleCalendar()">Apple</button>
+        </mat-menu>
+      }
+    </div>
+    <div class="event-infos__banner-details">
+      <div class="event-infos__banner-meta">
+        @if (eventStatus(); as status) {
+          <app-composition-equipe-status-header [status]="status" />
+          @if (!status.managerGuideline) {
+            <button type="button" mat-icon-button [matMenuTriggerFor]="statusHelp" aria-label="Comprendre le statut de composition">
+              <mat-icon aria-hidden="true">help_outline</mat-icon>
+            </button>
+          }
+        } @else {
+          <app-composition-status-badge [badge]="event().teamStatusBadge" />
+          <button type="button" mat-icon-button [matMenuTriggerFor]="statusHelp" aria-label="Comprendre le statut de composition">
+            <mat-icon aria-hidden="true">help_outline</mat-icon>
+          </button>
+        }
+        <mat-menu #statusHelp="matMenu" aria-label="Statut de composition">
+          <div class="event-infos__status-help">{{ statusHelpText() }}</div>
+        </mat-menu>
+      </div>
+      @if (locationInteractive()) {
+        <button type="button" mat-button class="event-infos__location"
+          [matMenuTriggerFor]="mapsMenu" aria-haspopup="menu"
+          [attr.aria-expanded]="mapsMenuOpen()"
+          aria-label="Ouvrir le lieu dans une appli de navigation" [title]="event().location!"
+          (menuOpened)="onMapsMenuOpened()" (menuClosed)="onMapsMenuClosed()">
+          <mat-icon aria-hidden="true">place</mat-icon>
+          <span class="event-infos__action-text event-infos__action-text--truncate">{{ event().location }}</span>
+          <mat-icon class="event-infos__chevron" [class.event-infos__chevron--open]="mapsMenuOpen()" aria-hidden="true">expand_more</mat-icon>
+        </button>
+        <mat-menu #mapsMenu="matMenu" class="event-infos__menu-panel">
+          <button type="button" mat-menu-item (click)="openGoogleMaps()">Ouvrir dans Google Maps</button>
+          <button type="button" mat-menu-item (click)="openWaze()">Ouvrir dans Waze</button>
+        </mat-menu>
+      } @else {
+        <div class="event-infos__location-empty"><mat-icon aria-hidden="true">place</mat-icon><span>Lieu non renseigné</span></div>
+      }
+      <div class="event-infos__format-summary">{{ typeIcon() }} {{ typeLabel() }}</div>
+      @if (event().category && event().category !== 'principal') {
+        <div class="event-infos__category-summary">{{ categoryLabel() }}</div>
+      }
+      <button type="button" mat-button class="event-infos__details-action" (click)="openDetails()">Plus d’informations</button>
+      @if (bootstrapError()) {
+        <div role="alert">Impossible de charger les informations du spectacle.
+          <button type="button" mat-button (click)="retryBootstrap.emit()">Réessayer</button>
+        </div>
+      }
+    </div>
+  </section>
+</main>
+
+<ng-template #detailsDialog>
+  <h2 mat-dialog-title>Informations du spectacle</h2>
+  <mat-dialog-content class="event-infos__dialog-content">
   @if (event().description?.trim(); as description) {
     <div class="event-infos__field event-infos__field--description">
       <div class="event-infos__value">{{ description }}</div>
     </div>
   }
-
-  <div class="event-infos__field">
-    <span class="event-infos__label">Date</span>
-    @if (dateExportEnabled()) {
-      <button
-        type="button"
-        class="event-infos__action-row"
-        [matMenuTriggerFor]="calendarMenu"
-        aria-haspopup="menu"
-        [attr.aria-expanded]="calendarMenuOpen()"
-        aria-label="Ajouter à votre agenda"
-        (menuOpened)="onCalendarMenuOpened()"
-        (menuClosed)="onCalendarMenuClosed()"
-      >
-        <mat-icon aria-hidden="true">event</mat-icon>
-        <span class="event-infos__action-text">{{ formatDate(event().startsAt) }}</span>
-        <mat-icon
-          class="event-infos__chevron"
-          [class.event-infos__chevron--open]="calendarMenuOpen()"
-          aria-hidden="true"
-        >
-          expand_more
-        </mat-icon>
-      </button>
-      <mat-menu
-        #calendarMenu="matMenu"
-        class="event-infos__menu-panel"
-        aria-label="Options d'agenda"
-      >
-        <div class="event-infos__menu-header" matMenuItem disabled>
-          Ajouter à votre agenda :
-        </div>
-        <button type="button" mat-menu-item (click)="exportToGoogleCalendar()">
-          Google
-        </button>
-        <button type="button" mat-menu-item (click)="exportToOutlook()">
-          Outlook
-        </button>
-        <button type="button" mat-menu-item (click)="exportToAppleCalendar()">
-          Apple
-        </button>
-      </mat-menu>
-    } @else {
-      <div class="event-infos__action-row event-infos__action-row--disabled">
-        <mat-icon aria-hidden="true">event</mat-icon>
-        <span class="event-infos__action-text event-infos__action-text--muted">
-          {{ formatDate(event().startsAt) }}
-        </span>
-      </div>
-    }
-  </div>
-
-  <div class="event-infos__field">
-    <span class="event-infos__label">Lieu</span>
-    @if (locationInteractive()) {
-      <button
-        type="button"
-        class="event-infos__action-row"
-        [matMenuTriggerFor]="mapsMenu"
-        aria-haspopup="menu"
-        [attr.aria-expanded]="mapsMenuOpen()"
-        aria-label="Ouvrir le lieu dans une appli de navigation"
-        [title]="event().location!"
-        (menuOpened)="onMapsMenuOpened()"
-        (menuClosed)="onMapsMenuClosed()"
-      >
-        <mat-icon aria-hidden="true">place</mat-icon>
-        <span class="event-infos__action-text event-infos__action-text--truncate">{{
-          event().location
-        }}</span>
-        <mat-icon
-          class="event-infos__chevron"
-          [class.event-infos__chevron--open]="mapsMenuOpen()"
-          aria-hidden="true"
-        >
-          expand_more
-        </mat-icon>
-      </button>
-      <mat-menu #mapsMenu="matMenu" class="event-infos__menu-panel">
-        <button type="button" mat-menu-item (click)="openGoogleMaps()">
-          Ouvrir dans Google Maps
-        </button>
-        <button type="button" mat-menu-item (click)="openWaze()">
-          Ouvrir dans Waze
-        </button>
-      </mat-menu>
-    } @else {
-      <div class="event-infos__value">
-        <span class="event-infos__empty">Non renseigné</span>
-      </div>
-    }
-  </div>
 
   <section
     class="event-infos__format"
@@ -157,6 +146,7 @@
       @if (canManageEventOrganizers()) {
         <button
           type="button"
+          mat-button
           class="event-infos__add-organizer"
           [disabled]="saving()"
           (click)="openOrganizersDialog()"
@@ -175,29 +165,11 @@
   >
     <span id="event-infos-category-label" class="event-infos__label">Catégorie</span>
     <p id="event-infos-category-help" class="event-infos__section-help">{{ categoryHelp }}</p>
-    @if (glossaryLoading()) {
-      <div
-        class="event-infos__category-loading"
-        role="status"
-        aria-live="polite"
-        aria-busy="true"
-        aria-label="Chargement des catégories"
-      >
-        <mat-spinner diameter="24" />
-      </div>
-    } @else {
-      <app-event-category-select-chip-set
-        class="event-infos__category-chips"
-        ariaLabel="Catégorie du spectacle"
-        [options]="categoryOptions()"
-        [selectedSlug]="selectedCategorySlug()"
-        [disabled]="!canManageEvents() || saving()"
-        (categorySelect)="onCategorySelect($event)"
-      />
-    }
+    <div class="event-infos__value">{{ categoryLabel() || defaultCategoryLabel() }}</div>
     @if (canManageTroupe()) {
       <button
         type="button"
+        mat-button
         class="event-infos__add-organizer"
         [disabled]="saving()"
         (click)="navigateToCategorySettings()"
@@ -219,6 +191,7 @@
           mat-chip
           class="event-infos__scope-chip"
           [routerLink]="troupeHubLink()"
+          (click)="closeDetails()"
           [attr.aria-label]="'Voir la troupe ' + troupeName()"
         >
           {{ troupeName() }}
@@ -227,6 +200,7 @@
           mat-chip
           class="event-infos__scope-chip"
           [routerLink]="seasonWorkspaceLink()"
+          (click)="closeDetails()"
           [attr.aria-label]="'Ouvrir la saison ' + seasonTitle()"
         >
           {{ seasonTitle() }}
@@ -234,4 +208,6 @@
       </mat-chip-set>
     </section>
   }
-</main>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end"><button type="button" mat-button mat-dialog-close>Fermer</button></mat-dialog-actions>
+</ng-template>

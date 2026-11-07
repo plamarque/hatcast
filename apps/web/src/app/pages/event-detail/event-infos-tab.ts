@@ -1,9 +1,12 @@
-import { Component, computed, effect, inject, input, output, signal } from '@angular/core'
+import { Component, computed, effect, inject, input, output, signal, TemplateRef, viewChild } from '@angular/core'
 import { DOCUMENT } from '@angular/common'
 import { Router, RouterLink } from '@angular/router'
+import { CompositionEquipeStatusHeader } from '../../shared/composition/composition-equipe-status-header'
+import { resolveCompositionEquipeStatusFromEvent, type CompositionEquipeStatus } from '../../core/composition/composition-equipe-status'
+import { CompositionStatusBadge } from '../../shared/composition/composition-status-badge'
 import { MatButtonModule } from '@angular/material/button'
 import { MatChipsModule } from '@angular/material/chips'
-import { MatDialog, MatDialogModule } from '@angular/material/dialog'
+import { MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
@@ -48,7 +51,6 @@ import {
   CATEGORY_HELP,
   defaultCategoryLabelFromGlossary,
 } from './event-category.constants'
-import { EventCategorySelectChipSet } from './event-category-select-chip-set'
 import {
   OrganizerApiService,
   type OrganizerResponse,
@@ -63,6 +65,8 @@ import { ORGANIZERS_HELP } from './event-organizers-dialog'
   selector: 'app-event-infos-tab',
   imports: [
     MatButtonModule,
+    CompositionStatusBadge,
+    CompositionEquipeStatusHeader,
     MatChipsModule,
     MatDialogModule,
     MatIconModule,
@@ -71,7 +75,6 @@ import { ORGANIZERS_HELP } from './event-organizers-dialog'
     MatSnackBarModule,
     RouterLink,
     RoleDisplayChipSet,
-    EventCategorySelectChipSet,
   ],
   templateUrl: './event-infos-tab.html',
   styleUrl: './event-infos-tab.scss',
@@ -84,6 +87,8 @@ export class EventInfosTab {
   private readonly dialog = inject(MatDialog)
   private readonly router = inject(Router)
   private readonly doc = inject(DOCUMENT)
+  private readonly detailsDialog = viewChild.required<TemplateRef<unknown>>('detailsDialog')
+  private detailsRef: MatDialogRef<unknown> | null = null
 
   readonly event = input.required<EventResponse>()
   readonly seasonId = input.required<string>()
@@ -93,10 +98,15 @@ export class EventInfosTab {
   readonly troupeName = input<string | null>(null)
   readonly seasonTitle = input<string | null>(null)
   readonly canManageEvents = input(false)
+  readonly canManageComposition = input(false)
+  readonly detailedStatus = input<CompositionEquipeStatus | null>(null)
   readonly canManageTroupe = input(false)
   readonly canManageEventOrganizers = input(false)
   /** Incremented by parent when organizers change via admin menu dialog. */
   readonly organizersReloadTrigger = input(0)
+  readonly bootstrapManagedByParent = input(false)
+  readonly bootstrapError = input(false)
+  readonly retryBootstrap = output<void>()
   readonly bootstrapOrganizers = input<OrganizerResponse[] | null>(null)
   readonly bootstrapCategories = input<TroupeCategory[] | null>(null)
 
@@ -141,6 +151,33 @@ export class EventInfosTab {
     ),
   )
 
+  protected readonly eventStatus = computed(() =>
+    this.detailedStatus() ?? resolveCompositionEquipeStatusFromEvent(this.event(), this.canManageComposition()),
+  )
+
+  protected readonly statusHelpText = computed(() => {
+    switch (this.eventStatus()?.type) {
+      case 'none': return 'La composition de l’équipe reste à préparer.'
+      case 'complete': return 'L’équipe est complète et ses participations sont confirmées.'
+      case 'slots_to_complete': return 'La composition est validée mais certains emplacements restent à compléter.'
+      case 'has_declined': return 'Des retraits sont enregistrés dans la composition.'
+      case 'pending_confirmation': return 'Certaines participations attendent une confirmation.'
+      case 'draft': return 'La composition de l’équipe est en préparation.'
+    }
+    switch (this.event().teamStatusBadge?.key) {
+      case 'draft': return 'La composition est en préparation.'
+      case 'preparing': return 'La composition de l’équipe est en cours.'
+      case 'confirmed': return 'La composition de l’équipe est confirmée.'
+      default: return 'Les disponibilités sont en cours de collecte.'
+    }
+  })
+
+  protected readonly defaultCategoryLabel = computed(() => defaultCategoryLabelFromGlossary(this.glossary()))
+
+  protected readonly categoryLabel = computed(() =>
+    this.glossary().find((category) => category.slug === this.event().category)?.label ?? this.event().category ?? '',
+  )
+
   protected readonly selectedCategorySlug = computed(() => this.event().category ?? null)
 
   protected readonly categoryOptions = computed(() =>
@@ -170,7 +207,7 @@ export class EventInfosTab {
         this.glossaryLoading.set(false)
         return
       }
-      if (troupeId) {
+      if (troupeId && !this.bootstrapManagedByParent()) {
         void this.loadGlossary(troupeId)
       }
     })
@@ -183,7 +220,7 @@ export class EventInfosTab {
         this.organizers.set(bootstrap)
         return
       }
-      if (seasonId && eventId) {
+      if (seasonId && eventId && (!this.bootstrapManagedByParent() || trigger > 0)) {
         void this.loadOrganizers(seasonId, eventId)
       }
     })
@@ -203,6 +240,26 @@ export class EventInfosTab {
       minute: '2-digit',
       timeZone: AGENDA_TIME_ZONE,
     }).format(new Date(iso))
+  }
+
+  protected readonly dateParts = computed(() => {
+    const date = new Date(this.event().startsAt)
+    if (Number.isNaN(date.getTime())) return null
+    return {
+      day: new Intl.DateTimeFormat('fr-FR', { day: 'numeric', timeZone: AGENDA_TIME_ZONE }).format(date),
+      weekday: new Intl.DateTimeFormat('fr-FR', { weekday: 'short', timeZone: AGENDA_TIME_ZONE }).format(date),
+      monthYear: new Intl.DateTimeFormat('fr-FR', { month: 'short', year: 'numeric', timeZone: AGENDA_TIME_ZONE }).format(date),
+      time: new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: AGENDA_TIME_ZONE }).format(date),
+    }
+  })
+
+  protected openDetails(): void {
+    this.detailsRef = this.dialog.open(this.detailsDialog(), { width: 'min(100vw - 2rem, 32rem)', maxHeight: '90dvh', autoFocus: 'first-heading' })
+  }
+
+  protected closeDetails(): void {
+    this.detailsRef?.close()
+    this.detailsRef = null
   }
 
   protected onCalendarMenuOpened(): void {
@@ -330,6 +387,7 @@ export class EventInfosTab {
   }
 
   protected navigateToCategorySettings(): void {
+    this.closeDetails()
     void this.router.navigate(troupeAdminSettingsPath(this.troupeSlug()), {
       queryParams: { tab: 'categories' },
     })

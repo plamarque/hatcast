@@ -204,9 +204,9 @@ export async function clickBreadcrumbSeasonLink(
 ): Promise<void> {
   await waitForEventDetailReady(page)
 
-  const infosTab = page.locator('.event-detail__tabs').getByRole('tab', { name: /Infos/i })
-  if ((await infosTab.count()) > 0) {
-    await infosTab.click()
+  const details = page.getByRole('button', { name: /Plus d’informations/i })
+  if ((await details.count()) > 0) {
+    await details.click()
     const seasonChip = page.locator('a.event-infos__scope-chip[href*="/saison/"]').first()
     if ((await seasonChip.count()) > 0) {
       await expect(seasonChip).toBeVisible({ timeout: 15_000 })

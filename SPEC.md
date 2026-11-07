@@ -50,9 +50,15 @@ This section complements the **legacy** admin behaviour described elsewhere in t
 
 ---
 
+## Event detail (V2)
+
+The show title remains in the app bar. A header above the tabs presents the date and calendar export, location and navigation, composition status and help, format, and a non-default category when applicable. Additional details retain description, organizers, role needs, and troupe and season navigation. Dispos and Équipe remain available; Activité retains its existing permission checks. Old Infos links open a valid remaining tab while preserving the other link flags.
+
+Authorized users open a unified edit form from the app bar. General fields and category retain troupe-management authorization. A composition manager may change only the format and template role slots for the event they manage; mixed requests containing fields outside that scope are rejected. Assigned people outside the new role model remain available for reconciliation.
+
 ## Flexible event composition (V2 target)
 
-An organizer who can manage an event composition configures its structure and fills it in the **Équipe** tab. The tab owns format/template selection, role-slot editing, assignments, and draw. The **Infos** tab is a read-only summary of the resulting format and role counts.
+An organizer who can manage an event composition selects its format and template in the unified event edit form, and manages role slots, assignments, and draw in **Équipe**. The event header summarizes the format; additional details show role counts.
 
 - A format is a starting template. Selecting a different template whose role needs differ requires confirmation before it is applied.
 - Applying a template creates missing slots and removes obsolete empty slots. It never silently removes an assigned person: an affected assignment remains organizer-visible as a neutral **Hors modèle** slot until an organizer explicitly changes it.
@@ -275,6 +281,8 @@ Evaluate in this order (first match wins):
 
 ## Recorded slices (planned capabilities)
 
+The legacy event-detail descriptions in this section refer to V1; the V2 contract is specified under **Event detail (V2)** above.
+
 Slices below describe desired behaviour to be implemented later. Implementation order and tasks will be defined in PLAN.md when a slice is scheduled.
 
 - **Event details as full screen (canonical URL)**
@@ -355,7 +363,9 @@ Slices below describe desired behaviour to be implemented later. Implementation 
 
 ---
 
-## Event details as full screen (specification)
+## Event details as full screen (legacy V1 specification)
+
+This legacy V1 section does not describe the V2 event-detail layout or routes.
 
 This section specifies the **event details as full screen** slice in full. It describes required behaviour and contracts so that a future development plan can be derived without ambiguity. Implementation order is not defined here (see PLAN.md when the slice is scheduled).
 

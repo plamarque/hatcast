@@ -1,11 +1,15 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { provideNativeDateAdapter } from '@angular/material/core'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
+import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog'
 import { describe, expect, it, vi } from 'vitest'
+import { of } from 'rxjs'
+import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed'
+import { MatSelectHarness } from '@angular/material/select/testing'
 
 import { EventApiService } from '../../core/events/event-api.service'
-import { emptyRoleSlots } from '../../core/events/event-types'
+import { TroupeApiService } from '../../core/troupes/troupe-api.service'
+import { applyTemplate, emptyRoleSlots } from '../../core/events/event-types'
 import type { EventResponse } from '../../core/events/event-api.service'
 import {
   buildStartsAtIso,
@@ -37,7 +41,7 @@ function event(id: string): EventResponse {
 
 async function setup(
   data: EventFormDialogData,
-  apiOverrides: Partial<Pick<EventApiService, 'createEvent' | 'updateEvent'>> = {},
+  apiOverrides: Partial<Pick<EventApiService, 'createEvent' | 'updateEvent' | 'openAvailabilityResilient' | 'closeAvailability'>> = {},
 ) {
   const close = vi.fn()
 
@@ -45,6 +49,7 @@ async function setup(
     imports: [EventFormDialog, NoopAnimationsModule],
     providers: [
       provideNativeDateAdapter(),
+      { provide: TroupeApiService, useValue: { listCategories: vi.fn().mockResolvedValue({ ok: true, data: [{ slug: 'deplacements', label: 'Déplacements' }] }) } },
       { provide: MatDialogRef, useValue: { close } },
       { provide: MAT_DIALOG_DATA, useValue: data },
       {
@@ -374,5 +379,96 @@ describe('EventFormDialog slug field regression', () => {
     fillRequiredCreateFields(fixture)
     await dialogHarness(fixture).submit()
     expect(close).toHaveBeenCalledWith(created)
+  })
+})
+
+
+describe('EventFormDialog unified editing permissions', () => {
+  it('publishes for a composition-only organizer without an empty PATCH', async () => {
+    const original = event('ev-1')
+    const published = { ...original, availabilityOpenedAt: '2030-01-01T00:00:00Z' }
+    const updateEvent = vi.fn()
+    const openAvailabilityResilient = vi.fn().mockResolvedValue({ ok: true, data: published })
+    const { fixture, close } = await setup({ mode: 'edit', seasonId: 'season-1', event: original, canManageEvents: false, canManageComposition: true, canManagePublication: true }, { updateEvent, openAvailabilityResilient })
+    ;(fixture.componentInstance as unknown as { publishDraft: boolean }).publishDraft = true
+    await dialogHarness(fixture).submit()
+    expect(updateEvent).not.toHaveBeenCalled()
+    expect(openAvailabilityResilient).toHaveBeenCalledWith('season-1', 'ev-1')
+    expect(close).toHaveBeenCalledWith(published)
+  })
+
+  it('closes unchanged for a composition-only organizer without a PATCH', async () => {
+    const original = event('ev-1')
+    const updateEvent = vi.fn()
+    const { fixture, close } = await setup({ mode: 'edit', seasonId: 'season-1', event: original, canManageEvents: false, canManageComposition: true }, { updateEvent })
+    await dialogHarness(fixture).submit()
+    expect(updateEvent).not.toHaveBeenCalled()
+    expect(close).toHaveBeenCalledWith(original)
+  })
+
+  it('cancels a return to draft before saving any edits', async () => {
+    const updateEvent = vi.fn()
+    const closeAvailability = vi.fn()
+    const { fixture, close } = await setup({ mode: 'edit', seasonId: 'season-1', event: { ...event('ev-1'), availabilityOpenedAt: '2030-01-01T00:00:00Z' }, canManageEvents: true, canManagePublication: true }, { updateEvent, closeAvailability })
+    vi.spyOn((fixture.componentInstance as unknown as { dialog: MatDialog }).dialog, 'open').mockReturnValue({ afterClosed: () => of(false) } as never)
+    dialogHarness(fixture).form.patchValue({ title: 'Titre modifié' })
+    ;(fixture.componentInstance as unknown as { revertToDraft: boolean }).revertToDraft = true
+    await dialogHarness(fixture).submit()
+    expect(updateEvent).not.toHaveBeenCalled()
+    expect(closeAvailability).not.toHaveBeenCalled()
+    expect(close).not.toHaveBeenCalled()
+  })
+
+  it('previews preset needs with French role labels', async () => {
+    const { fixture } = await setup({ mode: 'edit', seasonId: 'season-1', event: event('ev-1'), canManageComposition: true })
+    const component = fixture.componentInstance as unknown as { selectedTemplate: string }
+    component.selectedTemplate = 'match'
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('Comédiens·nes : 5')
+    expect(fixture.nativeElement.textContent).toContain('Bénévoles : 5')
+    expect(fixture.nativeElement.textContent).not.toContain('player :')
+    expect(fixture.nativeElement.textContent).not.toContain('volunteer :')
+  })
+
+  it('lets a composition manager change the format without sending general details', async () => {
+    const updateEvent = vi.fn().mockResolvedValue({ ok: true, data: event('ev-1') })
+    const { fixture } = await setup({ mode: 'edit', seasonId: 'season-1', event: event('ev-1'), canManageEvents: false, canManageComposition: true }, { updateEvent })
+    const [format] = await TestbedHarnessEnvironment.loader(fixture).getAllHarnesses(MatSelectHarness)
+    await format.open()
+    await format.clickOptions({ text: /Cabaret/ })
+    await dialogHarness(fixture).submit()
+    expect(updateEvent).toHaveBeenCalledWith('season-1', 'ev-1', {
+      templateType: 'cabaret', roleSlots: applyTemplate('cabaret'),
+    })
+  })
+
+
+  it('loads categories and saves the selected category for an authorized editor', async () => {
+    const updateEvent = vi.fn().mockResolvedValue({ ok: true, data: event('ev-1') })
+    const { fixture } = await setup({ mode: 'edit', seasonId: 'season-1', event: event('ev-1'), troupeId: 'troupe-1', canManageEvents: true }, { updateEvent })
+    const [, category] = await TestbedHarnessEnvironment.loader(fixture).getAllHarnesses(MatSelectHarness)
+    await category.open()
+    await category.clickOptions({ text: 'Déplacements' })
+    await dialogHarness(fixture).submit()
+    expect(updateEvent.mock.calls[0][2]).toHaveProperty('category', 'deplacements')
+  })
+
+  it('does not send a category when event editing is denied', async () => {
+    const updateEvent = vi.fn().mockResolvedValue({ ok: true, data: event('ev-1') })
+    const { fixture } = await setup({ mode: 'edit', seasonId: 'season-1', event: event('ev-1'), troupeId: 'troupe-1', canManageEvents: false, canManageComposition: true }, { updateEvent })
+    const component = fixture.componentInstance as unknown as { selectedCategory: string | null; submit: () => Promise<void> }
+    component.selectedCategory = 'deplacements'
+    await component.submit()
+    expect(updateEvent).not.toHaveBeenCalled()
+  })
+
+  it('does not include format changes when composition management is denied', async () => {
+    const updateEvent = vi.fn().mockResolvedValue({ ok: true, data: event('ev-1') })
+    const { fixture } = await setup({ mode: 'edit', seasonId: 'season-1', event: event('ev-1'), canManageEvents: true, canManageComposition: false }, { updateEvent })
+    const component = fixture.componentInstance as unknown as { selectedTemplate: string; submit: () => Promise<void> }
+    component.selectedTemplate = 'cabaret'
+    await component.submit()
+    expect(updateEvent.mock.calls[0][2]).not.toHaveProperty('templateType')
+    expect(updateEvent.mock.calls[0][2]).not.toHaveProperty('roleSlots')
   })
 })

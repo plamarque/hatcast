@@ -13,6 +13,11 @@
   <div class="event-detail-header__center">
     <ng-content select="[data-event-detail-title-row]" />
   </div>
+  @if (canEdit()) {
+    <button type="button" mat-icon-button aria-label="Modifier le spectacle" (click)="edit.emit()">
+      <mat-icon aria-hidden="true">edit</mat-icon>
+    </button>
+  }
   @if (showAdminMenu()) {
     <div class="event-detail-header__admin">
       <app-scope-admin-menu scope="event" [items]="adminItems()" />

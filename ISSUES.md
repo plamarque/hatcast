@@ -52,6 +52,8 @@ integration database).
 
 ### Pending verification or operational follow-up
 
+BUG-105 is corrected and verified locally in story 17.46; review and integration remain pending.
+
 BUG-095 is corrected locally; the development deployment must be verified.
 
 BUG-094 is corrected locally and validated by Patrice on a phone; deployment remains separate.
@@ -81,6 +83,14 @@ BUG-024, and BUG-021 have local fixes but still require their stated review,
 human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
+
+### BUG-105 — Format editing permission differs between UI and API
+- **Status**: Corrected locally in story 17.46; review and integration pending.
+- **Severity**: Medium (authorized-looking action can fail).
+- **Affected area**: Event format editing for event-scoped organizers.
+- **Observed behavior before correction**: The Équipe format action was exposed to composition managers, but `EventService.update` required troupe management for every update, so event organizers without troupe permission could not save it.
+- **Expected behavior**: The action and server authorization agree with the intended permission policy.
+- **Correction and verification**: The approved event-scoped exception permits composition managers to update only format and role needs. Integration tests pass for authorized organizers, unrelated events, unauthorized members, mixed payloads and troupe administrators; existing assignment-reconciliation tests also pass.
 
 ### BUG-103 — Advent journey can check a late result before confirmation completes
 - **Status**: Corrected locally; subsequent real-clock journey passed the late-answer step.

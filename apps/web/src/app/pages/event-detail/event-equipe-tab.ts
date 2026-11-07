@@ -159,6 +159,7 @@ export class EventEquipeTab {
   readonly event = input.required<EventResponse>()
   readonly canManageComposition = input(false)
   readonly showConfirmPending = input(false)
+  readonly showStatus = input(true)
   /** When true, parent owns GET /composition (PERF-03 — single fetch). */
   readonly compositionLoadManagedByParent = input(false)
   readonly parentComposition = input<CompositionResponse | null>(null)
@@ -166,7 +167,9 @@ export class EventEquipeTab {
 
   readonly compositionPublished = output<CompositionResponse>()
   readonly eventUpdated = output<EventResponse>()
+  readonly editEvent = output<void>()
   readonly compositionInteractionBlockedChange = output<boolean>()
+  readonly statusChanged = output<ReturnType<typeof resolveCompositionEquipeStatus>>()
 
   protected readonly loading = signal(true)
   protected readonly loadError = signal(false)
@@ -543,6 +546,7 @@ export class EventEquipeTab {
   } | null = null
 
   constructor() {
+    effect(() => this.statusChanged.emit(this.equipeStatus()))
     if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
       this.prefersReducedMotion.set(
         window.matchMedia('(prefers-reduced-motion: reduce)').matches,

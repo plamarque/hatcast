@@ -6,6 +6,8 @@
   <app-event-detail-header
     [showBack]="showEventHeaderBack()"
     [adminItems]="eventAdminItems()"
+    [canEdit]="!!event() && !event()!.archived && (canManageEvents() || (canManageComposition() && !compositionInteractionBlocked()))"
+    (edit)="openEdit()"
   >
     @if (event(); as ev) {
       <div data-event-detail-title-row class="event-detail__context-row">
@@ -28,20 +30,6 @@
       (eventUpdated)="onEventInfosUpdated($event)"
     />
 
-    <div class="event-detail__tabs-shell">
-      <mat-tab-group
-        class="event-detail__tabs"
-        [selectedIndex]="tabIndex()"
-        (selectedIndexChange)="onTabChange($event)"
-        dynamicHeight
-      >
-      <mat-tab>
-        <ng-template mat-tab-label>
-          <mat-icon class="event-detail__tab-icon" aria-hidden="true">info</mat-icon>
-          Infos
-        </ng-template>
-        @if (activeTab() === 'infos') {
-          <section class="event-detail__tab-panel">
             <app-event-infos-tab
               [event]="ev"
               [seasonId]="seasonId()"
@@ -51,17 +39,26 @@
               [troupeName]="contextTroupeName()"
               [seasonTitle]="contextLeagueTitle()"
               [canManageEvents]="canManageEvents()"
+              [canManageComposition]="canManageComposition()"
+              [detailedStatus]="equipeStatus()"
               [canManageTroupe]="canManageTroupe()"
               [canManageEventOrganizers]="canManageEventOrganizersFor(ev.id)"
               [organizersReloadTrigger]="organizersReloadTrigger()"
+              [bootstrapManagedByParent]="true"
+              [bootstrapError]="infosBootstrapError()"
+              (retryBootstrap)="retryInfosBootstrap()"
               [bootstrapOrganizers]="infosOrganizers()"
               [bootstrapCategories]="infosCategories()"
               (eventUpdated)="onEventInfosUpdated($event)"
             />
-          </section>
-        }
-      </mat-tab>
 
+    <div class="event-detail__tabs-shell">
+      <mat-tab-group
+        class="event-detail__tabs"
+        [selectedIndex]="tabIndex()"
+        (selectedIndexChange)="onTabChange($event)"
+        dynamicHeight
+      >
       <mat-tab>
         <ng-template mat-tab-label>
           <mat-icon class="event-detail__tab-icon" aria-hidden="true">ballot</mat-icon>
@@ -85,6 +82,10 @@
               [bootstrapSummary]="disposBootstrapSummary()"
               (summaryChanged)="onDisposSummaryChanged($event)"
             />
+            } @else if (disposBootstrapError()) {
+              <div role="alert">Impossible de charger les disponibilités.
+                <button mat-button type="button" (click)="retryDisposBootstrap()">Réessayer</button>
+              </div>
             } @else {
               <div class="event-detail__spinner" role="status">
                 <mat-spinner diameter="32" />
@@ -110,10 +111,13 @@
             [canManageComposition]="canManageComposition()"
             [showConfirmPending]="showConfirmPending()"
             [compositionLoadManagedByParent]="true"
+            [showStatus]="false"
+            (statusChanged)="onEquipeStatusChanged($event)"
             [parentComposition]="composition()"
             [parentCompositionLoaded]="compositionLoaded()"
             (compositionPublished)="syncCompositionFromEquipe($event)"
             (eventUpdated)="onEventInfosUpdated($event)"
+            (editEvent)="openEdit()"
             (compositionInteractionBlockedChange)="onCompositionInteractionBlockedChange($event)"
           />
         }

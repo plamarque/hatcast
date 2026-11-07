@@ -38,7 +38,6 @@ describe('EventInfosTab', () => {
   let fixture: ComponentFixture<EventInfosTab>
   let snackOpen: ReturnType<typeof vi.fn>
   let windowOpenSpy: ReturnType<typeof vi.spyOn>
-  let dialogOpen: ReturnType<typeof vi.fn>
   let updateEvent: ReturnType<typeof vi.fn>
   let listCategories: ReturnType<typeof vi.fn>
   const snackBarMock = { open: vi.fn() }
@@ -63,7 +62,6 @@ describe('EventInfosTab', () => {
   beforeEach(async () => {
     snackBarMock.open.mockReset()
     windowOpenSpy = vi.spyOn(window, 'open').mockReturnValue({} as Window)
-    dialogOpen = vi.fn()
     updateEvent = vi.fn()
     listCategories = vi.fn().mockResolvedValue({ ok: true, data: [] })
 
@@ -71,7 +69,6 @@ describe('EventInfosTab', () => {
       imports: [EventInfosTab, NoopAnimationsModule],
       providers: [
         provideRouter([]),
-        { provide: MatDialog, useValue: { open: dialogOpen } },
         {
           provide: EventApiService,
           useValue: { updateEvent },
@@ -96,7 +93,6 @@ describe('EventInfosTab', () => {
       })
       .compileComponents()
 
-    TestBed.overrideProvider(MatDialog, { useValue: { open: dialogOpen } })
 
     fixture = TestBed.createComponent(EventInfosTab)
     snackOpen = snackBarMock.open
@@ -106,26 +102,46 @@ describe('EventInfosTab', () => {
     fixture.componentRef.setInput('troupeSlug', 'improbots')
     fixture.componentRef.setInput('seasonSlug', '2025-2026')
     fixture.detectChanges()
+    const details = document.querySelector('.event-infos__details-action') as HTMLButtonElement
+    details.click()
+    fixture.detectChanges()
   })
 
   afterEach(() => {
+    TestBed.inject(MatDialog).closeAll()
     windowOpenSpy.mockRestore()
   })
 
   function dateButton(): HTMLButtonElement | null {
-    return fixture.nativeElement.querySelector(
-      'button[aria-label="Ajouter à votre agenda"]',
+    return document.querySelector(
+      'button[aria-label^="Ajouter à votre agenda"]',
     )
   }
 
   function locationButton(): HTMLButtonElement | null {
-    return fixture.nativeElement.querySelector(
+    return document.querySelector(
       'button[aria-label="Ouvrir le lieu dans une appli de navigation"]',
     )
   }
 
+  it.each([
+    { type: 'pending_confirmation', label: 'Confirmations en cours', guideline: 'Recueille les confirmations.' },
+    { type: 'slots_to_complete', label: 'À compléter', guideline: 'Complète les emplacements.' },
+  ])('shows detailed organizer status and help in the banner: $label', ({ type, label, guideline }) => {
+    fixture.componentRef.setInput('detailedStatus', { type, label, tone: 'info', managerGuideline: guideline })
+    fixture.detectChanges()
+    const banner = document.querySelector('.event-infos__banner') as HTMLElement
+    expect(banner.textContent).toContain(label)
+    const trigger = banner.querySelector('[data-testid="composition-status-help-trigger"]') as HTMLButtonElement
+    expect(trigger).not.toBeNull()
+    trigger.click()
+    fixture.detectChanges()
+    expect(banner.querySelector('[data-testid="composition-status-hint"]')?.textContent).toContain(guideline)
+    expect(banner.querySelector('app-composition-status-badge')).toBeNull()
+  })
+
   it('hides description block when empty', () => {
-    expect(fixture.nativeElement.querySelector('.event-infos__field--description')).toBeNull()
+    expect(document.querySelector('.event-infos__field--description')).toBeNull()
     expect(fixture.nativeElement.textContent).not.toContain('Non renseignée')
   })
 
@@ -133,14 +149,21 @@ describe('EventInfosTab', () => {
     fixture.componentRef.setInput('event', ev({ description: '  Soirée spéciale  ' }))
     fixture.detectChanges()
 
-    const block = fixture.nativeElement.querySelector('.event-infos__field--description')
+    const block = document.querySelector('.event-infos__field--description')
     expect(block?.textContent?.trim()).toBe('Soirée spéciale')
     expect(block?.querySelector('.event-infos__label')).toBeNull()
   })
 
-  it('renders interactive date row with chevron when export enabled', () => {
+  it('renders interactive date and calendar action when export enabled', () => {
     expect(dateButton()).not.toBeNull()
-    expect(dateButton()?.querySelector('.event-infos__chevron')).not.toBeNull()
+    expect(dateButton()?.getAttribute('aria-label')).toContain('Ajouter à votre agenda')
+  })
+
+  it('shows the month and year alongside the day and time', () => {
+    expect(document.querySelector('.event-infos__day')?.textContent?.trim()).toBe('12')
+    expect(document.querySelector('.event-infos__month-year')?.textContent).toContain('mai')
+    expect(document.querySelector('.event-infos__month-year')?.textContent).toContain('2030')
+    expect(document.querySelector('.event-infos__time')?.textContent?.trim()).toBeTruthy()
   })
 
   it('disables date row without chevron when slug is empty', () => {
@@ -148,9 +171,7 @@ describe('EventInfosTab', () => {
     fixture.detectChanges()
 
     expect(dateButton()).toBeNull()
-    const disabledRow = fixture.nativeElement.querySelector('.event-infos__action-row--disabled')
-    expect(disabledRow).not.toBeNull()
-    expect(disabledRow.querySelector('.event-infos__chevron')).toBeNull()
+    expect(document.querySelector('.event-infos__date time')).not.toBeNull()
   })
 
   it('disables date row when startsAt is invalid', () => {
@@ -165,8 +186,8 @@ describe('EventInfosTab', () => {
     fixture.detectChanges()
 
     expect(locationButton()).toBeNull()
-    expect(fixture.nativeElement.textContent).toContain('Non renseigné')
-    const locationField = fixture.nativeElement.querySelectorAll('.event-infos__field')[1]
+    expect(fixture.nativeElement.textContent).toContain('Lieu non renseigné')
+    const locationField = document.querySelector('.event-infos__location-empty')!
     expect(locationField.querySelector('.event-infos__chevron')).toBeNull()
   })
 
@@ -299,12 +320,10 @@ describe('EventInfosTab', () => {
     )
   })
 
-  it('rotates chevron when calendar menu opens', () => {
+  it('exposes calendar menu expanded state', () => {
     tab().onCalendarMenuOpened()
     fixture.detectChanges()
 
-    const chevron = fixture.nativeElement.querySelector('.event-infos__chevron--open')
-    expect(chevron).not.toBeNull()
     expect(dateButton()?.getAttribute('aria-expanded')).toBe('true')
 
     tab().onCalendarMenuClosed()
@@ -331,73 +350,50 @@ describe('EventInfosTab', () => {
     fixture.componentRef.setInput('canManageEvents', true)
     fixture.detectChanges()
 
-    const help = fixture.nativeElement.querySelector('#event-infos-category-help')
+    const help = document.querySelector('#event-infos-category-help')
     expect(help?.textContent?.trim()).toBe(CATEGORY_HELP)
   })
 
-  it('shows Spectacles ordinaires chip highlighted for read-only users', async () => {
-    await vi.waitFor(() => {
-      expect(
-        fixture.nativeElement.querySelector('.event-infos__category-chips mat-chip'),
-      ).not.toBeNull()
-    })
-
-    const chips = fixture.nativeElement.querySelectorAll(
-      '.event-infos__category-chips mat-chip',
-    )
-    const ordinaire = [...chips].find((chip) =>
-      chip.textContent?.includes(DEFAULT_CATEGORY_DISPLAY_LABEL),
-    )
-    expect(ordinaire?.classList.contains('mat-mdc-chip-highlighted')).toBe(true)
-    expect(
-      fixture.nativeElement.querySelector('.event-infos__category-chips .mat-mdc-chip-disabled'),
-    ).not.toBeNull()
+  it('uses the troupe glossary label for the default category', async () => {
+    fixture.componentRef.setInput('bootstrapCategories', [{ slug: 'principal', label: 'Nos spectacles' }])
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    expect(document.querySelector('.event-infos__category')?.textContent).toContain('Nos spectacles')
   })
 
-  it('shows inline category chips when organizer can manage events', async () => {
+  it('shows the default category as read-only information', () => {
+    const section = document.querySelector('.event-infos__category')!
+    expect(section.textContent).toContain(DEFAULT_CATEGORY_DISPLAY_LABEL)
+    expect(section.querySelector('app-event-category-select-chip-set')).toBeNull()
+    expect(document.querySelector('.event-infos__banner-meta')?.textContent).not.toContain(DEFAULT_CATEGORY_DISPLAY_LABEL)
+  })
+
+  it('keeps category information read-only for an organizer', () => {
     fixture.componentRef.setInput('canManageEvents', true)
     fixture.detectChanges()
-
-    await vi.waitFor(() => {
-      expect(
-        fixture.nativeElement.querySelector('app-event-category-select-chip-set'),
-      ).not.toBeNull()
-    })
-    expect(
-      fixture.nativeElement.querySelector('.event-infos__category button.event-infos__action-row'),
-    ).toBeNull()
+    expect(document.querySelector('.event-infos__category')?.textContent).toContain(DEFAULT_CATEGORY_DISPLAY_LABEL)
+    expect(document.querySelector('app-event-category-select-chip-set')).toBeNull()
   })
 
-  it('highlights custom category chip when event has category', async () => {
-    listCategories.mockResolvedValue({
-      ok: true,
-      data: [{ slug: 'deplacements', label: 'Déplacements' }],
-    })
-    fixture.componentRef.setInput('canManageEvents', true)
+  it('shows the custom category label in the header', async () => {
+    listCategories.mockResolvedValue({ ok: true, data: [{ slug: 'deplacements', label: 'Déplacements' }] })
     fixture.componentRef.setInput('event', ev({ category: 'deplacements' }))
     fixture.componentRef.setInput('troupeId', 'troupe-glossary-reload')
     fixture.detectChanges()
-
-    await vi.waitFor(() => {
-      expect(listCategories).toHaveBeenCalledWith('troupe-glossary-reload')
-    })
-    await vi.waitFor(() => {
-      const chips = fixture.nativeElement.querySelectorAll('.event-infos__category-chips mat-chip')
-      expect(chips.length).toBeGreaterThan(1)
-    })
-
-    const chips = fixture.nativeElement.querySelectorAll('.event-infos__category-chips mat-chip')
-    const deplacements = [...chips].find((chip) => chip.textContent?.includes('Déplacements'))
-    expect(deplacements?.classList.contains('mat-mdc-chip-highlighted')).toBe(true)
+    await vi.waitFor(() => expect(listCategories).toHaveBeenCalledWith('troupe-glossary-reload'))
+    fixture.detectChanges()
+    expect(document.querySelector('.event-infos__category-summary')?.textContent).toContain('Déplacements')
+    expect(document.querySelector('.event-infos__category')?.textContent).toContain('Déplacements')
   })
 
   function categoryManageLink(): HTMLButtonElement | null {
-    const section = fixture.nativeElement.querySelector('.event-infos__category')
+    const section = document.querySelector('.event-infos__category')
     if (!section) {
       return null
     }
     return (
-      [...section.querySelectorAll('button.event-infos__add-organizer')].find((button) =>
+      [...section.querySelectorAll<HTMLButtonElement>('button.event-infos__add-organizer')].find((button) =>
         button.textContent?.includes('Gérer les catégories'),
       ) ?? null
     )
@@ -508,15 +504,15 @@ describe('EventInfosTab', () => {
     fixture.componentRef.setInput('canManageEvents', true)
     fixture.detectChanges()
 
-    expect(fixture.nativeElement.querySelector('.event-infos__format-edit')).toBeNull()
-    expect(fixture.nativeElement.querySelector('app-role-display-chip-set')).not.toBeNull()
+    expect(document.querySelector('.event-infos__format-edit')).toBeNull()
+    expect(document.querySelector('app-role-display-chip-set')).not.toBeNull()
   })
 
   it('shows organizers help when section is visible', () => {
     fixture.componentRef.setInput('canManageEventOrganizers', true)
     fixture.detectChanges()
 
-    const help = fixture.nativeElement.querySelector('#event-infos-organizers-help')
+    const help = document.querySelector('#event-infos-organizers-help')
     expect(help?.textContent?.trim()).toBe(ORGANIZERS_HELP)
   })
 
@@ -525,7 +521,7 @@ describe('EventInfosTab', () => {
     fixture.componentRef.setInput('seasonTitle', 'Saison 2025-26')
     fixture.detectChanges()
 
-    const saison = fixture.nativeElement.querySelector('.event-infos__saison') as HTMLElement
+    const saison = document.querySelector('.event-infos__saison') as HTMLElement
     expect(saison).not.toBeNull()
     expect(saison.querySelector('#event-infos-saison-label')?.textContent?.trim()).toBe('Saison')
     expect(saison.querySelector('a[href="/saison/improbots/2025-2026"]')?.textContent?.trim()).toBe(
@@ -534,7 +530,7 @@ describe('EventInfosTab', () => {
     expect(saison.querySelector('a[href="/troupes/improbots"]')?.textContent?.trim()).toBe(
       'Les Improbots',
     )
-    expect(fixture.nativeElement.querySelector('.event-infos')?.lastElementChild).toBe(saison)
+    expect(saison.closest('[role="dialog"]')).not.toBeNull()
   })
 
   it('hides Saison section when troupe or season name is empty', () => {
@@ -542,6 +538,6 @@ describe('EventInfosTab', () => {
     fixture.componentRef.setInput('seasonTitle', '   ')
     fixture.detectChanges()
 
-    expect(fixture.nativeElement.querySelector('.event-infos__saison')).toBeNull()
+    expect(document.querySelector('.event-infos__saison')).toBeNull()
   })
 })

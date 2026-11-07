@@ -185,6 +185,7 @@
 }
 
 .event-infos__add-organizer {
+  min-height: 48px;
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -295,3 +296,35 @@
   line-height: 1.25;
 }
 
+
+.event-infos { padding-bottom: 0.5rem; }
+.event-infos__banner {
+  display: grid;
+  grid-template-columns: 4.25rem minmax(0, 1fr);
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 1rem;
+  background: var(--mat-sys-surface-container);
+}
+.event-infos__date {
+  border-inline-end: 1px solid var(--mat-sys-outline-variant);
+  text-align: center;
+  padding-inline-end: 0.5rem;
+  min-width: 0;
+}
+.event-infos__date time { display: flex; flex-direction: column; align-items: center; }
+.event-infos__day { font: var(--mat-sys-headline-small); font-weight: 700; }
+.event-infos__weekday { font: var(--mat-sys-label-medium); text-transform: uppercase; }
+.event-infos__month-year { font: var(--mat-sys-label-small); white-space: nowrap; }
+.event-infos__time { font: var(--mat-sys-label-medium); margin-top: 0.25rem; white-space: nowrap; }
+.event-infos__calendar { color: var(--mat-sys-primary); }
+.event-infos__banner-details { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; }
+.event-infos__banner-meta { display: flex; align-items: center; flex-wrap: wrap; min-width: 0; }
+.event-infos__location { max-width: 100%; min-height: 48px; padding-inline: 0.25rem; }
+:host ::ng-deep .event-infos__location .mdc-button__label { display: flex; align-items: center; min-width: 0; gap: 0.25rem; }
+.event-infos__location-empty { display: flex; align-items: center; min-height: 48px; color: var(--mat-sys-on-surface-variant); }
+.event-infos__format-summary, .event-infos__category-summary { margin-inline-start: 0.25rem; overflow-wrap: anywhere; }
+.event-infos__category-summary { color: var(--mat-sys-on-surface-variant); font: var(--mat-sys-body-small); }
+.event-infos__details-action { margin-inline-start: -0.5rem; min-height: 48px; }
+.event-infos__status-help { padding: 1rem; max-width: 18rem; white-space: normal; }
+.event-infos__dialog-content { display: flex; flex-direction: column; gap: 1rem; }

@@ -57,6 +57,32 @@
       <textarea matInput formControlName="description" rows="3"></textarea>
     </mat-form-field>
 
+    @if (data.mode === 'edit') {
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Format</mat-label>
+        <mat-select [value]="selectedTemplate" [disabled]="!canEditFormat || saving" (selectionChange)="selectedTemplate = $event.value">
+          @for (type of templateOrder; track type) {
+            <mat-option [value]="type">{{ getEventTypeIcon(type) }} {{ getEventTypeLabel(type) }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      @if (formatChanged) {
+        <p>Modèle de besoins : {{ presetSummary }}</p>
+        @if (formatWarning) { <p role="alert">Appliquer ce format remplacera les besoins actuels.</p> }
+      }
+      @if (data.troupeId) {
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Catégorie</mat-label>
+        <mat-select [value]="selectedCategory" [disabled]="!canEditDetails || categoriesLoading || !!categoriesError || saving" (selectionChange)="selectedCategory = $event.value">
+          @for (category of categoryOptions; track category.slug) {
+            <mat-option [value]="category.slug">{{ category.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      @if (categoriesError) { <p role="alert">{{ categoriesError }}</p> }
+      }
+    }
+
     @if (showPublishDraftToggle()) {
       <mat-slide-toggle
         class="publish-draft-toggle"

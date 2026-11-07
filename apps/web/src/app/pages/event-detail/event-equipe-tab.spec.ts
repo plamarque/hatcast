@@ -11,10 +11,9 @@ import {
   DrawPolicyApiService,
   type EffectiveDrawPolicy,
 } from '../../core/draw/draw-policy-api.service'
-import { applyTemplate, emptyRoleSlots } from '../../core/events/event-types'
+import { emptyRoleSlots } from '../../core/events/event-types'
 import { EventApiService, type EventResponse } from '../../core/events/event-api.service'
 import { ConfirmDialog } from '../seasons-list/confirm-dialog'
-import { EventTypeRolesDialog } from './event-type-roles-dialog'
 import { EventEquipeTab } from './event-equipe-tab'
 import { ProductAnalyticsService } from '../../core/analytics/product-analytics.service'
 import { ChanceBreakdownService } from '../../shared/composition/chance-breakdown.service'
@@ -225,15 +224,9 @@ describe('EventEquipeTab', () => {
     })
   })
 
-  it('lets an organizer change the format from Équipe and persists the template needs', async () => {
-    const captureMutation = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureCompositionMutation')
-    const updatedEvent = ev({
-      templateType: 'match',
-      roleSlots: applyTemplate('match'),
-    })
-    updateEvent.mockResolvedValue({ ok: true, data: updatedEvent })
-    const updated = vi.fn()
-    fixture.componentInstance.eventUpdated.subscribe(updated)
+  it('opens the unified event editor from the format action', async () => {
+    const editEvent = vi.fn()
+    fixture.componentInstance.editEvent.subscribe(editEvent)
     fixture.componentRef.setInput('canManageComposition', true)
     fixture.detectChanges()
 
@@ -253,23 +246,8 @@ describe('EventEquipeTab', () => {
     ).toBeTruthy()
     button.click()
 
-    expect(dialogOpen).toHaveBeenCalledWith(
-      EventTypeRolesDialog,
-      expect.objectContaining({
-        data: expect.objectContaining({ templateType: 'custom', roleSlots: ev().roleSlots }),
-      }),
-    )
-
-    dialogAfterClosed.next({ templateType: 'match', roleSlots: applyTemplate('match') })
-
-    await vi.waitFor(() => {
-      expect(updateEvent).toHaveBeenCalledWith('season-1', 'event-1', {
-        templateType: 'match',
-        roleSlots: applyTemplate('match'),
-      })
-      expect(updated).toHaveBeenCalledWith(updatedEvent)
-      expect(captureMutation).toHaveBeenCalledWith(expect.anything(), { action: 'slot', outcome: 'succeeded' })
-    })
+    expect(editEvent).toHaveBeenCalledOnce()
+    expect(updateEvent).not.toHaveBeenCalled()
   })
 
   it('does not show a format action to a member', async () => {

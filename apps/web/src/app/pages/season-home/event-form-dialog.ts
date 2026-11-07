@@ -18,6 +18,11 @@ import {
 import { MatDatepickerModule } from '@angular/material/datepicker'
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
+import { MatSelectModule } from '@angular/material/select'
+import { TroupeApiService, type TroupeCategory } from '../../core/troupes/troupe-api.service'
+import { applyTemplate, detectTemplateFromRoles, EVENT_TYPE_IDS, getEventTypeIcon, getEventTypeLabel, normalizeRoleSlots, roleSlotsEqual, rolesWithSlots, TEMPLATE_DISPLAY_ORDER, type EventTypeId } from '../../core/events/event-types'
+import { getRoleLabel } from '../../shared/event-roles/event-roles'
+import { buildEventCategoryOptions } from '../event-detail/event-category.constants'
 import { MatInputModule } from '@angular/material/input'
 import {
   NgxMatTimepickerComponent,
@@ -41,6 +46,9 @@ export interface EventFormDialogData {
   event?: EventResponse
   /** Peut publier / remettre en brouillon (organisateur spectacle ou admin). */
   canManagePublication?: boolean
+  canManageEvents?: boolean
+  canManageComposition?: boolean
+  troupeId?: string
 }
 
 /** Instant ISO → date (midi local) + heure/minute locales. */
@@ -114,6 +122,7 @@ function startTimeValidator(): ValidatorFn {
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    MatSelectModule,
     NgxMatTimepickerComponent,
     NgxMatTimepickerDirective,
     NgxMatTimepickerToggleComponent,
@@ -125,10 +134,30 @@ export class EventFormDialog implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder)
   private formChangeSub?: Subscription
   private readonly api = inject(EventApiService)
+  private readonly troupeApi = inject(TroupeApiService)
   private readonly dialog = inject(MatDialog)
   private readonly ref = inject(MatDialogRef<EventFormDialog, EventResponse | boolean | undefined>)
   protected readonly data = inject<EventFormDialogData>(MAT_DIALOG_DATA)
 
+  protected readonly templateOrder = TEMPLATE_DISPLAY_ORDER
+  protected readonly getEventTypeIcon = getEventTypeIcon
+  protected readonly getEventTypeLabel = getEventTypeLabel
+  protected selectedTemplate!: EventTypeId
+  protected initialTemplate!: EventTypeId
+  protected selectedCategory: string | null = null
+  protected categoryOptions: ReturnType<typeof buildEventCategoryOptions> = []
+  protected categoriesLoading = false
+  protected categoriesError = ''
+  protected get canEditDetails(): boolean { return this.data.mode === 'create' || this.data.canManageEvents !== false }
+  protected get canEditFormat(): boolean { return this.data.canManageComposition === true }
+  protected get formatChanged(): boolean { return this.selectedTemplate !== this.initialTemplate }
+  protected get formatWarning(): boolean {
+    return this.formatChanged && !!this.data.event && !roleSlotsEqual(normalizeRoleSlots(this.data.event.roleSlots), applyTemplate(this.selectedTemplate))
+  }
+  protected get presetSummary(): string {
+    const slots = applyTemplate(this.selectedTemplate)
+    return rolesWithSlots(slots).map((role) => `${getRoleLabel(role, null, slots[role] > 1)} : ${slots[role]}`).join(', ')
+  }
   protected saving = false
   protected formError = ''
   protected readonly timepickerFormat24 = 24 as const
@@ -156,6 +185,12 @@ export class EventFormDialog implements OnInit, OnDestroy {
   ngOnInit(): void {
     if (this.data.mode === 'edit' && this.data.event) {
       const e = this.data.event
+      const type = e.templateType as EventTypeId
+      this.initialTemplate = EVENT_TYPE_IDS.includes(type) ? type : detectTemplateFromRoles(normalizeRoleSlots(e.roleSlots))
+      this.selectedTemplate = this.initialTemplate
+      this.selectedCategory = e.category ?? null
+      this.categoryOptions = buildEventCategoryOptions([], this.selectedCategory)
+      if (this.data.troupeId) void this.loadCategories(this.data.troupeId)
       const { date, hour, minute } = parseStartsAt(e.startsAt)
       this.form.patchValue({
         title: e.title,
@@ -166,6 +201,7 @@ export class EventFormDialog implements OnInit, OnDestroy {
       })
     }
 
+    if (!this.canEditDetails) this.form.disable()
     this.formChangeSub = this.form.valueChanges.subscribe(() => {
       this.formError = ''
     })
@@ -192,28 +228,38 @@ export class EventFormDialog implements OnInit, OnDestroy {
     }
     const timeParts = resolveStartTimeParts(v.startTime)
     const startsAt = buildStartsAtIso(v.startDate, timeParts.hour, timeParts.minute)
-    const payload = {
+    const details = {
       title: v.title.trim(),
       startsAt,
       location: v.location.trim() || null,
       description: v.description.trim() || null,
     }
+    const payload = this.canEditDetails ? details : {}
+    if (this.data.mode === 'edit' && this.canEditDetails && this.data.troupeId && this.selectedCategory !== (this.data.event?.category ?? null)) Object.assign(payload, { category: this.selectedCategory })
+    if (this.data.mode === 'edit' && this.canEditFormat && this.formatChanged) Object.assign(payload, { templateType: this.selectedTemplate, roleSlots: normalizeRoleSlots(applyTemplate(this.selectedTemplate)) })
     this.saving = true
     try {
       if (this.data.mode === 'create') {
-        const r = await this.api.createEvent(this.data.seasonId, payload)
+        const r = await this.api.createEvent(this.data.seasonId, details)
         if (!r.ok) {
           this.formError = r.errorMessage ?? 'Création impossible.'
           return
         }
         this.ref.close(r.data)
       } else if (this.data.event) {
-        const r = await this.api.updateEvent(this.data.seasonId, this.data.event.id, payload)
-        if (!r.ok || !r.data) {
-          this.formError = r.errorMessage ?? 'Mise à jour impossible.'
-          return
+        if (this.revertToDraft && this.data.event.availabilityOpenedAt) {
+          const confirmed = await this.confirmRevertToDraft(this.data.event.title)
+          if (!confirmed) return
         }
-        let latest: EventResponse = r.data
+        let latest: EventResponse = this.data.event
+        if (Object.keys(payload).length > 0) {
+          const r = await this.api.updateEvent(this.data.seasonId, this.data.event.id, payload)
+          if (!r.ok || !r.data) {
+            this.formError = r.errorMessage ?? 'Mise à jour impossible.'
+            return
+          }
+          latest = r.data
+        }
         if (this.publishDraft && !this.data.event.availabilityOpenedAt) {
           const openResult = await this.api.openAvailabilityResilient(
             this.data.seasonId,
@@ -226,10 +272,6 @@ export class EventFormDialog implements OnInit, OnDestroy {
           latest = openResult.data
         }
         if (this.revertToDraft && this.data.event.availabilityOpenedAt) {
-          const confirmed = await this.confirmRevertToDraft(this.data.event.title)
-          if (!confirmed) {
-            return
-          }
           const closeResult = await this.api.closeAvailability(
             this.data.seasonId,
             this.data.event.id,
@@ -245,6 +287,16 @@ export class EventFormDialog implements OnInit, OnDestroy {
     } finally {
       this.saving = false
     }
+  }
+
+  private async loadCategories(troupeId: string): Promise<void> {
+    this.categoriesLoading = true
+    try {
+      const result = await this.troupeApi.listCategories(troupeId)
+      if (!result.ok || !result.data) { this.categoriesError = 'Impossible de charger les catégories.'; return }
+      this.categoryOptions = buildEventCategoryOptions(result.data, this.selectedCategory)
+    } catch { this.categoriesError = 'Impossible de charger les catégories.' }
+    finally { this.categoriesLoading = false }
   }
 
   private confirmRevertToDraft(title: string): Promise<boolean> {
