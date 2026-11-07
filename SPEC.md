@@ -538,4 +538,4 @@ Avant le 25 décembre, les égalités conservent leur rang partagé. Dès le 25 
 
 ### Avent — récits complets facultatifs
 
-Un quiz peut associer aux trois choix ordonnés des récits complets facultatifs. Ils ne sont accessibles qu'avec un résultat autorisé et révélable, y compris en prévisualisation autorisée ; le quiz jouable et l'attente ne les exposent pas. Les quiz sans récit conservent leur résultat et leur explication habituels.
+Un quiz peut associer aux trois choix ordonnés des récits complets facultatifs. Ils sont accessibles avec le quiz jouable autorisé et avec un résultat autorisé et révélable, y compris en prévisualisation autorisée ; l’attente ne les expose pas. Les quiz sans récit conservent leur résultat et leur explication habituels.

@@ -227,7 +227,7 @@ class AdventMemberController(
         authorize(principal)
         val quiz = game.quiz(day, sessionFor(principal, request), simulated(principal, request), preview = preview(principal, request), testFuture = canControl(principal, request)) ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
         val (image, generic) = image(quiz.portraitRef)
-        return FictionalQuiz(day, quiz.name, image, quiz.statements, generic)
+        return FictionalQuiz(day, quiz.name, image, quiz.statements, generic, quiz.stories)
     }
 
     @GetMapping("/doors/{day}/answer")

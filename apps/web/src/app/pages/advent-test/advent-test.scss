@@ -75,13 +75,16 @@
   background: var(--hatcast-avent-white);
   padding: .25rem .5rem;
 }
+/* Material's internal flex item must shrink when text is enlarged on narrow screens. */
+:host ::ng-deep .advent__options .mdc-form-field { display: flex; max-width: 100%; }
+:host ::ng-deep .advent__options .mdc-label { min-width: 0; overflow-wrap: anywhere; }
 .advent__options mat-radio-button:has(input:checked) {
   border-color: var(--hatcast-avent-red);
   background: var(--advent-choice-selected);
   box-shadow: inset .3rem 0 var(--advent-primary), 0 .15rem .35rem var(--advent-shadow);
 }
 .advent__options mat-radio-button:focus-within { outline: 3px solid var(--hatcast-avent-green); outline-offset: 2px; }
-.advent__quiz button[mat-flat-button] { min-height: 3.5rem; width: 100%; font: 700 1.125rem var(--advent-body-font); border-radius: 1rem; box-shadow: 0 .25rem .5rem var(--advent-shadow); }
+.advent__quiz button[mat-flat-button] { min-height: 3.5rem; height: auto; white-space: normal; padding-block: .75rem; width: 100%; font: 700 1.125rem var(--advent-body-font); border-radius: 1rem; box-shadow: 0 .25rem .5rem var(--advent-shadow); }
 .advent__state { padding: 1rem; text-align: center; font-weight: 700; color: var(--advent-text); }
 .advent__loading { text-align: center; padding: clamp(2rem, 10vh, 5rem) 1rem; color: var(--hatcast-avent-green); }
 .advent__loading p { margin: 1rem 0 0; font: 700 clamp(1.5rem, 6vw, 1.9rem)/1.2 var(--advent-heading-font); }

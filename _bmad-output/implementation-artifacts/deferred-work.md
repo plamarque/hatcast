@@ -42,3 +42,7 @@ status: open
 - source_spec: `_bmad-output/implementation-artifacts/spec-stabilize-availability-e2e.md`
   summary: Exercise availability interception cleanup with an intentionally in-flight inbox request.
   evidence: Unverified medium risk; the exact already-handled route cause was not established and the current scenario does not deterministically hold a handler during cleanup.
+
+- source_spec: `spec-25-25-lire-les-anecdotes-completes-avant-de-choisir.md`
+  summary: Verify screen-reader navigation of Advent radio choices and story controls.
+  evidence: Unverified medium accessibility risk: controls are individually keyboard-operable, but no assistive-technology session checked their announcements inside the radiogroup.

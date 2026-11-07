@@ -4,6 +4,8 @@ import com.hatcast.api.auth.GoogleIdTokenService
 import com.hatcast.api.auth.IdpIdTokenVerifier
 import com.hatcast.api.support.TestAuthSupport
 import org.junit.jupiter.api.Test
+import org.hamcrest.Matchers.containsString
+import org.hamcrest.Matchers.not
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.mockito.Mockito.`when`
 import org.springframework.jdbc.core.JdbcTemplate
@@ -57,6 +59,7 @@ class AdventMemberSecurityTest {
                 jdbc.update("DELETE FROM advent_quizzes WHERE quiz_day = ?", day)
                 jdbc.update("INSERT INTO advent_quizzes (quiz_day, display_name, statement_0, statement_1, statement_2, false_choice, explanation) VALUES (?, 'Fictif', 'A', 'B', 'C', 1, 'Explication fictive')", day)
             }
+            jdbc.update("UPDATE advent_quizzes SET story_0 = ?, story_1 = NULL, story_2 = ? WHERE quiz_day IN (7, 23)", "Récit privé\n\nété", "Suite fictive")
             for (cookie in listOf(first, second)) mvc.perform(get("/v1/advent/session").cookie(cookie))
                 .andExpect(status().isOk).andExpect(jsonPath("$.productionPreview").value(true))
                 .andExpect(jsonPath("$.testControls").value(false))
@@ -73,9 +76,11 @@ class AdventMemberSecurityTest {
             `when`(clock.instant()).thenReturn(Instant.parse("2026-11-30T22:59:59Z"))
             for ((cookie, day) in listOf(first to 23, first to 7, second to 7)) {
                 val prefix = "/v1/advent/doors/$day"
-                mvc.perform(get(prefix).cookie(cookie).header("X-Advent-Test-Session", token)).andExpect(status().isNotFound)
+                mvc.perform(get(prefix).cookie(cookie).header("X-Advent-Test-Session", token)).andExpect(status().isNotFound).andExpect(header().string("Cache-Control", "private, no-store")).andExpect(content().string(not(containsString("Récit privé"))))
                 mvc.perform(get(prefix).cookie(cookie).header("X-Advent-Test-Session", token).header("X-Advent-Preview", "true"))
-                    .andExpect(status().isOk).andExpect(jsonPath("$.statements[0]").value("A"))
+                    .andExpect(status().isOk).andExpect(header().string("Cache-Control", "private, no-store")).andExpect(jsonPath("$.statements[0]").value("A"))
+                    .andExpect(jsonPath("$.stories[0]").value("Récit privé\n\nété")).andExpect(jsonPath("$.stories[1]").isEmpty).andExpect(jsonPath("$.stories[2]").value("Suite fictive"))
+                    .andExpect(jsonPath("$.falseChoice").doesNotExist()).andExpect(jsonPath("$.explanation").doesNotExist()).andExpect(jsonPath("$.correct").doesNotExist()).andExpect(jsonPath("$.points").doesNotExist())
                 val reconciliation = mvc.perform(post("$prefix/answer/reconcile").cookie(cookie).with(csrf()).header("X-Advent-Test-Session", token).header("X-Advent-Preview", "true"))
                     .andExpect(status().isOk).andExpect(jsonPath("$.status").value("available")).andReturn()
                 val generation = json.readTree(reconciliation.response.contentAsString)["generation"].asText()
@@ -314,10 +319,11 @@ class AdventMemberSecurityTest {
             assert(operatorJson["ranking"]["entries"].first { it["name"].asText() == "Fictif shared-member" }["score"].asInt() == 11)
             assert(!memberBoard.response.contentAsString.contains("correct"))
             jdbc.update("INSERT INTO advent_quizzes (quiz_day, display_name, statement_0, statement_1, statement_2, false_choice) SELECT 2, 'Fictif', 'A', 'B', 'C', 0 WHERE NOT EXISTS (SELECT 1 FROM advent_quizzes WHERE quiz_day = 2)")
+            jdbc.update("UPDATE advent_quizzes SET story_0 = ?, story_1 = NULL, story_2 = ? WHERE quiz_day = 2", "Récit futur\n\nété", "Fin fictive")
             mvc.perform(post("/v1/advent/doors/2/answer/reconcile").cookie(first).with(csrf()).header("X-Advent-Test-Session", token)).andExpect(status().isOk)
-            mvc.perform(get("/v1/advent/doors/2").cookie(first).header("X-Advent-Test-Session", token)).andExpect(status().isOk)
-            mvc.perform(get("/v1/advent/doors/2").cookie(member).header("X-Advent-Test-Session", token).header("X-Advent-Test-Mode", "true")).andExpect(status().isNotFound)
-            mvc.perform(get("/v1/advent/doors/2").cookie(first).header("X-Advent-Test-Session", token).header("X-Advent-Test-Mode", "true")).andExpect(status().isOk)
+            mvc.perform(get("/v1/advent/doors/2").cookie(first).header("X-Advent-Test-Session", token)).andExpect(status().isOk).andExpect(header().string("Cache-Control", "private, no-store")).andExpect(jsonPath("$.stories[0]").value("Récit futur\n\nété")).andExpect(jsonPath("$.falseChoice").doesNotExist())
+            mvc.perform(get("/v1/advent/doors/2").cookie(member).header("X-Advent-Test-Session", token).header("X-Advent-Test-Mode", "true")).andExpect(status().isNotFound).andExpect(header().string("Cache-Control", "private, no-store")).andExpect(content().string(not(containsString("Récit futur"))))
+            mvc.perform(get("/v1/advent/doors/2").cookie(first).header("X-Advent-Test-Session", token).header("X-Advent-Test-Mode", "true")).andExpect(status().isOk).andExpect(header().string("Cache-Control", "private, no-store")).andExpect(jsonPath("$.stories[0]").value("Récit futur\n\nété")).andExpect(jsonPath("$.falseChoice").doesNotExist())
             jdbc.update("INSERT INTO advent_quizzes (quiz_day, display_name, statement_0, statement_1, statement_2, false_choice) SELECT 3, 'Fictif', 'A', 'B', 'C', 0 WHERE NOT EXISTS (SELECT 1 FROM advent_quizzes WHERE quiz_day = 3)")
             mvc.perform(get("/v1/advent/doors/3").cookie(first).header("X-Advent-Test-Session", token)).andExpect(status().isOk)
             mvc.perform(get("/v1/advent/doors/3").cookie(member).header("X-Advent-Test-Session", token).header("X-Advent-Test-Mode", "true")).andExpect(status().isNotFound)
