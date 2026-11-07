@@ -70,6 +70,7 @@ class EventServiceUpdateTest {
     @BeforeEach
     fun setup() {
         doNothing().whenever(troupeAccess).requireCanManageTroupe(any(), any())
+        whenever(troupeAccess.isTroupeAdmin(principal, troupeId)).thenReturn(true)
         whenever(eventRepository.save(any())).thenAnswer { it.getArgument(0) }
     }
 

@@ -313,6 +313,14 @@ BUG-037 and BUG-029 have fixture-only corrections verified by the complete API s
 - **Expected behavior**: Each scenario starts only once the previous isolated servers have released their ports, or fails if they do not stop.
 - **Notes/context**: GitHub run 41357887231 passed the first scenario before failing to start the next one. All three scenarios passed locally after the correction.
 
+### BUG-081 — Release 2.8.0 checks fail on Advent and event tests
+- **Status**: Corrected locally; full release and CI verification pending.
+- **Severity**: High (release checks blocked).
+- **Affected area**: Advent answer cards, production CSS budget, event update unit tests.
+- **Observed behavior**: The answer label overlay intercepts radio clicks; the Advent stylesheet exceeds its 12 kB error budget; seven event update tests receive 403 after an authorization check was added. An Advent E2E assertion still expects a late-answer label removed by the approved result simplification.
+- **Expected behavior**: Radio and card remain clickable, the production build stays within budget, and tests configure the authorized actor explicitly.
+- **Notes/context**: Observed in the local staging gate and CI runs 42377114305, 42376385968 and 42376385972.
+
 ### BUG-080 — Availability E2E interception races with navigation
 - **Status**: Mitigation verified locally; CI verification pending.
 - **Severity**: High (required release gate fails).

@@ -414,7 +414,7 @@ test('calendar remains legible at 320px and past unplayed content can be answere
   await expect(page.getByText(/sans gagner de points/)).toBeVisible()
   await page.getByRole('radio').first().click()
   await page.getByRole('button', { name: 'Confirmer ma réponse' }).click()
-  await expect(page.getByText(/réponse après le jour du quiz/)).toBeVisible()
+  await expect(page.locator('.advent__result-points')).toHaveText(/\+0\s+points gagnés/)
   await expect(page.locator('.advent__reveal-mood img')).toHaveAttribute('src', '/advent/elf-disappointed-v1.png')
   await expect.poll(() => page.locator('.advent__reveal-mood img').evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0)
   await assertResultPortraitLayout(page, false)
