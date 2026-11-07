@@ -303,8 +303,8 @@ class AdventMemberGame(private val jdbc: JdbcTemplate, private val clock: Advent
         if (unseenDay != null) return AdventRankingResponse(priorityResult = resultAt(user, unseenDay, time, preview))
         if (excludedIds.size != 2 || excludedIds.any { id -> jdbc.queryForObject("SELECT COUNT(*) FROM users WHERE id = ?", Int::class.java, id) != 1 }) throw ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE)
         val members = jdbc.query("SELECT m.user_id, m.display_name FROM troupe_memberships m JOIN users u ON u.id = m.user_id WHERE m.troupe_id = ? AND m.status = 'ACTIVE' AND m.baseline_role <> 'EXTERNE'", { rs, _ -> RankingMember(UUID.fromString(rs.getString(1)), rs.getString(2)) }, troupe)
-        val answers = jdbc.query("SELECT user_id, quiz_day, choice, correct_choice, reveal_at FROM advent_member_answers WHERE late = FALSE", { rs, _ -> RankingAnswer(UUID.fromString(rs.getString(1)), rs.getInt(2), rs.getInt(3) == rs.getInt(4), rs.getTimestamp(5).toInstant()) })
-        return AdventRankingResponse(ranking = AdventRankingCalculator.calculate(user, members, answers, if (operator) null else time, excludedIds))
+        val answers = jdbc.query("SELECT user_id, quiz_day, choice, correct_choice, reveal_at, answered_at FROM advent_member_answers WHERE late = FALSE", { rs, _ -> RankingAnswer(UUID.fromString(rs.getString(1)), rs.getInt(2), rs.getInt(3) == rs.getInt(4), rs.getTimestamp(5).toInstant(), rs.getTimestamp(6).toInstant()) })
+        return AdventRankingResponse(ranking = AdventRankingCalculator.calculate(user, members, answers, if (operator) null else time, excludedIds, AdventParisTime.isFinal(time)))
     }
     /** Calendar exposes state only, never unpublished content or scoring information. */
     @Transactional

@@ -772,4 +772,48 @@ class AdventMemberGameTest {
             assertEquals(0, read.get(10, TimeUnit.SECONDS).ranking!!.score)
         } finally { release.countDown(); pool.shutdownNow() }
     }
+    @Test fun `member and isolated ranking sources use their reference clocks for final ties`() {
+        val received = Instant.parse("2026-12-01T12:00:00Z")
+        val revealed = Instant.parse("2026-12-01T23:00:00Z")
+        for ((id, delta) in listOf(member to 0L, other to 30L)) {
+            val stamp = Timestamp.from(received.plusSeconds(delta))
+            jdbc.update("INSERT INTO advent_member_answers (user_id, quiz_day, answer_id, choice, correct_choice, answered_at, reveal_at, seen_at, late) VALUES (?, 1, ?, 0, 0, ?, ?, ?, FALSE)", id, UUID.randomUUID(), stamp, Timestamp.from(revealed), stamp)
+            jdbc.update("INSERT INTO advent_test_answers (user_id, quiz_day, choice, correct_choice, response_points, participation_points, bonus_points, received_at, reveal_at) VALUES (?, 1, 0, 0, 10, 1, 0, ?, ?)", id, stamp, Timestamp.from(revealed))
+        }
+        val late = Timestamp.from(Instant.parse("2026-12-04T12:00:00Z"))
+        jdbc.update("INSERT INTO advent_member_answers (user_id, quiz_day, answer_id, choice, correct_choice, answered_at, reveal_at, seen_at, late) VALUES (?, 2, ?, 0, 0, ?, ?, ?, TRUE)", other, UUID.randomUUID(), late, late, late)
+        val before = Instant.parse("2026-12-24T22:59:59Z")
+        val after = Instant.parse("2026-12-24T23:00:00Z")
+        at(before.toString())
+        val memberCurrent = game.ranking(member, troupe, excluded).ranking!!
+        val isolatedCurrent = testGame.testRevealableRanking(member, troupe, before, excluded)
+        assertEquals(listOf(2, 2), memberCurrent.entries.map { it.rank })
+        assertEquals(listOf(2, 2), isolatedCurrent.entries.map { it.rank })
+        assertTrue(memberCurrent.entries.all { it.tieReason == null })
+        assertTrue(isolatedCurrent.entries.all { it.tieReason == null })
+        at(after.toString())
+        val memberFinal = game.ranking(member, troupe, excluded).ranking!!
+        val isolatedFinal = testGame.testRevealableRanking(member, troupe, after, excluded)
+        for (board in listOf(memberFinal, isolatedFinal)) {
+            assertEquals(listOf(1, 2), board.entries.map { it.rank })
+            assertEquals(listOf(11, 11), board.entries.map { it.score })
+            assertTrue(board.entries.first().mine)
+            assertEquals(AdventTieReason.ATTAINMENT, board.entries.first().tieReason)
+        }
+    }
+    @Test fun `isolated rankings retain recorded unrevealed scores even at Christmas`() {
+        val answered = Timestamp.from(Instant.parse("2026-12-01T12:00:00Z"))
+        // Artificial future reveal exercises the exception independently of the ordinary 1-24 calendar.
+        val reveal = Timestamp.from(Instant.parse("2027-01-01T00:00:00Z"))
+        jdbc.update("INSERT INTO advent_member_answers (user_id, quiz_day, answer_id, choice, correct_choice, answered_at, reveal_at, seen_at, late) VALUES (?, 1, ?, 0, 0, ?, ?, NULL, FALSE)", member, UUID.randomUUID(), answered, reveal)
+        jdbc.update("INSERT INTO advent_test_answers (user_id, quiz_day, choice, correct_choice, response_points, participation_points, bonus_points, received_at, reveal_at) VALUES (?, 1, 0, 0, 10, 1, 0, ?, ?)", member, answered, reveal)
+        for (instant in listOf(Instant.parse("2026-12-24T22:59:59Z"), Instant.parse("2026-12-24T23:00:00Z"))) {
+            at(instant.toString())
+            assertEquals(0, game.ranking(other, troupe, excluded).ranking!!.entries.first { it.name == jdbc.queryForObject("SELECT display_name FROM troupe_memberships WHERE troupe_id = ? AND user_id = ?", String::class.java, troupe, member) }.score)
+            assertEquals(11, game.ranking(other, troupe, excluded, operator = true).ranking!!.entries.first { it.score == 11 }.score)
+            jdbc.update("UPDATE advent_test_clock SET offset_seconds = 0, observed_at = NULL WHERE id = 1")
+            assertEquals(11, testGame.testRanking(other, troupe, instant, excluded).entries.first { it.score == 11 }.score)
+            assertTrue(testGame.testRevealableRanking(other, troupe, instant, excluded).entries.all { it.score == 0 })
+        }
+    }
 }
