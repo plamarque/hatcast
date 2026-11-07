@@ -240,6 +240,57 @@ describe('ShareAnnounceDialog', () => {
     expect(dialog.open.mock.calls[0][1].data.allRecipients).toBe(true)
   })
 
+  it('passes every eligible recipient through the real confirmation to the request', async () => {
+    const secondEligible = {
+      ...recipientsMock.data.recipients[0],
+      participantId: 'p-3',
+      displayName: 'Chloé',
+      channels: {
+        email: { eligible: false, notified: false },
+        push: { eligible: true, notified: false },
+      },
+    }
+    const getRecipients = vi.fn().mockResolvedValue({
+      ...recipientsMock,
+      data: {
+        ...recipientsMock.data,
+        recipients: [...recipientsMock.data.recipients, secondEligible],
+        confirmationFingerprint: 'preview-all',
+      },
+    })
+    const sendNotifications = vi.fn().mockResolvedValue({ ok: true, status: 200, data: { acceptedCount: 2 } })
+    await TestBed.configureTestingModule({
+      imports: [ShareAnnounceDialog, NoopAnimationsModule],
+      providers: [
+        { provide: MatDialogRef, useValue: { close: vi.fn() } },
+        { provide: MAT_DIALOG_DATA, useValue: { ...baseDialogData, intent: 'availability_nudge', allRecipients: true } },
+        { provide: ShareAnnounceApiService, useValue: { getRecipients, sendNotifications } },
+        { provide: MatSnackBar, useValue: { open: vi.fn() } },
+      ],
+    }).compileComponents()
+    const fixture = TestBed.createComponent(ShareAnnounceDialog)
+    fixture.detectChanges()
+    await vi.waitFor(() => {
+      fixture.detectChanges()
+      expect(fixture.nativeElement.querySelector('button[aria-label="Notifier"]')?.disabled).toBe(false)
+    })
+    fixture.nativeElement.querySelector('button[aria-label="Notifier"]').click()
+    await vi.waitFor(() => expect(document.querySelector('app-availability-reminder-confirm-dialog')).toBeTruthy())
+    const confirmation = document.querySelector('app-availability-reminder-confirm-dialog')!
+    expect(confirmation.querySelector('mat-checkbox')).toBeNull()
+    let send: HTMLButtonElement | undefined
+    await vi.waitFor(() => {
+      TestBed.tick()
+      send = [...confirmation.querySelectorAll('button')].find((button) => button.textContent?.includes('Envoyer à 2 personnes'))
+      expect(send).toBeTruthy()
+    })
+    send!.click()
+    await vi.waitFor(() => expect(sendNotifications).toHaveBeenCalledWith(
+      'season-1', 'event-1', 'availability_nudge', expect.any(String), 'preview-all', ['p-1', 'p-3'],
+    ))
+    TestBed.inject(MatDialog).closeAll()
+  })
+
   it('does not send when the all-recipient confirmation is cancelled', async () => {
     const getRecipients = vi.fn().mockResolvedValue({ ...recipientsMock, data: { ...recipientsMock.data, confirmationFingerprint: 'preview-1' } })
     const sendNotifications = vi.fn()
