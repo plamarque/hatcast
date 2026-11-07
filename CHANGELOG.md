@@ -1,5 +1,235 @@
 # Changelog
 
+## [2.8.0] - 2026-11-07
+
+### ✨ New Features
+- feat(availability): Merge reminder confirmation
+- feat(availability): Confirm reminder results
+- feat(events): Merge show detail story
+- feat(story): merge 25-25-lire-les-anecdotes-completes-avant-de-choisir
+- feat(avent): Open story on answer selection
+- feat(avent): Show stories before quiz answer
+- feat(events): Simplify show detail
+- feat(availability): Merge story 5.10
+- feat(story): merge 25-24-celebrer-le-podium-final
+- feat(avent): Celebrate the final podium
+- feat(availability): Show unanswered members
+- feat(avent): Integrate device reminder test
+- feat(avent): Open quizzes by direct link
+- feat(story): merge 25-22-discover-full-advent-stories
+- feat(avent): Reveal complete stories
+- feat(story): Integrate Christmas summary
+- feat(avent): Add Christmas summary
+- feat(story): merge 25-19-open-future-advent-gifts-in-development-test-mode
+- feat(avent): Open future gifts in test mode
+- feat(dev): Integrate worktree stack ports
+- feat(dev): Isolate worktree stack ports
+- feat(story): merge 25-17-dynamiser-les-ecrans-de-resultat-de-lavent
+- feat(avent): Refine result scenes
+- feat(story): merge 25-18-open-the-private-advent-preview-from-the-account-menu
+- feat(avent): Add preview to account menu
+- feat(avent): Generate test ranking scores
+- feat(avent): Move confirmation into test menu
+- feat(avent): Allow personal preview replay
+- feat(avent): Replay automatic entry
+- feat(avent): Test reminders on own device
+- feat(story): merge 25-13-run-advent-regression-tests-in-ci
+- feat(story): merge 25-7-invite-members-to-the-daily-quiz
+- feat(avent): Add daily quiz reminders
+- feat(avent): Protect surprise and preview
+- feat(story): merge 25-12-retrouver-le-lutin-endormi-apres-avoir-joue
+- feat(avent): Add sleeping elf countdown
+- feat(story): merge 25-10-decouvrir-le-calendrier-de-lavent
+- feat(avent): Update welcome screen
+- feat(avent): Integrate database sync tooling
+- feat(avent): Prepare database sync independently
+- feat(story): merge 25-3b-manage-and-synchronize-the-private-advent-catalogue
+- feat(avent): Add private catalogue sync
+- feat(story): merge 25-8-refine-the-advent-art-direction
+- feat(avent): Refine Advent visual design
+- feat(story): merge 25-10-decouvrir-le-calendrier-de-lavent
+- feat(avent): Refine welcome and previews
+- feat(avent): Add calendar welcome
+- feat(story): merge 25-6-enter-the-advent-experience-from-hatcast
+- feat(advent): Add daily member entry
+- feat(advent): Merge test mode toggle
+- feat(advent): Add test mode toggle
+- feat(advent): Refine gift calendar
+- feat(avent): Add calendar action to ranking
+- feat(advent): Illustrate calendar gifts
+- feat(advent): Add personal gift calendar
+- feat(story): merge 25-5-browse-the-calendar-and-past-content
+- feat(advent): Add calendar and past discoveries
+- feat(story): merge 25-4-see-the-friendly-ranking
+- feat(advent): Add member ranking
+- feat(advent): Integrate story 25.3a
+- feat(advent): Link test elf portraits
+- feat(advent): Prepare offline quiz set
+- feat(advent): Load quizzes from database
+- feat(story): merge 25-3-discover-and-recover-the-quiz-result
+- feat(advent): Refine reveal and test clock
+- feat(advent): Reveal saved quiz results
+- feat(story): merge 25-2a-restart-an-isolated-test-session
+- feat(avent): Restart isolated test sessions
+- feat(avent): Complete visual foundation
+- feat(avent): Refine visual foundation
+- feat(avent): Complete quiz test experience
+- feat(story): Integrate Advent quiz answers
+- feat(avent): Allow test quiz answers
+- feat(avent): Finish isolated preview
+- feat(avent): Add isolated door preview
+
+### 🔧 Improvements
+- perf(advent): Improve loading and ranking
+
+### 🐛 Bug Fixes
+- fix(e2e): Update event details journey
+- fix(release): Repair 2.8.0 checks
+- fix(advent): Center desktop gift shortcut
+- fix(advent): Simplify result display
+- fix(events): Apply show detail feedback
+- fix(avent): Repair ranking test fixture
+- fix(availability): Reuse reminder dialog
+- fix(avent): Preserve stories in dry run
+- fix(test): Resolve offline CORS defaults
+- fix(avent): Repair regression test fixtures
+- fix(avent): Restore waiting message
+- fix(avent): Defer future gift results
+- fix(avent): Open Christmas in development
+- fix(avent): Open gifts without test mode
+- fix(avent): Configure preview identities
+- fix(avent): Correct preview replay test
+- fix(avent): Scope preview replay notice
+- fix(avent): Clarify preview replay
+- fix(avent): Reconcile reminder story
+- fix(avent): Restore desktop navigation
+- fix(avent): Repair release test gates
+- fix(avent): Point return arrow left
+- fix(avent): Restore late replay on test day
+- fix(avent): Keep test day navigation visible
+- fix(avent): Check inactive tagged revisions
+- fix(avent): Open test day on activation
+- fix(avent): Polish welcome borders
+- fix(avent): Prevent test toolbar overflow
+- fix(advent): Add ranking action to past results
+- fix(advent): Refine Santa gift label
+- fix(advent): Integrate CI test repairs
+- fix(advent): Repair outdated CI tests
+- fix(advent): Improve ranking readability
+- fix(advent): Retry transient quiz reads
+- fix(advent): Clarify ranking and scoring
+- fix(deploy): Preserve Advent dev settings
+- fix(advent): Show simulated day
+- fix(workflow): Reconcile tracker controller
+- fix(bmad): Recognize association story tracking
+- fix(posthog): Accept EU capture success status
+- fix(workflow): Reconcile BMad statuses safely
+
+### 📝 Other Changes
+- chore(v2): promote v2 to staging-v2
+- docs(release): Prepare 2.8.0 notes
+- chore(bmad): Close story 5.10
+- docs(avent): Plan full story reading
+- docs(issues): Record staging OAuth failure
+- chore(v2): sync release v2.7.1-rc.1 artifacts to v2
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- docs(release): Prepare 2.7.1 notes
+- test(availability): Integrate review checks
+- test(availability): Verify reminder recipients
+- docs(issues): Record local rendering failure
+- chore(bmad): Reconcile story tracking
+- chore(bmad): Sync sprint status for 17-46-detail-spectacle-remplacer-infos-par-un-bandeau
+- docs(epic): Capture show header story
+- docs: Update backlog and plan story 5.10
+- docs(avent): Update dry run location
+- test(avent): Integrate recorded journey
+- docs(avent): Close dry run story
+- Merge branch 'v2' into feat/25-20-record-the-complete-advent-member-journey
+- docs(avent): Close reminder test story
+- docs(avent): Record reminder observation
+- docs(avent): Renumber dry run issue
+- Merge branch 'v2' into feat/25-20-record-the-complete-advent-member-journey
+- test(avent): Add recorded member journey
+- chore(avent): Reconcile story integration
+- chore(avent): Reconcile story tracking
+- docs(avent): Plan direct quiz links
+- chore(bmad): Sync sprint status for 25-22-discover-full-advent-stories
+- docs(avent): Plan long story reveal
+- docs(avent): Record private preview
+- Merge branch 'v2' into feat/avent-victoire-noel
+- chore(avent): Close story 25.19
+- chore(bmad): Sync sprint status for 25-20-record-the-complete-advent-member-journey
+- docs(skill): Document worktree port handling
+- docs(avent): Plan filmed member journey
+- chore(bmad): Sync sprint status for 25-19-open-future-advent-gifts-in-development-test-mode
+- docs(avent): Plan future gift testing
+- chore(avent): Reconcile story tracking
+- chore(avent): Close menu preview story
+- Merge branch 'v2' into feat/25-18-open-the-private-advent-preview-from-the-account-menu
+- chore(avent): Close preview story
+- test(shell): Complete auth fixture
+- test(avent): Fix preview smoke navigation
+- docs(avent): Update epic 25 context
+- docs(avent): Plan result screen redesign
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- docs(avent): Record accepted entry risk
+- docs(avent): Record accepted banner behavior
+- chore(bmad): Sync sprint status for 25-16-test-advent-reminders-on-a-real-device
+- docs(avent): Register reminder test story
+- docs(avent): Plan real device reminder test
+- chore(v2): promote v2 to staging-v2
+- ci(avent): Reconcile release test gates
+- chore(bmad): Sync sprint status for 25-13-run-advent-regression-tests-in-ci
+- ci(avent): Isolate regression checks
+- ci(avent): Run regression tests in CI
+- test(avent): Await smoke server shutdown
+- test(avent): Repair catalogue deploy check
+- test(agenda): Await intercepted requests
+- docs(release): Add 2.7.1 release notes
+- docs(avent): Align story 25.12 record
+- docs(avent): Record surprise change proposal
+- chore(avent): Close sleeping elf story
+- docs(avent): Plan snowy CTA refinement
+- docs(avent): Plan regression CI story
+- docs(avent): Plan sleeping elf story
+- docs(avent): Close test replay issues
+- docs(avent): Isolate temporary test coverage
+- docs(avent): Close validated bug 074
+- docs: Record Advent development issues
+- docs(avent): Plan regression coverage
+- docs: Record CI test failures
+- docs(avent): Close visual design story
+- docs(avent): Record late confirmation bug
+- chore(avent): Reconcile design and welcome
+- chore(avent): Reconcile story planning
+- chore(bmad): Close Advent welcome story
+- docs(avent): Add test ranking story
+- chore(bmad): Sync sprint status for 25-10-decouvrir-le-calendrier-de-lavent
+- docs(avent): Add discovery story
+- chore(bmad): Sync sprint status for 25-8-refine-the-advent-art-direction
+- docs(avent): Plan art direction story
+- docs(advent): Define gift calendar design
+- chore(advent): Close story 25.5
+- docs(advent): Plan private catalogue story
+- docs(advent): Clarify private catalogue
+- chore(advent): Close story 25.3a
+- docs(advent): Plan database quiz content
+- docs(advent): Document private catalog
+- docs(advent): Explain ranking points
+- docs: Record development OAuth origin issue
+- docs: Preserve planning work
+- docs(avent): Reconcile approved sprint plan
+- docs(avent): Plan Advent calendar
+- docs(bmad): Add association sprint planning
+- chore(posthog): Close capture guard fix locally
+- docs(release): Record audit and delivery proposal
+- chore(v2): sync release v2.7.0-rc.2 artifacts to v2
+
+---
+
 ## [2.7.1] - 2026-11-07
 
 ### ✨ New Features
