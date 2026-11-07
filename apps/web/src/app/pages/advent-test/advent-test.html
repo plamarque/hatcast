@@ -306,12 +306,14 @@
           @if (lateDiscovery()) { <p>{{ clockDate() === '2026-12-' + (selectedDay() < 10 ? '0' : '') + selectedDay() ? 'Ce rejeu ne rapporte pas de points.' : 'Cette case est passée : tu peux jouer pour le plaisir, sans gagner de points.' }}</p> }
           <mat-radio-group class="advent__options" aria-label="Quelle affirmation est fausse ?" [value]="choice()" (change)="choice.set($event.value)">
             @for (statement of content.statements; track $index) {
-              <mat-radio-button [value]="$index" [disabled]="submitting()">{{ statement }}</mat-radio-button>
               @if (content.stories?.[$index]; as story) {
-                <mat-expansion-panel class="advent__story">
+                <mat-radio-button [value]="$index" [disabled]="submitting()" (click)="storyPanel.open()" (change)="storyPanel.open()">{{ statement }}</mat-radio-button>
+                <mat-expansion-panel #storyPanel class="advent__story">
                   <mat-expansion-panel-header><mat-panel-title>Lire l’histoire : {{ statement }}</mat-panel-title></mat-expansion-panel-header>
                   <p class="advent__story-text">{{ story }}</p>
                 </mat-expansion-panel>
+              } @else {
+                <mat-radio-button [value]="$index" [disabled]="submitting()">{{ statement }}</mat-radio-button>
               }
             }
           </mat-radio-group>

@@ -5,7 +5,7 @@ baseline_commit:
 
 # Story 25.25 : Lire les anecdotes complètes avant de choisir
 
-Status: backlog
+Status: done
 
 ## Story
 
@@ -68,7 +68,8 @@ afin de **juger les trois anecdotes avec les informations fournies par les contr
 
 ### Completion Notes List
 
-- À renseigner.
+- Récits accessibles au quiz et au résultat ; la sélection ouvre le récit disponible. Tests API, Angular et navigateur synthétique réussis.
+- Checklist M3 : composants Material, commandes tactiles, clavier, mobile et isolation contrôlés ; lecteur d’écran physique non vérifié, suivi dans deferred-work.
 
 ### File List
 

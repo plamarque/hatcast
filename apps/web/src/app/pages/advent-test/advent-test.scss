@@ -69,7 +69,7 @@
 }
 .advent__question { font: 700 clamp(1.4rem, 5vw, 1.75rem)/1.3 var(--advent-heading-font); }
 .advent__options mat-radio-button {
-  display: block; min-height: 3rem; text-align: left; box-shadow: 0 .15rem .35rem var(--advent-shadow);
+  display: block; position: relative; min-height: 3rem; text-align: left; box-shadow: 0 .15rem .35rem var(--advent-shadow);
   border: 2px solid var(--advent-choice-border);
   border-radius: 1rem;
   background: var(--hatcast-avent-white);
@@ -78,6 +78,7 @@
 /* Material's internal flex item must shrink when text is enlarged on narrow screens. */
 :host ::ng-deep .advent__options .mdc-form-field { display: flex; max-width: 100%; }
 :host ::ng-deep .advent__options .mdc-label { min-width: 0; overflow-wrap: anywhere; }
+:host ::ng-deep .advent__options .mdc-label::after { content: ""; position: absolute; inset: 0; cursor: pointer; }
 .advent__options mat-radio-button:has(input:checked) {
   border-color: var(--hatcast-avent-red);
   background: var(--advent-choice-selected);

@@ -610,6 +610,25 @@ describe('AdventTest', () => {
     expect(fixture.nativeElement.querySelectorAll('.advent__options .mat-expansion-panel-header').length).toBe(0)
     expect(fixture.nativeElement.querySelectorAll('.advent__options mat-radio-button').length).toBe(3)
   })
+  it('opens a story when its answer is selected and reopens it on another click', async () => {
+    const component = fixture.componentInstance
+    component.quiz.set({ day: 1, name: 'Fictif', portrait: '', statements: ['un', 'deux', 'trois'], genericElf: true, stories: ['Premier récit', null, 'Dernier récit'] })
+    component.calendarOpen.set(false); component.welcome.set(false); component.loading.set(false)
+    component.answerState.set('available')
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges()
+    const labels = fixture.nativeElement.querySelectorAll('.advent__options mat-radio-button label') as NodeListOf<HTMLElement>
+    const headers = fixture.nativeElement.querySelectorAll('.advent__options .mat-expansion-panel-header') as NodeListOf<HTMLElement>
+    labels[0].click(); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges()
+    expect(component.choice()).toBe(0)
+    expect(headers[0].getAttribute('aria-expanded')).toBe('true')
+    headers[0].click(); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges()
+    expect(headers[0].getAttribute('aria-expanded')).toBe('false')
+    labels[0].click(); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges()
+    expect(headers[0].getAttribute('aria-expanded')).toBe('true')
+    labels[1].click(); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges()
+    expect(component.choice()).toBe(1)
+    expect(headers.length).toBe(2)
+  })
   it('shows only supplied ordered stories in initially collapsed accessible panels', async () => {
     const component = fixture.componentInstance
     component.result.set({ answerId: 'a', day: 1, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: true, stories: ['Paragraphe un\n\nParagraphe deux', null, 'Dernier récit'] })

@@ -110,4 +110,6 @@ La scène conserve le Père Noël et le cadeau La Malice. Le podium affiche jusq
 
 ### Récits complets
 
+Sélectionner une proposition ouvre automatiquement son récit lorsqu’il existe ; la commande de lecture reste utilisable indépendamment de la sélection.
+
 Dans le quiz jouable, présenter chaque récit disponible sous son choix, avec une commande indépendante de la sélection. Après la carte de résultat et son explication éventuelle, présenter aussi les récits disponibles dans des panneaux repliés, chacun identifié par son choix. Préserver les paragraphes, le défilement et la lisibilité à petite largeur et avec texte agrandi ; conserver les contrôles accessibles dans le thème isolé Avent. Sans récit, ne pas afficher la section.
