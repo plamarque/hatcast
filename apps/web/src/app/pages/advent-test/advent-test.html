@@ -243,6 +243,12 @@
           <h1 #christmasHeading id="christmas-title" tabindex="-1">Joyeux <span>Noël !</span></h1>
           @if (christmasScore() !== null) {
             @if (christmasPreviewOpen() || christmasFixture()) { <p class="advent__christmas-message">Aperçu provisoire du classement</p> }
+            <section class="advent__christmas-personal" aria-label="Ton bilan personnel">
+              <p>Ton score</p>
+              <strong>{{ christmasScore() }} {{ christmasScore() === 1 ? 'point' : 'points' }}</strong>
+              @if (christmasBoard()?.rank; as rank) { <p>Ta place : <strong>{{ rank }}{{ rank === 1 ? 'ʳᵉ' : 'ᵉ' }}</strong></p> }
+              @else { <p>Non classé</p> }
+            </section>
             @if (podiumEntries().length) {
               <h2 class="advent__christmas-message">Le podium du Quiz de l’Avent</h2>
               <ol class="advent__podium" aria-label="Podium du Quiz de l’Avent">

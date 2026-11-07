@@ -778,13 +778,13 @@ export class AdventTest {
   }
 
   private christmasFixtureRanking(kind: ChristmasFixture): AdventRanking {
-    if (kind === 'zero') return { score: 0, rank: 1, entries: [] }
+    if (kind === 'zero') return { score: 0, rank: null, entries: [] }
     const first = { name: 'Camille', score: 250, rank: 1, mine: false }
     const second = { name: 'Alex', score: 143, rank: 2, mine: false }
     const third = { name: 'Lou', score: 120, rank: 3, mine: false }
-    if (kind === 'sole') return { score: 250, rank: 1, entries: [first] }
-    if (kind === 'shared') return { score: 250, rank: 1, entries: [first, { ...second, score: 250, tieReason: 'CORRECT' }] }
-    if (kind === 'participant') return { score: 143, rank: 2, entries: [first, second] }
+    if (kind === 'sole') return { score: 250, rank: 1, entries: [{ ...first, mine: true }] }
+    if (kind === 'shared') return { score: 250, rank: 1, entries: [{ ...first, mine: true }, { ...second, score: 250, tieReason: 'CORRECT' }] }
+    if (kind === 'participant') return { score: 143, rank: 2, entries: [first, { ...second, mine: true }] }
     return { score: 120, rank: 3, entries: [first, second, { ...third, mine: true, tieReason: 'NAME' }, { name: 'Zoé', score: 120, rank: 4, mine: false, tieReason: 'NAME' }] }
   }
 

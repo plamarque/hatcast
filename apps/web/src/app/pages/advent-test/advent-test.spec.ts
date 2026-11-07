@@ -1797,6 +1797,7 @@ describe('AdventTest', () => {
     await component.openCalendarDay({ day: 25, state: 'christmas' }); fixture.detectChanges()
     expect(fixture.nativeElement.textContent).toContain('Joyeux Noël')
     expect(fixture.nativeElement.textContent).toContain('Aperçu provisoire du classement')
+    expect(fixture.nativeElement.querySelector('.advent__christmas-personal').textContent).toContain('11 points')
     expect(component.clockDate()).toBe('2026-12-01')
     expect(component.testMode()).toBe(false)
   })
@@ -2706,6 +2707,22 @@ describe('AdventTest', () => {
     expect(fixture.nativeElement.textContent).toContain('Aperçu provisoire du classement')
     expect(fixture.nativeElement.textContent).not.toContain('tu remportes')
     expect(fixture.nativeElement.textContent).toContain('Revenir à HatCast')
+  })
+
+  it('shows the personal Christmas score and the server-provided rank', () => {
+    const component = fixture.componentInstance
+    component.clockDate.set('2026-12-25'); component.welcome.set(false); component.loading.set(false)
+    component.quiz.set(null); component.preview.set(null); component.result.set(null); component.calendarOpen.set(false); component.rankingOpen.set(false)
+    component.christmasScore.set(0)
+    component.christmasBoard.set({ score: 0, rank: 8, entries: [] })
+    fixture.detectChanges()
+    const personal = fixture.nativeElement.querySelector('.advent__christmas-personal') as HTMLElement
+    expect(personal.textContent).toContain('0 points')
+    expect(personal.textContent).toContain('8ᵉ')
+    component.christmasBoard.set({ score: 0, rank: null, entries: [] })
+    fixture.detectChanges()
+    expect(personal.textContent).toContain('Non classé')
+    expect(personal.textContent).not.toContain('Ta place')
   })
 
   it('keeps Christmas entry loading until ranking resolves', async () => {

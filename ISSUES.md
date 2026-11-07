@@ -10,6 +10,14 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Current follow-up
 
+### BUG-109 — Christmas personal score missing
+
+- **Status:** Fixed locally; staging validation pending.
+- **Severity:** Medium. **Affected area:** Advent Christmas recap.
+- **Observed:** The recap omitted the player's personal score and rank, including when no podium was available.
+- **Expected:** Show the personal score, including zero, and the server-provided rank when available; do not invent a rank for excluded members.
+- **Context:** Reported while inspecting the local Christmas preview on 2026-11-07.
+
 This index is the active reading surface. Full evidence remains in the
 historical registry below.
 

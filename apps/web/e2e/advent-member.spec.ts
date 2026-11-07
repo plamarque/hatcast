@@ -1001,6 +1001,8 @@ test('Christmas preview keeps its fictional ranking and calendar works', async (
   await page.getByRole('button', { name: 'Actions du mode test' }).click()
   await page.getByRole('menuitem', { name: 'Aperçu Noël : place ex æquo' }).click()
   await expect(page.locator('.advent__podium')).toContainText('Lou')
+  await expect(page.locator('.advent__christmas-personal')).toContainText('120 points')
+  await expect(page.locator('.advent__christmas-personal')).toContainText('3ᵉ')
   await page.locator('.advent__christmas-actions').getByRole('button', { name: 'Voir le calendrier' }).click()
   await expect(page.getByRole('heading', { name: 'Calendrier de l’Avent' })).toBeVisible()
   await page.getByRole('button', { name: 'Actions du mode test' }).click()
