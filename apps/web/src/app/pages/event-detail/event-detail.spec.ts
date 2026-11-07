@@ -3,7 +3,7 @@ import { signal, WritableSignal } from '@angular/core'
 import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router'
 import { MatDialog } from '@angular/material/dialog'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
-import { BehaviorSubject } from 'rxjs'
+import { BehaviorSubject, Subject } from 'rxjs'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
@@ -430,6 +430,13 @@ describe('EventDetail', () => {
       expect(getEventPage).toHaveBeenCalled()
     })
     expect(fixture.nativeElement.querySelector('.event-detail-header__admin .scope-admin-menu__trigger')).toBeNull()
+  })
+
+  it('shows no edit or administration controls to a member without management rights', async () => {
+    fixture.detectChanges()
+    await vi.waitFor(() => expect((fixture.componentInstance as unknown as EventDetailHarness).event()).not.toBeNull())
+    expect(fixture.nativeElement.querySelector('button[aria-label="Modifier le spectacle"]')).toBeNull()
+    expect(fixture.nativeElement.querySelector('.scope-admin-menu__trigger')).toBeNull()
   })
 
   it('shows unified admin gear on Infos when canManageEvents', async () => {
@@ -1193,6 +1200,20 @@ describe('EventDetail', () => {
     expect(component.equipeStatus()).toBeNull()
   })
 
+  it('refreshes organizer data immediately even if the form is later cancelled', async () => {
+    pagePermissions = { ...defaultSeasonPermissions, isTroupeAdmin: true, canManageEvents: true }
+    fixture.detectChanges()
+    await vi.waitFor(() => expect((fixture.componentInstance as unknown as EventDetailHarness).event()).not.toBeNull())
+    await fixture.whenStable()
+    const changes = new Subject<void>()
+    dialogOpen.mockReturnValueOnce({ componentInstance: { organizersChanged: changes }, afterClosed: () => new BehaviorSubject(undefined).asObservable() })
+    const button = fixture.nativeElement.querySelector('button[aria-label="Modifier le spectacle"]') as HTMLButtonElement
+    button.click()
+    getEventPage.mockClear()
+    changes.next()
+    await vi.waitFor(() => expect(getEventPage).toHaveBeenCalledWith('season-1', 'event-2', expect.objectContaining({ tab: 'infos' })))
+  })
+
   it('opens the unified editor and tracks a saved format change', async () => {
     pagePermissions = { ...defaultSeasonPermissions, isTroupeAdmin: true, canManageEvents: true }
     fixture.detectChanges()
@@ -1202,6 +1223,8 @@ describe('EventDetail', () => {
     const capture = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureCompositionMutation')
     const button = fixture.nativeElement.querySelector('button[aria-label="Modifier le spectacle"]') as HTMLButtonElement
     expect(button).not.toBeNull()
+    expect(button.closest('.event-infos__banner')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('.event-detail-header [aria-label="Modifier le spectacle"]')).toBeNull()
     button.click()
     expect(dialogOpen).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
       data: expect.objectContaining({ mode: 'edit', canManageEvents: true, canManageComposition: true }),
@@ -1523,12 +1546,19 @@ describe('EventDetail', () => {
     expect(fixture.nativeElement.querySelector('.event-detail-header__back')).toBeNull()
   })
 
-  it('opens the additional information dialog from the banner', async () => {
+  it('expands additional information inline and retains season navigation', async () => {
     fixture.detectChanges()
     await vi.waitFor(() => expect(fixture.nativeElement.querySelector('.event-infos__details-action')).not.toBeNull())
     const action = fixture.nativeElement.querySelector('.event-infos__details-action') as HTMLButtonElement
     action.click()
-    expect(dialogOpen).toHaveBeenCalled()
+    fixture.detectChanges()
+    const expanded = fixture.nativeElement.querySelector('.event-infos__expanded') as HTMLElement
+    expect(expanded).not.toBeNull()
+    expect(expanded.querySelector('a[href="/saison/troupe/season-a"]')).not.toBeNull()
+    expect(action.getAttribute('aria-expanded')).toBe('true')
+    action.click()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.event-infos__expanded')).toBeNull()
   })
 
   it('shows event title in context row after successful load', async () => {
@@ -1944,7 +1974,10 @@ describe('EventDetail', () => {
     expect(fixture.nativeElement.querySelector('.event-detail__tabs')).not.toBeNull()
     expect(TestBed.inject(TroupeApiService).listCategories).not.toHaveBeenCalled()
     resolveInfos({ ok: true, status: 200, data: buildEventPage(ev('event-2'), 'infos', { categories: [{ slug: 'principal', label: 'Nos spectacles' }, { slug: 'deplacements', label: 'En tournée' }] }) })
-    await vi.waitFor(() => { fixture.detectChanges(); expect(fixture.nativeElement.querySelector('.event-infos__banner')?.textContent).toContain('En tournée') })
+    await vi.waitFor(() => { fixture.detectChanges(); expect((fixture.componentInstance as unknown as { infosCategories: () => Array<{ label: string }> }).infosCategories()?.some(c => c.label === 'En tournée')).toBe(true) })
+    ;(fixture.nativeElement.querySelector('.event-infos__details-action') as HTMLButtonElement).click()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.event-infos__expanded')?.textContent).toContain('En tournée')
     expect((fixture.componentInstance as unknown as EventDetailHarness).event()?.category).toBe('deplacements')
   })
 
@@ -1978,11 +2011,14 @@ describe('EventDetail', () => {
     fixture.detectChanges()
     await vi.waitFor(() => expect(resolveOld).toBeDefined())
     paramMap$.next(convertToParamMap({ troupeSlug: 'troupe', seasonSlug: 'season-a', eventSlug: 'event-3' }))
-    await vi.waitFor(() => { fixture.detectChanges(); expect(fixture.nativeElement.querySelector('.event-infos__banner')?.textContent).toContain('Nouvelle catégorie') })
+    await vi.waitFor(() => { fixture.detectChanges(); expect((fixture.componentInstance as unknown as { infosCategories: () => Array<{ label: string }> }).infosCategories()?.some(c => c.label === 'Nouvelle catégorie')).toBe(true) })
+    ;(fixture.nativeElement.querySelector('.event-infos__details-action') as HTMLButtonElement).click()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.event-infos__expanded')?.textContent).toContain('Nouvelle catégorie')
     resolveOld({ ok: true, status: 200, data: buildEventPage(ev('event-2'), 'infos', { categories: [{ slug: 'deplacements', label: 'Ancienne catégorie' }] }) })
     await Promise.resolve()
     fixture.detectChanges()
-    expect(fixture.nativeElement.querySelector('.event-infos__banner')?.textContent).not.toContain('Ancienne catégorie')
+    expect(fixture.nativeElement.querySelector('.event-infos__expanded')?.textContent).not.toContain('Ancienne catégorie')
   })
 
   it('offers a retry when a delayed Dispos bootstrap fails', async () => {

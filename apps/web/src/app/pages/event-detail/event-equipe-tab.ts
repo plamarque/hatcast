@@ -58,8 +58,6 @@ import { EventApiService, type EventResponse } from '../../core/events/event-api
 import { isEventDraft } from '../../core/events/event-draft'
 import {
   normalizeRoleSlots,
-  getEventTypeIcon,
-  getEventTypeLabel,
   ROLE_KEYS,
   ROLE_EMOJIS,
   ROLE_LABELS,
@@ -167,7 +165,6 @@ export class EventEquipeTab {
 
   readonly compositionPublished = output<CompositionResponse>()
   readonly eventUpdated = output<EventResponse>()
-  readonly editEvent = output<void>()
   readonly compositionInteractionBlockedChange = output<boolean>()
   readonly statusChanged = output<ReturnType<typeof resolveCompositionEquipeStatus>>()
 
@@ -348,8 +345,6 @@ export class EventEquipeTab {
     return !!ev && isEventDraft(ev)
   })
 
-  protected readonly formatIcon = computed(() => getEventTypeIcon(this.event().templateType))
-  protected readonly formatLabel = computed(() => getEventTypeLabel(this.event().templateType))
 
   protected readonly equipeActionFlags = computed(() => ({
     canValidate: this.canValidate(),

@@ -53,7 +53,6 @@ import {
 } from '../season-home/event-form-dialog'
 import { EventDisposTab } from '../../shared/availability/event-dispos-tab'
 import { EventActiviteTab } from '../../shared/availability/event-activite-tab'
-import { EventDetailDraftBanner } from './event-detail-draft-banner'
 import { EventDetailHeader } from './event-detail-header'
 import type { CompositionEquipeStatus } from '../../core/composition/composition-equipe-status'
 import type { CompositionResponse } from '../../core/composition/composition-api.service'
@@ -100,7 +99,6 @@ function findLinkedSeasonParticipant(
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatTabsModule,
-    EventDetailDraftBanner,
     EventDetailHeader,
     EventDisposTab,
     EventActiviteTab,
@@ -438,13 +436,21 @@ export class EventDetail implements OnDestroy, OnInit {
     )
   }
 
+  protected canOpenEdit(): boolean {
+    const ev = this.event()
+    return !!ev && !ev.archived && (
+      this.canManageEvents() || this.canManageTroupe() || this.canManageEventOrganizersFor(ev.id) ||
+      (this.canManageComposition() && !this.compositionInteractionBlocked())
+    )
+  }
+
   protected openEdit(): void {
     const ev = this.event()
     const seasonId = this.seasonId()
     if (!ev || !seasonId) {
       return
     }
-    if (!this.canManageEvents() && !this.canManageComposition()) {
+    if (!this.canOpenEdit()) {
       this.snack.open('Vous ne pouvez pas modifier ce spectacle.', 'OK', { duration: 5000 })
       return
     }
@@ -459,10 +465,28 @@ export class EventDetail implements OnDestroy, OnInit {
           canManageEvents: this.canManageEvents(),
           canManageComposition: this.canManageComposition() && !this.compositionInteractionBlocked(),
           troupeId: this.troupeId(),
+          troupeSlug: this.routeTroupeSlug(),
+          canManageTroupe: this.canManageTroupe(),
+          canManageEventOrganizers: this.canManageEventOrganizersFor(ev.id),
+          organizers: this.infosOrganizers(),
         },
         width: 'min(100vw - 2rem, 28rem)',
       },
     )
+    ref.componentInstance?.organizersChanged?.subscribe(() => {
+      if (this.event()?.id === ev.id && this.seasonId() === seasonId) {
+        this.infosOrganizers.set(null)
+        this.organizersReloadTrigger.update((value) => value + 1)
+        this.infosBootstrapInFlight = null
+        void this.loadInfosBootstrap(ev.slug || this.eventSlug())
+      }
+    })
+    ref.componentInstance?.categoriesChanged?.subscribe(() => {
+      if (this.event()?.id === ev.id && this.seasonId() === seasonId) {
+        this.infosBootstrapInFlight = null
+        void this.loadInfosBootstrap(ev.slug || this.eventSlug(), true)
+      }
+    })
     ref.afterClosed().subscribe((updated) => {
       if (!updated || this.event()?.id !== ev.id || this.seasonId() !== seasonId) {
         return
@@ -838,28 +862,30 @@ export class EventDetail implements OnDestroy, OnInit {
     if (event) void this.loadInfosBootstrap(event.slug || this.eventSlug())
   }
 
-  private async loadInfosBootstrap(routeSegment: string): Promise<void> {
+  private async loadInfosBootstrap(routeSegment: string, refreshEvent = false): Promise<void> {
     if (this.infosBootstrapInFlight || !this.seasonId() || !routeSegment) return
     const request = {}
     this.infosBootstrapInFlight = request
     this.infosBootstrapError.set(false)
     const requestId = this.loadRequestId
     const seasonId = this.seasonId()
-    const eventId = this.event()?.id
+    const eventAtRequest = this.event()
+    const eventId = eventAtRequest?.id
     try {
       const result = await this.eventsApi.getEventPage(seasonId, routeSegment, {
         tab: 'infos', bySlug: !UUID_IN_PATH_REGEX.test(routeSegment),
       })
-      if (requestId !== this.loadRequestId || eventId !== this.event()?.id) return
+      if (this.infosBootstrapInFlight !== request || requestId !== this.loadRequestId || eventId !== this.event()?.id) return
       if (!result.ok || !result.data || result.data.categories == null) {
         this.infosBootstrapError.set(true)
         return
       }
+      if (refreshEvent && this.event() === eventAtRequest) this.event.set(result.data.event)
       this.infosCategories.set(result.data.categories)
       if (result.data.organizers != null) this.infosOrganizers.set(result.data.organizers)
       this.tabBootstrapLoaded.update((loaded) => ({ ...loaded, infos: true }))
     } catch {
-      if (requestId === this.loadRequestId && eventId === this.event()?.id) this.infosBootstrapError.set(true)
+      if (this.infosBootstrapInFlight === request && requestId === this.loadRequestId && eventId === this.event()?.id) this.infosBootstrapError.set(true)
     } finally {
       if (this.infosBootstrapInFlight === request) this.infosBootstrapInFlight = null
     }

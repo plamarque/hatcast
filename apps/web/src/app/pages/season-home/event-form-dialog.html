@@ -67,19 +67,58 @@
         </mat-select>
       </mat-form-field>
       @if (formatChanged) {
-        <p>Modèle de besoins : {{ presetSummary }}</p>
-        @if (formatWarning) { <p role="alert">Appliquer ce format remplacera les besoins actuels.</p> }
+        @if (formatWarning) {
+          <div class="format-warning" role="alert">
+            <p class="format-warning__title">Changement de format</p>
+            <p class="format-warning__message">Enregistrer remplacera les besoins actuels par le modèle de ce format.</p>
+            <p class="format-warning__summary">Nouveaux besoins : {{ presetSummary }}</p>
+          </div>
+        } @else {
+          <p class="format-summary">Modèle de besoins : {{ presetSummary }}</p>
+        }
       }
       @if (data.troupeId) {
+      <div class="category-section">
       <mat-form-field appearance="outline" class="full">
         <mat-label>Catégorie</mat-label>
-        <mat-select [value]="selectedCategory" [disabled]="!canEditDetails || categoriesLoading || !!categoriesError || saving" (selectionChange)="selectedCategory = $event.value">
+        <mat-select [value]="selectedCategory" [disabled]="!canEditDetails || categoriesLoading || !!categoriesError || saving" (selectionChange)="onCategoryChanged($event.value)">
           @for (category of categoryOptions; track category.slug) {
-            <mat-option [value]="category.slug">{{ category.label }}</mat-option>
+            <mat-option [value]="category.slug" [disabled]="selectedCategoryMissing && category.slug === selectedCategory">{{ category.label }}</mat-option>
           }
         </mat-select>
       </mat-form-field>
-      @if (categoriesError) { <p role="alert">{{ categoriesError }}</p> }
+      @if (categoriesError) { <p role="alert">{{ categoriesError }}</p><button type="button" mat-button (click)="retryCategories()">Réessayer</button> }
+      @if (selectedCategoryMissing) { <p class="form-error" role="alert">La catégorie sélectionnée a été supprimée. Choisis une autre catégorie avant d’enregistrer.</p> }
+      @if (data.canManageTroupe && data.troupeSlug) {
+        <button type="button" mat-button [disabled]="saving || organizerSaving" (click)="openCategorySettings()">
+          <mat-icon aria-hidden="true">settings</mat-icon>Gérer les catégories
+        </button>
+      }
+      </div>
+      }
+      @if (data.canManageEventOrganizers) {
+        <section class="form-organizers" aria-labelledby="form-organizers-title">
+          <h3 id="form-organizers-title">Organisateur·ices</h3>
+          @if (organizersLoading) { <p role="status">Chargement des organisateur·ices…</p> }
+          @if (organizersError) {
+            <p class="form-error" role="alert">{{ organizersError }}</p>
+            <button type="button" mat-button [disabled]="organizersLoading || organizerSaving" (click)="loadOrganizers()">Réessayer</button>
+          }
+          @if (!organizersLoading && !organizersError && organizers.length === 0) {
+            <p class="form-hint">Aucun·e organisateur·ice attitré·e</p>
+          }
+          <mat-chip-set aria-label="Organisateur·ices du spectacle">
+            @for (organizer of organizers; track organizer.userId) {
+              <mat-chip [removable]="!organizerSaving" (removed)="removeOrganizer(organizer.userId)">
+                {{ organizer.displayName || organizer.email }}
+                <mat-icon matChipRemove [attr.aria-label]="'Retirer ' + (organizer.displayName || organizer.email)">cancel</mat-icon>
+              </mat-chip>
+            }
+          </mat-chip-set>
+          <button type="button" mat-button [disabled]="saving || organizerSaving || organizersLoading" (click)="openOrganizersDialog()">
+            <mat-icon aria-hidden="true">person_add</mat-icon>Ajouter un·e organisateur·ice
+          </button>
+        </section>
       }
     }
 
@@ -104,12 +143,12 @@
   </form>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-  <button type="button" mat-button mat-dialog-close>Annuler</button>
+  <button type="button" mat-button mat-dialog-close [disabled]="saving || organizerSaving">Annuler</button>
   <button
     type="button"
     mat-flat-button
     color="primary"
-    [disabled]="form.invalid || saving"
+    [disabled]="form.invalid || saving || organizerSaving || categoriesLoading || !!categoriesError || selectedCategoryMissing"
     (click)="submit()"
   >
     {{ data.mode === 'create' ? 'Créer' : 'Enregistrer' }}

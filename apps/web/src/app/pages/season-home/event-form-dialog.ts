@@ -1,4 +1,4 @@
-import { Component, inject, OnDestroy, OnInit } from '@angular/core'
+import { Component, inject, OnDestroy, OnInit, output } from '@angular/core'
 import { Subscription } from 'rxjs'
 import {
   type AbstractControl,
@@ -9,6 +9,10 @@ import {
   Validators,
 } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
+import { MatChipsModule } from '@angular/material/chips'
+import { OrganizerApiService, type OrganizerResponse } from '../../core/permissions/organizer-api.service'
+import { EventOrganizersDialog, type EventOrganizersDialogData } from '../event-detail/event-organizers-dialog'
+import { TroupeCategoriesDialog } from '../troupe-settings/troupe-categories-dialog'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import {
   MAT_DIALOG_DATA,
@@ -49,6 +53,10 @@ export interface EventFormDialogData {
   canManageEvents?: boolean
   canManageComposition?: boolean
   troupeId?: string
+  troupeSlug?: string
+  canManageTroupe?: boolean
+  canManageEventOrganizers?: boolean
+  organizers?: OrganizerResponse[] | null
 }
 
 /** Instant ISO → date (midi local) + heure/minute locales. */
@@ -116,6 +124,7 @@ function startTimeValidator(): ValidatorFn {
   imports: [
     ReactiveFormsModule,
     MatButtonModule,
+    MatChipsModule,
     MatSlideToggleModule,
     MatDatepickerModule,
     MatDialogModule,
@@ -135,9 +144,16 @@ export class EventFormDialog implements OnInit, OnDestroy {
   private formChangeSub?: Subscription
   private readonly api = inject(EventApiService)
   private readonly troupeApi = inject(TroupeApiService)
+  private readonly organizerApi = inject(OrganizerApiService)
   private readonly dialog = inject(MatDialog)
   private readonly ref = inject(MatDialogRef<EventFormDialog, EventResponse | boolean | undefined>)
   protected readonly data = inject<EventFormDialogData>(MAT_DIALOG_DATA)
+  readonly organizersChanged = output<void>()
+  readonly categoriesChanged = output<void>()
+  protected organizers: OrganizerResponse[] = []
+  protected organizersLoading = false
+  protected organizerSaving = false
+  protected organizersError = ''
 
   protected readonly templateOrder = TEMPLATE_DISPLAY_ORDER
   protected readonly getEventTypeIcon = getEventTypeIcon
@@ -148,6 +164,7 @@ export class EventFormDialog implements OnInit, OnDestroy {
   protected categoryOptions: ReturnType<typeof buildEventCategoryOptions> = []
   protected categoriesLoading = false
   protected categoriesError = ''
+  protected selectedCategoryMissing = false
   protected get canEditDetails(): boolean { return this.data.mode === 'create' || this.data.canManageEvents !== false }
   protected get canEditFormat(): boolean { return this.data.canManageComposition === true }
   protected get formatChanged(): boolean { return this.selectedTemplate !== this.initialTemplate }
@@ -190,6 +207,10 @@ export class EventFormDialog implements OnInit, OnDestroy {
       this.selectedTemplate = this.initialTemplate
       this.selectedCategory = e.category ?? null
       this.categoryOptions = buildEventCategoryOptions([], this.selectedCategory)
+      if (this.data.canManageEventOrganizers) {
+        if (this.data.organizers != null) this.organizers = this.data.organizers
+        else void this.loadOrganizers()
+      }
       if (this.data.troupeId) void this.loadCategories(this.data.troupeId)
       const { date, hour, minute } = parseStartsAt(e.startsAt)
       this.form.patchValue({
@@ -212,7 +233,7 @@ export class EventFormDialog implements OnInit, OnDestroy {
   }
 
   protected async submit(): Promise<void> {
-    if (this.form.invalid) {
+    if (this.form.invalid || this.selectedCategoryMissing || this.categoriesLoading || !!this.categoriesError) {
       this.form.markAllAsTouched()
       return
     }
@@ -289,14 +310,76 @@ export class EventFormDialog implements OnInit, OnDestroy {
     }
   }
 
-  private async loadCategories(troupeId: string): Promise<void> {
+  protected async loadOrganizers(): Promise<void> {
+    const event = this.data.event
+    if (!event || !this.data.canManageEventOrganizers) return
+    this.organizersLoading = true
+    this.organizersError = ''
+    try {
+      const result = await this.organizerApi.listEventOrganizers(this.data.seasonId, event.id)
+      if (!result.ok || !result.data) { this.organizersError = 'Impossible de charger les organisateur·ices.'; return }
+      this.organizers = result.data
+    } catch { this.organizersError = 'Impossible de charger les organisateur·ices.' }
+    finally { this.organizersLoading = false }
+  }
+
+  protected async removeOrganizer(userId: string): Promise<void> {
+    const event = this.data.event
+    if (!event || !this.data.canManageEventOrganizers || this.organizerSaving) return
+    this.organizerSaving = true
+    this.ref.disableClose = true
+    this.organizersError = ''
+    try {
+      const result = await this.organizerApi.removeEventOrganizer(this.data.seasonId, event.id, userId)
+      if (!result.ok) { this.organizersError = 'Retrait impossible.'; return }
+      this.organizers = this.organizers.filter((organizer) => organizer.userId !== userId)
+      this.organizersChanged.emit()
+    } catch { this.organizersError = 'Retrait impossible.' }
+    finally { this.organizerSaving = false; this.ref.disableClose = false }
+  }
+
+  protected openOrganizersDialog(): void {
+    const event = this.data.event
+    if (!event || !this.data.canManageEventOrganizers || !this.data.troupeId) return
+    const ref = this.dialog.open<EventOrganizersDialog, EventOrganizersDialogData, boolean | undefined>(EventOrganizersDialog, {
+      data: { seasonId: this.data.seasonId, eventId: event.id, troupeId: this.data.troupeId },
+      width: 'min(100vw - 2rem, 28rem)',
+    })
+    ref.afterClosed().subscribe((added) => {
+      if (added) { this.organizersChanged.emit(); void this.loadOrganizers() }
+    })
+  }
+
+  protected openCategorySettings(): void {
+    if (!this.data.canManageTroupe || !this.data.troupeId || this.saving || this.organizerSaving) return
+    const ref = this.dialog.open(TroupeCategoriesDialog, {
+      data: { troupeId: this.data.troupeId },
+      width: 'min(100vw - 2rem, 32rem)',
+    })
+    ref.afterClosed().subscribe(() => { this.categoriesChanged.emit(); void this.loadCategories(this.data.troupeId!, true) })
+  }
+
+  protected onCategoryChanged(slug: string | null): void {
+    this.selectedCategory = slug
+    this.selectedCategoryMissing = false
+  }
+
+  protected async loadCategories(troupeId: string, validateSelection = false): Promise<void> {
     this.categoriesLoading = true
+    this.categoriesError = ''
     try {
       const result = await this.troupeApi.listCategories(troupeId)
       if (!result.ok || !result.data) { this.categoriesError = 'Impossible de charger les catégories.'; return }
       this.categoryOptions = buildEventCategoryOptions(result.data, this.selectedCategory)
+      if (validateSelection) {
+        this.selectedCategoryMissing = !!this.selectedCategory && !result.data.some((category) => category.slug === this.selectedCategory)
+      }
     } catch { this.categoriesError = 'Impossible de charger les catégories.' }
     finally { this.categoriesLoading = false }
+  }
+
+  protected retryCategories(): void {
+    if (this.data.troupeId) void this.loadCategories(this.data.troupeId, true)
   }
 
   private confirmRevertToDraft(title: string): Promise<boolean> {

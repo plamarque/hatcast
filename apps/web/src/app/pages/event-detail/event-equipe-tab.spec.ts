@@ -224,30 +224,10 @@ describe('EventEquipeTab', () => {
     })
   })
 
-  it('opens the unified event editor from the format action', async () => {
-    const editEvent = vi.fn()
-    fixture.componentInstance.editEvent.subscribe(editEvent)
+  it('does not duplicate the format editor for an organizer', async () => {
     fixture.componentRef.setInput('canManageComposition', true)
     fixture.detectChanges()
-
-    await vi.waitFor(() => {
-      expect(fixture.nativeElement.textContent).toContain('Modifier le format')
-    })
-    const button = fixture.nativeElement.querySelector(
-      'button.event-equipe-tab__format-edit--desktop[aria-label="Modifier le format"]',
-    ) as HTMLButtonElement
-    expect(button.querySelector('.event-equipe-tab__format-edit-label')?.textContent).toContain(
-      'Modifier le format',
-    )
-    expect(
-      fixture.nativeElement.querySelector(
-        'button.event-equipe-tab__format-edit--mobile[aria-label="Modifier le format"]',
-      ),
-    ).toBeTruthy()
-    button.click()
-
-    expect(editEvent).toHaveBeenCalledOnce()
-    expect(updateEvent).not.toHaveBeenCalled()
+    await vi.waitFor(() => expect(fixture.nativeElement.querySelector('.event-equipe-tab__format')).toBeNull())
   })
 
   it('does not show a format action to a member', async () => {
@@ -1451,7 +1431,6 @@ describe('EventEquipeTab', () => {
       fixture.detectChanges()
       expect(fixture.nativeElement.querySelector('.event-equipe-tab__unlock')).toBeNull()
       expect(fixture.nativeElement.querySelector('.event-equipe-tab__busy-overlay')).not.toBeNull()
-      expect((fixture.nativeElement.querySelector('.event-equipe-tab__format-edit') as HTMLButtonElement).disabled).toBe(true)
       expect(unlockComposition).toHaveBeenCalledTimes(1)
       expect(snackOpen).not.toHaveBeenCalled()
       finishRefresh({ ok: true, status: 200, data: draft })

@@ -1,7 +1,10 @@
+import { Subject } from 'rxjs'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { provideNativeDateAdapter } from '@angular/material/core'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog'
+import { provideRouter } from '@angular/router'
+import { OrganizerApiService } from '../../core/permissions/organizer-api.service'
 import { describe, expect, it, vi } from 'vitest'
 import { of } from 'rxjs'
 import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed'
@@ -44,11 +47,17 @@ async function setup(
   apiOverrides: Partial<Pick<EventApiService, 'createEvent' | 'updateEvent' | 'openAvailabilityResilient' | 'closeAvailability'>> = {},
 ) {
   const close = vi.fn()
+  const organizerApi = {
+    listEventOrganizers: vi.fn().mockResolvedValue({ ok: true, data: [] }),
+    removeEventOrganizer: vi.fn().mockResolvedValue({ ok: true, status: 204 }),
+  }
 
   await TestBed.configureTestingModule({
     imports: [EventFormDialog, NoopAnimationsModule],
     providers: [
       provideNativeDateAdapter(),
+      provideRouter([]),
+      { provide: OrganizerApiService, useValue: organizerApi },
       { provide: TroupeApiService, useValue: { listCategories: vi.fn().mockResolvedValue({ ok: true, data: [{ slug: 'deplacements', label: 'Déplacements' }] }) } },
       { provide: MatDialogRef, useValue: { close } },
       { provide: MAT_DIALOG_DATA, useValue: data },
@@ -66,7 +75,7 @@ async function setup(
   const fixture = TestBed.createComponent(EventFormDialog)
   fixture.detectChanges()
   await fixture.whenStable()
-  return { fixture, close }
+  return { fixture, close, organizerApi }
 }
 
 const CREATE_START_DATE = new Date(2030, 5, 15, 12, 0, 0, 0)
@@ -75,12 +84,12 @@ const CREATE_STARTS_AT_ISO = buildStartsAtIso(CREATE_START_DATE, 20, 0)
 
 /** Accès test aux membres protected du dialog. */
 function dialogHarness(fixture: ComponentFixture<EventFormDialog>): {
-  form: { patchValue: (v: Record<string, unknown>) => void; controls: Record<string, { value: unknown; invalid: boolean }> }
+  form: { getRawValue: () => Record<string, unknown>; patchValue: (v: Record<string, unknown>) => void; controls: Record<string, { value: unknown; invalid: boolean }> }
   submit: () => Promise<void>
   formError: string
 } {
   return fixture.componentInstance as unknown as {
-    form: { patchValue: (v: Record<string, unknown>) => void; controls: Record<string, { value: unknown; invalid: boolean }> }
+    form: { getRawValue: () => Record<string, unknown>; patchValue: (v: Record<string, unknown>) => void; controls: Record<string, { value: unknown; invalid: boolean }> }
     submit: () => Promise<void>
     formError: string
   }
@@ -417,6 +426,126 @@ describe('EventFormDialog unified editing permissions', () => {
     expect(updateEvent).not.toHaveBeenCalled()
     expect(closeAvailability).not.toHaveBeenCalled()
     expect(close).not.toHaveBeenCalled()
+  })
+
+  it('shows an empty state when there are no dedicated organizers', async () => {
+    const { fixture } = await setup({ mode: 'edit', seasonId: 'season-1', event: event('ev-1'), troupeId: 'troupe-1', canManageEventOrganizers: true, organizers: [] })
+    expect(fixture.nativeElement.textContent).toContain('Aucun·e organisateur·ice attitré·e')
+  })
+
+  it('hides organizer and category management when permissions are absent', async () => {
+    const { fixture } = await setup({ mode: 'edit', seasonId: 'season-1', event: event('ev-1'), troupeId: 'troupe-1', troupeSlug: 'improbots', canManageEvents: false, canManageComposition: true, canManageEventOrganizers: false, canManageTroupe: false })
+    expect(fixture.nativeElement.textContent).not.toContain('Ajouter un·e organisateur·ice')
+    expect(fixture.nativeElement.textContent).not.toContain('Gérer les catégories')
+  })
+
+  it('keeps organizer removals saved immediately when the other form changes are cancelled', async () => {
+    const updateEvent = vi.fn()
+    const { fixture, close, organizerApi } = await setup({ mode: 'edit', seasonId: 'season-1', event: event('ev-1'), troupeId: 'troupe-1', canManageEvents: true, canManageEventOrganizers: true, organizers: [{ userId: 'u1', email: 'a@example.test', displayName: 'Alice', grantedAt: '' }] }, { updateEvent })
+    const changed = vi.fn()
+    fixture.componentInstance.organizersChanged.subscribe(changed)
+    dialogHarness(fixture).form.patchValue({ title: 'Non enregistré' })
+    const dialogText = fixture.nativeElement.textContent as string
+    expect(dialogText).not.toContain('enregistrés immédiatement, même si tu annules')
+    const remove = fixture.nativeElement.querySelector('[aria-label="Retirer Alice"]') as HTMLElement
+    expect(remove).not.toBeNull()
+    remove.click()
+    await vi.waitFor(() => expect(organizerApi.removeEventOrganizer).toHaveBeenCalledWith('season-1', 'ev-1', 'u1'))
+    await vi.waitFor(() => expect(changed).toHaveBeenCalledOnce())
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).not.toContain('Alice')
+    const cancel = [...fixture.nativeElement.querySelectorAll('button')].find((button: HTMLButtonElement) => button.textContent?.trim() === 'Annuler') as HTMLButtonElement
+    cancel.click()
+    expect(close).toHaveBeenCalled()
+    expect(updateEvent).not.toHaveBeenCalled()
+  })
+
+  it('shows organizer removal errors without changing the list or notifying the parent', async () => {
+    const { fixture, organizerApi } = await setup({ mode: 'edit', seasonId: 'season-1', event: event('ev-1'), troupeId: 'troupe-1', canManageEventOrganizers: true, organizers: [{ userId: 'u1', email: 'a@example.test', displayName: 'Alice', grantedAt: '' }] })
+    organizerApi.removeEventOrganizer.mockResolvedValue({ ok: false, status: 403 })
+    const changed = vi.fn()
+    fixture.componentInstance.organizersChanged.subscribe(changed)
+    ;(fixture.nativeElement.querySelector('[aria-label="Retirer Alice"]') as HTMLElement).click()
+    await vi.waitFor(() => { fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain('Retrait impossible.') })
+    expect(fixture.nativeElement.textContent).toContain('Alice')
+    expect(changed).not.toHaveBeenCalled()
+  })
+
+  it('refreshes and reports an organizer added through the existing picker', async () => {
+    const { fixture, organizerApi } = await setup({ mode: 'edit', seasonId: 'season-1', event: event('ev-1'), troupeId: 'troupe-1', canManageEventOrganizers: true, organizers: [] })
+    organizerApi.listEventOrganizers.mockResolvedValue({ ok: true, data: [{ userId: 'u1', email: 'a@example.test', displayName: 'Alice', grantedAt: '' }] })
+    const changed = vi.fn()
+    fixture.componentInstance.organizersChanged.subscribe(changed)
+    const dialog = (fixture.componentInstance as unknown as { dialog: MatDialog }).dialog
+    vi.spyOn(dialog, 'open').mockReturnValue({ afterClosed: () => of(true) } as never)
+    const button = [...fixture.nativeElement.querySelectorAll('button')].find((element: HTMLButtonElement) => element.textContent?.includes('Ajouter un·e organisateur·ice')) as HTMLButtonElement
+    expect(button).toBeTruthy()
+    button.click()
+    expect(changed).toHaveBeenCalledOnce()
+    await vi.waitFor(() => { fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain('Alice') })
+    expect(organizerApi.listEventOrganizers).toHaveBeenCalledWith('season-1', 'ev-1')
+  })
+
+  it('keeps all pending changes while managing categories and refreshes their labels', async () => {
+    const { fixture, close } = await setup({ mode: 'edit', seasonId: 'season-1', event: event('ev-1'), troupeId: 'troupe-1', troupeSlug: 'improbots', canManageTroupe: true, canManageEvents: true, canManageComposition: true, canManagePublication: true })
+    const categories = vi.mocked(TestBed.inject(TroupeApiService).listCategories)
+    categories.mockResolvedValue({ ok: true, data: [{ slug: 'deplacements', label: 'Déplacements modifiés' }, { slug: 'nouveau', label: 'Nouveau' }] } as never)
+    const closed = new Subject<void>()
+    const open = vi.spyOn((fixture.componentInstance as unknown as { dialog: MatDialog }).dialog, 'open').mockReturnValue({ afterClosed: () => closed.asObservable() } as never)
+    const component = fixture.componentInstance as unknown as { selectedTemplate: string; selectedCategory: string | null; publishDraft: boolean; categoryOptions: { slug: string | null; label: string }[] }
+    const changed = vi.fn()
+    fixture.componentInstance.categoriesChanged.subscribe(changed)
+    dialogHarness(fixture).form.patchValue({ title: 'Titre modifié', startDate: new Date(2031, 1, 2), startTime: '21:30' })
+    component.selectedTemplate = 'cabaret'
+    component.selectedCategory = 'deplacements'
+    component.publishDraft = true
+    const button = [...fixture.nativeElement.querySelectorAll('button')].find((element: HTMLButtonElement) => element.textContent?.includes('Gérer les catégories')) as HTMLButtonElement
+    button.click()
+    expect(open).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ data: { troupeId: 'troupe-1' } }))
+    expect(close).not.toHaveBeenCalled()
+    closed.next()
+    await vi.waitFor(() => expect(component.categoryOptions).toContainEqual({ slug: 'nouveau', label: 'Nouveau' }))
+    expect(component.categoryOptions).toContainEqual({ slug: 'deplacements', label: 'Déplacements modifiés' })
+    expect(dialogHarness(fixture).form.getRawValue()).toMatchObject({ title: 'Titre modifié', startDate: new Date(2031, 1, 2), startTime: '21:30' })
+    expect(component.selectedTemplate).toBe('cabaret')
+    expect(component.selectedCategory).toBe('deplacements')
+    expect(component.publishDraft).toBe(true)
+    expect(changed).toHaveBeenCalledOnce()
+  })
+
+  it('retains a deleted selected category and requires another selection', async () => {
+    const { fixture, close } = await setup({ mode: 'edit', seasonId: 'season-1', event: event('ev-1'), troupeId: 'troupe-1', troupeSlug: 'improbots', canManageTroupe: true, canManageEvents: true })
+    vi.mocked(TestBed.inject(TroupeApiService).listCategories).mockResolvedValue({ ok: true, data: [] } as never)
+    const closed = new Subject<void>()
+    vi.spyOn((fixture.componentInstance as unknown as { dialog: MatDialog }).dialog, 'open').mockReturnValue({ afterClosed: () => closed.asObservable() } as never)
+    const component = fixture.componentInstance as unknown as { selectedCategory: string | null; selectedCategoryMissing: boolean; onCategoryChanged: (slug: string | null) => void }
+    component.selectedCategory = 'deplacements'
+    const button = [...fixture.nativeElement.querySelectorAll('button')].find((element: HTMLButtonElement) => element.textContent?.includes('Gérer les catégories')) as HTMLButtonElement
+    button.click(); closed.next()
+    await vi.waitFor(() => expect(component.selectedCategoryMissing).toBe(true))
+    fixture.detectChanges()
+    expect(component.selectedCategory).toBe('deplacements')
+    expect(fixture.nativeElement.textContent).toContain('La catégorie sélectionnée a été supprimée')
+    await dialogHarness(fixture).submit()
+    expect(close).not.toHaveBeenCalled()
+    component.onCategoryChanged(null)
+    expect(component.selectedCategoryMissing).toBe(false)
+  })
+
+  it('shows refresh errors and lets the user retry without losing the form', async () => {
+    const { fixture } = await setup({ mode: 'edit', seasonId: 'season-1', event: event('ev-1'), troupeId: 'troupe-1', troupeSlug: 'improbots', canManageTroupe: true, canManageEvents: true })
+    const categories = vi.mocked(TestBed.inject(TroupeApiService).listCategories)
+    categories.mockResolvedValueOnce({ ok: false, status: 500 } as never).mockResolvedValueOnce({ ok: true, data: [] } as never)
+    const closed = new Subject<void>()
+    vi.spyOn((fixture.componentInstance as unknown as { dialog: MatDialog }).dialog, 'open').mockReturnValue({ afterClosed: () => closed.asObservable() } as never)
+    dialogHarness(fixture).form.patchValue({ title: 'Conservé' })
+    const button = [...fixture.nativeElement.querySelectorAll('button')].find((element: HTMLButtonElement) => element.textContent?.includes('Gérer les catégories')) as HTMLButtonElement
+    button.click(); closed.next()
+    await vi.waitFor(() => { fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain('Impossible de charger les catégories.') })
+    const retry = [...fixture.nativeElement.querySelectorAll('button')].find((element: HTMLButtonElement) => element.textContent?.trim() === 'Réessayer') as HTMLButtonElement
+    retry.click()
+    await vi.waitFor(() => { fixture.detectChanges(); expect(fixture.nativeElement.textContent).not.toContain('Impossible de charger les catégories.') })
+    expect(dialogHarness(fixture).form.getRawValue()['title']).toBe('Conservé')
   })
 
   it('previews preset needs with French role labels', async () => {

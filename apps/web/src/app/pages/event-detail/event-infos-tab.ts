@@ -1,17 +1,19 @@
-import { Component, computed, effect, inject, input, output, signal, TemplateRef, viewChild } from '@angular/core'
+import { Component, computed, effect, inject, input, output, signal } from '@angular/core'
 import { DOCUMENT } from '@angular/common'
 import { Router, RouterLink } from '@angular/router'
-import { CompositionEquipeStatusHeader } from '../../shared/composition/composition-equipe-status-header'
 import { resolveCompositionEquipeStatusFromEvent, type CompositionEquipeStatus } from '../../core/composition/composition-equipe-status'
 import { CompositionStatusBadge } from '../../shared/composition/composition-status-badge'
 import { MatButtonModule } from '@angular/material/button'
 import { MatChipsModule } from '@angular/material/chips'
-import { MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
+import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 
+import { isEventDraft } from '../../core/events/event-draft'
+import { openEventAnnounceDialog } from '../../shared/share-announce/share-announce-open'
+import { ConfirmDialog, type ConfirmDialogData } from '../seasons-list/confirm-dialog'
 import type { EventResponse } from '../../core/events/event-api.service'
 import { EventApiService } from '../../core/events/event-api.service'
 import {
@@ -66,7 +68,6 @@ import { ORGANIZERS_HELP } from './event-organizers-dialog'
   imports: [
     MatButtonModule,
     CompositionStatusBadge,
-    CompositionEquipeStatusHeader,
     MatChipsModule,
     MatDialogModule,
     MatIconModule,
@@ -87,8 +88,6 @@ export class EventInfosTab {
   private readonly dialog = inject(MatDialog)
   private readonly router = inject(Router)
   private readonly doc = inject(DOCUMENT)
-  private readonly detailsDialog = viewChild.required<TemplateRef<unknown>>('detailsDialog')
-  private detailsRef: MatDialogRef<unknown> | null = null
 
   readonly event = input.required<EventResponse>()
   readonly seasonId = input.required<string>()
@@ -97,6 +96,8 @@ export class EventInfosTab {
   readonly seasonSlug = input.required<string>()
   readonly troupeName = input<string | null>(null)
   readonly seasonTitle = input<string | null>(null)
+  readonly canEdit = input(false)
+  readonly edit = output<void>()
   readonly canManageEvents = input(false)
   readonly canManageComposition = input(false)
   readonly detailedStatus = input<CompositionEquipeStatus | null>(null)
@@ -112,6 +113,10 @@ export class EventInfosTab {
 
   readonly eventUpdated = output<EventResponse>()
 
+  protected readonly isDraft = computed(() => isEventDraft(this.event()))
+  protected readonly publishing = signal(false)
+  protected readonly detailsExpanded = signal(false)
+  protected readonly statusHelpOpen = signal(false)
   protected readonly glossary = signal<TroupeCategory[]>([])
   protected readonly glossaryLoading = signal(true)
   protected readonly organizers = signal<OrganizerResponse[]>([])
@@ -231,15 +236,17 @@ export class EventInfosTab {
     if (Number.isNaN(date.getTime())) {
       return 'Date invalide'
     }
+    const time = new Intl.DateTimeFormat('fr-FR', {
+      hour: '2-digit', minute: '2-digit', timeZone: AGENDA_TIME_ZONE,
+    }).format(date)
     return new Intl.DateTimeFormat('fr-FR', {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
       year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+      ...(time === '00:00' ? {} : { hour: '2-digit', minute: '2-digit' }),
       timeZone: AGENDA_TIME_ZONE,
-    }).format(new Date(iso))
+    }).format(date)
   }
 
   protected readonly dateParts = computed(() => {
@@ -253,13 +260,34 @@ export class EventInfosTab {
     }
   })
 
-  protected openDetails(): void {
-    this.detailsRef = this.dialog.open(this.detailsDialog(), { width: 'min(100vw - 2rem, 32rem)', maxHeight: '90dvh', autoFocus: 'first-heading' })
+  protected confirmPublish(): void {
+    const ev = this.event()
+    if (!this.canManageComposition() || !this.isDraft() || this.publishing()) return
+    const ref = this.dialog.open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
+      data: {
+        title: 'Publier le spectacle',
+        message: `Publier « ${ev.title} » ? Les membres verront le spectacle dans l’agenda et pourront déposer leurs disponibilités. Tu pourras ensuite l’annoncer (message, WhatsApp…).`,
+        confirmLabel: 'Publier',
+      },
+      width: 'min(100vw - 2rem, 28rem)',
+    })
+    ref.afterClosed().subscribe((ok) => { if (ok) void this.runPublish(ev) })
   }
 
-  protected closeDetails(): void {
-    this.detailsRef?.close()
-    this.detailsRef = null
+  private async runPublish(ev: EventResponse): Promise<void> {
+    const seasonId = this.seasonId()
+    if (!seasonId || !this.canManageComposition() || !this.isDraft() || this.event().id !== ev.id) return
+    this.publishing.set(true)
+    try {
+      const result = await this.eventsApi.openAvailabilityResilient(seasonId, ev.id)
+      if (!result.ok || !result.data) {
+        this.snack.open(result.errorMessage ?? 'Publication impossible.', 'OK', { duration: 6000 })
+        return
+      }
+      this.eventUpdated.emit(result.data)
+      this.snack.open('Spectacle publié.', 'OK', { duration: 4000 })
+      openEventAnnounceDialog(this.dialog, { seasonId, seasonSlug: this.seasonSlug(), troupeSlug: this.troupeSlug(), event: result.data })
+    } finally { this.publishing.set(false) }
   }
 
   protected onCalendarMenuOpened(): void {
@@ -387,7 +415,6 @@ export class EventInfosTab {
   }
 
   protected navigateToCategorySettings(): void {
-    this.closeDetails()
     void this.router.navigate(troupeAdminSettingsPath(this.troupeSlug()), {
       queryParams: { tab: 'categories' },
     })

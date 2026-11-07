@@ -12,12 +12,7 @@
       var(--member-shell-account-reserve, 3.25rem) + env(safe-area-inset-right, 0px)
     );
 
-    &.event-detail--with-admin {
-      --event-detail-corner-reserve: calc(
-        var(--member-shell-account-reserve, 3.25rem) + var(--member-shell-corner-size, 3rem) +
-          var(--member-shell-corner-gap, 0.35rem) + env(safe-area-inset-right, 0px)
-      );
-    }
+
   }
 }
 

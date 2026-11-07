@@ -18,11 +18,11 @@ context:
 
 **Problem:** Show details currently occupy an Infos tab, making the other show views less direct to access.
 
-**Approach:** Remove Infos and introduce the approved agenda-card-inspired header above the existing tabs. Keep the existing app-bar title without repeating it in the header; put the edit pencil next to the administration gear in the app bar. Use one redesigned event edit form for general information, format and category.
+**Approach:** Remove Infos and introduce the approved agenda-card-inspired header above the existing tabs. Keep the existing app-bar title without repeating it in the header; place the authorized edit pencil in the show header. Use one redesigned event edit form for general information, format and category.
 
 ## Boundaries & Constraints
 
-**Always:** The header shows date and time with a calendar-export action, location, composition status and its explanatory help, format without player count, and category name only for a non-default category. Do not show the agenda participation cell. The pencil is shown only to authorized organizers/admins, adjacent to the gear, and opens the unified form; preserve each field’s current authorization. Preserve access to existing show information and authorized actions, including organizers, location navigation, description and troupe/season navigation; do not assume their removal. Preserve existing permission checks, scoped navigation, and compatible links. The Activity tab remains restricted according to existing permissions; some users therefore see only Dispos and Équipe. Maintain French UI and mobile-first Material 3.
+**Always:** The header shows the date, an optional time and calendar-export action, optional location, composition status and its explanatory help, and format without player count. Category is available in the inline expandable information section. Do not show the agenda participation cell. The pencil is shown only to authorized organizers/admins, in the header, and opens the unified form; preserve each field’s current authorization. Preserve access to existing show information and authorized actions, including organizers, location navigation, description and troupe/season navigation; do not assume their removal. Preserve existing permission checks, scoped navigation, and compatible links. The Activity tab remains restricted according to existing permissions; some users therefore see only Dispos and Équipe. Maintain French UI and mobile-first Material 3.
 
 **Never:** Grant event organizers troupe-administration rights, access to unrelated events or permission to change general event fields or category; do not change the global navigation or the scope of Activity visibility.
 
@@ -71,7 +71,7 @@ context:
 
 ## Implementation Notes
 
-Implemented the compact header and accessible supplementary-information dialog, the unified form, scope-limited server permission and backward-compatible tab routing. The pre-existing lifecycle tracker remains controlled by `story-branch.sh`; its status is not a delivery decision.
+Implemented the compact header and accessible inline expandable information section, the unified form, scope-limited server permission and backward-compatible tab routing. The pre-existing lifecycle tracker remains controlled by `story-branch.sh`; its status is not a delivery decision.
 
 ## Spec Change Log
 
@@ -84,17 +84,17 @@ Implemented the compact header and accessible supplementary-information dialog, 
 - Medium, fixed: tests manipulated select state directly; tests now exercise the Material controls and check the submitted payload.
 - False: an additional confirmation dialog for preset replacement is not required by the approved design; the form warns about replacement and Enregistrer explicitly applies it.
 - Medium, fixed: moving the team status initially removed detailed statuses and organizer guidance; these now appear in the header help without a duplicate team badge.
-- Medium, fixed: the first implementation placed the information panel between the banner and tabs and omitted month/year from the compact date; a dedicated dialog preserves access and the full date is shown.
+- Medium, fixed: the first implementation placed the information panel between the banner and tabs and omitted month/year from the compact date; the final inline expandable section preserves access and the full date is shown.
 
 ## Design Notes
 
-The user approved the header and unified form, with the edit pencil beside the app-bar gear. The exploratory mockup simplified tabs and their contents; it is not a design specification for those contents. The edit form places title, date/time, location and description before format and category; changing the format previews its preset and warns before replacing existing needs. Other existing functions must remain discoverable with appropriate permissions.
+The user approved the header and unified form, with the edit pencil in the banner after the user’s later feedback. The exploratory mockup simplified tabs and their contents; it is not a design specification for those contents. The edit form places title, date/time, location and description before format and category; changing the format previews its preset and warns before replacing existing needs. Other existing functions must remain discoverable with appropriate permissions.
 
 ## Verification
 
-- Six targeted Angular suites: 256 tests passed after the final visual corrections.
+- Six targeted Angular suites: 270 tests passed after the user’s final feedback on 2026-11-07.
 - Server integration: event-scoped organizer format authorization, mixed-payload refusal, other-event refusal, member denial and administrator behavior passed; two assignment/reconciliation scenarios passed.
-- Isolated Playwright: member setup plus one 17.46 journey passed; mobile and desktop banner and mobile details dialog inspected. This targeted run does not replace the story lifecycle's independent E2E attestation or human smoke.
+- Isolated Playwright: member setup plus one 17.46 journey passed; mobile and desktop banner and interaction inspected during the user’s local acceptance session. This targeted run does not replace the story lifecycle's independent E2E attestation or human smoke.
 - Material 3: Material controls and dialog, theme tokens, keyboard calendar interaction, mobile/desktop layout verified; no checklist waiver identified.
 
 - Run focused unit tests for tab routing, show details, and permission/bootstrap behavior; run relevant isolated Playwright coverage and report its actual selection.

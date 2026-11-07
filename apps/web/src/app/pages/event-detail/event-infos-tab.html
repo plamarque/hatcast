@@ -1,12 +1,14 @@
 <main class="event-infos">
-  <section class="event-infos__banner" aria-label="Informations du spectacle">
+  <section class="event-infos__banner" [class.event-infos__banner--draft]="isDraft()" aria-label="Informations du spectacle">
     <div class="event-infos__date">
       @if (dateParts(); as date) {
         <time [attr.datetime]="event().startsAt" [attr.aria-label]="formatDate(event().startsAt)">
           <span class="event-infos__day" aria-hidden="true">{{ date.day }}</span>
           <span class="event-infos__weekday" aria-hidden="true">{{ date.weekday }}</span>
           <span class="event-infos__month-year" aria-hidden="true">{{ date.monthYear }}</span>
-          <span class="event-infos__time" aria-hidden="true">{{ date.time }}</span>
+          @if (date.time !== '00:00') {
+            <span class="event-infos__time" aria-hidden="true">{{ date.time }}</span>
+          }
         </time>
       } @else {
         <span class="event-infos__empty">Date invalide</span>
@@ -29,23 +31,40 @@
     </div>
     <div class="event-infos__banner-details">
       <div class="event-infos__banner-meta">
-        @if (eventStatus(); as status) {
-          <app-composition-equipe-status-header [status]="status" />
-          @if (!status.managerGuideline) {
-            <button type="button" mat-icon-button [matMenuTriggerFor]="statusHelp" aria-label="Comprendre le statut de composition">
-              <mat-icon aria-hidden="true">help_outline</mat-icon>
-            </button>
+        <button type="button" mat-button class="event-infos__status-trigger"
+          data-testid="composition-status-help-trigger" id="composition-status-help-trigger"
+          [attr.aria-label]="'Comprendre le statut : ' + (isDraft() ? 'Brouillon' : (eventStatus()?.label || event().teamStatusBadge?.label || 'Collecte'))"
+          [attr.aria-expanded]="statusHelpOpen()"
+          [attr.aria-controls]="statusHelpOpen() ? 'composition-status-help-panel' : null"
+          (click)="statusHelpOpen.set(!statusHelpOpen())">
+          @if (isDraft()) {
+            <span class="event-infos__status-badge event-infos__status-badge--draft">Brouillon</span>
+          } @else if (eventStatus(); as status) {
+            <span class="event-infos__status-badge" data-testid="composition-status-badge"
+              [class.event-infos__status-badge--success]="status.tone === 'success'"
+              [class.event-infos__status-badge--warning]="status.tone === 'warning' || status.tone === 'info'">{{ status.label }}</span>
+          } @else {
+            <app-composition-status-badge [badge]="event().teamStatusBadge" />
           }
-        } @else {
-          <app-composition-status-badge [badge]="event().teamStatusBadge" />
-          <button type="button" mat-icon-button [matMenuTriggerFor]="statusHelp" aria-label="Comprendre le statut de composition">
-            <mat-icon aria-hidden="true">help_outline</mat-icon>
+        </button>
+        @if (canEdit()) {
+          <button type="button" mat-icon-button aria-label="Modifier le spectacle" (click)="edit.emit()">
+            <mat-icon aria-hidden="true">edit</mat-icon>
           </button>
         }
-        <mat-menu #statusHelp="matMenu" aria-label="Statut de composition">
-          <div class="event-infos__status-help">{{ statusHelpText() }}</div>
-        </mat-menu>
       </div>
+      @if (statusHelpOpen()) {
+        <div id="composition-status-help-panel" class="event-infos__status-help" role="region"
+          aria-labelledby="composition-status-help-trigger" data-testid="composition-status-help-panel">
+          <mat-icon aria-hidden="true">info</mat-icon>
+          @if (isDraft()) {
+            <p>@if (canManageComposition()) { Ce spectacle n’est pas visible dans l’agenda des membres. Publie-le pour rouvrir la collecte des disponibilités. } @else { Ce spectacle est en brouillon : il n’apparaît plus dans l’agenda et tu ne peux pas modifier tes disponibilités pour le moment. }</p>
+            @if (canManageComposition()) { <button type="button" mat-button [disabled]="publishing()" (click)="confirmPublish()">Publier</button> }
+          } @else {
+            <p data-testid="composition-status-hint">{{ eventStatus()?.managerGuideline || statusHelpText() }}</p>
+          }
+        </div>
+      }
       @if (locationInteractive()) {
         <button type="button" mat-button class="event-infos__location"
           [matMenuTriggerFor]="mapsMenu" aria-haspopup="menu"
@@ -54,130 +73,52 @@
           (menuOpened)="onMapsMenuOpened()" (menuClosed)="onMapsMenuClosed()">
           <mat-icon aria-hidden="true">place</mat-icon>
           <span class="event-infos__action-text event-infos__action-text--truncate">{{ event().location }}</span>
-          <mat-icon class="event-infos__chevron" [class.event-infos__chevron--open]="mapsMenuOpen()" aria-hidden="true">expand_more</mat-icon>
         </button>
         <mat-menu #mapsMenu="matMenu" class="event-infos__menu-panel">
           <button type="button" mat-menu-item (click)="openGoogleMaps()">Ouvrir dans Google Maps</button>
           <button type="button" mat-menu-item (click)="openWaze()">Ouvrir dans Waze</button>
         </mat-menu>
-      } @else {
-        <div class="event-infos__location-empty"><mat-icon aria-hidden="true">place</mat-icon><span>Lieu non renseigné</span></div>
       }
       <div class="event-infos__format-summary">{{ typeIcon() }} {{ typeLabel() }}</div>
-      @if (event().category && event().category !== 'principal') {
-        <div class="event-infos__category-summary">{{ categoryLabel() }}</div>
-      }
-      <button type="button" mat-button class="event-infos__details-action" (click)="openDetails()">Plus d’informations</button>
+      <button type="button" mat-button class="event-infos__details-action"
+        (click)="detailsExpanded.set(!detailsExpanded())"
+        [attr.aria-expanded]="detailsExpanded()" aria-controls="event-infos-extra">
+        {{ detailsExpanded() ? 'Voir moins' : 'Voir plus' }}
+      </button>
       @if (bootstrapError()) {
         <div role="alert">Impossible de charger les informations du spectacle.
           <button type="button" mat-button (click)="retryBootstrap.emit()">Réessayer</button>
         </div>
       }
     </div>
+    @if (isDraft() && canManageComposition()) {
+      <button type="button" mat-flat-button class="event-infos__publish" [disabled]="publishing()" (click)="confirmPublish()">{{ publishing() ? 'Publication…' : 'Publier le spectacle' }}</button>
+    }
   </section>
-</main>
-
-<ng-template #detailsDialog>
-  <h2 mat-dialog-title>Informations du spectacle</h2>
-  <mat-dialog-content class="event-infos__dialog-content">
+  @if (detailsExpanded()) {
+  <section id="event-infos-extra" class="event-infos__expanded" aria-label="Informations complémentaires">
   @if (event().description?.trim(); as description) {
     <div class="event-infos__field event-infos__field--description">
       <div class="event-infos__value">{{ description }}</div>
     </div>
   }
 
-  <section
-    class="event-infos__format"
-    aria-labelledby="event-infos-format-label"
-  >
-    <div class="event-infos__format-header">
-      <span id="event-infos-format-label" class="event-infos__label">Format et besoins</span>
-    </div>
-    <div class="event-infos__format-body">
-      <div class="event-infos__type-row">
-        <span class="event-infos__type-icon" aria-hidden="true">{{ typeIcon() }}</span>
-        <span>{{ typeLabel() }}</span>
-      </div>
-      <app-role-display-chip-set
-        class="event-infos__roles-summary"
-        ariaLabel="Besoins en rôles"
-        [items]="summaryRoleChipItems()"
-        emptyMessage="Aucun besoin renseigné"
-      />
-    </div>
-  </section>
 
-  @if (showOrganizersSection()) {
-    <section
-      class="event-infos__organizers"
-      aria-labelledby="event-infos-organizers-label"
-      aria-describedby="event-infos-organizers-help"
-    >
-      <span id="event-infos-organizers-label" class="event-infos__label">Organisateur·ices</span>
-      <p id="event-infos-organizers-help" class="event-infos__section-help">{{ organizersHelp }}</p>
-      @if (organizers().length > 0 || !canManageEventOrganizers()) {
-        <div class="event-infos__organizers-body">
-          @if (organizers().length > 0) {
-            <mat-chip-set class="event-infos__chip-set">
-              @for (organizer of organizers(); track organizer.userId) {
-                <mat-chip
-                  class="event-infos__organizer-chip"
-                  [disabled]="saving()"
-                  [removable]="canManageEventOrganizers()"
-                  (removed)="removeOrganizer(organizer.userId)"
-                >
-                  {{ organizerLabel(organizer) }}
-                  @if (canManageEventOrganizers()) {
-                    <mat-icon
-                      matChipRemove
-                      [attr.aria-label]="'Retirer ' + organizerLabel(organizer)"
-                    >
-                      cancel
-                    </mat-icon>
-                  }
-                </mat-chip>
-              }
-            </mat-chip-set>
-          } @else {
-            <span class="event-infos__empty">Aucun·e organisateur·ice dédié·e</span>
-          }
-        </div>
-      }
-      @if (canManageEventOrganizers()) {
-        <button
-          type="button"
-          mat-button
-          class="event-infos__add-organizer"
-          [disabled]="saving()"
-          (click)="openOrganizersDialog()"
-        >
-          <mat-icon aria-hidden="true">person_add</mat-icon>
-          Ajouter un·e organisateur·ice
-        </button>
-      }
-    </section>
-  }
-
-  <section
-    class="event-infos__category"
-    aria-labelledby="event-infos-category-label"
-    aria-describedby="event-infos-category-help"
-  >
-    <span id="event-infos-category-label" class="event-infos__label">Catégorie</span>
-    <p id="event-infos-category-help" class="event-infos__section-help">{{ categoryHelp }}</p>
-    <div class="event-infos__value">{{ categoryLabel() || defaultCategoryLabel() }}</div>
-    @if (canManageTroupe()) {
-      <button
-        type="button"
-        mat-button
-        class="event-infos__add-organizer"
-        [disabled]="saving()"
-        (click)="navigateToCategorySettings()"
-      >
-        <mat-icon aria-hidden="true">settings</mat-icon>
-        Gérer les catégories
-      </button>
+  <section class="event-infos__organizers" aria-labelledby="event-infos-organizers-label">
+    <span id="event-infos-organizers-label" class="event-infos__label">Organisateur·ices</span>
+    @if (organizers().length > 0) {
+      <mat-chip-set class="event-infos__chip-set">
+        @for (organizer of organizers(); track organizer.userId) {
+          <mat-chip class="event-infos__organizer-chip">{{ organizerLabel(organizer) }}</mat-chip>
+        }
+      </mat-chip-set>
+    } @else {
+      <span class="event-infos__empty">Aucun·e organisateur·ice dédié·e</span>
     }
+  </section>
+  <section class="event-infos__category" aria-labelledby="event-infos-category-label">
+    <span id="event-infos-category-label" class="event-infos__label">Catégorie</span>
+    <span>{{ categoryLabel() || defaultCategoryLabel() }}</span>
   </section>
 
   @if (showScopeNav()) {
@@ -191,7 +132,6 @@
           mat-chip
           class="event-infos__scope-chip"
           [routerLink]="troupeHubLink()"
-          (click)="closeDetails()"
           [attr.aria-label]="'Voir la troupe ' + troupeName()"
         >
           {{ troupeName() }}
@@ -200,7 +140,6 @@
           mat-chip
           class="event-infos__scope-chip"
           [routerLink]="seasonWorkspaceLink()"
-          (click)="closeDetails()"
           [attr.aria-label]="'Ouvrir la saison ' + seasonTitle()"
         >
           {{ seasonTitle() }}
@@ -208,6 +147,6 @@
       </mat-chip-set>
     </section>
   }
-  </mat-dialog-content>
-  <mat-dialog-actions align="end"><button type="button" mat-button mat-dialog-close>Fermer</button></mat-dialog-actions>
-</ng-template>
+  </section>
+  }
+</main>

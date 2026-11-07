@@ -52,13 +52,13 @@ This section complements the **legacy** admin behaviour described elsewhere in t
 
 ## Event detail (V2)
 
-The show title remains in the app bar. A header above the tabs presents the date and calendar export, location and navigation, composition status and help, format, and a non-default category when applicable. Additional details retain description, organizers, role needs, and troupe and season navigation. Dispos and Équipe remain available; Activité retains its existing permission checks. Old Infos links open a valid remaining tab while preserving the other link flags.
+The show title remains in the app bar. A header above the tabs presents the date and calendar export, location and navigation, composition status and help, and format. An inline expandable section retains description, organizers, category, and troupe and season navigation; role needs remain available in Équipe. Dispos and Équipe remain available; Activité retains its existing permission checks. Old Infos links open a valid remaining tab while preserving the other link flags.
 
-Authorized users open a unified edit form from the app bar. General fields and category retain troupe-management authorization. A composition manager may change only the format and template role slots for the event they manage; mixed requests containing fields outside that scope are rejected. Assigned people outside the new role model remain available for reconciliation.
+Authorized users open a unified edit form from the event information banner. A draft event is identified in that banner; authorized users can publish it after confirmation from the banner or its status explanation. General fields and category retain troupe-management authorization. Organizer and category administration actions retain their separate existing permissions in that form; organizer additions and removals are saved immediately and are not undone by cancelling other form changes. A composition manager may change only the format and template role slots for the event they manage; mixed requests containing fields outside that scope are rejected. Assigned people outside the new role model remain available for reconciliation.
 
 ## Flexible event composition (V2 target)
 
-An organizer who can manage an event composition selects its format and template in the unified event edit form, and manages role slots, assignments, and draw in **Équipe**. The event header summarizes the format; additional details show role counts.
+An organizer who can manage an event composition selects its format and template in the unified event edit form, and manages role slots, assignments, and draw in **Équipe**. The event header summarizes the format; role needs are shown in Équipe.
 
 - A format is a starting template. Selecting a different template whose role needs differ requires confirmation before it is applied.
 - Applying a template creates missing slots and removes obsolete empty slots. It never silently removes an assigned person: an affected assignment remains organizer-visible as a neutral **Hors modèle** slot until an organizer explicitly changes it.
