@@ -237,6 +237,9 @@
       <button mat-stroked-button type="button" (click)="retryEntry()">{{ sessionChanged() ? 'Recharger l’aperçu' : 'Réessayer' }}</button>
     } @else if (((clockDate() ?? '') >= '2026-12-25' || christmasPreviewOpen()) && !preview() && !quiz()) {
       <section class="advent__christmas" aria-labelledby="christmas-title">
+        <div class="advent__christmas-confetti" aria-hidden="true">
+          @for (piece of [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]; track piece) { <i></i> }
+        </div>
         <div class="advent__santa-scene" aria-hidden="true">
           <img class="advent__santa" src="/advent/pere-noel-cadeau.png" alt="">
           <span class="advent__santa-label"><img class="advent__santa-logo" src="/advent/logo-la-malice.png" alt=""></span>

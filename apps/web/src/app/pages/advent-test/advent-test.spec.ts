@@ -1818,6 +1818,21 @@ describe('AdventTest', () => {
     expect(fixture.nativeElement.querySelector('.advent__podium')).toBeNull()
   })
 
+  it('opens the provisional Christmas recap from private preview', async () => {
+    const component = fixture.componentInstance
+    component.productionPreview.set(true); component.clockDate.set('2026-12-01')
+    component.calendarOpen.set(true); component.welcome.set(false); component.loading.set(false)
+    component.calendarDays.set([{ day: 25, state: 'christmas' }])
+    fixture.detectChanges()
+    const button = fixture.nativeElement.querySelector('[data-day="25"]') as HTMLButtonElement
+    expect(button.disabled).toBe(false)
+    vi.mocked(window.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ ranking: { score: 0, rank: null, entries: [] }, priorityResult: null })))
+    button.click()
+    await fixture.whenStable(); fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('Aperçu provisoire du classement')
+    expect(fixture.nativeElement.querySelector('.advent__christmas-confetti')).not.toBeNull()
+  })
+
   it('describes missing cases with an accessible label', () => {
     const component = fixture.componentInstance
     component.calendarOpen.set(true)

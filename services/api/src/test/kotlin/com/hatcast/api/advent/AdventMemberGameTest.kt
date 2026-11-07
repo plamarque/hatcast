@@ -26,6 +26,10 @@ import java.util.concurrent.TimeoutException
 @SpringBootTest
 @ActiveProfiles("test")
 class AdventMemberGameTest {
+    @Test fun `early Christmas is available in private preview but locked for ordinary members`() {
+        assertEquals("christmas", game.calendar(member, preview = true).days!![24].state)
+        assertEquals("locked", game.calendar(member).days!![24].state)
+    }
     @Autowired lateinit var game: AdventMemberGame
     @Autowired lateinit var jdbc: JdbcTemplate
     @Autowired lateinit var testGame: AdventTestAnswers
@@ -57,7 +61,7 @@ class AdventMemberGameTest {
         assertEquals("today", game.calendar(member, testFuture = true).days!![1].state)
         assertEquals("christmas", game.calendar(member, testFuture = true).days!![24].state)
         assertEquals("locked", game.calendar(member).days!![24].state)
-        assertEquals("locked", game.calendar(member, preview = true).days!![24].state)
+        assertEquals("christmas", game.calendar(member, preview = true).days!![24].state)
         val generation = game.reconcile(member, 2, operator = true, testFuture = true).generation!!
         val attempt = UUID.randomUUID()
         assertEquals("available", game.reserve(member, 2, attempt, generation, operator = true, testFuture = true).status)

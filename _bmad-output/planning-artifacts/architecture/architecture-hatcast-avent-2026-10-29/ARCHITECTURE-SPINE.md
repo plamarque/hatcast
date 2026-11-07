@@ -137,6 +137,10 @@ La projection de classement fictif du mode test isolé reste en mémoire dans l�
 
 En développement isolé, le testeur autorisé par le serveur peut, sans activer le mode test, ouvrir et répondre à un quiz futur disponible ; son résultat personnel détaillé reste indisponible jusqu’à minuit Europe/Paris suivant le jour du cadeau, y compris en mode test. Le classement du mode test explicitement activé peut toutefois afficher des points avant révélation et donner un indice ; une date simulée peut atteindre cette échéance. La sélection ne change pas la date simulée ni l’horloge partagée ; les réponses et le rejeu restent personnels. Les cadeaux futurs conservent leur apparence habituelle ; le 25 ouvre un aperçu provisoire du podium, et les contenus manquants conservent leur comportement existant. Les règles de production, de classement et de révélation du jour restent inchangées.
 
+### Aperçu privé de Noël
+
+L’aperçu privé autorisé en préproduction et en production peut aussi projeter le 25 comme bilan avant sa date, indépendamment des autres cadeaux ; l’autorisation serveur et la priorité des révélations sont conservées, et le bilan anticipé reste provisoire. Cette exception ne déverrouille pas les cadeaux futurs pour les membres ordinaires.
+
 ### Classement final en test isolé
 
 Le classement du mode test conserve toutes les réponses normales enregistrées, même après le 25 et indépendamment de la date simulée. Si des données de test contiennent exceptionnellement une réponse non révélée après le 25, son score et le départage final peuvent donner un indice sur cette réponse aux seuls testeurs autorisés ; cette exception ne s’applique pas au classement membre ordinaire, qui reste limité aux réponses révélables. Les réponses détaillées et les horodatages restent côté serveur.

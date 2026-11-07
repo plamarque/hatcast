@@ -933,6 +933,12 @@ test('Christmas podium remains usable at narrow width and opens the final rankin
   const hatcastStyles = await probe()
   await page.goto('/avent')
   expect(await probe()).toEqual(hatcastStyles)
+  const confetti = page.locator('.advent__christmas-confetti')
+  await expect(confetti.locator('i')).toHaveCount(24)
+  await expect(confetti.locator('i').first()).toHaveCSS('animation-name', /christmas-confetti$/)
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await expect(confetti).toBeHidden()
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
   for (const width of [390, 1280]) {
     await page.setViewportSize({ width, height: 700 })
     const places = page.locator('.advent__podium-place')
