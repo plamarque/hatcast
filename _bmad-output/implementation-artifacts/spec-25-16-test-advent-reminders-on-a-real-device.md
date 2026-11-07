@@ -2,7 +2,7 @@
 title: 'Test Advent reminders on a real device'
 type: 'feature'
 created: '2026-11-02'
-status: 'in-review'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 0
 feature_branch: 'feat/25-16-test-advent-reminders-on-a-real-device'
@@ -48,11 +48,11 @@ Never send automatically or to another account or device; never enable test mode
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `services/api/src/main/kotlin/com/hatcast/api/` — implement authenticated development-only registration and targeted test dispatch, share normal payload while preserving scheduling and isolation.
-- [ ] `apps/web/src/app/pages/advent-test/` — add accessible test-bar action, handle permission/registration and delivery outcomes, route notification to the day without violating discovery or reveal priority.
-- [ ] `apps/web/src/custom-sw.js` and Advent assets — apply Advent icon and safe same-origin navigation without altering HatCast pushes.
-- [ ] API, Angular and service-worker tests — cover target isolation, guards, delivery, simulated date, navigation, priority and HatCast regression.
-- [ ] `SPEC.md`, `ARCH.md` and Advent contracts as applicable — document changed behavior and boundaries; prepare reproducible real-device guide.
+- [x] `services/api/src/main/kotlin/com/hatcast/api/` — implement authenticated development-only registration and targeted test dispatch, share normal payload while preserving scheduling and isolation.
+- [x] `apps/web/src/app/pages/advent-test/` — add accessible test-bar action, handle permission/registration and delivery outcomes, route notification to the day without violating discovery or reveal priority.
+- [x] `apps/web/src/custom-sw.js` and Advent assets — apply Advent icon and safe same-origin navigation without altering HatCast pushes.
+- [x] API, Angular and service-worker tests — cover target isolation, guards, delivery, simulated date, navigation, priority and HatCast regression.
+- [x] `SPEC.md`, `ARCH.md` and Advent contracts as applicable — document changed behavior and boundaries; prepare reproducible real-device guide.
 
 **Acceptance Criteria:**
 - Given an authorized tester in isolated development, when the test action is activated for a simulated quiz day, then only the current owned device receives an immediate delivery attempt using the normal reminder presentation and day destination.
@@ -62,7 +62,7 @@ Never send automatically or to another account or device; never enable test mode
 
 ## Implementation Notes
 
-Implementation and automated checks completed; real-device reception and opening remain pending. The workflow CI changes have not yet run on GitHub. PostgreSQL ownership concurrency was exercised against a disposable database with a simulated push provider.
+Implemented and integrated into v2. On 7 November 2026, Patrice accepted the real-device recipe on Android: a test push was received and opened on the requested day; the previous-day reveal was separately verified with a fresh answer. Development deployment and Advent regression CI passed. PostgreSQL ownership concurrency used a disposable database and a simulated push provider. The combined notification plus unseen-priority-result case, actual scheduled 10 h delivery, permission variants and unavailable-day fallback were not verified on a real device; see the real-device guide and BUG-101.
 
 ## Spec Change Log
 

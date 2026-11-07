@@ -10,4 +10,6 @@ Ce guide prépare une vérification ; il n’autorise aucun envoi ni déploiemen
 
 ## Relevé réel
 
-Non exécuté : aucun envoi ni appareil réel autorisé dans cette session. À compléter lors de la recette : date, environnement et révision ; appareil et navigateur ; permission initiale puis décision ; enregistrement ; tentative et réponse du fournisseur ; réception ; ouverture et jour ; comportement de découverte/révélation ; éventuels écarts. L’acceptation du fournisseur ne prouve pas la réception et la commande ne teste pas le déclenchement automatique de 10 h.
+**7 novembre 2026 — recette validée en l’état par Patrice.** Sur Android, avec l’application de développement installée, l’envoi ciblé a été accepté, la notification réellement reçue et son ouverture a conduit au quiz du 9 décembre simulé. Son texte et son icône étaient visibles. Après une réponse au quiz du 9, le passage au 10 a bien affiché le résultat du 9.
+
+La combinaison « ouverture de notification avec résultat précédent encore non vu » n’a pas été vérifiée sur appareil : avancer la date pour envoyer la notification du jour suivant affiche et marque déjà le résultat précédent comme vu. Patrice accepte cette limite sans évolution du mode test. Le déclenchement planifié de 10 h, les variantes de permission et de préférence ainsi que l’éventuel repli vers un quiz inaccessible n’ont pas été validés lors de ce relevé. La version exacte servie au moment des gestes et l’état initial de permission n’ont pas été relevés. Voir BUG-101 pour la vérification en lecture seule du premier essai.
