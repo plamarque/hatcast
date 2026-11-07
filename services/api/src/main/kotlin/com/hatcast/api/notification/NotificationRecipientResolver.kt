@@ -258,6 +258,13 @@ class NotificationRecipientResolver(
             .mapNotNull { row -> row.seasonParticipantId ?: row.eventParticipantId }
             .toSet()
 
+    /** Participant and account pairs from the same final unanswered-roster snapshot. */
+    fun resolveUnknownAvailabilityParticipantAccounts(seasonId: UUID, eventId: UUID): Map<UUID, UUID> =
+        unknownRosterRows(seasonId, eventId).mapNotNull { row ->
+            val participantId = row.seasonParticipantId ?: row.eventParticipantId
+            if (participantId == null || row.userId == null) null else participantId to row.userId
+        }.toMap()
+
     fun resolveUnknownAvailabilityRecipients(
         seasonId: UUID,
         eventId: UUID,

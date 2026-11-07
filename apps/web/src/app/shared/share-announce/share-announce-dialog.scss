@@ -94,3 +94,47 @@
 
   .share-announce-dialog__action-label { display: none; }
 }
+
+.share-announce-dialog__success-icon {
+  vertical-align: middle;
+  margin-right: 0.75rem;
+  color: var(--mat-sys-primary);
+}
+
+.share-announce-dialog__result-content {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.share-announce-dialog__result {
+  display: flex;
+  min-height: 0;
+  font: var(--mat-sys-body-medium);
+}
+
+.share-announce-dialog__result-lists {
+  overflow-y: auto;
+  max-height: min(45vh, 20rem);
+  min-width: 0;
+}
+
+.share-announce-dialog__result-lists p {
+  margin: 0 0 0.75rem;
+}
+
+.share-announce-dialog__result-lists ul + p {
+  margin-top: 1rem;
+}
+
+.share-announce-dialog__names {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem 1rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.share-announce-dialog__names li {
+  overflow-wrap: anywhere;
+}

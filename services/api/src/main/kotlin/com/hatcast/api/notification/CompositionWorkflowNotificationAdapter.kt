@@ -79,18 +79,16 @@ class CompositionWorkflowNotificationAdapter(
         messagePreview: String,
         actorUserId: UUID,
         recipientChannels: Map<UUID, Set<NotificationChannel>>,
-    ) {
+        selectedParticipantIds: Set<UUID>?,
+    ): Set<UUID> {
         if (intent == "availability_nudge") {
-            val unknownUserIds =
-                recipientResolver
-                    .resolveUnknownAvailabilityRecipients(seasonId, eventId)
-                    .mapNotNull { it.userId }
-                    .toSet()
-            val currentRecipientChannels = recipientChannels.filterKeys { it in unknownUserIds }
+            val unansweredAccounts = recipientResolver.resolveUnknownAvailabilityParticipantAccounts(seasonId, eventId)
+                .filterKeys { selectedParticipantIds == null || it in selectedParticipantIds }
+            val currentRecipientChannels = recipientChannels.filterKeys { it in unansweredAccounts.values }
             if (currentRecipientChannels.isEmpty()) {
-                return
+                return emptySet()
             }
-            dispatcher.dispatch(
+            val processedUserIds = dispatcher.dispatch(
                 NotificationDispatchContext(
                     intent = NotificationIntent.MANUAL_AVAILABILITY_NUDGE,
                     eventId = eventId,
@@ -102,7 +100,7 @@ class CompositionWorkflowNotificationAdapter(
                     recipientChannels = currentRecipientChannels,
                 ),
             )
-            return
+            return unansweredAccounts.filterValues { it in processedUserIds }.keys
         }
         if (intent == "event") {
             dispatcher.dispatch(
@@ -115,7 +113,7 @@ class CompositionWorkflowNotificationAdapter(
                     customMessageBody = messagePreview,
                 ),
             )
-            return
+            return emptySet()
         }
         log.debug(
             "manual_announcement_requested eventId={} seasonId={} intent={} messagePreviewLength={} actorUserId={} member_dispatch=skipped",
@@ -125,6 +123,7 @@ class CompositionWorkflowNotificationAdapter(
             messagePreview.length,
             actorUserId,
         )
+        return emptySet()
     }
 
     override fun notifyTeamValidatedFyi(

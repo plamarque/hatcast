@@ -5,17 +5,19 @@ import org.springframework.beans.factory.ObjectProvider
 import org.springframework.mail.javamail.JavaMailSender
 import org.springframework.mail.javamail.MimeMessageHelper
 import org.springframework.stereotype.Component
+import org.springframework.context.annotation.Profile
 import java.util.UUID
 
 @Component
-class EmailNotificationSender(
+@Profile("!e2e")
+open class EmailNotificationSender(
     private val emailProperties: NotificationEmailProperties,
     private val cloudflareEmailClient: CloudflareEmailSendingClient,
     private val mailSenderProvider: ObjectProvider<JavaMailSender>,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
-    fun sendEmail(
+    open fun sendEmail(
         userId: UUID?,
         email: String,
         subject: String,
