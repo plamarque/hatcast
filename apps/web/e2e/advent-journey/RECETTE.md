@@ -14,10 +14,4 @@ Le nombre de quiz officiels disponibles varie avec le catalogue privé ; les jou
 
 En cas d’interruption, de message d’erreur ou de restauration non confirmée, ne pas relancer immédiatement. Vérifier l’heure, le réglage de synchronisation et la présence du journal `/var/db/hatcast-avent-clock/clock-recovery.json`. Si une récupération est nécessaire, consulter `RECOVERY.md` et les instructions actuelles du lanceur avant toute commande. Ne jamais supprimer manuellement un journal pour contourner le garde-fou.
 
-Cette recette appartient à la story 25.20. Tant que son worktree n’est pas intégré, le chemin absolu de la présente installation est :
-
-```bash
-bash /Users/patrice/GitHub/hatcast-25-20-record-the-complete-advent-member-journey/apps/web/e2e/advent-journey/run-journey.sh --run
-```
-
-Après intégration, utiliser le lanceur de la révision choisie du dépôt ; ne pas supposer que ce worktree existe encore. La skill personnelle `$avent-dry-run` guide la préparation, la revue visuelle facultative et l’accès Tailscale privé à la vidéo.
+La skill personnelle `$avent-dry-run` guide la préparation, la revue visuelle facultative et l’accès Tailscale privé à la vidéo. Utiliser le lanceur de la révision choisie du dépôt.
