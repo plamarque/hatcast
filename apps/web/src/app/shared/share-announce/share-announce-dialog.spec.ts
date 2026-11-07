@@ -225,41 +225,51 @@ describe('ShareAnnounceDialog', () => {
     expect(fixture.nativeElement.textContent).toContain('Rappel disponibilité')
   })
 
-  it('opens the all-recipient confirmation directly from the fresh preview', async () => {
+  it('shows the normal share window and opens all-recipient confirmation only on Notifier', async () => {
     const getRecipients = vi.fn().mockResolvedValue({ ...recipientsMock, data: { ...recipientsMock.data, confirmationFingerprint: 'preview-1' } })
     const sendNotifications = vi.fn().mockResolvedValue({ ok: true, status: 200, data: { acceptedCount: 1 } })
     const dialog = { open: vi.fn().mockReturnValue({ afterClosed: () => of(['p-1']) }) }
     const fixture = await configureDialog({ ...baseDialogData, intent: 'availability_nudge', allRecipients: true }, { getRecipients, sendNotifications, dialog })
+    await vi.waitFor(() => { fixture.detectChanges(); expect(fixture.nativeElement.querySelector('button[aria-label="Notifier"]')?.disabled).toBe(false) })
+    expect(fixture.nativeElement.textContent).toContain('Copier')
+    expect(fixture.nativeElement.textContent).toContain('WhatsApp')
+    expect(dialog.open).not.toHaveBeenCalled()
+    expect(sendNotifications).not.toHaveBeenCalled()
+    fixture.nativeElement.querySelector('button[aria-label="Notifier"]').click()
     await vi.waitFor(() => expect(sendNotifications).toHaveBeenCalledWith('season-1', 'event-1', 'availability_nudge', expect.any(String), 'preview-1', ['p-1']))
-    expect(dialog.open).toHaveBeenCalledOnce()
     expect(dialog.open.mock.calls[0][1].data.allRecipients).toBe(true)
-    expect(fixture.nativeElement.textContent).not.toContain('WhatsApp')
-    expect(TestBed.inject(MatDialogRef).close).toHaveBeenCalled()
   })
 
-  it('does not send when the direct confirmation is cancelled', async () => {
+  it('does not send when the all-recipient confirmation is cancelled', async () => {
     const getRecipients = vi.fn().mockResolvedValue({ ...recipientsMock, data: { ...recipientsMock.data, confirmationFingerprint: 'preview-1' } })
     const sendNotifications = vi.fn()
     const dialog = { open: vi.fn().mockReturnValue({ afterClosed: () => of(false) }) }
-    await configureDialog({ ...baseDialogData, intent: 'availability_nudge', allRecipients: true }, { getRecipients, sendNotifications, dialog })
-    await vi.waitFor(() => expect(dialog.open).toHaveBeenCalledOnce())
+    const fixture = await configureDialog({ ...baseDialogData, intent: 'availability_nudge', allRecipients: true }, { getRecipients, sendNotifications, dialog })
+    await vi.waitFor(() => { fixture.detectChanges(); expect(fixture.nativeElement.querySelector('button[aria-label="Notifier"]')?.disabled).toBe(false) })
+    fixture.nativeElement.querySelector('button[aria-label="Notifier"]').click()
+    expect(dialog.open).toHaveBeenCalledOnce()
     expect(sendNotifications).not.toHaveBeenCalled()
-    expect(TestBed.inject(MatDialogRef).close).toHaveBeenCalled()
+    expect(TestBed.inject(MatDialogRef).close).not.toHaveBeenCalled()
   })
 
-  it('requires a fresh confirmation after a stale preview', async () => {
+  it('requires another Notifier click and fresh confirmation after a stale preview', async () => {
     const first = new Subject<string[] | false>()
     const second = new Subject<string[] | false>()
     const getRecipients = vi.fn()
       .mockResolvedValueOnce({ ...recipientsMock, data: { ...recipientsMock.data, confirmationFingerprint: 'preview-1' } })
-      .mockResolvedValueOnce({ ...recipientsMock, data: { ...recipientsMock.data, confirmationFingerprint: 'preview-2' } })
+      .mockResolvedValue({ ...recipientsMock, data: { ...recipientsMock.data, confirmationFingerprint: 'preview-2' } })
     const sendNotifications = vi.fn().mockResolvedValueOnce({ ok: false, status: 409 }).mockResolvedValueOnce({ ok: true, data: { acceptedCount: 1 } })
     const dialog = { open: vi.fn().mockReturnValueOnce({ afterClosed: () => first }).mockReturnValueOnce({ afterClosed: () => second }) }
-    await configureDialog({ ...baseDialogData, intent: 'availability_nudge', allRecipients: true }, { getRecipients, sendNotifications, dialog })
-    await vi.waitFor(() => expect(dialog.open).toHaveBeenCalledTimes(1))
+    const fixture = await configureDialog({ ...baseDialogData, intent: 'availability_nudge', allRecipients: true }, { getRecipients, sendNotifications, dialog })
+    await vi.waitFor(() => { fixture.detectChanges(); expect(fixture.nativeElement.querySelector('button[aria-label="Notifier"]')?.disabled).toBe(false) })
+    fixture.nativeElement.querySelector('button[aria-label="Notifier"]').click()
     first.next(['p-1'])
-    await vi.waitFor(() => expect(dialog.open).toHaveBeenCalledTimes(2))
+    await vi.waitFor(() => expect(getRecipients).toHaveBeenCalledTimes(2))
+    await vi.waitFor(() => { fixture.detectChanges(); expect(fixture.nativeElement.querySelector('button[aria-label="Notifier"]')?.disabled).toBe(false) })
+    expect(dialog.open).toHaveBeenCalledTimes(1)
     expect(sendNotifications).toHaveBeenCalledTimes(1)
+    fixture.nativeElement.querySelector('button[aria-label="Notifier"]').click()
+    expect(dialog.open).toHaveBeenCalledTimes(2)
     second.next(['p-1'])
     await vi.waitFor(() => expect(sendNotifications).toHaveBeenCalledTimes(2))
     expect(sendNotifications.mock.calls[1][4]).toBe('preview-2')
@@ -273,7 +283,8 @@ describe('ShareAnnounceDialog', () => {
     expect(dialog.open).not.toHaveBeenCalled()
     const retry = [...(fixture.nativeElement as HTMLElement).querySelectorAll('button')].find((b) => b.textContent?.includes('Réessayer'))!
     retry.click()
-    await vi.waitFor(() => expect(dialog.open).toHaveBeenCalledOnce())
+    await vi.waitFor(() => { fixture.detectChanges(); expect(fixture.nativeElement.querySelector('button[aria-label="Notifier"]')?.disabled).toBe(false) })
+    expect(dialog.open).not.toHaveBeenCalled()
   })
 
   it('opens one confirmation and sends only its selected recipients', async () => {

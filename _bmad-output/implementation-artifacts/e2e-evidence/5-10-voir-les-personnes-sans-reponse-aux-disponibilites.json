@@ -11,7 +11,7 @@
   ],
   "disposition": "run",
   "outcome": "passed",
-  "rationale": "Vues membre et orga, annulation et formats mobile et bureau",
+  "rationale": "Fenetre de relance et confirmation collective",
   "report_reference": "apps/web/playwright-report/index.html",
   "schema": "hatcast.story-e2e-evidence.v1",
   "selection": [

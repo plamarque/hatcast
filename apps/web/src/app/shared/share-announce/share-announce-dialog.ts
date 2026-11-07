@@ -211,7 +211,6 @@ export class ShareAnnounceDialog {
     ref.afterClosed().subscribe((participantIds) => {
       this.confirmationOpen.set(false)
       if (participantIds) void this.sendReminder(participantIds)
-      else if (this.data.allRecipients) this.ref.close()
     })
   }
 
@@ -232,8 +231,7 @@ export class ShareAnnounceDialog {
           })
         }
         this.snack.open('Demande de rappel prise en compte', 'OK', { duration: 4000 })
-        if (this.data.allRecipients) this.ref.close()
-        else void this.loadRecipients()
+        void this.loadRecipients()
       } else if (result.status === 409) {
         this.captureReminderOutcome('refused')
         this.snack.open('Les destinataires ont changé. Vérifie à nouveau.', 'OK', { duration: 5000 })
@@ -318,8 +316,5 @@ export class ShareAnnounceDialog {
     }
     this.lastManualNotifyAt.set(result.data.lastManualNotifyAt ?? null)
     this.guardDays.set(result.data.guardDays ?? null)
-    if (this.data.allRecipients && this.reminderFingerprint() && this.hasNotifiableRecipient()) {
-      this.openNotificationConfirmation()
-    }
   }
 }

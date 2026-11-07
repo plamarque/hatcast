@@ -20,7 +20,7 @@ context:
 
 **Problem:** Members and organizers cannot readily identify participants who have not answered an event's availability request.
 
-**Approach:** Add a compact, accessible member-visible count and expandable list of unanswered participants to the availability tab, using the current event summary. Provide organizers a compact bell-icon “Relancer” action in the panel header, before its chevron, to request a reminder for all still-unanswered eligible people after confirmation; the approved mockup is the interaction direction.
+**Approach:** Add a compact, accessible member-visible count and expandable list of unanswered participants to the availability tab, using the current event summary. Provide organizers a compact bell-icon “Relancer” action in the panel header, before its chevron, to open the existing availability reminder dialog. Its Notifier action opens a confirmation without individual selection for all still-unanswered eligible people; preserve editing, copy, WhatsApp and explicit confirmation.
 
 ## Boundaries & Constraints
 
@@ -35,7 +35,7 @@ context:
 | Authorized viewer | One or more unknown participants | Count and expandable list show matching names | Existing summary error behavior remains |
 | None | No unknown participants, including empty roster | Clear zero state | No mutation |
 | Refresh | Summary changes after save or event change | List and count reflect the current summary | No additional write |
-| Organizer reminder | Unknown participants and existing reminder permission | Header link opens confirmation for all eligible unanswered people; explicit confirmation requests reminders | Changed audience, no eligible channel or failed request is handled safely; no false delivery claim |
+| Organizer reminder | Unknown participants and existing reminder permission | Header link opens the existing reminder dialog; Notifier opens confirmation for all eligible unanswered people; explicit confirmation requests reminders | Changed audience, no eligible channel or failed request is handled safely; no false delivery claim |
 | Unauthorized viewer | No access to event availability | No access to the list or its data | Preserve existing API authorization |
 | Accessibility | Keyboard, screen reader, mobile and desktop | Control exposes expanded state; names remain readable | Existing loading and error states retained |
 
@@ -55,7 +55,7 @@ context:
 
 **Execution:**
 - [x] `apps/web/src/app/shared/availability/event-dispos-tab.*` — implement the member-visible list and reactive count using the existing summary.
-- [x] `apps/web/src/app/pages/event-detail/` and `apps/web/src/app/shared/share-announce/` — connect the organizer-only header action to a confirmation for all eligible unanswered participants, without per-person selection; reuse existing reminder API, permission and lifecycle guards.
+- [x] `apps/web/src/app/pages/event-detail/` and `apps/web/src/app/shared/share-announce/` — connect the organizer-only header action to the existing reminder dialog, with its Notifier action confirming all eligible unanswered participants without per-person selection; reuse existing reminder API, permission and lifecycle guards.
 - [x] `apps/web/src/app/shared/availability/event-dispos-tab.spec.ts` — cover zero, one, multiple, update, event change, permission and no-write cases.
 - [x] `services/api/src/main/kotlin/com/hatcast/api/availability/AvailabilityService.kt` and related integration tests — confirm existing authorization; do not alter the API contract.
 - [x] `ISSUES.md` — record the limited resolution of LIMIT-009 after verification; update relevant normative documentation for the visible list and new reminder entry point.
@@ -63,17 +63,21 @@ context:
 
 **Acceptance Criteria:**
 - Given an authorized viewer, when the list is expanded, then the count and names match the event summary and no write or notification occurs.
-- Given an organizer, when the reminder action is used, then a confirmation precedes a request limited to all currently eligible unanswered people, respecting preferences; a stale audience or failure never causes a silent send.
+- Given an organizer, when Notifier in the reminder dialog is used, then a confirmation precedes a request limited to all currently eligible unanswered people, respecting preferences; a stale audience or failure never causes a silent send.
 - Given a viewer without event access, when availability data is requested, then existing API authorization remains enforced.
 - Given keyboard or touch interaction, when the control is used, then its state and names are accessible and readable at mobile and desktop sizes.
 
 ## Implementation Notes
+
+- The panel action opens the existing reminder window. Its Notifier action uses the all-recipient confirmation; cancellation returns to the window and sends nothing.
 
 - Implemented the approved list and organizer reminder entry; the existing preview and dispatch rules remain authoritative.
 - Focused Angular suites: 101 passed; API availability access suites passed; isolated Playwright: eight passed including three authentication setups and five member/organizer journeys across mobile and desktop.
 - The local human-smoke handoff runs offline; real notification delivery is not established.
 
 ## Spec Change Log
+
+- Patrice clarified that the panel action opens the existing reminder dialog; Notifier then confirms all eligible unanswered recipients without individual selection.
 
 ## Review Triage Log
 
