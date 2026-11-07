@@ -24,6 +24,36 @@ export default defineConfig({
     ignoreHTTPSErrors: true,
   },
   projects: [
+    {
+      name: 'chromium-5-10-member',
+      testMatch: /story-5-10-member\.spec\.ts/,
+      use: { ...devices['Pixel 5'], storageState: 'e2e/.auth/member.json' },
+      dependencies: ['setup-member'],
+    },
+    {
+      name: 'chromium-5-10-organizer',
+      testMatch: /story-5-10-organizer\.spec\.ts/,
+      use: { ...devices['Pixel 5'], storageState: 'e2e/.auth/admin.json' },
+      dependencies: ['setup-admin'],
+    },
+    {
+      name: 'chromium-5-10-desktop-member',
+      testMatch: /story-5-10-member\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], storageState: 'e2e/.auth/member.json' },
+      dependencies: ['setup-member'],
+    },
+    {
+      name: 'chromium-5-10-desktop-organizer',
+      testMatch: /story-5-10-organizer\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], storageState: 'e2e/.auth/admin.json' },
+      dependencies: ['setup-admin'],
+    },
+    {
+      name: 'chromium-5-10-scoped-organizer',
+      testMatch: /story-5-10-organizer\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], storageState: 'e2e/.auth/reminder-organizer.json' },
+      dependencies: ['setup-reminder-organizer'],
+    },
     { name: 'chromium-advent-answer', testMatch: /advent-(answer|member)\.spec\.ts/, use: { ...devices['Desktop Chrome'] } },
     {
       name: 'chromium-accueil-feedback',

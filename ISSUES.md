@@ -965,6 +965,7 @@ not active work; items listed in the two sections above remain actionable.
 - **Expected behavior (V1)**: Pulldown first option « Tous » (`selectedTeamPlayer.id === 'all'`) rendered `EventRoleGroupingView` — named candidates per role. Combined with the season grid, orgs could also see unanswered cells.
 - **Notes**: Story 5.8 D1 removed Moi/Tous in favor of a WhatsApp-style poll (saisie + collective on one screen). Named unavailable list was an explicit non-goal (MVP+). Relance dispos (cog menu) still targets `unknown` but does not display the list. Organizer request 2026-09-16: restore a troupe overview, especially unanswered members.
 - **Reported by**: Organizer feedback (Nicolas Nasciet) via Patrice.
+- **Story 5.10**: The unanswered-participant list is addressed by the in-progress story; the broader requested overview remains open until separately resolved.
 
 ### BUG-018 — Staging Cloud Run traffic stuck on a named revision
 - **ID**: BUG-018

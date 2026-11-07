@@ -65,6 +65,14 @@ Exact UI placement, focus behavior, and implementation sequencing are defined by
 
 ---
 
+## Unanswered availability (V2)
+
+On an event’s availability tab, any viewer authorized to read the availability summary can expand a count of participants whose response is not recorded and see their names. The list reflects the current summary; viewing it does not alter responses or send notifications. When no participant is unanswered, the interface makes that state clear.
+
+An organizer eligible to send an availability reminder can use the bell-labelled **Relancer** action beside the list heading. A confirmation precedes the reminder request for all currently eligible unanswered participants. Existing authorization, recipient revalidation, channel preferences and delivery reporting continue to apply; no individual recipient selection is introduced in this entry point.
+
+---
+
 ## Organizer share and announce (V2 target)
 
 Normative intent for organizers with **`canManageComposition`** (UI chrome in [_ux-design-share-announce-manual-only.md_](_bmad-output/planning-artifacts/ux-design-share-announce-manual-only.md) — story **6.23** ; DOMAIN glossary). Applies to the Angular + Spring V2 stack.
