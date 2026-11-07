@@ -592,12 +592,12 @@ BUG-037 and BUG-029 have fixture-only corrections verified by the complete API s
 - **Evidence**: [Release chain audit](docs/v2/technical/RELEASE_CHAIN_AUDIT_2026-10-23.md); [E1 run](https://github.com/plamarque/hatcast/actions/runs/39897194431).
 
 ### BUG-047 — Google sign-in reports an unapproved V2 staging origin
-- **Status**: Observed during the 2.7.0-rc.1 browser smoke; Google sign-in itself was not exercised.
-- **Severity**: Low (staging-only console finding; impact on Google sign-in requires verification).
+- **Status**: Open — Google sign-in failure reported on 2.7.1-rc.1; OAuth configuration investigation in progress.
+- **Severity**: High (Google sign-in blocked on the staging URL provided for release testing).
 - **Affected area**: Google Identity Services on `https://hatcast-v2-staging-gz5evlelnq-od.a.run.app/connexion`.
 - **Observed behavior**: The login page emits `[GSI_LOGGER]: The given origin is not allowed for the given client ID.` Browser extensions emit separate unrelated warnings.
 - **Expected behavior**: A supported staging login origin is accepted by the configured Google OAuth web client.
-- **Evidence and limits**: Browser console during the 2026-10-23 RC smoke, revision `hatcast-v2-staging-00127-r66`; email/password login passed for both configured E2E roles. No Google login attempt, client configuration change, or production impact is established.
+- **Evidence and limits**: Browser console during the 2026-10-23 RC smoke, revision `hatcast-v2-staging-00127-r66`; email/password login passed for both configured E2E roles. On 2026-11-07, the user reported Google OAuth HTTP 400 `origin_mismatch` when attempting staging sign-in after deployment of 2.7.1-rc.1. The exact origin in the Google error details has not been independently verified; no production impact is established.
 
 ### BUG-046 — Guest navigation E2E expects an incomplete fixture title
 - **Status**: Fixed locally — complete E2E suite passed (100 passed, 4 skipped); CI verification pending.
