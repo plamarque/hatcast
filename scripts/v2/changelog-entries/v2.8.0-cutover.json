@@ -1,0 +1,16 @@
+{
+  "version": "2.8.0",
+  "date": "__BUILD_DATE__",
+  "source": "curated-release",
+  "notes": "Product release",
+  "changes": [
+    "🔧 Spectacle — retrouve les informations essentielles dans un bandeau et accède plus directement aux dispos et à l’équipe.",
+    "✨ Dispos — vois combien de personnes n’ont pas encore répondu et affiche leurs noms.",
+    "✨ Relances — les orgas peuvent relancer les personnes concernées depuis les dispos et voir qui a été inclus."
+  ],
+  "changes_en": [
+    "🔧 Show details — find key information in the header and reach availability and lineup more directly.",
+    "✨ Availability — see how many people have yet to respond and view their names.",
+    "✨ Reminders — organizers can remind eligible people from the availability view and see who was included."
+  ]
+}
