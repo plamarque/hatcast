@@ -99,7 +99,7 @@ BUG-037 and BUG-029 have fixture-only corrections verified by the complete API s
 - **Expected behavior**: A reviewable video covers the exercised days and finalization terminates promptly.
 - **Notes**: A system-clock discontinuity affecting Playwright video timing is suspected, not established. A fixed-rate screenshot encoder was tested with synthetic discontinuities and 26 browser screens; a subsequent real-clock journey produced an 80.5-second playable recording. The day-26 entry ranking was asserted but not distinctly captured.
 
-### BUG-101 — Isolated Advent preview server returns generic image MIME types
+### BUG-104 — Isolated Advent preview server returns generic image MIME types
 - **Status**: Fixed locally 2026-11-04; verified by three existing mocked UI diagnostics, including the previously failing welcome test.
 - **Severity**: Low (local test infrastructure).
 - **Affected area**: `apps/web/e2e/advent-isolation/full-stack-preview-server.cjs`.
