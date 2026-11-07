@@ -854,3 +854,112 @@ test('direct day link opens the authorized calendar destination and survives rel
   await expect(gift).toBeVisible()
   expect(new URL(page.url()).search).toBe('?preview=1&jour=6&source=notification')
 })
+
+test('Christmas podium remains usable at narrow width and opens the final ranking', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 320, height: 700 })
+  const board = { score: 10, rank: 3, entries: [
+    { name: 'Camille', score: 30, rank: 1, mine: false },
+    { name: 'Alexandrine au très très long nom', score: 20, rank: 2, mine: false },
+    { name: 'Fiction', score: 10, rank: 3, mine: true, tieReason: 'NAME' },
+    { name: 'Zoé', score: 10, rank: 4, mine: false },
+  ] }
+  await page.route('**/v1/**', async route => {
+    const path = new URL(route.request().url()).pathname
+    if (path === '/v1/auth/me') return route.fulfill({ json: { user: { id: 'fiction', slug: 'fiction', displayName: 'Fiction', email: 'fiction@example.test' }, platformAdmin: false } })
+    if (path === '/v1/troupes') return route.fulfill({ json: [] })
+    if (path === '/v1/me/preferences') return route.fulfill({ json: { memberDisplayName: 'Fiction', preferredRoleKeys: [] } })
+    if (path === '/v1/advent/session') return route.fulfill({ json: { testControls: false, sessionId: 'fiction' } })
+    if (path === '/v1/advent/clock') return route.fulfill({ json: { date: '2026-12-25' } })
+    if (path === '/v1/advent/discovery') return route.fulfill({ json: { discovered: true } })
+    if (path === '/v1/advent/results/latest-unseen') return route.fulfill({ json: { result: null } })
+    if (path === '/v1/advent/ranking') return route.fulfill({ json: { priorityResult: null, ranking: board } })
+    return route.fulfill({ json: {} })
+  })
+  const probe = async () => page.evaluate(() => {
+    const element = document.createElement('button')
+    element.textContent = 'HatCast'
+    document.body.appendChild(element)
+    const style = getComputedStyle(element)
+    const result = [style.fontFamily, style.fontSize, style.color, style.backgroundColor, style.borderRadius]
+    element.remove()
+    return result
+  })
+  await page.goto('/')
+  const hatcastStyles = await probe()
+  await page.goto('/avent')
+  expect(await probe()).toEqual(hatcastStyles)
+  for (const width of [390, 1280]) {
+    await page.setViewportSize({ width, height: 700 })
+    const places = page.locator('.advent__podium-place')
+    await expect(places).toHaveCount(3)
+    const first = await places.nth(0).boundingBox()
+    const second = await places.nth(1).boundingBox()
+    const third = await places.nth(2).boundingBox()
+    expect(first!.x).toBeGreaterThan(second!.x)
+    expect(third!.x).toBeGreaterThan(first!.x)
+    const heights = await places.locator('.advent__podium-rank').evaluateAll(nodes => nodes.map(node => node.getBoundingClientRect().height))
+    expect(heights[0]).toBeGreaterThan(heights[1])
+    expect(heights[1]).toBeGreaterThan(heights[2])
+    await page.locator('main.advent').screenshot({ path: testInfo.outputPath(`christmas-podium-3-${width}.png`), animations: 'disabled' })
+  }
+  await page.setViewportSize({ width: 320, height: 700 })
+  await page.addStyleTag({ content: 'html { font-size: 200% !important; }' })
+  await expect(page.locator('.advent__podium-place')).toHaveCount(3)
+  await expect(page.locator('.advent__podium')).toContainText('Alexandrine au très très long nom')
+  await expect(page.locator('.advent__podium-reason')).toContainText('ordre alphabétique')
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  await page.locator('main.advent').screenshot({ path: testInfo.outputPath('christmas-podium-320-zoom.png'), animations: 'disabled' })
+  const cta = page.getByRole('button', { name: 'Voir le classement final' })
+  await cta.focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('heading', { name: 'Classement', exact: true })).toBeVisible()
+  await expect(page.locator('.advent__ranking-list li')).toHaveCount(4)
+  await expect(page.locator('.advent__ranking-list li').nth(2)).toContainText('Fiction')
+  const entries = board.entries.slice()
+  for (const count of [0, 1, 2]) {
+    board.entries.splice(0, board.entries.length, ...entries.slice(0, count))
+    await page.setViewportSize({ width: 390, height: 700 })
+    await page.goto('/avent')
+    await expect(page.locator('.advent__podium-place')).toHaveCount(count)
+    await page.locator('main.advent').screenshot({ path: testInfo.outputPath(`christmas-podium-${count}-390.png`), animations: 'disabled' })
+    await page.setViewportSize({ width: 320, height: 700 })
+    await page.goto('/avent')
+    await page.addStyleTag({ content: 'html { font-size: 200% !important; }' })
+    await expect(page.locator('.advent__podium-place')).toHaveCount(count)
+    await expect(page.getByRole('heading', { name: 'Joyeux Noël !' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Voir le classement final' })).toBeVisible()
+    await page.locator('main.advent').screenshot({ path: testInfo.outputPath(`christmas-podium-${count}-320-zoom.png`), animations: 'disabled' })
+  }
+})
+
+
+test('Christmas preview keeps its fictional ranking and calendar works', async ({ page }) => {
+  await page.route('**/v1/**', async route => {
+    const path = new URL(route.request().url()).pathname
+    if (path === '/v1/auth/me') return route.fulfill({ json: { user: { id: 'fiction', slug: 'fiction', displayName: 'Fiction', email: 'fiction@example.test' }, platformAdmin: false } })
+    if (path === '/v1/troupes') return route.fulfill({ json: [] })
+    if (path === '/v1/me/preferences') return route.fulfill({ json: { memberDisplayName: 'Fiction', preferredRoleKeys: [] } })
+    if (path === '/v1/advent/session') return route.fulfill({ json: { testControls: true, sessionId: 'fiction' } })
+    if (path === '/v1/advent/clock') return route.fulfill({ json: { date: '2026-12-25' } })
+    if (path === '/v1/advent/discovery') return route.fulfill({ json: { discovered: true } })
+    if (path === '/v1/advent/results/latest-unseen') return route.fulfill({ json: { result: null } })
+    if (path === '/v1/advent/ranking') return route.fulfill({ json: { priorityResult: null, ranking: { score: 0, rank: null, entries: [{ name: 'Réel', score: 0, rank: 1, mine: false }] } } })
+    if (path === '/v1/advent/calendar') return route.fulfill({ json: { priorityResult: null, days: Array.from({ length: 25 }, (_, i) => ({ day: i + 1, state: i === 24 ? 'christmas' : 'past-unplayed' })) } })
+    return route.fulfill({ json: {} })
+  })
+  await page.goto('/avent')
+  await page.getByRole('button', { name: 'Activer le mode test' }).click()
+  await page.getByRole('button', { name: 'Actions du mode test' }).click()
+  await page.getByRole('menuitem', { name: 'Aperçu Noël : place ex æquo' }).click()
+  await expect(page.locator('.advent__podium')).toContainText('Lou')
+  await page.locator('.advent__christmas-actions').getByRole('button', { name: 'Voir le calendrier' }).click()
+  await expect(page.getByRole('heading', { name: 'Calendrier de l’Avent' })).toBeVisible()
+  await page.getByRole('button', { name: 'Actions du mode test' }).click()
+  await page.getByRole('menuitem', { name: 'Aperçu Noël : place ex æquo' }).click()
+  await page.getByRole('button', { name: 'Voir le classement final' }).click()
+  await expect(page.getByRole('status').filter({ hasText: 'Classement fictif' })).toBeVisible()
+  await expect(page.locator('.advent__ranking-list')).toContainText('Zoé')
+  await expect(page.locator('.advent__ranking-list')).not.toContainText('Réel')
+  await page.locator('.advent__ranking-action').getByRole('button', { name: 'Voir le calendrier' }).click()
+  await expect(page.getByRole('heading', { name: 'Calendrier de l’Avent' })).toBeVisible()
+})

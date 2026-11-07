@@ -3816,6 +3816,14 @@ En tant qu’organisateur, je veux accéder à une case Avent par un lien conten
 
 **Material 3 et références :** appliquer FRONTEND_UI, Advent DESIGN, EXPERIENCE, AD-7 et la stratégie de tests visuels ; voir la story détaillée 25.23. Dépend des parcours et droits existants des stories 25.5, 25.15, 25.18 et 25.19.
 
+### Story 25.24: Célébrer le podium final
+
+En tant que membre, je veux découvrir le podium final de l’Avent et comprendre tout départage décisif, afin de célébrer les joueurs et notre participation.
+
+**Critères :** Le 25 décembre, après toute révélation prioritaire, présenter les trois premières personnes classables et leurs points, avec les vœux et remerciements adaptés ; s’il n’y a aucun score positif, ne pas afficher de podium. Accéder au classement final et au calendrier. En cas d’égalité de points, départager successivement par nombre de bonnes réponses, nombre de réponses à temps, plus longue série de bonnes réponses, instant où le score final est atteint, nom puis identifiant stable. Appliquer le même ordre au classement final ; ne mentionner sur le podium que le critère effectivement décisif, dans une courte phrase. Préserver confidentialité, exclusions, révélation et parcours de test.
+
+**Material 3 et références :** appliquer FRONTEND_UI, Advent DESIGN, EXPERIENCE, AD-7 et la stratégie de tests visuels ; vérifier mobile, agrandissement du texte, clavier et isolation HatCast.
+
 ## Final validation
 
 

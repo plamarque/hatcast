@@ -20,7 +20,7 @@ interface AdventResult { answerId: string; day: number; selectedChoice: number; 
 interface ClockProjection { date: string; effectiveInstant: string; nextMidnight: string; simulated: boolean }
 
 type ChristmasFixture = 'sole' | 'shared' | 'participant' | 'participant-tied' | 'zero'
-interface AdventRanking { score: number; rank: number | null; entries: { name: string; score: number; rank: number; mine: boolean }[] }
+interface AdventRanking { score: number; rank: number | null; entries: { name: string; score: number; rank: number; mine: boolean; tieReason?: 'CORRECT' | 'ANSWERS' | 'STREAK' | 'ATTAINMENT' | 'NAME' | 'ID' | null }[] }
 
 interface CalendarDay { day: number; state: 'locked' | 'played' | 'today' | 'past-unplayed' | 'missing' | 'christmas'; outcome?: 'pending' | 'correct' | 'incorrect' | null }
 interface History { quiz: FictionalQuiz; falseChoice: number; result: AdventResult | null }
@@ -268,7 +268,7 @@ export class AdventTest {
       this.calendarDays.set([]); this.calendarOpen.set(false); this.welcome.set(false); this.discoveryError.set(false)
       this.result.set(null); this.resultContent.set(null); this.history.set(null)
       this.christmasFixture.set(null)
-      this.ranking.set(null); this.fictionalRanking.set(null); this.lastFictionalRanking = null; this.rankingOpen.set(false); this.christmasScore.set(null); this.christmasPlace.set(null); this.christmasVictory.set(null); this.christmasPreviewOpen.set(false)
+      this.ranking.set(null); this.fictionalRanking.set(null); this.lastFictionalRanking = null; this.rankingOpen.set(false); this.christmasBoard.set(null); this.christmasScore.set(null); this.christmasPlace.set(null); this.christmasVictory.set(null); this.christmasPreviewOpen.set(false)
       this.quiz.set(null); this.preview.set(null); this.clearVisibilityListener(); this.stopWaiting()
       this.loading.set(false); this.submitting.set(false); this.closingDay.set(null)
       this.error.set(false); this.rankingError.set(false); this.christmasError.set(false); this.calendarActionMessage.set('')
@@ -362,6 +362,7 @@ export class AdventTest {
   readonly history = signal<History | null>(null)
   readonly christmasFixture = signal<ChristmasFixture | null>(null)
   readonly christmasPlace = signal<{ rank: number; tied: boolean } | null>(null)
+  readonly christmasBoard = signal<AdventRanking | null>(null)
   readonly christmasScore = signal<number | null>(null)
   readonly christmasVictory = signal<'sole' | 'shared' | null>(null)
   readonly christmasPreviewOpen = signal(false)
@@ -547,7 +548,7 @@ export class AdventTest {
     this.stopWaiting()
     this.projectionEpoch++
     this.welcome.set(false); this.welcomePreview.set(false); this.confirmationPreview.set(false); this.discoveryError.set(false)
-    this.calendarOpen.set(false); this.calendarDays.set([]); this.history.set(null); this.christmasScore.set(null); this.christmasPlace.set(null); this.christmasVictory.set(null); this.christmasPreviewOpen.set(false); this.lateDiscovery.set(false)
+    this.calendarOpen.set(false); this.calendarDays.set([]); this.history.set(null); this.christmasBoard.set(null); this.christmasScore.set(null); this.christmasPlace.set(null); this.christmasVictory.set(null); this.christmasPreviewOpen.set(false); this.lateDiscovery.set(false)
     this.rankingOpen.set(false)
     this.ranking.set(null)
     this.fictionalRanking.set(null)
@@ -698,7 +699,7 @@ export class AdventTest {
     this.projectionEpoch++
     const returnToCalendar = this.calendarOpen()
     this.closeRanking()
-    this.calendarOpen.set(false); this.calendarDays.set([]); this.history.set(null); this.christmasScore.set(null); this.christmasPlace.set(null); this.christmasVictory.set(null); this.christmasPreviewOpen.set(false); this.lateDiscovery.set(false)
+    this.calendarOpen.set(false); this.calendarDays.set([]); this.history.set(null); this.christmasBoard.set(null); this.christmasScore.set(null); this.christmasPlace.set(null); this.christmasVictory.set(null); this.christmasPreviewOpen.set(false); this.lateDiscovery.set(false)
     this.clearVisibilityListener()
     this.result.set(null); this.resultContent.set(null); this.quiz.set(null); this.preview.set(null)
     this.generation = null; this.replayToken = null; this.choice.set(null)
@@ -737,6 +738,7 @@ export class AdventTest {
   }
 
   private async loadChristmasScore(): Promise<void> {
+    this.christmasBoard.set(null); this.christmasScore.set(null)
     const epoch = this.projectionEpoch
     const identity = this.auth.sessionUser()?.id ?? null
     const date = this.clockDate()
@@ -754,6 +756,7 @@ export class AdventTest {
   }
 
   private applyChristmasRanking(board: AdventRanking): void {
+    this.christmasBoard.set(board)
     const mine = board.entries.find(entry => entry.mine)
     const highest = Math.max(0, ...board.entries.map(entry => entry.score))
     const winner = mine && highest > 0 && mine.score === highest && mine.score === board.score
@@ -763,18 +766,26 @@ export class AdventTest {
     setTimeout(() => this.christmasHeading?.nativeElement.focus())
   }
 
+  podiumEntries(): AdventRanking['entries'] {
+    return (this.christmasBoard()?.entries ?? []).filter(entry => entry.score > 0).slice(0, 3)
+  }
+
+  podiumReason(): string | null {
+    const entry = this.podiumEntries().find(player => player.tieReason)
+    if (!entry?.tieReason) return null
+    const criterion = ({ CORRECT: 'les bonnes réponses', ANSWERS: 'le nombre de réponses', STREAK: 'la plus longue série de bonnes réponses', ATTAINMENT: 'le moment où le score final a été atteint', NAME: 'l’ordre alphabétique', ID: 'un identifiant stable' } as const)[entry.tieReason]
+    return `La ${entry.rank}ᵉ place est départagée par ${criterion}.`
+  }
+
   private christmasFixtureRanking(kind: ChristmasFixture): AdventRanking {
-    const score = kind === 'zero' ? 0 : kind === 'participant' || kind === 'participant-tied' ? 143 : 250
-    if (kind === 'participant-tied') return { score, rank: 3, entries: [
-      { name: 'Membre', score: 250, rank: 1, mine: false },
-      { name: 'Toi', score, rank: 3, mine: true },
-      { name: 'Autre membre', score, rank: 3, mine: false },
-    ] }
-    const other = kind === 'sole' ? 143 : kind === 'participant' ? 250 : score
-    return { score, rank: kind === 'sole' ? 1 : 2, entries: [
-      { name: 'Toi', score, rank: kind === 'sole' ? 1 : 2, mine: true },
-      { name: 'Membre', score: other, rank: kind === 'participant' ? 1 : 2, mine: false },
-    ] }
+    if (kind === 'zero') return { score: 0, rank: 1, entries: [] }
+    const first = { name: 'Camille', score: 250, rank: 1, mine: false }
+    const second = { name: 'Alex', score: 143, rank: 2, mine: false }
+    const third = { name: 'Lou', score: 120, rank: 3, mine: false }
+    if (kind === 'sole') return { score: 250, rank: 1, entries: [first] }
+    if (kind === 'shared') return { score: 250, rank: 1, entries: [first, { ...second, score: 250, tieReason: 'CORRECT' }] }
+    if (kind === 'participant') return { score: 143, rank: 2, entries: [first, second] }
+    return { score: 120, rank: 3, entries: [first, second, { ...third, mine: true, tieReason: 'NAME' }, { name: 'Zoé', score: 120, rank: 4, mine: false, tieReason: 'NAME' }] }
   }
 
   async previewChristmas(kind: ChristmasFixture): Promise<void> {
@@ -826,7 +837,7 @@ export class AdventTest {
       if (response.priorityResult) { this.calendarOpen.set(false); this.history.set(null); await this.showResult(response.priorityResult); if (previousWaiting && !this.result()) throw new Error('Priority result unavailable'); return }
       if (!response.days) throw new Error('Calendar unavailable')
       this.replayReloadFailed.set(false)
-      if (this.christmasFixture()) { this.christmasScore.set(null); this.christmasPlace.set(null); this.christmasVictory.set(null) }
+      if (this.christmasFixture()) { this.christmasBoard.set(null); this.christmasScore.set(null); this.christmasPlace.set(null); this.christmasVictory.set(null) }
       this.christmasFixture.set(null)
       this.calendarDays.set(response.days); this.history.set(null); this.closeRanking(); this.christmasPreviewOpen.set(false); this.calendarOpen.set(true)
       if (this.confirmationPreview()) { this.confirmationPreview.set(false); this.quiz.set(null) }
@@ -974,9 +985,11 @@ export class AdventTest {
       const response = await this.requestJson<{ ranking: AdventRanking | null; priorityResult: AdventResult | null }>('/v1/advent-test/ranking', { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
       if (response.priorityResult) { await this.showResult(response.priorityResult); if (previousWaiting && !this.result()) throw new Error('Priority result unavailable'); return }
       if (!response.ranking) throw new Error('Ranking unavailable')
-      if (this.christmasFixture()) this.applyChristmasRanking(response.ranking)
+      const previewBoard = this.christmasFixture() && this.testMode() && this.testControls() ? this.christmasBoard() : null
+      if (previewBoard) this.applyChristmasRanking(response.ranking)
       this.christmasFixture.set(null)
       this.ranking.set(response.ranking)
+      this.fictionalRanking.set(previewBoard)
       if (this.confirmationPreview()) { this.confirmationPreview.set(false); this.quiz.set(null) }
       this.calendarOpen.set(false); this.history.set(null)
       this.replayReloadFailed.set(false)

@@ -522,11 +522,11 @@ En mode test explicitement activé en développement isolé, le classement propo
 
 En développement isolé, un testeur vérifié peut ouvrir et répondre à un cadeau futur sans activer le mode test. La confirmation reste neutre et le résultat personnel n’est révélable qu’à minuit Europe/Paris suivant le jour du cadeau ; le mode test explicitement activé peut atteindre cette échéance par sa date simulée. La prévisualisation personnelle de production conserve son résultat immédiat.
 
-### Bilan de Noël — variantes
+### Bilan de Noël et classement final
 
-Après la révélation prioritaire, le bilan félicite les membres classables ayant le meilleur score positif comme gagnants, en précisant les victoires ex æquo. Les comptes exclus ne gagnent pas. Les autres membres ayant un score positif sont félicités pour leur participation ; à zéro, aucune participation n’est présumée. Le score personnel, les vœux, le classement et le retour à HatCast sont présentés ; le calendrier reste accessible par sa navigation.
+Après la révélation prioritaire, la scène de Noël présente jusqu’aux trois premiers membres classables ayant un score positif, leurs rangs et leurs scores. Sans score classable positif, les vœux et la navigation restent accessibles sans podium. Un membre dont le score personnel est positif est remercié pour sa participation ; aucun remerciement de participation ne paraît à zéro. Le calendrier, le classement final et le retour à HatCast restent accessibles. Les aperçus anticipés autorisés sont signalés comme provisoires.
 
-Pour un score positif sans victoire, le bilan affiche le rang serveur lorsqu’il existe, en précisant « ex æquo » selon les rangs du classement, puis le score et « Merci pour ta participation ! ». Un compte hors classement voit son score et ce remerciement sans rang. À zéro, aucun rang ni participation ne sont affirmés. En mode test isolé, un aperçu supplémentaire permet de vérifier une place ex æquo hors victoire avec le même bilan.
+Avant le 25 décembre, les égalités conservent leur rang partagé. Dès le 25 décembre, les rangs sont uniques : à score égal, le serveur départage successivement par nombre de bonnes réponses, nombre de réponses à temps, plus longue série de bonnes réponses, moment où le total final a été atteint, nom affiché puis identifiant stable. Une phrase courte explique seulement le critère décisif d’une égalité affectant le podium. Les horaires et les détails des réponses restent privés.
 
 ### Avent — récits complets facultatifs
 
