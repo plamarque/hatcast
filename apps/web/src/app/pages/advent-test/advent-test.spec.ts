@@ -568,7 +568,7 @@ describe('AdventTest', () => {
     expect(select).toHaveBeenLastCalledWith(23, false)
     expect((component as any).simulatedDate()).toBe('2026-12-01')
   })
-  it('labels future test results as provisional without changing today results', () => {
+  it('does not show the provisional score message on future or today results', () => {
     const component = fixture.componentInstance
     component.testMode.set(true); component.productionPreview.set(false)
     component.clockDate.set('2026-12-01'); component.selectedDay.set(3)
@@ -576,7 +576,7 @@ describe('AdventTest', () => {
     component.resultContent.set({ day: 3, name: 'Fictif', portrait: '', statements: ['un', 'deux', 'trois'], genericElf: true })
     component.calendarOpen.set(false); component.welcome.set(false); component.loading.set(false)
     fixture.detectChanges()
-    expect(fixture.nativeElement.textContent).toContain('répondre à des jours précédents ou révéler leurs réponses peut modifier le bonus de série')
+    expect(fixture.nativeElement.textContent).not.toContain('Ce score est provisoire')
     component.clockDate.set('2026-12-03')
     fixture.detectChanges()
     expect(fixture.nativeElement.textContent).not.toContain('Ce score est provisoire')
@@ -633,7 +633,7 @@ describe('AdventTest', () => {
     expect(component.result()?.explanation).toBe('Explication fictive')
     fixture.detectChanges()
     expect(fixture.nativeElement.textContent).toContain('tu peux effacer ta réponse pour rejouer')
-    expect(fixture.nativeElement.textContent).toContain('score est provisoire')
+    expect(fixture.nativeElement.textContent).not.toContain('score est provisoire')
     await component.returnToCalendar()
     await component.openCalendarDay(component.calendarDays()[0])
     expect(component.result()?.selectedChoice).toBe(1)
@@ -1526,7 +1526,8 @@ describe('AdventTest', () => {
     await component.confirm()
     fixture.detectChanges()
     expect(component.result()?.late).toBe(true)
-    expect(fixture.nativeElement.textContent).toContain('réponse après le jour du quiz')
+    expect(fixture.nativeElement.textContent).not.toContain('réponse après le jour du quiz')
+    expect(fixture.nativeElement.querySelector('.advent__result-title-band .advent__result-points')?.textContent).toContain('+0 points gagnés')
     expect(fixture.nativeElement.querySelector('.advent__reveal button[mat-flat-button]')?.textContent).toContain('Voir le classement')
     expect(fixture.nativeElement.querySelector('.advent__confetti')).toBeNull()
   })
