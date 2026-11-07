@@ -362,6 +362,21 @@ Remplace le hub `/seasons`, introduit `/troupes` et `/troupes/:slug`, breadcrumb
 **Design :** [_bmad-output/design-thinking-2026-05-25.md](../design-thinking-2026-05-25.md) ; **UX :** [ux-design-journey-league-agenda.md](./ux-design-journey-league-agenda.md) (amended 2026-05-25, UX-DR19–21)  
 **Supersedes :** **Epic 14** (hub troupe — stories 14.1–14.5), ADR 0012 §3 (travel league), Story **13.6** (reportée)
 
+#### Story 17.46 : Détail spectacle — remplacer Infos par un bandeau
+
+En tant que membre ou organisateur·ice, je veux accéder aux trois autres onglets du spectacle avec un bandeau d’en-tête au-dessus, afin de simplifier la consultation du spectacle.
+
+**Acceptance Criteria (résumé)**
+
+- **Given** le détail d’un spectacle, **when** il est affiché, **then** l’onglet Infos est supprimé et un bandeau d’en-tête est présenté au-dessus des autres onglets, dans l’esprit de celui de l’agenda.
+- **Given** les autres onglets et les droits existants, **when** la navigation est utilisée, **then** ils restent accessibles selon les mêmes autorisations.
+- **Given** les informations et actions actuellement présentes dans Infos, **when** le design est étudié, **then** leur devenir est déterminé sans perte involontaire de fonctionnalité ni de contrôle d’accès.
+- Le contenu et le design détaillés du bandeau sont définis pendant le traitement de la story, avec vérifications mobile, accessibilité et Material 3.
+
+**Depends :** 17.43 ; 17.8 ; 17.14 ; 17.15.
+
+---
+
 ### Epic 18 — Troupe Démo & politique d’adhésion (onboarding prod V2)
 
 Sandbox partagée **Démo** en production, seed pédagogique (~20 spectacles), participants fictifs, **self-join** pour tout utilisateur authentifié, modèle **`join_policy`** (`OPEN` | `INVITE_ONLY`), gouvernance **super-admin** uniquement pour changer la politique. Remplace le branchement provisoire « seed troupe = La Malice » (Story 2.1).
@@ -1093,6 +1108,25 @@ afin de **comprendre mes chances sans voir le brouillon de composition sur Équi
 4. **Given** membre post-déverrouillage (FR23), **when** Dispos, **then** pool/% visibles ; Équipe slots masqués.
 5. **Given** spectacle brouillon/archivé, **when** membre `includeChances`, **then** refusé (**3.21**).
 6. **Couverture :** FR24 ; ADR 0019 §2b ; stories **5.8**, **6.3**, **19.7**. **Depends :** **5.8**, **19.7** (done). **SCP :** [sprint-change-proposal-2026-06-09-explainability-gates-dispos-equipe.md](./sprint-change-proposal-2026-06-09-explainability-gates-dispos-equipe.md).
+
+---
+
+#### Story 5.10 : Voir les personnes sans réponse aux disponibilités
+
+En tant qu’**organisateur ou administrateur autorisé**,
+je veux voir les personnes qui n’ont pas encore renseigné leur disponibilité pour un spectacle,
+afin de savoir qui manque avant de décider d’une relance.
+
+**Acceptance Criteria**
+
+1. **Given** un organisateur autorisé consulte l’onglet Dispos, **when** des participants du résumé ont le statut non renseigné, **then** une ligne « Sans réponse » indique leur nombre et permet d’afficher leurs noms.
+2. **Given** aucun participant sans réponse, **when** l’organisateur consulte les Dispos, **then** l’état vide est compréhensible et ne suggère pas de personnes à relancer.
+3. **Given** une disponibilité est enregistrée ou actualisée, **when** le résumé change, **then** la liste et son nombre reflètent les données reçues sans écriture supplémentaire.
+4. **Given** une personne sans les droits organisateur requis, **when** elle consulte le spectacle ou ses données, **then** cette liste ne lui est pas exposée ; les permissions existantes restent inchangées et sont vérifiées côté serveur si nécessaire.
+5. **Given** la liste ouverte, **when** elle est consultée au clavier ou sur mobile et sur desktop, **then** son contrôle est accessible, son état est annoncé et les noms restent lisibles ; les composants Material et les tokens du thème existant sont utilisés selon la checklist M3.
+6. **Given** une consultation de la liste, **when** aucun autre geste n’est effectué, **then** aucun message, rappel ou modification de disponibilité n’est envoyé.
+
+**Périmètre :** consultation des non-répondants uniquement ; la restauration d’une vue complète « Tous », la modification des réponses et l’envoi de relances sont hors périmètre. Référence : [LIMIT-009](../../ISSUES.md#limit-009--dispos-v2--plus-dentrée--tous--ni-liste-des-non-répondants). La confidentialité, la définition exacte du public autorisé et les cas limites du résumé seront vérifiés au cadrage technique.
 
 ---
 
