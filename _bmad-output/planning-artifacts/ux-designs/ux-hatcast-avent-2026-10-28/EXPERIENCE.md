@@ -195,7 +195,7 @@ Depuis le calendrier, revenir sur une réponse normale enregistrée et encore en
 
 ### Prévisualisation privée de production
 
-La route directe réservée aux deux personnes autorisées ouvre le calendrier et ses cases futures ; son résultat personnel et son explication sont immédiatement consultables et récupérables. Identifier clairement la prévisualisation avec une action confirmée pour effacer uniquement sa réponse au jour sélectionné et rejouer, sans contrôle de simulation ou de remise à zéro commune. Préserver clavier, focus, mouvement réduit, lisibilité mobile et isolation visuelle Advent. Dans la navigation ordinaire, aucune erreur ne révèle l’Avent avant son ouverture.
+La route directe réservée aux deux personnes autorisées ouvre le calendrier et ses cases futures ; son résultat personnel et son explication sont immédiatement consultables et récupérables. Présenter directement une action confirmée, sans message ni menu de prévisualisation, pour effacer uniquement sa réponse au jour sélectionné et rejouer, sans contrôle de simulation ou de remise à zéro commune. Préserver clavier, focus, mouvement réduit, lisibilité mobile et isolation visuelle Advent. Dans la navigation ordinaire, aucune erreur ne révèle l’Avent avant son ouverture.
 
 ### Rejouer l’ouverture à la connexion (mode test)
 

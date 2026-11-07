@@ -45,7 +45,10 @@
 }
 
 /* Visually separate development controls from the member-facing app bar. */
-.advent__test-actions button { color: var(--hatcast-avent-green) !important; }
+.advent__test-actions button:not(:disabled) { color: var(--hatcast-avent-green) !important; }
+.advent__replay-action { padding: .25rem .5rem; }
+.advent__replay-action button { max-width: 100%; height: auto; min-height: 48px; white-space: normal; text-align: left; }
+.advent__replay-action button:not(:disabled) { color: var(--hatcast-avent-green); }
 
 
 /* Common panel tokens are emitted once for the Advent surfaces. */

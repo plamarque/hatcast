@@ -55,7 +55,7 @@ const base = 'http://127.0.0.1:14331'
     await page.getByRole('radio').nth(1).check()
     await page.getByRole('button', { name: 'Confirmer ma réponse' }).click()
     await page.getByText(explanation).waitFor()
-    await page.getByText('Prévisualisation privée : tu peux effacer ta réponse pour rejouer.').waitFor()
+    await page.getByRole('button', { name: 'Effacer ma réponse et rejouer' }).waitFor()
   }
   try {
     const guard = await page.request.get(`${base}/v1/e2e/fixtures/advent-preview-guard`, { headers: { 'X-Hatcast-E2E-Key': 'e2e-fixtures-secret' } })
@@ -95,8 +95,7 @@ const base = 'http://127.0.0.1:14331'
     const own = await api('/v1/advent/doors/23/result', true)
     assert.equal(own.status, 200); assert.equal(own.body.selectedChoice, 1); assert.match(own.cache, /no-store/)
     assert.equal(await mutate('/v1/advent/session/reset'), 404)
-    await page.getByRole('button', { name: 'Actions de prévisualisation' }).click()
-    await page.getByRole('menuitem', { name: 'Effacer ma réponse et rejouer' }).click()
+    await page.getByRole('button', { name: 'Effacer ma réponse et rejouer' }).click()
     await page.getByRole('button', { name: 'Effacer ma réponse', exact: true }).click()
     await page.getByRole('radio').nth(1).check()
     await page.getByRole('button', { name: 'Confirmer ma réponse' }).click()
@@ -109,7 +108,7 @@ const base = 'http://127.0.0.1:14331'
       await page.locator('.advent__calendar-door[data-day="23"]').click()
       await explanation.waitFor()
     }
-    await page.getByText('Prévisualisation privée : tu peux effacer ta réponse pour rejouer.').waitFor()
+    await page.getByRole('button', { name: 'Effacer ma réponse et rejouer' }).waitFor()
     await login('advent-preview-two')
     await openPreview()
     assert.equal((await api('/v1/advent/doors/23/result', true)).status, 404)

@@ -680,7 +680,8 @@ describe('AdventTest', () => {
     await component.confirm()
     expect(component.result()?.explanation).toBe('Explication fictive')
     fixture.detectChanges()
-    expect(fixture.nativeElement.textContent).toContain('tu peux effacer ta réponse pour rejouer')
+    expect(fixture.nativeElement.textContent).toContain('Effacer ma réponse et rejouer')
+    expect(fixture.nativeElement.textContent).not.toContain('Prévisualisation privée')
     expect(fixture.nativeElement.textContent).not.toContain('score est provisoire')
     await component.returnToCalendar()
     await component.openCalendarDay(component.calendarDays()[0])
@@ -3042,17 +3043,14 @@ describe('AdventTest', () => {
     expect(component.replayReloadFailed()).toBe(false)
   })
 
-  it('focuses the personal deletion confirmation and restores the preview menu trigger on cancel', async () => {
+  it('focuses the personal deletion confirmation and restores the preview button on cancel', async () => {
     const component = fixture.componentInstance
     component.testMode.set(false); component.productionPreview.set(true); component.selectedDay.set(3)
     component.result.set({ answerId: 'a', day: 3, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: true })
     component.answerState.set('recorded')
     document.body.appendChild(fixture.nativeElement); fixture.detectChanges()
-    const trigger = fixture.nativeElement.querySelector('button[aria-label="Actions de prévisualisation"]') as HTMLButtonElement
-    expect(fixture.nativeElement.querySelector('.advent__preview-actions-label')?.textContent).toContain('Actions de prévisualisation')
-    trigger.focus(); trigger.click(); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges()
-    const action = [...document.querySelectorAll('button')].find(button => button.textContent?.includes('Effacer ma réponse et rejouer'))!
-    action.focus(); action.click(); fixture.detectChanges(); await new Promise(resolve => setTimeout(resolve, 0))
+    const trigger = [...fixture.nativeElement.querySelectorAll('button')].find((button: any) => button.textContent?.includes('Effacer ma réponse et rejouer')) as HTMLButtonElement
+    trigger.focus(); trigger.click(); fixture.detectChanges(); await new Promise(resolve => setTimeout(resolve, 0))
     expect(document.activeElement?.id).toBe('advent-personal-reset-title')
     expect(document.activeElement?.textContent).toContain('3 décembre')
     ;(fixture.nativeElement.querySelector('#advent-personal-reset-title + p + button') as HTMLButtonElement).click()
