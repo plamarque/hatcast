@@ -44,10 +44,9 @@ BUG-BMAD-001 (accented versus ASCII story keys in sprint controller).
 
 BUG-BMAD-002 (sprint tracker timestamp rejected by BMAD validator).
 
-BUG-031 (format cancellation),
-BUG-028 (mobile season chart), BUG-023 (stale Home badge), LIMIT-009 (Dispos
+BUG-023 (stale Home badge), LIMIT-009 (Dispos
 view), BUG-018 (staging traffic), LIMIT-008 (Loop policy), LIMIT-007 (web unit
-stability), LIMIT-004 (seed roster), BUG-008 (push preferences), LIMIT-001
+stability), LIMIT-004 (seed roster), LIMIT-001
 (legacy E2E), LIMIT-003 (development PWA install), and LIMIT-002 (shared API
 integration database).
 
@@ -781,13 +780,14 @@ not active work; items listed in the two sections above remain actionable.
 
 ### BUG-034 — Availability comments are persisted but unavailable to organisers outside the selected poll subject
 - **ID**: BUG-034
-- **Status**: Open — code-backed; no production replay reproduction claimed
+- **Status**: Fixed — integrated in `v2` by `478a51f9`; included in tag `v2.6.3`.
 - **Severity**: Medium (information entered by a participant cannot inform composition)
 - **Affected area**: V2 availability summary, **Dispos** tab and composition workspace.
 - **Observed behavior**: A participant can save an availability comment, but an organiser cannot see it while composing the team. In **Dispos**, it is only displayed in the editable/read-only comment field for the single participant selected in the subject picker; opening a candidate/name or filtering a member does not surface it.
 - **Expected behavior**: An organiser can consult a participant's saved availability comment from the availability and composition decision paths, without editing that response.
 - **Cause**: The API persists and returns `SummaryParticipant.comment`, and the Dispos subject poll binds it to the selected person's textarea. No candidate list, availability pool, composition slot/picker, or participant filter renders this field.
 - **Verification**: `apps/web` focused `event-dispos-tab` + `availability-poll` tests: 34/34 passed on 2026-10-17. This verifies the existing poll behavior, not the missing organiser presentation.
+- **Fix evidence**: The completed `spec-bug-034-organizer-availability-comments.md` records targeted API and Angular tests and an accepted local human smoke. The candidate picker now displays `availabilityComment` and the availability selector indicates comments. Deployment currently serving this change was not checked.
 
 ### BUG-033 — Une adhésion active peut manquer du roster de saison
 
@@ -815,7 +815,7 @@ not active work; items listed in the two sections above remain actionable.
 ### BUG-031 — « Annuler » dans Format et besoins vide les besoins
 
 - **ID**: BUG-031
-- **Status**: Open — cause confirmée le 2026-10-13 ; correctif à cadrer
+- **Status**: Fixed — `20aee054` intégré dans `v2`, inclus dans le tag `v2.6.1`.
 - **Severity**: High (une action ponctuelle peut masquer toute une équipe déjà composée)
 - **Affected area**: V2 « Format et besoins » (`EventTypeRolesDialog` / `PATCH events.roleSlots`) et projection Équipe.
 - **Observed behavior**: Sur « Spectacle Long format Microphone », Nicolas a indiqué avoir voulu retirer uniquement le rôle Bénévole. Après avoir ouvert « Format et besoins », le bouton de pied de modale `Annuler` a persisté tous les effectifs à zéro ; l'onglet Équipe ne projette alors plus aucun créneau requis, bien que les affectations stockées existent encore. Un incident analogue a été signalé le 2026-10-12 pour « Apérock café ».
@@ -823,6 +823,7 @@ not active work; items listed in the two sections above remain actionable.
 - **Cause confirmée**: L'attribut nu `mat-dialog-close` transmet la chaîne vide (`""`) au vrai clic Angular Material, et non `undefined`. `EventInfosTab.openTypeRolesDialog` ignore uniquement `undefined` : il appelle donc `persistTypeRoles("")`. À l'exécution, `result.templateType` et `result.roleSlots` sont alors `undefined`; `normalizeRoleSlots(undefined)` produit une map complète de zéros. `JSON.stringify` omet `templateType` mais envoie `roleSlots` à zéro. Le serveur accepte ce remplacement complet et persiste ces zéros. La re-sélection du format n'est pas nécessaire à l'incident, même si elle fait partie du parcours observé.
 - **Reproduction vérifiée**: Le test temporaire a cliqué le vrai bouton `button[mat-dialog-close]` dans le dialogue Angular : `MatDialogRef.close` a reçu `""` (et non `undefined`). La chaîne client puis serveur ci-dessus a été vérifiée dans le code. Le test était volontairement rouge contre l'attendu fonctionnel et a été retiré après diagnostic pour ne pas laisser la branche en échec.
 - **Notes/context**: Les événements de type sondage / personnalisé peuvent légitimement ne pas nécessiter de rôle : le correctif ne doit donc pas interdire globalement la valeur vide. Il doit distinguer explicitement une fermeture sans résultat d'une sauvegarde. CN-1 conserve désormais les créneaux affectés hors besoins pour les organisateurs, mais ne prévient pas l'écriture vide et ne les réaffiche pas encore dans l'UI. Voir aussi le chat Codex `01a130ec-46cd-7c60-b532-7634e1c5cfd4`.
+- **Fix evidence**: La spec `spec-bug-031-cancel-role-slots.md` est terminée et rapporte les tests ciblés. Le bouton renvoie explicitement `undefined` ; le parcours actuel dans Équipe ignore une fermeture sans résultat. La révision actuellement servie n'a pas été vérifiée.
 
 ### BUG-030 — Seed login via MagicDNS is rejected by offline CORS
 
@@ -848,7 +849,7 @@ not active work; items listed in the two sections above remain actionable.
 
 ### BUG-028 — Mobile troupe hub season chart stacks month columns vertically
 - **ID**: BUG-028
-- **Status**: Open — BMAD diagnosis and corrective spec ready for approval
+- **Status**: Fixed — `aa89f644` integrated in `v2`; included in tag `v2.6.0`.
 - **Severity**: Medium (collective season overview is not usable on narrow mobile viewports)
 - **Affected area**: V2 `troupe-hub` season mini-chart (`/troupes/:slug`).
 - **Observed behavior**: On a narrow Android viewport, the mini-chart shown for La Malice renders month columns one below another. The chart becomes taller than the viewport and visually continues behind the fixed member navigation.
@@ -856,6 +857,7 @@ not active work; items listed in the two sections above remain actionable.
 - **Cause**: `troupe-hub.html` renders `.member-profile__chart-month` elements directly in the chart container, omitting `.member-profile__chart-timeline` and `.member-profile__chart-months`. The shared chart SCSS applies its horizontal flex layout only to the omitted months wrapper.
 - **Repro**: On staging, sign in to a member account and open `/troupes/la-malice` on a narrow Android viewport with at least three past events in the selected season.
 - **Notes/context**: The fixed bottom navigation is not established as causal: `member-shell.scss` already reserves its height plus safe-area. The corrective mobile E2E will verify CTA reachability before any shell/navigation change is considered. UX spec `ux-design-hub-mini-chart-17-44.md` MC10 requires horizontal in-card scrolling.
+- **Fix evidence**: The current template contains the timeline and months wrappers; the correction includes component and mobile E2E coverage. The currently served revision was not checked.
 
 ### BUG-027 — Review controller dirties its own checkout
 - **ID**: BUG-027
@@ -1123,12 +1125,13 @@ not active work; items listed in the two sections above remain actionable.
 
 ### BUG-008 — Push opt-in does not refresh notification preference toggles until tab revisit
 - **ID**: BUG-008
-- **Status**: Open
+- **Status**: Fixed — `afea893d` integrated in `v2`; included in tag `v2.3.0`.
 - **Severity**: Low (UX — confusing but not blocking; accepted at E1 cutover 2026-06-04)
 - **Affected area**: V2 `apps/web` — Mon compte → onglet **Notifications** ; global push activation vs per-category email/push switches
 - **Observed behavior**: After enabling browser push from the account hub, the per-category push toggles in the Notifications tab do not update visually immediately; leaving the tab and returning shows they were enabled automatically in the background.
 - **Expected behavior**: Toggles reflect the new push subscription state without requiring navigation away from the tab (or show a brief loading/sync state).
 - **Notes/context**: Found during gate **E1** staging screen tour ([e1-cutover-screen-tour-staging-v2.0.0.md](_bmad-output/implementation-artifacts/e1-cutover-screen-tour-staging-v2.0.0.md) §2.4). PO accepted for V2.0.0 cutover; fix can wait until post-M4 unless prioritized.
+- **Fix evidence**: The shared push state now controls whether category toggles are enabled; a component test checks the transition without revisiting the tab. Device activation does not overwrite stored category preferences. The currently served revision was not checked.
 
 ### BUG-009 — changelog.json user notes wrong on first RC of a semver line
 - **ID**: BUG-009
