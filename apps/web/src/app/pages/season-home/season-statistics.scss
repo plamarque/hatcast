@@ -137,6 +137,10 @@
 .season-statistics__subhead th {
   font-size: 0.65rem;
   font-weight: 600;
+}
+
+// Opacity on the sticky cell would let scrolled labels show through it.
+.season-statistics__subhead th:not(.season-statistics__sticky) {
   opacity: 0.85;
 }
 
