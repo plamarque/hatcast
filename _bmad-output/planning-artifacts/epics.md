@@ -362,6 +362,21 @@ Remplace le hub `/seasons`, introduit `/troupes` et `/troupes/:slug`, breadcrumb
 **Design :** [_bmad-output/design-thinking-2026-05-25.md](../design-thinking-2026-05-25.md) ; **UX :** [ux-design-journey-league-agenda.md](./ux-design-journey-league-agenda.md) (amended 2026-05-25, UX-DR19–21)  
 **Supersedes :** **Epic 14** (hub troupe — stories 14.1–14.5), ADR 0012 §3 (travel league), Story **13.6** (reportée)
 
+#### Story 17.46 : Détail spectacle — remplacer Infos par un bandeau
+
+En tant que membre ou organisateur·ice, je veux accéder aux trois autres onglets du spectacle avec un bandeau d’en-tête au-dessus, afin de simplifier la consultation du spectacle.
+
+**Acceptance Criteria (résumé)**
+
+- **Given** le détail d’un spectacle, **when** il est affiché, **then** l’onglet Infos est supprimé et un bandeau d’en-tête est présenté au-dessus des autres onglets, dans l’esprit de celui de l’agenda.
+- **Given** les autres onglets et les droits existants, **when** la navigation est utilisée, **then** ils restent accessibles selon les mêmes autorisations.
+- **Given** les informations et actions actuellement présentes dans Infos, **when** le design est étudié, **then** leur devenir est déterminé sans perte involontaire de fonctionnalité ni de contrôle d’accès.
+- Le contenu et le design détaillés du bandeau sont définis pendant le traitement de la story, avec vérifications mobile, accessibilité et Material 3.
+
+**Depends :** 17.43 ; 17.8 ; 17.14 ; 17.15.
+
+---
+
 ### Epic 18 — Troupe Démo & politique d’adhésion (onboarding prod V2)
 
 Sandbox partagée **Démo** en production, seed pédagogique (~20 spectacles), participants fictifs, **self-join** pour tout utilisateur authentifié, modèle **`join_policy`** (`OPEN` | `INVITE_ONLY`), gouvernance **super-admin** uniquement pour changer la politique. Remplace le branchement provisoire « seed troupe = La Malice » (Story 2.1).
@@ -1093,6 +1108,26 @@ afin de **comprendre mes chances sans voir le brouillon de composition sur Équi
 4. **Given** membre post-déverrouillage (FR23), **when** Dispos, **then** pool/% visibles ; Équipe slots masqués.
 5. **Given** spectacle brouillon/archivé, **when** membre `includeChances`, **then** refusé (**3.21**).
 6. **Couverture :** FR24 ; ADR 0019 §2b ; stories **5.8**, **6.3**, **19.7**. **Depends :** **5.8**, **19.7** (done). **SCP :** [sprint-change-proposal-2026-06-09-explainability-gates-dispos-equipe.md](./sprint-change-proposal-2026-06-09-explainability-gates-dispos-equipe.md).
+
+---
+
+#### Story 5.10 : Voir les personnes sans réponse aux disponibilités
+
+En tant que **membre autorisé à consulter les disponibilités**,
+je veux voir les personnes qui n’ont pas encore renseigné leur disponibilité pour un spectacle,
+afin de voir qui n’a pas encore répondu.
+
+**Acceptance Criteria**
+
+1. **Given** une personne autorisée consulte l’onglet Dispos, **when** des participants du résumé ont le statut non renseigné, **then** une ligne « Sans réponse » indique leur nombre et permet d’afficher leurs noms.
+2. **Given** aucun participant sans réponse, **when** la personne consulte les Dispos, **then** l’état vide est compréhensible et ne suggère pas de personnes à relancer.
+3. **Given** une disponibilité est enregistrée ou actualisée, **when** le résumé change, **then** la liste et son nombre reflètent les données reçues sans écriture supplémentaire.
+4. **Given** une personne sans accès aux disponibilités, **when** elle consulte le spectacle ou ses données, **then** cette liste ne lui est pas exposée ; les permissions existantes restent inchangées et sont vérifiées côté serveur.
+5. **Given** la liste ouverte, **when** elle est consultée au clavier ou sur mobile et sur desktop, **then** son contrôle est accessible, son état est annoncé et les noms restent lisibles ; les composants Material et les tokens du thème existant sont utilisés selon la checklist M3.
+6. **Given** une consultation de la liste, **when** aucun autre geste n’est effectué, **then** aucun message, rappel ou modification de disponibilité n’est envoyé.
+7. **Given** un organisateur autorisé à relancer et des personnes sans réponse, **when** il utilise « Relancer » avec l’icône cloche dans l’en-tête avant le chevron, **then** la fenêtre de relance existante s’ouvre ; son action Notifier demande confirmation pour toutes les personnes sans réponse éligibles, sans sélection individuelle et dans le respect des préférences et des contrôles existants.
+
+**Périmètre :** consultation des non-répondants uniquement ; la restauration d’une vue complète « Tous », la modification des réponses et la sélection individuelle des destinataires sont hors périmètre. Référence : [LIMIT-009](../../ISSUES.md#limit-009--dispos-v2--plus-dentrée--tous--ni-liste-des-non-répondants). Décision Patrice : la liste est visible de toutes les personnes autorisées à consulter les disponibilités ; les permissions existantes restent inchangées.
 
 ---
 
@@ -3757,6 +3792,72 @@ As an authorized tester, I want to send myself the normal Advent push immediatel
 **Material 3 and Advent UI:** Apply DESIGN, EXPERIENCE, AD-7 and the frontend checklist; check mobile presentation, keyboard behavior and HatCast isolation. Screen-reader testing is not a required gate.
 
 **References:** `hatcast-avent/proposition-recette-push-reelle.md`; Story 25.7.
+
+### Story 25.17: Dynamiser les écrans de résultat de l’Avent
+
+En tant que membre, je veux découvrir mes résultats dans des scènes expressives inspirées de la planche de l’Avent, afin que les écrans « Bravo » et « Bien tenté » soient aussi vivants que la confirmation de réponse.
+
+**Critères :** Rapprocher les deux compositions des vignettes 4 et 5 et de la confirmation existante : lutins génériques expressifs, mise en scène festive et titre dynamique en texte accessible. Conserver portrait personnel, données, score, parcours, confidentialité et règles de révélation, y compris pour les résultats historiques et tardifs. Comparer les deux écrans réels aux références et vérifier accessibilité, responsive et isolation visuelle HatCast.
+
+**Références :** story 25.17, DESIGN, EXPERIENCE, AD-7 et planche de référence Avent.
+
+### Story 25.18: Open the private Advent preview from the account menu
+
+As an authorized organizer using the installed PWA, I want to open the private Advent preview from my account menu, so I can review it without typing a URL.
+
+**Acceptance criteria:** Show “Prévisualiser l’Avent” only when the server confirms the existing production-preview authorization, including active membership and verified identity. Open the existing `/avent?preview=1` journey. Hide the entry silently on denial or failure and clear it on account changes; never expose the surprise to ordinary members. Keep authorization on every sensitive API request and preserve the existing personal-only preview rules. Verify mobile and desktop menus, access control, account changes, failures and keyboard accessibility.
+
+**Material 3 and references:** Reuse the existing account menu and Material components; apply `docs/v2/technical/FRONTEND_UI.md`, Advent DESIGN, EXPERIENCE and AD-7. Story 25.15 defines production preview.
+
+
+### Story 25.19: Open future Advent gifts in development test mode
+
+As an authorized development tester, I want to open future quiz gifts directly, so I can inspect and play them without changing the simulated date.
+
+**Acceptance criteria:** For authorized isolated development testers, without requiring test mode, allow eligible future quiz gifts to be opened and played, with a neutral confirmation and the personal result revealed at Paris midnight after the gift’s day. Preserve the simulated and shared clocks, isolated test data, privacy, replay rules and missing-content handling; authorized testers can open the day 25 review early. Ordinary members and production retain their existing authorization and date restrictions; test controls still require explicit activation. Verify server authorization, keyboard and mobile use, and Advent visual isolation.
+
+**Material 3 and references:** Apply `docs/v2/technical/FRONTEND_UI.md`, Advent DESIGN, EXPERIENCE and AD-7; see `spec-25-19-open-future-advent-gifts-in-development-test-mode.md` for the approved scope.
+
+
+### Story 25.20: Record the complete Advent member journey
+
+As a member, I want the Advent journey checked day by day from December 1 through December 26, so that the screens, timing, scores and navigation can be reviewed in a recorded Playwright session.
+
+**Acceptance criteria:** Use a normal member account and fictional content in an isolated local environment, exercising the ordinary application paths without the Advent test mode or API clock override. Advance the system clock day by day and restore its previous automatic-time setting and actual time after the run, including on failure. Check correct and incorrect answers, same-day return before revelation, ranking, calendar, previously played and missed days, locked future gifts, Christmas and the following day. Retain a reviewable video and report failures and coverage limitations. Verify notification preference where possible and distinguish it from actual push delivery; do not send notifications to real members or use production data.
+
+**References:** `spec-avent-recette-25-jours-video.md`; Advent DESIGN, EXPERIENCE and AD-7.
+
+### Story 25.21: Célébrer le bilan de Noël
+
+En tant que membre, je veux découvrir mon bilan de Noël et ma place au classement, afin de célébrer le parcours et la victoire avec les lutins.
+
+**Critères :** Après la révélation prioritaire, distinguer victoire seule ou ex æquo, place individuelle ou ex æquo, compte hors classement et score nul ; utiliser le classement final autorisé et conserver score, navigation et confidentialité. Présenter le Père Noël et la direction artistique validée ; permettre aux opérateurs isolés de visualiser ces variantes avec le même écran et des données fictives.
+
+**Material 3 et références :** réutiliser les commandes Material et appliquer DESIGN, EXPERIENCE, AD-7, la checklist FRONTEND_UI et la stratégie de tests visuels Avent. Vérifier mobile, clavier, mouvement réduit et isolation HatCast.
+
+### Story 25.22: Discover full Advent stories
+
+As a member, I want to read complete stories after discovering a quiz result, so that concise mobile choices preserve the contributor's full account.
+
+**Acceptance criteria:** Keep short choices and existing results unchanged; optionally associate complete ordered narratives with a quiz and disclose them only through authorized result projections after the applicable reveal. Preserve existing explanations, scoring, privacy, preview and compatibility. Synchronize optional stories through guarded private catalogue and local/cloud operators without deleting game data or silently dropping existing narratives. Verify source completeness and make the existing Advent contribution skill support the workflow. Use fictional fixtures in Git and review real content only in a private isolated local target.
+
+**Material 3 and references:** Apply Advent DESIGN, EXPERIENCE and AD-7, FRONTEND_UI.md and the visual isolation test strategy; verify mobile, enlarged text, keyboard, focus and isolation. See `spec-25-22-advent-long-stories.md` and BUG-096.
+
+### Story 25.23: Ouvrir un quiz Avent par son URL
+
+En tant qu’organisateur, je veux accéder à une case Avent par un lien contenant son jour, afin de vérifier facilement un lutin ou son quiz après modification.
+
+**Critères :** `/avent?jour=N` cible le quiz correspondant (1 à 24), y compris avec `preview=1` pour un compte autorisé. Le lien respecte les autorisations serveur, la découverte initiale, la priorité des révélations, l’état personnel et les règles de chaque environnement ; il ne déverrouille rien par lui-même. Après connexion ou une étape prioritaire, reprendre la destination si elle reste autorisée. Pour un jour invalide, indisponible ou interdit, revenir à un parcours autorisé sans divulguer de contenu. Vérifier les parcours et l’isolation avec des données fictives.
+
+**Material 3 et références :** appliquer FRONTEND_UI, Advent DESIGN, EXPERIENCE, AD-7 et la stratégie de tests visuels ; voir la story détaillée 25.23. Dépend des parcours et droits existants des stories 25.5, 25.15, 25.18 et 25.19.
+
+### Story 25.24: Célébrer le podium final
+
+En tant que membre, je veux découvrir le podium final de l’Avent et comprendre tout départage décisif, afin de célébrer les joueurs et notre participation.
+
+**Critères :** Le 25 décembre, après toute révélation prioritaire, présenter les trois premières personnes classables et leurs points, avec les vœux et remerciements adaptés ; s’il n’y a aucun score positif, ne pas afficher de podium. Accéder au classement final et au calendrier. En cas d’égalité de points, départager successivement par nombre de bonnes réponses, nombre de réponses à temps, plus longue série de bonnes réponses, instant où le score final est atteint, nom puis identifiant stable. Appliquer le même ordre au classement final ; ne mentionner sur le podium que le critère effectivement décisif, dans une courte phrase. Préserver confidentialité, exclusions, révélation et parcours de test.
+
+**Material 3 et références :** appliquer FRONTEND_UI, Advent DESIGN, EXPERIENCE, AD-7 et la stratégie de tests visuels ; vérifier mobile, agrandissement du texte, clavier et isolation HatCast.
 
 ## Final validation
 

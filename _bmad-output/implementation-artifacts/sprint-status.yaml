@@ -304,8 +304,18 @@ development_status:
   25-8-refine-the-advent-art-direction: done
 
   25-10-decouvrir-le-calendrier-de-lavent: done
-  25-11-generer-un-classement-fictif-pour-les-tests: backlog
+  25-11-generer-un-classement-fictif-pour-les-tests: done
   25-3b-manage-and-synchronize-the-private-advent-catalogue: done
   25-12-retrouver-le-lutin-endormi-apres-avoir-joue: done
-  25-15-preserve-the-advent-surprise-and-preview-production-content: review
+  25-15-preserve-the-advent-surprise-and-preview-production-content: done
   25-13-run-advent-regression-tests-in-ci: done
+  25-17-dynamiser-les-ecrans-de-resultat-de-lavent: done
+  25-18-open-the-private-advent-preview-from-the-account-menu: done
+  25-19-open-future-advent-gifts-in-development-test-mode: done
+  25-21-celebrer-le-bilan-de-noel: done
+  25-23-ouvrir-un-quiz-avent-par-son-url: done
+  25-22-discover-full-advent-stories: done
+  25-16-test-advent-reminders-on-a-real-device: done
+  25-20-record-the-complete-advent-member-journey: done
+  25-24-celebrer-le-podium-final: done
+  5-10-voir-les-personnes-sans-reponse-aux-disponibilites: review

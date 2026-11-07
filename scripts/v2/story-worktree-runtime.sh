@@ -3,7 +3,7 @@
 set -euo pipefail
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 root="$(git -C "${script_dir}/../.." rev-parse --show-toplevel 2>/dev/null || true)"
-usage() { echo "Usage: $(basename "$0") [inspect|prepare|detach-dependencies]" >&2; }
+usage() { echo "Usage: $(basename "$0") [inspect|inspect-local|prepare|detach-dependencies]" >&2; }
 state() { printf '%s=%s\n' "$1" "$2"; }
 has_command() { command -v "$1" >/dev/null 2>&1; }
 browser_cache() { if [[ -n "${PLAYWRIGHT_BROWSERS_PATH:-}" ]]; then printf '%s\n' "${PLAYWRIGHT_BROWSERS_PATH}"; elif [[ "$(uname -s)" == Darwin ]]; then printf '%s\n' "${HOME}/Library/Caches/ms-playwright"; else printf '%s\n' "${HOME}/.cache/ms-playwright"; fi; }
@@ -47,7 +47,7 @@ port_state() {
 }
 bmad_state() { bash "${script_dir}/story-worktree-bootstrap.sh" --verify "${root}" >/dev/null 2>&1 && echo ready || echo unavailable; }
 inspect() {
-  local ready=true value key
+  local ready=true value key scope="${1:-e2e}"
   state MODE inspect
   if ! unit_valid; then state WORKTREE invalid; state READINESS not-ready; return 1; fi
   state WORKTREE valid
@@ -58,7 +58,22 @@ inspect() {
   if [[ -d "${root}/node_modules" && -f "${root}/node_modules/.package-lock.json" ]]; then state DEPENDENCIES ready; else state DEPENDENCIES missing; ready=false; fi
   if browser_ready; then state CHROMIUM ready; else state CHROMIUM missing; ready=false; fi
   value="$(environment_state)"; state ENVIRONMENT "${value}"; [[ "${value}" == linked ]] || ready=false
-  for key in 8080 4200; do value="$(port_state "${key}")"; state "PORT_${key}" "${value}"; [[ "${value}" == free ]] || ready=false; done
+  for key in 8080 4200; do value="$(port_state "${key}")"; state "PORT_${key}" "${value}"; [[ "${scope}" == local || "${value}" == free ]] || ready=false; done
+  # E2E uses its own fixed ports above; the local-stack reservation is diagnostic.
+  if [[ -f "${root}/.local/worktree-ports.json" && ! -L "${root}/.local/worktree-ports.json" ]]; then
+    value="$(python3 - "${root}/.local/worktree-ports.json" <<'PYCODE'
+import json, sys
+try:
+ d = json.load(open(sys.argv[1])); assert set(d) == {'front', 'api'}
+ assert all(type(d[k]) is int and 1024 <= d[k] <= 65535 for k in d) and d['front'] != d['api']
+ print(str(d['front']) + ',' + str(d['api']))
+except Exception: print('invalid')
+PYCODE
+)"
+    state LOCAL_STACK_PORTS "${value}"
+  else
+    state LOCAL_STACK_PORTS unreserved
+  fi
   state E2E_PROFILE 'PLAYWRIGHT_REUSE_SERVERS=0'
   [[ "${ready}" == true ]] && { state READINESS ready; return 0; }; state READINESS not-ready; return 1
 }
@@ -109,4 +124,4 @@ detach_dependencies() {
   bash "${script_dir}/worktree-dependency-cache.sh" detach "${WORKTREE_DEPENDENCY_CACHE_ROOT}" "${root}"
 }
 mode="${1:-inspect}"; [[ $# -le 1 ]] || { usage; exit 2; }
-case "${mode}" in inspect) inspect ;; prepare) prepare ;; detach-dependencies) detach_dependencies ;; --help|-h) usage ;; *) usage; exit 2 ;; esac
+case "${mode}" in inspect) inspect ;; inspect-local) inspect local ;; prepare) prepare ;; detach-dependencies) detach_dependencies ;; --help|-h) usage ;; *) usage; exit 2 ;; esac

@@ -46,7 +46,7 @@ function proxyToApi(req, res) {
   });
   proxyReq.on('error', () => {
     res.writeHead(502, { 'Content-Type': 'text/plain; charset=utf-8' });
-    res.end('API injoignable (127.0.0.1:8080)');
+    res.end(`API injoignable (${API_ORIGIN})`);
   });
   req.pipe(proxyReq);
 }
@@ -101,6 +101,6 @@ if (!existsSync(SSL_CERT) || !existsSync(SSL_KEY)) {
   process.exit(1);
 }
 
-createHttpsServer({ key: readFileSync(SSL_KEY), cert: readFileSync(SSL_CERT) }, handler).listen(PORT, '0.0.0.0', () => {
+createHttpsServer({ key: readFileSync(SSL_KEY), cert: readFileSync(SSL_CERT) }, handler).listen(PORT, '127.0.0.1', () => {
   console.log(`✓ Front statique HTTPS : https://localhost:${PORT}  (${DIST})`);
 });

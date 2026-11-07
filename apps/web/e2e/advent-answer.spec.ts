@@ -2,6 +2,28 @@ import { expect, test } from '@playwright/test'
 
 test.use({ serviceWorkers: 'block' })
 
+// Normalized bounds correspond to the face and raised fist in the current assets.
+// They are conservative visual landmarks, and must be revisited if artwork changes.
+async function assertResultPortraitLayout(page: import('@playwright/test').Page, correct: boolean) {
+  const portrait = page.locator('.advent__reveal-portrait')
+  const title = page.locator('#advent-result-title')
+  const art = page.locator('.advent__reveal-mood img')
+  await expect(portrait).toBeVisible()
+  await expect.poll(() => portrait.locator('img').evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0)
+  const [p, t, a] = await Promise.all([portrait.boundingBox(), title.boundingBox(), art.boundingBox()])
+  expect(p).not.toBeNull(); expect(t).not.toBeNull(); expect(a).not.toBeNull()
+  if (!p || !t || !a) throw new Error('Missing result layout bounds')
+  const overlaps = (x: {x: number, y: number, width: number, height: number}, y: {x: number, y: number, width: number, height: number}) =>
+    x.x < y.x + y.width && y.x < x.x + x.width && x.y < y.y + y.height && y.y < x.y + x.height
+  const region = (left: number, top: number, right: number, bottom: number) => ({
+    x: a.x + a.width * left, y: a.y + a.height * top, width: a.width * (right - left), height: a.height * (bottom - top),
+  })
+  expect(overlaps(p, t), 'portrait overlaps heading').toBe(false)
+  expect(overlaps(p, correct ? region(.36, .20, .73, .59) : region(.40, .24, .75, .61)), 'portrait overlaps elf face').toBe(false)
+  if (correct) expect(overlaps(p, region(.80, .07, 1, .32)), 'portrait overlaps raised fist').toBe(false)
+}
+
+
 test('keyboard answers on a narrow enlarged screen with reduced motion', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('hatcast-pwa-banner-dismissed', String(Date.now())))
   await page.setViewportSize({ width: 320, height: 700 })
@@ -208,7 +230,7 @@ test('reveals the most recent result accessibly after advancing the tab date', a
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.addInitScript(() => localStorage.setItem('hatcast-pwa-banner-dismissed', String(Date.now())))
   let seen = false
-  const result = { answerId: 'answer-one', day: 8, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false, explanation: 'Explication fictive du résultat.' }
+  const result = { answerId: 'answer-one', day: 8, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false, explanation: 'Explication fictive du résultat.', stories: ['Premier paragraphe.\n\nSecond paragraphe.', 'Deuxième récit fictif.', 'Troisième récit fictif.'] }
   await page.route('**/v1/**', async route => {
     const path = new URL(route.request().url()).pathname
     const date = route.request().headers()['x-advent-simulated-date'] ?? '2026-12-08'
@@ -230,7 +252,7 @@ test('reveals the most recent result accessibly after advancing the tab date', a
       expect(route.request().headers()['x-advent-test-session']).toBe('test-session')
       return route.fulfill({ json: result })
     }
-    if (path.includes('/doors/')) return route.fulfill({ json: { day: Number(path.split('/').pop()), name: 'Lutin', portrait: '', statements: ['Une', 'Deux', 'Trois'], genericElf: true } })
+    if (path.includes('/doors/')) return route.fulfill({ json: { day: Number(path.split('/').pop()), name: 'Lutin', portrait: '/advent/elf-encouragement-v1.webp', statements: ['Une', 'Deux', 'Trois'], genericElf: true } })
     return route.fulfill({ json: {} })
   })
   await page.goto('/avent')
@@ -245,10 +267,67 @@ test('reveals the most recent result accessibly after advancing the tab date', a
   await expect(title).toBeFocused()
   await expect(page.locator('.advent__result-answer--truth')).toContainText('L’anecdote qui était fausse')
   await expect(page.locator('.advent__result-answer--truth')).toContainText('Une')
+  const storyHeaders = page.locator('mat-expansion-panel-header')
+  await expect(storyHeaders).toHaveCount(3)
+  for (let i = 0; i < 3; i++) {
+    const header = storyHeaders.nth(i)
+    await expect(header).toHaveAttribute('aria-expanded', 'false')
+    await header.focus(); await page.keyboard.press('Enter')
+    await expect(header).toHaveAttribute('aria-expanded', 'true')
+    await expect(page.locator('.advent__story-text').nth(i)).toHaveText(result.stories[i])
+    const box = await header.boundingBox(); expect(box!.height).toBeGreaterThanOrEqual(44)
+  }
   await expect(page.locator('.advent__result-points')).toHaveText('+11 points gagnés')
   await expect(page.locator('.advent__reveal-mood img')).toHaveAttribute('src', '/advent/elf-celebration-v1.webp')
   await expect.poll(() => page.locator('.advent__reveal-mood img').evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0)
+  await assertResultPortraitLayout(page, true)
   await page.screenshot({ path: testInfo.outputPath('result-correct.png'), fullPage: true })
+  await page.evaluate(() => { document.documentElement.style.fontSize = '200%' })
+  await expect(page.locator('#advent-result-title')).toBeVisible()
+  await expect(page.locator('.advent__result-title-large')).toBeHidden()
+  const zoomScene = await page.locator('.advent__reveal').evaluate(el => {
+    const date = el.querySelector('.advent__date') as HTMLElement
+    const art = el.querySelector('.advent__reveal-mood img') as HTMLElement
+    const heading = el.querySelector('#advent-result-title') as HTMLElement
+    const reminder = el.querySelector('.advent__reminder-copy') as HTMLElement
+    const lineHeight = parseFloat(getComputedStyle(date).lineHeight)
+    return { dateHeight: date.getBoundingClientRect().height, lineHeight, artWidth: art.getBoundingClientRect().width,
+      headingSize: parseFloat(getComputedStyle(heading).fontSize), reminderWidth: reminder.getBoundingClientRect().width }
+  })
+  expect(zoomScene.dateHeight).toBeLessThanOrEqual(zoomScene.lineHeight * 2 + 2)
+  expect(zoomScene.artWidth).toBeGreaterThanOrEqual(100)
+  expect(zoomScene.headingSize).toBeGreaterThanOrEqual(32)
+  expect(zoomScene.reminderWidth).toBeGreaterThanOrEqual(150)
+  await expect(page.locator('.advent__result-points')).toBeVisible()
+  await expect(page.locator('.advent__result-answer--truth')).toBeVisible()
+  await assertResultPortraitLayout(page, true)
+  const enlargedLayout = await page.locator('.advent__reveal').evaluate(el => {
+    const heading = el.querySelector('#advent-result-title')!.getBoundingClientRect()
+    const points = el.querySelector('.advent__result-points')!.getBoundingClientRect()
+    return { heading: { left: heading.left, right: heading.right, bottom: heading.bottom }, pointsTop: points.top, viewport: window.innerWidth, scrollWidth: document.documentElement.scrollWidth }
+  })
+  expect(enlargedLayout.heading.left).toBeGreaterThanOrEqual(0)
+  expect(enlargedLayout.heading.right).toBeLessThanOrEqual(enlargedLayout.viewport)
+  expect(enlargedLayout.heading.bottom).toBeLessThanOrEqual(enlargedLayout.pointsTop)
+  expect(enlargedLayout.scrollWidth).toBeLessThanOrEqual(enlargedLayout.viewport)
+  const action = page.getByRole('button', { name: 'Continuer' })
+  await action.scrollIntoViewIfNeeded()
+  await expect(action).toBeVisible()
+  await expect(action).toBeEnabled()
+  const actionBox = await action.boundingBox()
+  expect(actionBox).not.toBeNull()
+  expect(actionBox!.width).toBeGreaterThanOrEqual(44)
+  expect(actionBox!.height).toBeGreaterThanOrEqual(44)
+  await page.screenshot({ path: testInfo.outputPath('result-correct-320-large-text.png'), fullPage: true })
+  await page.evaluate(() => { document.documentElement.style.fontSize = '' })
+
+  for (const width of [375, 390, 430, 768]) {
+    await page.setViewportSize({ width, height: 900 })
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    await assertResultPortraitLayout(page, true)
+    await page.screenshot({ path: testInfo.outputPath(`result-correct-${width}.png`), fullPage: true })
+  }
+  await page.setViewportSize({ width: 320, height: 700 })
   await expect.poll(() => seen).toBe(true)
   await expect(page.locator('.advent__confetti')).toHaveCSS('animation-name', 'none')
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)

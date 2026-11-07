@@ -47,7 +47,7 @@ La grille livrée évoque des portes. Pour son évolution, Patrice et Toinou ret
 - **Confirmation et attente** : composition illustrée selon la référence de confirmation, message en texte réel et action de classement quand disponible ; aucun indice sur la réponse ou les points.
 - **Calendrier et classement** : la grille de 25 cadeaux constitue un récapitulatif visuel personnel, inspiré des cadeaux portés par les lutins ; le classement conserve rang et score lisibles. Le [lutin générique](../../../../services/api/src/main/resources/advent/lutin-generique-net.png) fournit une référence existante : boîte rectangulaire, couvercle, ruban et grand nœud ; adapter et simplifier ces éléments pour la grille. Direction retenue : cadeau ouvert ou fermé pour exprimer l’ouverture, vert ou rouge pour le résultat personnel autorisé, neutre sans résultat, sombre pour les jours futurs ; le 25 est distinctif. Les états et leurs conditions de révélation sont précisés dans EXPERIENCE.md. Distinguer les résultats par un indice lisible et accessible en plus de la couleur.
 - **Propositions à valider** : cadeau du 25 plus grand et centré, sombre et verrouillé avant sa date, puis coloré et accessible au bilan. L’or ne porte pas seul une information essentielle ; toute animation est décorative et supprimée en mouvement réduit. La [maquette des cadeaux](mockups/calendrier-cadeaux-proposition.png) est la cible visuelle approuvée ; elle ne spécifie pas les états : ses couleurs et son 25 visible en avance ne font pas autorité. Vérifier sur un prototype à taille réelle, notamment à 320 px et au zoom, que les silhouettes ouvert/fermé se distinguent et que numéro, indice, contraste, focus et cible tactile restent lisibles ; la grille actuelle ne prouve pas la lisibilité d’un cadeau ouvert.
-- **25 décembre** : Pour le 25, Patrice retient un Père Noël à tête classique, dessiné dans le même style que les lutins, tendant une boîte décorative portant le logo de La Malice. Le personnage et sa boîte se placent au-dessus du message ; le score bien visible et les accès au classement et au calendrier suivent. Un village est un décor possible ; la réalisation graphique reste à préciser. La boîte ne propose pas d’ouverture pour l’instant.
+- **25 décembre** : Pour le 25, Patrice retient un Père Noël à tête classique, dessiné dans le même style que les lutins, tendant une boîte décorative portant le logo de La Malice. Le personnage et sa boîte se placent au-dessus du message ; le podium final et les accès au classement et au calendrier suivent. Un village est un décor possible ; la réalisation graphique reste à préciser. La boîte ne propose pas d’ouverture pour l’instant.
 - **Navigation** : dans la barre rouge, icônes accessibles Calendrier, Classement et Fermer ; les deux premières sont désactivées pendant la révélation prioritaire.
 - **Icône cadeau** : près de Mon compte, reprendre le cadeau fermé du calendrier, sans fond circulaire. Un reflet doré le traverse puis deux étincelles apparaissent brièvement ; l’effet dure 2,5 secondes, une fois à l’ouverture de HatCast, et est supprimé en mouvement réduit.
 
@@ -63,7 +63,7 @@ Chaque commande expose les états repos, survol si applicable, focus visible, s�
 - Décliner les états chargement, erreur, indisponible, sélection, désactivation et focus dans le même univers sans inventer de fonctionnalité.
 - Prévoir une expérience équivalente avec mouvement réduit.
 
-Pour le 25, Patrice retient un Père Noël à tête classique, dessiné dans le même style que les lutins, tendant une boîte décorative portant le logo de La Malice. Le personnage et sa boîte se placent au-dessus du message ; le score bien visible et les accès au classement et au calendrier suivent. Un village est un décor possible ; la réalisation graphique reste à préciser. La boîte ne propose pas d’ouverture pour l’instant.
+Pour le 25, Patrice retient un Père Noël à tête classique, dessiné dans le même style que les lutins, tendant une boîte décorative portant le logo de La Malice. Le personnage et sa boîte se placent au-dessus du message ; le podium final et les accès au classement et au calendrier suivent. Un village est un décor possible ; la réalisation graphique reste à préciser. La boîte ne propose pas d’ouverture pour l’instant.
 
 ### Mode test activé volontairement
 
@@ -91,4 +91,23 @@ La consultation ultérieure de la case du jour déjà jouée présente un lutin 
 
 ### Prévisualisation privée de production
 
-La route directe réservée aux deux personnes autorisées ouvre le calendrier et ses cases futures ; une réponse est définitive, son résultat personnel et son explication sont immédiatement consultables et récupérables. Identifier clairement la prévisualisation sans afficher de contrôles de simulation ou d’effacement. Préserver clavier, focus, mouvement réduit, lisibilité mobile et isolation visuelle Advent. Dans la navigation ordinaire, aucune erreur ne révèle l’Avent avant son ouverture.
+La route directe réservée aux deux testeurs autorisés, exclus de la liste des joueurs du classement, ouvre le calendrier et ses cases futures ; leur résultat personnel et son explication sont immédiatement consultables et récupérables. Après confirmation, chaque testeur peut effacer uniquement sa propre réponse et rejouer la case. Pour les joueurs du classement, une réponse enregistrée est définitive. Identifier clairement la prévisualisation sans afficher de contrôles de simulation ou de remise à zéro commune. Préserver clavier, focus, mouvement réduit, lisibilité mobile et isolation visuelle Advent. Dans la navigation ordinaire, aucune erreur ne révèle l’Avent avant son ouverture.
+
+En mode test isolé activé, le menu à trois points du mode test permet de générer une projection fictive ; une action permet de revenir au classement calculé ; une indication textuelle permanente signale les scores fictifs. Les commandes restent adaptées au mobile et au zoom.
+
+### Résultats — composition validée
+
+La bonne réponse associe un lutin joyeux sur fond vert et un bandeau crème courbe ; la mauvaise réponse présente un lutin déçu sur fond rouge et un titre encourageant. Les points et anecdotes sont intégrés au fond clair, sans empiler de panneaux dorés. Le portrait personnel reste en médaillon ; les informations, les commandes et les règles de révélation restent inchangées. Sur les écrans étroits avec texte agrandi, la composition se réorganise pour préserver lisibilité et accès aux commandes.
+
+
+### Accès anticipé en test de développement isolé
+
+En développement isolé, le testeur autorisé par le serveur peut, sans activer le mode test, ouvrir et répondre à un quiz futur disponible ; son résultat personnel détaillé reste indisponible jusqu’à minuit Europe/Paris suivant le jour du cadeau, y compris en mode test. Le classement du mode test explicitement activé peut toutefois afficher des points avant révélation et donner un indice ; une date simulée peut atteindre cette échéance. La sélection ne change pas la date simulée ni l’horloge partagée ; les réponses et le rejeu restent personnels. Les cadeaux futurs conservent leur apparence habituelle ; le 25 ouvre un aperçu provisoire du podium, et les contenus manquants conservent leur comportement existant. Les règles de production, de classement et de révélation du jour restent inchangées.
+
+### Bilan de Noël — podium
+
+La scène conserve le Père Noël et le cadeau La Malice. Le podium affiche jusqu’à trois membres classables ayant un score positif, leurs noms, rangs et scores ; une phrase courte indique le seul critère décisif d’une égalité affectant le podium. Un remerciement de participation apparaît seulement si le score personnel est positif ; à zéro, il ne paraît pas. Sans joueur classé positif, aucun podium ne paraît. Les actions Material donnent accès au classement final, au calendrier et au retour à HatCast ; les aperçus anticipés sont signalés comme provisoires. L’identité Avent reste isolée.
+
+### Récits complets
+
+Après la carte de résultat et son explication éventuelle, présenter les récits disponibles dans des panneaux repliés, chacun identifié par son choix. Préserver les paragraphes, le défilement et la lisibilité à petite largeur et avec texte agrandi ; conserver les contrôles accessibles dans le thème isolé Avent. Sans récit, ne pas afficher la section.

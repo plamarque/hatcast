@@ -22,9 +22,9 @@
 #   --with-push : injecte environment.production.local.ts (gitignored) depuis .env via inject-google-client-id.mjs
 #   — environment.ts versionné n’est pas modifié ; build Angular en configuration production-local.
 #
-# URLs : API http://127.0.0.1:8080 — front https://localhost:4200 (TLS, `ng serve --host`).
+# URLs : API http://127.0.0.1:${API_PORT} — front https://localhost:${FRONT_PORT} (TLS, `ng serve --host`).
 #   Accès mobile (tailnet) : `tailscale up` si déconnecté, puis Serve → https://<machine>.<tailnet>.ts.net
-#   OAuth Google : origine MagicDNS sans :4200 — voir docs/v2/technical/V2_GOOGLE_OAUTH_SETUP.md
+#   OAuth Google : origine MagicDNS sans :${FRONT_PORT} — voir docs/v2/technical/V2_GOOGLE_OAUTH_SETUP.md
 # API : PostgreSQL (Neon) par défaut — exporter HATCAST_DATASOURCE_URL, HATCAST_DATASOURCE_USERNAME,
 # HATCAST_DATASOURCE_PASSWORD dans `.env` (Flyway + Spring Session sur cette base).
 # Mode --offline : base H2 fichier sous .local/hatcast-offline/ (pas de Neon requis).
@@ -110,10 +110,9 @@ for arg in "$@"; do
       ;;
   esac
 done
-# Outside the human-smoke controller, job control keeps the API wrapper and
-# JVM together.  A smoke handoff instead owns the entire start-dev process
-# group, so its verified group signal must also reach the API and web children.
-[[ -z "${HUMAN_SMOKE_OWNER_MARKER}" ]] && set -m
+# Give each launched job its own process group. Both direct signals and the
+# smoke controller's group signal reach this shell, which cleans up its jobs.
+set -m
 if [[ "${HATCAST_SPRING_PROFILE:-}" == *offline* ]]; then
   OFFLINE=1
 fi
@@ -124,10 +123,14 @@ configure_offline_dev() {
     echo "  ⚠ Mode --with-push ignoré en offline (push/PWA nécessitent le réseau)."
     WITH_PUSH=0
   fi
-  echo "→ Mode offline : base H2 locale (.local/hatcast-offline/), pas de Neon ni Tailscale"
+  echo "→ Mode offline : base H2 locale (.local/hatcast-offline/), pas de Neon"
   unset HATCAST_DATASOURCE_URL HATCAST_DATASOURCE_USERNAME HATCAST_DATASOURCE_PASSWORD
   export HATCAST_SPRING_PROFILE=dev,offline
-  SKIP_TAILSCALE_SERVE=1
+  export HATCAST_AVATAR_LOCAL_BASE_PATH="$ROOT/.local/hatcast-offline/avatars"
+  # A shared .env must never activate notifications in an offline seed stack.
+  export HATCAST_NOTIFICATION_EMAIL_ENABLED=false
+  unset HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY \
+    CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_EMAIL_SENDING_API_TOKEN 2>/dev/null || true
   mkdir -p "$ROOT/.local/hatcast-offline"
 }
 
@@ -135,83 +138,68 @@ if [[ "${1:-}" == "--legacy" ]]; then
   exec npm run dev -- --host
 fi
 
+# Serialize launches within one worktree. A stale lock requires inspection;
+# removing an unknown process or guessing ownership would be unsafe.
+mkdir -p "$ROOT/.local"
+STACK_LOCK="$ROOT/.local/worktree-stack.lock"
+if ! mkdir "$STACK_LOCK" 2>/dev/null; then
+  echo "✗ Stack déjà lancée ou verrou à examiner : $STACK_LOCK" >&2
+  exit 1
+fi
+printf '%s\n' "$$" >"$STACK_LOCK/owner"
+release_stack_lock() {
+  if [[ -f "$STACK_LOCK/owner" && ! -L "$STACK_LOCK/owner" && "$(cat "$STACK_LOCK/owner")" == "$$" ]]; then
+    rm -f "$STACK_LOCK/owner"
+    rmdir "$STACK_LOCK" 2>/dev/null || true
+  fi
+}
+trap release_stack_lock EXIT
+
+# The controller emits only numeric assignments. The reservation remains after exit.
+PORT_ASSIGNMENT="$(python3 "$ROOT/scripts/v2/worktree-ports.py" start --worktree "$ROOT" --owner "$$")"
+FRONT_PORT="$(sed -n 's/^FRONT_PORT=//p' <<<"$PORT_ASSIGNMENT")"
+API_PORT="$(sed -n 's/^API_PORT=//p' <<<"$PORT_ASSIGNMENT")"
+[[ "$FRONT_PORT" =~ ^[0-9]+$ && "$API_PORT" =~ ^[0-9]+$ ]] || { echo "Invalid port assignment" >&2; exit 1; }
+[[ -z "$HUMAN_SMOKE_OWNER_MARKER" ]] || printf 'HUMAN_SMOKE_PORTS=%s:%s:%s\n' "$HUMAN_SMOKE_OWNER_MARKER" "$FRONT_PORT" "$API_PORT"
+export SERVER_PORT="$API_PORT" HATCAST_WEB_PORT="$FRONT_PORT" HATCAST_API_ORIGIN="http://127.0.0.1:$API_PORT"
+export SERVER_ADDRESS=127.0.0.1 SERVER_SERVLET_SESSION_COOKIE_NAME="HATCAST_SESSION_${FRONT_PORT}"
+export HATCAST_CORS_ALLOWED_ORIGINS="http://localhost:$FRONT_PORT,https://localhost:$FRONT_PORT,http://127.0.0.1:$FRONT_PORT,https://127.0.0.1:$FRONT_PORT"
+export HATCAST_CORS_ALLOWED_ORIGIN_PATTERNS="https://*.ts.net:$FRONT_PORT"
+python3 - "$ROOT/.local/worktree-proxy.json" "$API_PORT" <<'PYCODE'
+import json,sys
+with open(sys.argv[1], 'w') as f:
+    json.dump({path: {'target': 'http://127.0.0.1:'+sys.argv[2], 'secure': False, 'changeOrigin': True} for path in ('/v1','/actuator')}, f)
+PYCODE
 API_PID=""
 CLEANUP_RAN=0
 TAILSCALE_SERVE_URL=""
 
-# Cible du proxy Serve (ng serve en HTTPS auto-signé). Flags avant la cible (CLI ≥ 1.52).
-HATCAST_TAILSCALE_SERVE_TARGET="${HATCAST_TAILSCALE_SERVE_TARGET:-https+insecure://127.0.0.1:4200}"
-
-tailscale_backend_running() {
-  local state
-  state="$(tailscale status --json 2>/dev/null | sed -n 's/.*"BackendState": "\([^"]*\)".*/\1/p' | head -1)"
-  [[ "$state" == "Running" ]]
-}
-
-ensure_tailscale_connected() {
-  if tailscale_backend_running; then
-    return 0
-  fi
-  echo "→ Connexion Tailscale (tailscale up)…"
-  local up_out=0
-  up_out="$(tailscale up 2>&1)" || {
-    echo "$up_out"
-    if [[ "$(uname -s)" == "Darwin" ]]; then
-      echo "  → Ouverture de l’app Tailscale (basculez sur Connect si besoin)…"
-      open -a Tailscale 2>/dev/null || true
-    fi
-  }
-  local i
-  for ((i = 0; i < 30; i++)); do
-    if tailscale_backend_running; then
-      echo "✓ Tailscale connecté"
-      return 0
-    fi
-    sleep 1
-  done
-  echo "  ⚠ Tailscale reste déconnecté après 30 s — accès mobile indisponible."
-  echo "    Activez Tailscale dans la barre de menu, puis relancez le script."
-  return 1
-}
-
-tailscale_serve_already_configured() {
-  local status
-  status="$(tailscale serve status 2>/dev/null || true)"
-  [[ "$status" == *":4200"* ]]
-}
-
-tailscale_serve_public_url() {
-  tailscale serve status 2>/dev/null | grep -Eo 'https://[^[:space:]]+\.ts\.net' | head -1
-}
-
+# LocalAPI If-Match prevents concurrent changes between inspection and update.
+TAILSCALE_OWNED=0
+TAILSCALE_HOST=""
 ensure_tailscale_serve() {
-  if [[ "$SKIP_TAILSCALE_SERVE" == "1" ]]; then
-    return 0
+  [[ "$SKIP_TAILSCALE_SERVE" == 1 ]] && return 0
+  command -v tailscale >/dev/null 2>&1 || { echo "⚠ Tailscale indisponible : accès mobile non activé."; return 0; }
+  local host
+  host="$(tailscale status --json 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["Self"]["DNSName"].rstrip("."))' 2>/dev/null || true)"
+  [[ -n "$host" ]] || { echo "⚠ Tailscale déconnecté : accès mobile non activé."; return 0; }
+  if python3 "$ROOT/scripts/v2/tailscale-serve-route.py" create "$host" "$FRONT_PORT"; then
+    TAILSCALE_OWNED=1
+    TAILSCALE_HOST="$host"
+    TAILSCALE_SERVE_URL="https://${host}:${FRONT_PORT}"
+    echo "✓ Mobile (tailnet) : $TAILSCALE_SERVE_URL"
+  else
+    echo "⚠ Route Tailscale non créée ou état incertain : accès mobile non confirmé."
   fi
-  if ! command -v tailscale >/dev/null 2>&1; then
-    echo "  ⚠ CLI tailscale introuvable — accès mobile via MagicDNS ignoré."
-    return 0
+}
+stop_tailscale_serve() {
+  [[ "$TAILSCALE_OWNED" == 1 ]] || return 0
+  if ! python3 "$ROOT/scripts/v2/tailscale-serve-route.py" remove "$TAILSCALE_HOST" "$FRONT_PORT"; then
+    echo "⚠ Route Tailscale modifiée ou inaccessible ; elle est conservée."
   fi
-  if ! ensure_tailscale_connected; then
-    return 0
-  fi
-  if tailscale_serve_already_configured; then
-    TAILSCALE_SERVE_URL="$(tailscale_serve_public_url || true)"
-    echo "✓ Tailscale Serve déjà actif pour le port 4200"
-    [[ -n "$TAILSCALE_SERVE_URL" ]] && echo "    • Mobile (tailnet) : $TAILSCALE_SERVE_URL"
-    return 0
-  fi
-  echo "→ Tailscale Serve (HTTPS tailnet → ng serve :4200)…"
-  if ! tailscale serve --yes --bg "$HATCAST_TAILSCALE_SERVE_TARGET" 2>&1; then
-    echo "  ⚠ Échec : tailscale serve --bg $HATCAST_TAILSCALE_SERVE_TARGET"
-    echo "    (HTTPS activé sur le tailnet ? voir https://tailscale.com/kb/1312/serve)"
-    return 0
-  fi
-  TAILSCALE_SERVE_URL="$(tailscale_serve_public_url || true)"
-  echo "✓ Tailscale Serve démarré"
-  [[ -n "$TAILSCALE_SERVE_URL" ]] && echo "    • Mobile (tailnet) : $TAILSCALE_SERVE_URL"
 }
 
+MAILPIT_CONTAINER_ID=""
 MAILPIT_CONTAINER_NAME="${HATCAST_MAILPIT_CONTAINER_NAME:-hatcast-mailpit}"
 MAILPIT_SMTP_PORT="${HATCAST_MAILPIT_SMTP_PORT:-1025}"
 MAILPIT_UI_PORT="${HATCAST_MAILPIT_UI_PORT:-8025}"
@@ -297,43 +285,36 @@ ensure_mailpit() {
   mailpit_enabled || return 0
 
   if ! command -v docker >/dev/null 2>&1; then
-    echo "  ⚠ Docker introuvable — Mailpit non démarré (UI ${MAILPIT_UI_URL})."
-    return 0
+    echo "  ✗ Docker introuvable — Mailpit isolé indisponible." >&2
+    return 1
   fi
 
   if ! docker info >/dev/null 2>&1; then
-    echo "  ⚠ Docker daemon indisponible — Mailpit non démarré (UI ${MAILPIT_UI_URL})."
-    return 0
+    echo "  ✗ Docker daemon indisponible — Mailpit isolé indisponible." >&2
+    return 1
   fi
 
-  if docker ps --format '{{.Names}}' | grep -qx "$MAILPIT_CONTAINER_NAME"; then
-    echo "✓ Mailpit déjà actif — UI ${MAILPIT_UI_URL}"
-    wait_for_mailpit_smtp
-    return 0
-  fi
-
+  # Existing containers or occupied ports can belong to another stack. Never
+  # reuse or restart them: fail closed before configuring this API's SMTP.
   if docker ps -a --format '{{.Names}}' | grep -qx "$MAILPIT_CONTAINER_NAME"; then
-    echo "→ Redémarrage Mailpit (${MAILPIT_CONTAINER_NAME})…"
-    if docker start "$MAILPIT_CONTAINER_NAME" >/dev/null 2>&1; then
-      echo "✓ Mailpit redémarré — UI ${MAILPIT_UI_URL}"
-      wait_for_mailpit_smtp
-      return 0
-    fi
-    echo "  ⚠ Échec docker start ${MAILPIT_CONTAINER_NAME} — recréation…"
-    docker rm -f "$MAILPIT_CONTAINER_NAME" >/dev/null 2>&1 || true
+    echo "✗ Mailpit ${MAILPIT_CONTAINER_NAME} existe déjà ; choisissez un nom et des ports libres pour cette stack." >&2
+    return 1
   fi
-
+  if mailpit_smtp_port_open || (command -v nc >/dev/null 2>&1 && nc -z 127.0.0.1 "$MAILPIT_UI_PORT" >/dev/null 2>&1); then
+    echo "✗ Un port Mailpit est occupé ; choisissez des ports libres pour cette stack." >&2
+    return 1
+  fi
   echo "→ Démarrage Mailpit (SMTP :${MAILPIT_SMTP_PORT}, UI :${MAILPIT_UI_PORT})…"
-  if docker run -d \
+  if ! MAILPIT_CONTAINER_ID="$(docker run --rm -d \
     --name "$MAILPIT_CONTAINER_NAME" \
     -p "${MAILPIT_SMTP_PORT}:1025" \
     -p "${MAILPIT_UI_PORT}:8025" \
-    axllent/mailpit >/dev/null 2>&1; then
-    echo "✓ Mailpit démarré — UI ${MAILPIT_UI_URL}"
-  else
-    echo "  ⚠ Échec docker run Mailpit — les emails peuvent échouer (voir logs API)."
-    return 0
+    axllent/mailpit)"; then
+    echo "✗ Impossible de démarrer Mailpit isolé ; la stack n’est pas lancée." >&2
+    return 1
   fi
+  [[ "$MAILPIT_CONTAINER_ID" =~ ^[a-f0-9]{12,64}$ ]] || { echo "✗ Identité Mailpit invalide." >&2; return 1; }
+  echo "✓ Mailpit démarré — UI ${MAILPIT_UI_URL}"
 
   wait_for_mailpit_smtp
 }
@@ -347,12 +328,10 @@ mailpit_smtp_port_open() {
 }
 
 stop_mailpit() {
-  mailpit_enabled || return 0
+  [[ -n "$MAILPIT_CONTAINER_ID" ]] || return 0
   command -v docker >/dev/null 2>&1 || return 0
-  if docker ps --format '{{.Names}}' | grep -qx "$MAILPIT_CONTAINER_NAME"; then
-    echo "→ Arrêt Mailpit (${MAILPIT_CONTAINER_NAME})…"
-    docker stop "$MAILPIT_CONTAINER_NAME" >/dev/null 2>&1 || true
-  fi
+  echo "→ Arrêt du Mailpit créé par cette stack…"
+  docker stop "$MAILPIT_CONTAINER_ID" >/dev/null 2>&1 || true
 }
 
 wait_for_mailpit_smtp() {
@@ -366,7 +345,8 @@ wait_for_mailpit_smtp() {
     fi
     sleep 0.25
   done
-  echo "  ⚠ Mailpit SMTP :${MAILPIT_SMTP_PORT} injoignable après 10 s — vérifiez Docker (docker ps)."
+  echo "  ✗ Mailpit SMTP :${MAILPIT_SMTP_PORT} injoignable après 10 s." >&2
+  return 1
 }
 
 stop_api_tree() {
@@ -393,12 +373,35 @@ stop_api_tree() {
 
 WEB_WATCH_PID=""
 WEB_SERVE_PID=""
+WEB_BUILD_PID=""
+
+stop_web_job() {
+  local pid="$1"
+  [[ -n "$pid" ]] || return 0
+  kill -0 "$pid" 2>/dev/null || return 0
+  # With job control enabled this child owns its process group. Restrict the
+  # signal to jobs still tracked by this shell, avoiding reused unrelated PIDs.
+  if jobs -pr | grep -Fxq "$pid"; then
+    kill -TERM -- "-$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null || true
+    local i
+    for ((i = 0; i < 20; i++)); do
+      jobs -pr | grep -Fxq "$pid" || break
+      sleep 0.25
+    done
+    if jobs -pr | grep -Fxq "$pid"; then
+      kill -KILL -- "-$pid" 2>/dev/null || kill -KILL "$pid" 2>/dev/null || true
+    fi
+    wait "$pid" 2>/dev/null || true
+  fi
+}
 
 stop_web_stack() {
-  [[ -n "$WEB_SERVE_PID" ]] && kill "$WEB_SERVE_PID" 2>/dev/null || true
-  [[ -n "$WEB_WATCH_PID" ]] && kill "$WEB_WATCH_PID" 2>/dev/null || true
+  stop_web_job "$WEB_SERVE_PID"
+  stop_web_job "$WEB_WATCH_PID"
+  stop_web_job "$WEB_BUILD_PID"
   WEB_SERVE_PID=""
   WEB_WATCH_PID=""
+  WEB_BUILD_PID=""
 }
 
 cleanup() {
@@ -407,9 +410,11 @@ cleanup() {
   CLEANUP_RAN=1
   echo ""
   echo "Arrêt de la stack…"
+  stop_tailscale_serve
   stop_web_stack
   stop_api_tree
   stop_mailpit
+  release_stack_lock
   exit "$ec"
 }
 trap cleanup EXIT INT TERM
@@ -419,59 +424,99 @@ if [[ ! -x "$ROOT/services/api/gradlew" ]]; then
   exit 1
 fi
 
-configure_local_mailpit_smtp
 configure_offline_dev
 patch_local_version_txt
 ensure_mailpit
+configure_local_mailpit_smtp
 if [[ "$WITH_PUSH" == "1" ]]; then
   echo "→ Mode notifications push (--with-push) : build production + watch + serve HTTPS statique (MAJ PWA recette)."
   warn_push_vapid_config
 fi
 echo ""
 
-echo "→ Démarrage de l’API Spring (port 8080)…"
+echo "→ Démarrage de l’API Spring (port ${API_PORT})…"
 (
   cd "$ROOT/services/api"
   exec ./gradlew bootRun --no-daemon
 ) &
 API_PID=$!
 
+# Gradle --no-daemon still creates a single-use daemon in a separate process
+# group. Verify the listener's parent chain reaches the wrapper we launched.
+api_is_descendant() {
+  local pid="$1" parent depth
+  for ((depth=0; depth<64; depth++)); do
+    [[ "$pid" == "$API_PID" ]] && return 0
+    [[ "$pid" =~ ^[0-9]+$ && "$pid" -gt 1 ]] || return 1
+    parent="$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d '[:space:]')"
+    [[ "$parent" =~ ^[0-9]+$ && "$parent" != "$pid" ]] || return 1
+    pid="$parent"
+  done
+  return 1
+}
+
+# A health endpoint alone is not proof: a foreign listener can win the bind
+# race after reservation. Every listener must descend from the API wrapper.
+api_listener_state() {
+  local listeners rc pid
+  command -v lsof >/dev/null 2>&1 || { echo unknown; return; }
+  if listeners="$(lsof -nP -tiTCP:"$API_PORT" -sTCP:LISTEN 2>/dev/null)"; then rc=0; else rc=$?; fi
+  [[ "$rc" == 1 ]] && { echo free; return; }
+  [[ "$rc" == 0 && -n "$listeners" ]] || { echo unknown; return; }
+  kill -0 "$API_PID" 2>/dev/null || { echo unknown; return; }
+  while IFS= read -r pid; do
+    [[ "$pid" =~ ^[0-9]+$ ]] || { echo unknown; return; }
+    api_is_descendant "$pid" || { echo foreign; return; }
+  done <<<"$listeners"
+  echo owned
+}
+
 echo "→ Attente de actuator/health…"
 ready=0
 for _ in $(seq 1 120); do
-  if curl -sf "http://127.0.0.1:8080/actuator/health" >/dev/null 2>&1; then
-    ready=1
-    break
-  fi
   if ! kill -0 "$API_PID" 2>/dev/null; then
     echo "✗ L’API s’est arrêtée avant d’être prête (voir les logs ci-dessus)."
     exit 1
   fi
+  listener_state="$(api_listener_state)"
+  case "$listener_state" in
+    foreign) echo "✗ Le port API est utilisé par un autre processus ; aucune action ne lui est envoyée." >&2; exit 1 ;;
+    unknown) echo "✗ Impossible de vérifier le propriétaire du port API ; démarrage arrêté." >&2; exit 1 ;;
+    owned)
+      if curl -sf "http://127.0.0.1:${API_PORT}/actuator/health" >/dev/null 2>&1; then
+        [[ "$(api_listener_state)" == owned ]] || { echo "✗ Le propriétaire du port API a changé." >&2; exit 1; }
+        ready=1
+        break
+      fi
+      ;;
+    free) ;;
+    *) echo "✗ État du port API invalide." >&2; exit 1 ;;
+  esac
   sleep 1
 done
 
 if [[ "$ready" -ne 1 ]]; then
-  echo "✗ Timeout : l’API n’a pas répondu sur http://127.0.0.1:8080/actuator/health"
+  echo "✗ Timeout : l’API n’a pas répondu sur http://127.0.0.1:${API_PORT}/actuator/health"
   exit 1
 fi
 
-echo "✓ API prête : http://127.0.0.1:8080"
+echo "✓ API prête : http://127.0.0.1:${API_PORT}"
 echo ""
 ensure_tailscale_serve
 echo ""
 if [[ "$WITH_PUSH" == "1" ]]; then
-  echo "→ Démarrage du front (build production + watch + serve dist HTTPS, port 4200)…"
+  echo "→ Démarrage du front (build production + watch + serve dist HTTPS, port ${FRONT_PORT})…"
 else
-  echo "→ Démarrage du client Angular (ng serve, port 4200 par défaut)…"
+  echo "→ Démarrage du client Angular (ng serve, port ${FRONT_PORT} par défaut)…"
 fi
 echo ""
 echo "  Stack V2 :"
-echo "    • API   : http://127.0.0.1:8080"
+echo "    • API   : http://127.0.0.1:${API_PORT}"
 if [[ "$WITH_PUSH" == "1" ]]; then
-  echo "    • Front : https://localhost:4200  (TLS ; dist/ statique + ng build --watch ; SW + recette MAJ PWA)"
+  echo "    • Front : https://localhost:${FRONT_PORT}  (TLS ; dist/ statique + ng build --watch ; SW + recette MAJ PWA)"
   echo "      Attendre ~30 s après chargement pour l’enregistrement du SW ; activer push sur /compte."
 else
-  echo "    • Front : https://localhost:4200  (TLS ; ng serve --host 0.0.0.0 ; mode dev, pas de push)"
+  echo "    • Front : https://localhost:${FRONT_PORT}  (TLS ; ng serve --host 127.0.0.1 ; mode dev, pas de push)"
   echo "      Push local : relancer avec --with-push (voir DEVELOPMENT.md)."
 fi
 if [[ -n "$TAILSCALE_SERVE_URL" ]]; then
@@ -486,7 +531,7 @@ if [[ "$OFFLINE" == "1" ]]; then
   echo "      Google OAuth et Identity Platform réels indisponibles sans réseau."
 fi
 echo ""
-echo "  Ctrl+C arrête le front, l’API et Mailpit (Tailscale Serve reste actif en arrière-plan)."
+echo "  Ctrl+C arrête le front, l’API et Mailpit (la route Tailscale créée est retirée)."
 echo ""
 
 cd "$ROOT"
@@ -494,15 +539,20 @@ cd "$ROOT"
 if [[ "$WITH_PUSH" == "1" ]]; then
   inject_web_prod_environment
   echo "→ Build production initial (ngsw.json + SW)…"
-  npm run build -w @hatcast/web -- --configuration=production
+  npm run build -w @hatcast/web -- --configuration=production &
+  WEB_BUILD_PID=$!
+  wait "$WEB_BUILD_PID"
+  WEB_BUILD_PID=""
   echo "→ Watch rebuild production (dist/)…"
   npm run build:watch:prod -w @hatcast/web &
   WEB_WATCH_PID=$!
-  echo "→ Front HTTPS statique depuis dist/ (port 4200, proxy /v1 → API)…"
+  echo "→ Front HTTPS statique depuis dist/ (port ${FRONT_PORT}, proxy /v1 → API)…"
   npm run serve:dist:https -w @hatcast/web &
   WEB_SERVE_PID=$!
   wait "$WEB_SERVE_PID"
 else
-  npm run dev -w @hatcast/web -- --host 0.0.0.0 \
-    --ssl-cert "$HATCAST_WEB_SSL_CERT" --ssl-key "$HATCAST_WEB_SSL_KEY"
+  npm run dev -w @hatcast/web -- --host 127.0.0.1 --port "$FRONT_PORT" --proxy-config "$ROOT/.local/worktree-proxy.json" \
+    --ssl-cert "$HATCAST_WEB_SSL_CERT" --ssl-key "$HATCAST_WEB_SSL_KEY" &
+  WEB_SERVE_PID=$!
+  wait "$WEB_SERVE_PID"
 fi

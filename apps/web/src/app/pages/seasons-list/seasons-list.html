@@ -10,6 +10,7 @@
         mat-stroked-button
         class="seasons__user-btn"
         [matMenuTriggerFor]="userMenu"
+        (menuOpened)="accountItems.refreshPreviewCapability()"
         [attr.aria-label]="'Menu compte : ' + userDisplayLabel(u)"
       >
         <app-user-avatar
@@ -23,7 +24,7 @@
         <mat-icon>expand_more</mat-icon>
       </button>
       <mat-menu #userMenu="matMenu">
-        <app-user-account-menu-items />
+        <app-user-account-menu-items #accountItems />
       </mat-menu>
     }
   </header>

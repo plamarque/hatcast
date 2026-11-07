@@ -114,6 +114,7 @@ class AdventResultPostgresTest {
             ).forEach(jdbc::execute)
             val migration = javaClass.getResource("/db/migration/V75__advent_quizzes.sql")!!.readText()
             jdbc.execute(migration)
+            jdbc.execute(javaClass.getResource("/db/migration/V84__advent_long_stories.sql")!!.readText())
             seedAdventQuizzes(jdbc)
             val service = AdventTestAnswers(jdbc)
             val tx = TransactionTemplate(DataSourceTransactionManager(dataSource))

@@ -15,6 +15,10 @@ historical registry below.
 
 ### Open defects and limitations
 
+BUG-105 (local availability controls fail to render after development-session changes; restart mitigates).
+
+BUG-096 (an Advent contribution was published with incomplete anecdotes).
+
 BUG-071 (Advent catalogue PostgreSQL integration test loses its connection in CI).
 
 BUG-072 (V2 Playwright smoke suite fails on commit b560afa4).
@@ -42,14 +46,19 @@ BUG-BMAD-001 (accented versus ASCII story keys in sprint controller).
 
 BUG-BMAD-002 (sprint tracker timestamp rejected by BMAD validator).
 
-BUG-031 (format cancellation),
-BUG-028 (mobile season chart), BUG-023 (stale Home badge), LIMIT-009 (Dispos
+BUG-023 (stale Home badge), LIMIT-009 (Dispos
 view), BUG-018 (staging traffic), LIMIT-008 (Loop policy), LIMIT-007 (web unit
-stability), LIMIT-004 (seed roster), BUG-008 (push preferences), LIMIT-001
+stability), LIMIT-004 (seed roster), LIMIT-001
 (legacy E2E), LIMIT-003 (development PWA install), and LIMIT-002 (shared API
 integration database).
 
 ### Pending verification or operational follow-up
+
+BUG-095 is corrected locally; the development deployment must be verified.
+
+BUG-094 is corrected locally and validated by Patrice on a phone; deployment remains separate.
+
+BUG-093 is corrected locally and validated by Patrice on a phone; deployment remains separate.
 
 BUG-081 is closed as an accepted shared-browser-subscription behavior; the Advent opt-out isolation is covered by targeted tests.
 
@@ -74,6 +83,126 @@ BUG-024, and BUG-021 have local fixes but still require their stated review,
 human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
+
+### BUG-105 — Availability controls stop rendering during local development
+- **Status**: Open — local smoke session restored by restarting its owned offline stack; root cause not established.
+- **Severity**: Medium (blocks the availability subject selector and unanswered-list disclosure during local human testing).
+- **Affected area**: V2 offline development stack, event availability tab.
+- **Observed behavior**: In a long-running development session after story changes, the participant selector showed only its arrow. The unanswered-list chevron changed its expanded state, but its list remained empty. Browser logs reported `mat-form-field must contain a MatFormFieldControl` and an Angular expression-changed error.
+- **Expected behavior**: The subject selector renders its selected participant, and expanding the unanswered section renders its names.
+- **Evidence/limits**: The isolated Playwright suite passed with fresh servers before the report. A controlled restart of the same worktree offline stack restored both controls on the same seed event; opening and closing the unanswered list and opening the subject selector were verified in the browser. Hot module replacement or shared development cache state is a hypothesis, not a confirmed cause; persistence across clean production builds has not been demonstrated.
+
+### BUG-103 — Advent journey can check a late result before confirmation completes
+- **Status**: Corrected locally; subsequent real-clock journey passed the late-answer step.
+- **Severity**: Medium (acceptance-test reliability).
+- **Affected area**: Isolated Advent journey late-answer verification.
+- **Observed behavior**: The second recorded journey stopped at the late answer on 5 December with a generic assertion failure; the screenshot showed the answer confirmation. The test requested the result immediately after the confirmation click, without waiting for the asynchronous reveal.
+- **Expected behavior**: The test waits for the reveal before checking the persisted result and reports the failing status or field without private values.
+- **Notes**: The recorded evidence does not identify the exact assertion; a timing race is plausible, not proven. Chromium tests cover delayed reveal and sanitized diagnostics. This does not establish whether BUG-069 occurred in this run.
+
+### BUG-102 — Advent journey recording stalls after clock jumps
+- **Status**: Corrected locally; subsequent real-clock journey produced a playable recording.
+- **Severity**: Medium (acceptance evidence).
+- **Affected area**: Isolated Advent journey video and shutdown.
+- **Observed behavior**: The evidence report reached 26 December, but the recorded WebM remained on the 1 December waiting scene for almost its entire 417-second duration and the journey process remained alive after interruption.
+- **Expected behavior**: A reviewable video covers the exercised days and finalization terminates promptly.
+- **Notes**: A system-clock discontinuity affecting Playwright video timing is suspected, not established. A fixed-rate screenshot encoder was tested with synthetic discontinuities and 26 browser screens; a subsequent real-clock journey produced an 80.5-second playable recording. The day-26 entry ranking was asserted but not distinctly captured.
+
+### BUG-104 — Isolated Advent preview server returns generic image MIME types
+- **Status**: Fixed locally 2026-11-04; verified by three existing mocked UI diagnostics, including the previously failing welcome test.
+- **Severity**: Low (local test infrastructure).
+- **Affected area**: `apps/web/e2e/advent-isolation/full-stack-preview-server.cjs`.
+- **Observed behavior**: The server returned `application/octet-stream` for a WebP image, causing the welcome Playwright test to fail its image content-type assertion.
+- **Expected behavior**: Known image extensions are served with their image MIME types.
+- **Notes**: Observed against a local production PWA build with mocked API responses; this does not establish production behavior.
+
+### BUG-101 — Previous Advent result not shown on test notification opening
+- **Status**: Observed behavior explained by an existing seen marker; origin of the marker unverified. Device recipe accepted with the combined unseen-result scenario untested.
+- **Severity**: Undetermined.
+- **Affected area**: Advent test reminder and priority reveal on Android.
+- **Observed behavior**: During an Android test, the operator viewed a recorded answer on simulated December 8, advanced to December 9 without seeing its result, sent a test reminder, closed the app and opened the notification; the December 9 quiz appeared without the December 8 result. Screenshots show the neutral confirmation, December 9, accepted send and received notification.
+- **Expected behavior**: An eligible unseen result takes priority before the requested quiz, including in authorized test mode.
+- **Notes**: Actual notification receipt and opening were confirmed. A read-only check on the Cloud Run development database found the operator's day 8 answer already had a non-null `seen_at`, explaining why it was not treated as unseen. A fresh day 9 answer revealed correctly on advancing to day 10. The interaction that produced the earlier marker remains unverified. Patrice accepted the device recipe on 2026-11-07 without expanding test mode. No game data was modified.
+
+### BUG-100 — Offline CORS test reads an unresolved placeholder
+- **Status**: Correction in progress; CI validation pending.
+- **Severity**: Medium.
+- **Affected area**: API regression suite, offline CORS configuration test.
+- **Observed behavior**: The test reads a raw YAML value containing an environment placeholder and treats it as a resolved list, causing its Tailscale origin assertion to fail.
+- **Expected behavior**: Resolve the property through a Spring environment before checking the configured default origins.
+- **Notes**: Observed in GitHub Actions run 42199681602; this is a test failure and does not establish a runtime CORS defect.
+
+### BUG-099 — Catalogue database test can connect during initialization
+- **Status**: Correction in progress; CI validation pending.
+- **Severity**: Medium.
+- **Affected area**: Advent catalogue PostgreSQL test.
+- **Observed behavior**: The disposable database test reported an unexpectedly terminated connection immediately after its readiness check in GitHub Actions run 42198776176.
+- **Expected behavior**: Wait for the final PostgreSQL server to accept TCP connections before running integration tests.
+- **Notes**: The local-socket readiness check can succeed during PostgreSQL's temporary initialization server; this is a suspected race, pending validation.
+
+### BUG-098 — Advent test action changes keyboard regression order
+- **Status**: Correction in progress; CI validation pending.
+- **Severity**: Medium.
+- **Affected area**: Advent browser regression gate.
+- **Observed behavior**: The new reminder test button takes keyboard focus before the test actions menu, so the existing test fails on its previous tab-order assertion.
+- **Expected behavior**: Verify that both buttons are reached in order and the menu remains usable by keyboard.
+- **Notes**: Observed in GitHub Actions run 42198776314.
+
+### BUG-097 — Advent result PostgreSQL fixture lacks story columns
+- **Status**: Correction in progress; CI validation pending.
+- **Severity**: Medium.
+- **Affected area**: Advent PostgreSQL regression gate.
+- **Observed behavior**: The result test creates the quiz schema with migration V75 alone, while result reads now require the story columns introduced by V84.
+- **Expected behavior**: The fixture applies the relevant migration and continues exercising reveal serialization against PostgreSQL.
+- **Notes**: Observed in GitHub Actions run 42198776314; no production database was modified.
+
+### BUG-096 — Advent contribution published with incomplete anecdotes
+- **Status**: Open; correction and synchronized publication pending.
+- **Severity**: Medium.
+- **Affected area**: Private Advent catalogue and synchronized quiz data.
+- **Observed behavior**: A real contribution was prepared from a multi-paragraph draft using an extraction that retained only the first paragraph of each anecdote, and the incomplete text was synchronized to local, development, staging and production data.
+- **Expected behavior**: Prepared quiz content matches the complete approved contribution or a deliberately approved concise version; source narratives are preserved for the agreed reveal experience.
+- **Notes**: The source draft remains private. No personal content or answers are recorded here. A local mockup was approved; application support and content repair are not yet deployed.
+
+### BUG-095 — Advent browser gate rejects changed waiting text
+- **Status**: Corrected locally; development deployment pending.
+- **Severity**: Medium.
+- **Affected area**: Advent waiting screen and deployment regression gate.
+- **Observed behavior**: Story 25.19 changed the ordinary waiting message; its existing browser test failed and blocked the development deploy.
+- **Expected behavior**: Keep the ordinary waiting message, with a specific later-date message when revisiting a future gift.
+- **Notes**: Reported by GitHub Actions deployment run 41934865531; no test was disabled.
+
+### BUG-094 — Development tester sees a future Advent result immediately
+- **Status**: Corrected locally and validated by Patrice on a phone; deployment remains separate. Reported during story 25.19 human testing.
+- **Severity**: Medium.
+- **Affected area**: Advent gift access for authorized development testers.
+- **Observed behavior**: After a future quiz answer, the neutral confirmation is followed by the personal result; API result, calendar and history paths also permit early disclosure to that tester.
+- **Expected behavior**: The tester remains on neutral confirmation until the applicable reveal boundary, while retaining future gift access. The boundary is midnight Europe/Paris following the gift’s calendar day.
+- **Notes**: The implementation intentionally extended private production-preview immediate result semantics to development testers; ordinary-member and production-preview paths are distinct. Existing test-mode rankings can include unrevealed scores. Previously acknowledged answers remain seen and are available in history after revelation; they do not reappear as unseen priority results.
+
+### BUG-093 — Development future gift access changed calendar appearance and locked day 25
+- **Status**: Corrected locally and validated by Patrice on a phone; deployment remains separate.
+- **Severity**: Medium.
+- **Affected area**: Advent calendar for authorized development testers.
+- **Observed behavior**: Available future gifts appeared red and day 25 remained locked.
+- **Expected behavior**: Preserve the usual future appearance while allowing access; the authorized tester can open the existing day 25 recap.
+- **Notes**: Reported during story 25.19 human testing. Production preview's current code also locks day 25; production behavior is unchanged by this development correction.
+
+### BUG-092 — Advent domain contract disagrees with production preview replay
+- **Status**: Resolved 2026-11-02.
+- **Severity**: Low (documentation conflict).
+- **Affected area**: Advent normative domain and preview contracts.
+- **Observed behavior**: DOMAIN.md § « Réponses et classement membres Avent » prohibits deletion and replay in production, including the two authorized preview testers. SPEC.md, EXPERIENCE.md, the Advent architecture and the corrected DESIGN.md permit confirmed personal replay by those testers, who are excluded from the ranking.
+- **Expected behavior**: The domain contract reflects the clarified rule: only authorized testers excluded from the ranking can erase their own answer; answers by ranked players are final.
+- **Notes/context**: DESIGN.md and DOMAIN.md were reconciled on 2026-11-02 following the user's clarification; application behavior was not changed.
+
+### BUG-091 — Advent preview unit test expects a hidden message
+- **Status**: Corrected locally 2026-11-03; observed 2026-11-02.
+- **Severity**: Low (test failure).
+- **Affected area**: Angular Advent preview test, `apps/web/src/app/pages/advent-test/advent-test.spec.ts`.
+- **Observed behavior**: The focused Advent suite fails the “opens the authorized direct preview, records a final answer and recovers it” test when it expects the replay message immediately after asserting that the calendar is open.
+- **Expected behavior**: The test and the intended preview state agree, so the suite can verify the message at the appropriate point in the journey.
+- **Notes/context**: The baseline commit `5d8bc04a6625ba8ab9c33d6b4920c1d4f5b70030` already contains both the assertion and the template condition hiding the message while `calendarOpen()` is true. The test now checks that the message is absent on the calendar and present after a response is recorded; 162 focused Angular tests passed.
 
 ### BUG-090 — Advent preview briefly reports a failed replay reload
 - **Status**: Corrected locally; staging human verification pending. Reported on 2026-11-02.
@@ -661,13 +790,14 @@ not active work; items listed in the two sections above remain actionable.
 
 ### BUG-034 — Availability comments are persisted but unavailable to organisers outside the selected poll subject
 - **ID**: BUG-034
-- **Status**: Open — code-backed; no production replay reproduction claimed
+- **Status**: Fixed — integrated in `v2` by `478a51f9`; included in tag `v2.6.3`.
 - **Severity**: Medium (information entered by a participant cannot inform composition)
 - **Affected area**: V2 availability summary, **Dispos** tab and composition workspace.
 - **Observed behavior**: A participant can save an availability comment, but an organiser cannot see it while composing the team. In **Dispos**, it is only displayed in the editable/read-only comment field for the single participant selected in the subject picker; opening a candidate/name or filtering a member does not surface it.
 - **Expected behavior**: An organiser can consult a participant's saved availability comment from the availability and composition decision paths, without editing that response.
 - **Cause**: The API persists and returns `SummaryParticipant.comment`, and the Dispos subject poll binds it to the selected person's textarea. No candidate list, availability pool, composition slot/picker, or participant filter renders this field.
 - **Verification**: `apps/web` focused `event-dispos-tab` + `availability-poll` tests: 34/34 passed on 2026-10-17. This verifies the existing poll behavior, not the missing organiser presentation.
+- **Fix evidence**: The completed `spec-bug-034-organizer-availability-comments.md` records targeted API and Angular tests and an accepted local human smoke. The candidate picker now displays `availabilityComment` and the availability selector indicates comments. Deployment currently serving this change was not checked.
 
 ### BUG-033 — Une adhésion active peut manquer du roster de saison
 
@@ -695,7 +825,7 @@ not active work; items listed in the two sections above remain actionable.
 ### BUG-031 — « Annuler » dans Format et besoins vide les besoins
 
 - **ID**: BUG-031
-- **Status**: Open — cause confirmée le 2026-10-13 ; correctif à cadrer
+- **Status**: Fixed — `20aee054` intégré dans `v2`, inclus dans le tag `v2.6.1`.
 - **Severity**: High (une action ponctuelle peut masquer toute une équipe déjà composée)
 - **Affected area**: V2 « Format et besoins » (`EventTypeRolesDialog` / `PATCH events.roleSlots`) et projection Équipe.
 - **Observed behavior**: Sur « Spectacle Long format Microphone », Nicolas a indiqué avoir voulu retirer uniquement le rôle Bénévole. Après avoir ouvert « Format et besoins », le bouton de pied de modale `Annuler` a persisté tous les effectifs à zéro ; l'onglet Équipe ne projette alors plus aucun créneau requis, bien que les affectations stockées existent encore. Un incident analogue a été signalé le 2026-10-12 pour « Apérock café ».
@@ -703,6 +833,7 @@ not active work; items listed in the two sections above remain actionable.
 - **Cause confirmée**: L'attribut nu `mat-dialog-close` transmet la chaîne vide (`""`) au vrai clic Angular Material, et non `undefined`. `EventInfosTab.openTypeRolesDialog` ignore uniquement `undefined` : il appelle donc `persistTypeRoles("")`. À l'exécution, `result.templateType` et `result.roleSlots` sont alors `undefined`; `normalizeRoleSlots(undefined)` produit une map complète de zéros. `JSON.stringify` omet `templateType` mais envoie `roleSlots` à zéro. Le serveur accepte ce remplacement complet et persiste ces zéros. La re-sélection du format n'est pas nécessaire à l'incident, même si elle fait partie du parcours observé.
 - **Reproduction vérifiée**: Le test temporaire a cliqué le vrai bouton `button[mat-dialog-close]` dans le dialogue Angular : `MatDialogRef.close` a reçu `""` (et non `undefined`). La chaîne client puis serveur ci-dessus a été vérifiée dans le code. Le test était volontairement rouge contre l'attendu fonctionnel et a été retiré après diagnostic pour ne pas laisser la branche en échec.
 - **Notes/context**: Les événements de type sondage / personnalisé peuvent légitimement ne pas nécessiter de rôle : le correctif ne doit donc pas interdire globalement la valeur vide. Il doit distinguer explicitement une fermeture sans résultat d'une sauvegarde. CN-1 conserve désormais les créneaux affectés hors besoins pour les organisateurs, mais ne prévient pas l'écriture vide et ne les réaffiche pas encore dans l'UI. Voir aussi le chat Codex `01a130ec-46cd-7c60-b532-7634e1c5cfd4`.
+- **Fix evidence**: La spec `spec-bug-031-cancel-role-slots.md` est terminée et rapporte les tests ciblés. Le bouton renvoie explicitement `undefined` ; le parcours actuel dans Équipe ignore une fermeture sans résultat. La révision actuellement servie n'a pas été vérifiée.
 
 ### BUG-030 — Seed login via MagicDNS is rejected by offline CORS
 
@@ -728,7 +859,7 @@ not active work; items listed in the two sections above remain actionable.
 
 ### BUG-028 — Mobile troupe hub season chart stacks month columns vertically
 - **ID**: BUG-028
-- **Status**: Open — BMAD diagnosis and corrective spec ready for approval
+- **Status**: Fixed — `aa89f644` integrated in `v2`; included in tag `v2.6.0`.
 - **Severity**: Medium (collective season overview is not usable on narrow mobile viewports)
 - **Affected area**: V2 `troupe-hub` season mini-chart (`/troupes/:slug`).
 - **Observed behavior**: On a narrow Android viewport, the mini-chart shown for La Malice renders month columns one below another. The chart becomes taller than the viewport and visually continues behind the fixed member navigation.
@@ -736,6 +867,7 @@ not active work; items listed in the two sections above remain actionable.
 - **Cause**: `troupe-hub.html` renders `.member-profile__chart-month` elements directly in the chart container, omitting `.member-profile__chart-timeline` and `.member-profile__chart-months`. The shared chart SCSS applies its horizontal flex layout only to the omitted months wrapper.
 - **Repro**: On staging, sign in to a member account and open `/troupes/la-malice` on a narrow Android viewport with at least three past events in the selected season.
 - **Notes/context**: The fixed bottom navigation is not established as causal: `member-shell.scss` already reserves its height plus safe-area. The corrective mobile E2E will verify CTA reachability before any shell/navigation change is considered. UX spec `ux-design-hub-mini-chart-17-44.md` MC10 requires horizontal in-card scrolling.
+- **Fix evidence**: The current template contains the timeline and months wrappers; the correction includes component and mobile E2E coverage. The currently served revision was not checked.
 
 ### BUG-027 — Review controller dirties its own checkout
 - **ID**: BUG-027
@@ -843,6 +975,7 @@ not active work; items listed in the two sections above remain actionable.
 - **Expected behavior (V1)**: Pulldown first option « Tous » (`selectedTeamPlayer.id === 'all'`) rendered `EventRoleGroupingView` — named candidates per role. Combined with the season grid, orgs could also see unanswered cells.
 - **Notes**: Story 5.8 D1 removed Moi/Tous in favor of a WhatsApp-style poll (saisie + collective on one screen). Named unavailable list was an explicit non-goal (MVP+). Relance dispos (cog menu) still targets `unknown` but does not display the list. Organizer request 2026-09-16: restore a troupe overview, especially unanswered members.
 - **Reported by**: Organizer feedback (Nicolas Nasciet) via Patrice.
+- **Story 5.10**: The unanswered-participant list is addressed by the in-progress story; the broader requested overview remains open until separately resolved.
 
 ### BUG-018 — Staging Cloud Run traffic stuck on a named revision
 - **ID**: BUG-018
@@ -1003,12 +1136,13 @@ not active work; items listed in the two sections above remain actionable.
 
 ### BUG-008 — Push opt-in does not refresh notification preference toggles until tab revisit
 - **ID**: BUG-008
-- **Status**: Open
+- **Status**: Fixed — `afea893d` integrated in `v2`; included in tag `v2.3.0`.
 - **Severity**: Low (UX — confusing but not blocking; accepted at E1 cutover 2026-06-04)
 - **Affected area**: V2 `apps/web` — Mon compte → onglet **Notifications** ; global push activation vs per-category email/push switches
 - **Observed behavior**: After enabling browser push from the account hub, the per-category push toggles in the Notifications tab do not update visually immediately; leaving the tab and returning shows they were enabled automatically in the background.
 - **Expected behavior**: Toggles reflect the new push subscription state without requiring navigation away from the tab (or show a brief loading/sync state).
 - **Notes/context**: Found during gate **E1** staging screen tour ([e1-cutover-screen-tour-staging-v2.0.0.md](_bmad-output/implementation-artifacts/e1-cutover-screen-tour-staging-v2.0.0.md) §2.4). PO accepted for V2.0.0 cutover; fix can wait until post-M4 unless prioritized.
+- **Fix evidence**: The shared push state now controls whether category toggles are enabled; a component test checks the transition without revisiting the tab. Device activation does not overwrite stored category preferences. The currently served revision was not checked.
 
 ### BUG-009 — changelog.json user notes wrong on first RC of a semver line
 - **ID**: BUG-009

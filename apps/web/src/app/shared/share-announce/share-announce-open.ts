@@ -21,6 +21,7 @@ export interface OpenShareAnnounceDialogContext {
   compositionValidatedAt?: string | null
   troupeId?: string
   actorScope?: ActorScope
+  allRecipients?: boolean
 }
 
 export function openShareAnnounceDialog(
@@ -45,6 +46,7 @@ export function openShareAnnounceDialog(
         compositionValidatedAt: ctx.compositionValidatedAt ?? null,
         troupeId: ctx.troupeId,
         actorScope: ctx.actorScope,
+        allRecipients: ctx.allRecipients,
       },
       width: 'min(42rem, 96vw)',
       maxHeight: '92vh',

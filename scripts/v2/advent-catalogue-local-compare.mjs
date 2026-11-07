@@ -31,7 +31,7 @@ async function main() {
     if (identity.db !== process.env.ADVENT_EXPECT_DATABASE || identity.role !== process.env.ADVENT_EXPECT_ROLE ||
         !['127.0.0.1/32', '127.0.0.1', '::1/128', '::1'].includes(identity.address)) throw Error();
     await db.query('BEGIN READ ONLY');
-    const result = await db.query('SELECT quiz_day, display_name, portrait_ref, statement_0, statement_1, statement_2, false_choice, explanation FROM advent_quizzes WHERE quiz_day = ANY($1::int[])', [days]);
+    const result = await db.query('SELECT quiz_day, display_name, portrait_ref, statement_0, statement_1, statement_2, false_choice, explanation, story_0, story_1, story_2 FROM advent_quizzes WHERE quiz_day = ANY($1::int[])', [days]);
     await db.query('COMMIT');
     console.log('READ-ONLY diagnostic: local snapshot and portrait access are not verified; not an apply plan.');
     for (const item of compareQuizzes(selected, result.rows)) console.log(`Day ${item.day}: ${item.status}`);

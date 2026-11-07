@@ -43,12 +43,21 @@ export class AuthApiService {
   private readonly troupeApi = inject(TroupeApiService)
   private readonly productAnalytics = inject(ProductAnalyticsService)
   private readonly sessionUserSignal = signal<UserSummary | null>(null)
+  private readonly identityVersionSignal = signal(0)
   private sessionCache: AuthSessionResult | null = null
   private sessionCacheGeneration = 0
   private ensureInFlight: Promise<AuthSessionResult> | null = null
 
   /** Utilisateur HatCast en session (mis à jour par ensureHatcastSession et les flux auth). */
   readonly sessionUser = this.sessionUserSignal.asReadonly()
+  readonly sessionIdentityVersion = this.identityVersionSignal.asReadonly()
+
+  private setSessionUser(user: UserSummary | null): void {
+    if (this.sessionUserSignal()?.id !== user?.id) {
+      this.identityVersionSignal.update((version) => version + 1)
+    }
+    this.sessionUserSignal.set(user)
+  }
 
   /**
    * GET /v1/auth/me ; si 401 et « se souvenir de moi » + session Firebase encore présente,
@@ -100,7 +109,7 @@ export class AuthApiService {
       return
     }
     if (result.status === 401) {
-      this.sessionUserSignal.set(null)
+      this.setSessionUser(null)
       this.invalidateSessionCache()
       this.troupeApi.invalidateCache()
     }
@@ -143,7 +152,7 @@ export class AuthApiService {
         this.productAnalytics.resetSession()
       }
       this.meInboxApi.bindSessionUser(data.user.id)
-      this.sessionUserSignal.set(data.user)
+      this.setSessionUser(data.user)
       this.productAnalytics.identifyUser(data.user.id, {
         email: data.user.email,
         displayName: data.user.displayName,
@@ -275,7 +284,7 @@ export class AuthApiService {
       clearHatcastRememberMePreference()
     }
 
-    this.sessionUserSignal.set(null)
+    this.setSessionUser(null)
     this.productAnalytics.resetSession()
     this.invalidateSessionCache()
     this.mePreferencesApi.invalidateCache()
@@ -299,7 +308,7 @@ export class AuthApiService {
         body: JSON.stringify({ idToken }),
       })
       if (res.status === 204) {
-        this.sessionUserSignal.set(null)
+        this.setSessionUser(null)
         this.invalidateSessionCache()
         this.meInboxApi.invalidateCache()
         this.troupeApi.invalidateCache()

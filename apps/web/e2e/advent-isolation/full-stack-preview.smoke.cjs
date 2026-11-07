@@ -34,15 +34,14 @@ const base = 'http://127.0.0.1:14331'
   }
   async function openPreview() {
     await page.goto(`${base}/avent?preview=1`)
-    try { await page.getByText('Prévisualisation privée : tu peux effacer ta réponse pour rejouer.').waitFor({ timeout: 12000 }) } catch (error) {
+    const welcome = page.getByRole('button', { name: /Commencer à jouer/i })
+    const calendar = page.locator('.advent__calendar-door').first()
+    try { await welcome.or(calendar).first().waitFor({ state: 'visible', timeout: 12000 }) } catch (error) {
       console.error('Preview session:', JSON.stringify(await page.evaluate(async () => (await fetch('/v1/advent/session', { cache: 'no-store' })).json())))
       console.error('Preview page:', (await page.locator('body').innerText()).slice(0, 800))
       throw error
     }
-    const welcome = page.getByRole('button', { name: /Commencer à jouer/i })
-    const calendar = page.locator('.advent__calendar-door').first()
-    // The preview banner appears before discovery resolves; wait for its actual destination.
-    await welcome.or(calendar).first().waitFor({ state: 'visible' })
+    assert.equal(await page.getByText('Prévisualisation privée : tu peux effacer ta réponse pour rejouer.').count(), 0)
     if (await welcome.isVisible()) await welcome.click()
   }
   async function answer(day, explanation) {
@@ -56,6 +55,7 @@ const base = 'http://127.0.0.1:14331'
     await page.getByRole('radio').nth(1).check()
     await page.getByRole('button', { name: 'Confirmer ma réponse' }).click()
     await page.getByText(explanation).waitFor()
+    await page.getByText('Prévisualisation privée : tu peux effacer ta réponse pour rejouer.').waitFor()
   }
   try {
     const guard = await page.request.get(`${base}/v1/e2e/fixtures/advent-preview-guard`, { headers: { 'X-Hatcast-E2E-Key': 'e2e-fixtures-secret' } })
@@ -102,11 +102,14 @@ const base = 'http://127.0.0.1:14331'
     await page.getByRole('button', { name: 'Confirmer ma réponse' }).click()
     await page.getByText('Explication fictive vingt-trois').waitFor()
     await page.reload()
-    await page.getByText('Prévisualisation privée : tu peux effacer ta réponse pour rejouer.').waitFor()
-    if (!(await page.getByText('Explication fictive vingt-trois').count())) {
+    const explanation = page.getByText('Explication fictive vingt-trois')
+    const savedGift = page.locator('.advent__calendar-door[data-day="23"]')
+    await explanation.or(savedGift).first().waitFor({ state: 'visible' })
+    if (!(await explanation.isVisible())) {
       await page.locator('.advent__calendar-door[data-day="23"]').click()
-      await page.getByText('Explication fictive vingt-trois').waitFor()
+      await explanation.waitFor()
     }
+    await page.getByText('Prévisualisation privée : tu peux effacer ta réponse pour rejouer.').waitFor()
     await login('advent-preview-two')
     await openPreview()
     assert.equal((await api('/v1/advent/doors/23/result', true)).status, 404)

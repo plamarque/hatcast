@@ -483,7 +483,7 @@ export class EventDetail implements OnDestroy, OnInit {
     })
   }
 
-  protected openRelanceDispos(): void {
+  protected openRelanceDispos(allRecipients = false): void {
     const ev = this.event()
     const seasonId = this.seasonId()
     const seasonSlug = this.slug()
@@ -501,6 +501,7 @@ export class EventDetail implements OnDestroy, OnInit {
       troupeId: this.troupeId(),
       actorScope: this.actorScope(),
       event: ev,
+      allRecipients,
     })
   }
 

@@ -23,3 +23,18 @@
 .advent__ranking-legend li + li { margin-top: .4rem; }
 .advent__ranking-action { display: flex; justify-content: center; }
 .advent__ranking-action button { width: 100%; min-height: 3.5rem; padding-inline: 2rem; font: 700 1.125rem var(--advent-body-font); border-radius: 1rem; box-shadow: 0 .25rem .5rem var(--advent-shadow); }
+
+.advent__ranking-test-actions { position: relative; background: var(--advent-surface); display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem; padding: .75rem; border: 1px solid var(--advent-choice-border); border-radius: 1rem; }
+.advent__ranking-test-actions p { flex-basis: 100%; margin: 0; text-align: center; font-weight: 700; }
+.advent__ranking-test-actions button { min-height: 3rem; height: auto; white-space: normal; }
+
+@media (max-width: 480px) {
+  .advent__content--ranking { padding-inline: 8px; }
+  .advent__ranking-banner { gap: 8px; padding: 12px 8px; }
+  .advent__ranking-banner h1 { font-size: clamp(24px, 8vw, 36px); }
+  .advent__ranking-test-actions, .advent__ranking-legend { padding: 12px; }
+  .advent__ranking-list { padding: 8px; }
+  .advent__ranking-list li { grid-template-columns: 40px minmax(0, 1fr) auto; gap: 8px; }
+  .advent__ranking-position { width: 40px; height: 40px; }
+  .advent__ranking-legend ul { padding-inline-start: 24px; }
+}

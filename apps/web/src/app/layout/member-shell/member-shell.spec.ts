@@ -83,6 +83,7 @@ describe('MemberShell', () => {
         {
           provide: AuthApiService,
           useValue: {
+            sessionIdentityVersion: signal(0),
             sessionUser: signal({
               id: 'user-1',
               slug: 'alice',

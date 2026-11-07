@@ -4,7 +4,7 @@
 
 ## Goal
 
-Give active La Malice members a festive way to discover each other through 24 daily portrait quizzes, personal results and a friendly ranking. Organizers prepare the event safely, preserve the surprise before opening and verify production content through a narrowly authorized preview.
+Give active La Malice members a festive way to discover one another through 24 daily portrait quizzes, delayed results and a friendly ranking. Organizers prepare the event safely, preserve the surprise before opening and validate the journey through isolated testing and an authorized production preview.
 
 ## Stories
 
@@ -20,41 +20,48 @@ Give active La Malice members a festive way to discover each other through 24 da
 - Story 25.7: Invite members to the daily quiz
 - Story 25.8: Refine the Advent art direction
 - Story 25.9: Measure actual participation
-- Story 25.10: Discover the Advent calendar
-- Story 25.11: Generate a fictional ranking for tests
-- Story 25.12: Return to the sleeping elf after playing
+- Story 25.10: Découvrir le calendrier de l’Avent
+- Story 25.11: Générer un classement fictif pour les tests
+- Story 25.12: Retrouver le lutin endormi après avoir joué
 - Story 25.13: Run Advent regression tests in CI
 - Story 25.14: Give Advent CTA snow realistic volume
+- Story 25.15: Preserve the Advent surprise and preview production content
+- Story 25.16: Test Advent reminders on a real device
+- Story 25.17: Dynamiser les écrans de résultat de l’Avent
+- Story 25.18: Open the private Advent preview from the account menu
+- Story 25.19: Open future Advent gifts in development test mode
+- Story 25.20: Record the complete Advent member journey
+- Story 25.21: Célébrer le bilan de Noël
+- Story 25.22: Discover full Advent stories
+- Story 25.23: Ouvrir un quiz Avent par son URL
+- Story 25.24: Célébrer le podium final
 
 ## Requirements & Constraints
 
-- Before 1 December 2026 at midnight Paris time, ordinary member navigation must reveal no Advent cue, including gift, automatic welcome or Advent-specific error during network and server failures. From 1 December through 15 January inclusive, the gift offers access; normal future-content and reveal restrictions continue after opening.
-- An approved change introduces a distinct production preview through the direct URL for Patrice and Toinou only, authenticated and verified server-side as active members. They may inspect future portraits and quiz content, submit their own final answer and immediately see its personal result and explanation. Their production state may persist; URL knowledge grants no privilege. Existing planning documents describing all future production content as inaccessible require reconciliation with this approved exception.
-- Other members cannot read future content, portraits, pending correctness or another person's result. Sensitive responses and assets must not leak via caches, logs, notifications, analytics, public resources or cross-account sessions. Protect consented personal data and do not put private contributions or answers in the public repository.
-- A normal answer is unique and final. Ordinarily the next Paris midnight reveals correctness, false statement, earned points and optional explanation; an explicit past unplayed quiz may be answered once for immediate zero-point feedback. The most recent unseen revealable result takes priority on return. A missing or late-published quiz remains supported.
-- Correct answers earn 10 points, normal participation 1, and each non-overlapping run of three correct answers a 2-point bonus; incorrect answers reset a run and missed days do not. Rankings include classable members at zero and assign tied members the lowest position in their group. Patrice and Toinou are excluded from rankings; their preview answers must not change other members' scores or ranks.
-- Production answers by the two excluded accounts may count in future participation totals; isolated development tests do not. Never transmit anecdotes, choices, correctness or unrevealed scores to analytics. Database answers remain authoritative for participation totals.
-- From 25 December through 15 January members may consult final ranking and calendar; retain answers and results after access ends. Invitations follow ordinary preferences and eligibility, target 10:00 Paris on 1–24 December, and tolerate missed or late delivery without a dedicated recovery mechanism.
+- Ordinary member navigation must preserve the surprise before 1 December 2026 at midnight Paris, including on errors. The gift allows access from 1 December through 15 January, with server-enforced member, date and reveal restrictions.
+- Future production content and personal results are available early only to the two explicitly authorized, verified active members. Their preview and personal replay do not grant shared test controls or place excluded accounts in the ranking. Other members must not see future portraits, pending correctness, another person's result or clues through caching, logs, notifications or analytics.
+- Normal answers are unique and final, and are revealed at the next Paris midnight. A previously unplayed quiz can be answered once late for immediate zero-point feedback without affecting streak or ranking. Show an eligible unseen result before the next destination. Missing or late content remains supported.
+- Award 10 points for a correct answer, one for normal participation and two per non-overlapping group of three correct answers; an incorrect answer resets the run while a missed day does not. Final ranking remains accessible from 25 December through 15 January; retain the underlying results thereafter.
+- Existing documents specify tied players sharing the lowest rank and a personal Christmas score. The newly approved Story 25.24 changes the final ranking and Christmas presentation: reconcile normative and UX documents as part of implementation, without weakening prior reveal or privacy rules.
+- Protect private contributions and answers; do not put them in the public repository. Test data and controls remain isolated from production. Production writes and deployment require separate authorization.
 
 ## Technical Decisions
 
-- The API enforces identity, active troupe membership, date and mode for reads and mutations, including direct portrait access; platform administration alone does not bypass membership. Production preview is separate from isolated development test mode and must not advance shared time or alter other members' state.
-- Production continues to reject reset, replay and simulated-date controls for every user, including preview users, and ignores development clock offsets. Development data, notifications and analytics remain isolated from production. Each authorized test tab uses its own server-validated simulated date; real date boundaries are tested separately.
-- Persist unique final answers and relevant discovery, dismissal and seen state across devices. Serialize confirmation, reveal and ranking with authoritative server time sampled after the shared lock; a confirmation waiting at midnight is closed, while a reveal waits for an in-flight transaction. Preserve idempotent recovery and personal result privacy.
-- Prepare validated content privately and synchronize selected quiz content and portraits only, never game answers or state, between verified targets. Development and production databases are distinct. Exceptional changes to published contributions may cause inconsistency; no additional versioning or snapshots are required solely for that risk. Production writes and deployment require separate authorization.
-- Sensitive responses are private and no-store; service worker, client storage and intermediaries must not serve stale or cross-account content. Verify direct APIs and portraits, manipulated headers, session changes, caches, retries and concurrent requests.
-- Validate 30 November 23:59:59 and 1 December 00:00 Paris using a controlled server clock in isolation, both preview identities and unauthorized accounts, and production-equivalent denial of test controls. Automated checks must actually run and block relevant change and release paths; separately verify the deployed revision and configuration after authorized deployment.
-
-- Keep Advent-specific tests, fixtures, CI selections and utilities identifiable and removable when the temporary feature is retired. Maintain shared HatCast tests independently and preserve necessary coverage while Advent is accessible. Evidence must identify the candidate revision and actual executed, skipped and failed tests; an empty selection is not a successful coverage claim.
+- Enforce identity, active membership, authorization, date and mode on the server for all sensitive reads and mutations, including portraits. Production preview and isolated development test mode remain distinct; URLs and client-side controls do not confer privileges.
+- Server time and shared locking determine admission, confirmation, reveal and ranking at date boundaries. Preserve unique answers, idempotent recovery and private persistent discovery/seen state across devices. Recalculate derived ranking only from authorized, eligible answers.
+- Sensitive content and responses are private and no-store. Prevent stale or cross-account exposure through caches and client storage. Validate direct API access, manipulated headers, session changes, retries and concurrency.
+- Content synchronization transfers validated quizzes and portraits between verified, distinct environments without moving game answers or state. Preserve the separate private catalogue workflow and target safeguards.
+- Keep Advent tests and fixtures identifiable, execute meaningful selections and distinguish automated verification from human, device and deployment evidence.
 
 ## UX & Interaction Patterns
 
-- Use the approved independent Advent visual identity, scoped styles, tokens, typography and components without changing HatCast's design system. Keep French, festive language, Material behaviors, visible focus, keyboard operation, meaningful portrait alternatives, accessible states, responsive layouts and reduced-motion equivalents.
-- First discovery presents the welcome before the personal calendar; the action opening it persists discovery across devices. Later journeys respect priority revelation and ordinary daily entry. The gift's brief animation respects reduced motion and daily dismissal or recorded answers prevent repeated automatic opening.
-- The calendar contains 24 numbered quiz cases and a Christmas case, distinguishes relevant states without relying on color alone, and permits accessible navigation. The approved preview adds a direct-URL journey to future gifts, immediate personal results and the persisted final-answer state without exposing these to ordinary members.
-- A played current-day quiz can return to the sleeping elf and countdown until its result; the server remains authoritative for revelation. Revisited revealed results do not replay celebration. Validate small screens, enlarged text, touch targets and isolation from unrelated HatCast screens.
+- Use the approved independent Advent identity with scoped styles, tokens and typography, leaving HatCast's global design system unchanged. Preserve Material behavior, visible focus, keyboard use, reduced motion, responsive presentation, touch targets and readable enlarged text.
+- First discovery precedes the calendar; subsequent navigation respects priority revelation and server-authorized content. Direct day links resume their destination only when permitted and do not bypass discovery, identity or revelation.
+- The calendar contains 24 quiz gifts and a Christmas case; state indicators remain legible without color alone. A current recorded answer returns to a neutral waiting scene until reveal. Result scenes use generic elves and accessible text, and retain authorized personal portraits and content.
+- The approved Christmas direction highlights the final podium and uses a single brief sentence identifying a decisive tiebreak criterion. When nobody is eligible for the podium, the Christmas wishes stand alone. Retain access to the final ranking, calendar and HatCast; do not assert participation at zero.
+- Explicit isolated test mode can project fictional ranking data without mutating real answers; leaving the screen, changing session or mode discards the projection. Ordinary ranking remains bounded by authorized reveal time.
 
 ## Cross-Story Dependencies
 
-- Discovery, answering, content preparation, ranking and temporal privacy support calendar, entry, invitations and participation measurement. Preview must preserve these boundaries and not trigger premature notifications or alter others' results.
-- The private catalogue supplies verified content to distinct target databases. Its operator workflow, identity reservations and test-only deletion safeguards remain separate from member play; production deletion is forbidden.
+- Content, answering, ranking and temporal privacy underpin the calendar, entry, invitations and participation measurement. The Christmas podium builds on the final ranking and preserves the priority reveal of the 24th.
+- Preview, replay and test journeys preserve isolation, exclusions and other members' data. The private catalogue and deployment remain separate from member play.

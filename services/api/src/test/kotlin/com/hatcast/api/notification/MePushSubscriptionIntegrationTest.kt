@@ -91,6 +91,23 @@ class MePushSubscriptionIntegrationTest {
         assertFalse(userRepository.findById(b.id).orElseThrow().pushNotificationsEnabled)
     }
 
+    @Test
+    fun `test registration refuses foreign devices without transferring either subscription`() {
+        signInAndJoin("test-device-a", "test-device-a@example.com", "Device A")
+        signInAndJoin("test-device-b", "test-device-b@example.com", "Device B")
+        val a = userRepository.findByGoogleSub("test-device-a")!!
+        val b = userRepository.findByGoogleSub("test-device-b")!!
+        val device = RegisterPushSubscriptionRequest("https://push.example.com/test-${a.id}", PushSubscriptionKeysDto("key", "auth"))
+        pushService.registerSubscription(a.id, device, null)
+        pushService.registerAdventDevice(a.id, device, null)
+        assertThrows<ResponseStatusException> { pushService.registerTestAdventDevice(b.id, device, null) }
+        assertEquals(a.id, adventDevices.findByEndpoint(device.endpoint)!!.user.id)
+        assertEquals(a.id, subscriptionRepository.findByEndpoint(device.endpoint)!!.user.id)
+        assertFalse(pushService.ownsTestAdventDevice(b.id, device))
+        assertFalse(pushService.ownsTestAdventDevice(a.id, device.copy(keys = PushSubscriptionKeysDto("wrong", "auth"))))
+        assertTrue(pushService.ownsTestAdventDevice(a.id, device))
+    }
+
     private fun registerBodyFor(endpoint: String) =
         """
         {

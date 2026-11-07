@@ -3,6 +3,6 @@
   "date": "__BUILD_DATE__",
   "source": "curated-release",
   "notes": "Technical release",
-  "changes": [],
-  "changes_en": []
+  "changes": ["🐛 Quelques corrections pour rendre ton expérience plus fluide."],
+  "changes_en": ["🐛 A few fixes for a smoother experience."]
 }

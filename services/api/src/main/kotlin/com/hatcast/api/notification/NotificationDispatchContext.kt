@@ -59,4 +59,5 @@ data class NotificationPayload(
     val title: String,
     val body: String,
     val url: String,
+    val kind: String? = null,
 )

@@ -36,7 +36,7 @@ test(`Advent preserves the HatCast home at ${width}px`, async ({ page }, testInf
   await page.setViewportSize({ width, height: 844 })
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.addInitScript(() => localStorage.setItem('hatcast-pwa-banner-dismissed', String(Date.now())))
-  const result = { answerId: 'one', day: 1, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false }
+  const result = { answerId: 'one', day: 1, selectedChoice: 0, falseChoice: 0, correct: true, responsePoints: 10, participationPoints: 1, bonusPoints: 0, totalPoints: 11, seen: false, stories: ['Un\n\nDeux', null, 'Trois'] }
   await page.route('**/v1/**', async route => {
     const path = new URL(route.request().url()).pathname
     const revealed = route.request().headers()['x-advent-simulated-date'] === '2026-12-02'
@@ -81,6 +81,10 @@ test(`Advent preserves the HatCast home at ${width}px`, async ({ page }, testInf
   await expect(page.locator('.advent__recorded')).toBeVisible()
   await page.getByRole('button', { name: 'Avancer au jour suivant' }).click()
   await expect(page.getByRole('heading', { name: 'Bravo, tu as trouvé !' })).toBeVisible()
+  const storyHeaders = page.locator('mat-expansion-panel-header')
+  await expect(storyHeaders).toHaveCount(2)
+  await storyHeaders.first().click()
+  await expect(storyHeaders.first()).toHaveAttribute('aria-expanded', 'true')
   await page.getByRole('button', { name: 'Fermer le quiz' }).click()
   await expect(page).toHaveURL(/\/accueil$/)
   const after = await settleHome(page)

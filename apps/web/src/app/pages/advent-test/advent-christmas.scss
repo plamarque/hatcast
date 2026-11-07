@@ -1,0 +1,49 @@
+/* Christmas scene: the artwork is decorative; the score and controls remain real UI. */
+.advent__christmas-card { max-width: 32rem; margin: -.5rem auto 0; padding: 1rem clamp(1rem, 4vw, 2rem) 1.5rem; background: #fff6e4; border: .15rem solid #dba644; border-radius: 1.5rem; box-shadow: 0 .3rem .8rem #70464233; }
+.advent__christmas-emblem { display: block; color: #b87a00; width: 7.5rem; height: 4rem; margin: auto; }
+.advent__christmas-card h1 { margin: .3rem 0; color: #075441; font: 700 clamp(2rem, 8vw, 3.5rem)/1.1 var(--advent-heading-font); }
+.advent__christmas-card h1 span { color: #b52235; }
+.advent__christmas-message { color: #075441; font: 700 clamp(1.1rem, 4vw, 1.4rem)/1.3 var(--advent-body-font); }
+.advent__christmas-score { margin: 1rem auto; padding: .6rem 1rem; border: .2rem solid #dba644; border-radius: 2rem; background: #b52235; color: white; font: 800 clamp(1.8rem, 7vw, 3rem)/1.1 var(--advent-body-font); }
+.advent__christmas-actions { flex-direction: column; align-items: stretch; }
+.advent__christmas-actions button { width: 100%; }
+
+.advent__christmas-header-logo { display: block; width: 3.2rem; height: 2.7rem; object-fit: contain; margin: auto; }
+
+.advent__christmas-place { display: table; margin: .4rem auto; padding: .4rem 1.5rem; border: .15rem solid #dba644; border-radius: 2rem; background: #fff6e4; color: #075441; font: 800 clamp(1.7rem, 7vw, 2.7rem)/1.1 var(--advent-heading-font); }
+
+.advent__christmas-card { container-type: inline-size; }
+.advent__podium { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: .3rem; list-style: none; padding: 0; margin: 1rem 0; }
+.advent__podium-place { min-width: 0; display: flex; flex-direction: column; align-items: center; color: #075441; overflow-wrap: anywhere; }
+.advent__podium-place:nth-child(1) { grid-column: 2; grid-row: 1; }
+.advent__podium-place:nth-child(2) { grid-column: 1; grid-row: 1; }
+.advent__podium-place:nth-child(3) { grid-column: 3; grid-row: 1; }
+.advent__podium-avatar { display: grid; place-items: center; width: 2.8rem; height: 2.8rem; margin: 0 auto .3rem; border-radius: 50%; background: #d9e9da; border: .18rem solid white; box-shadow: 0 0 0 .1rem #b99a5b; font-weight: 800; }
+.advent__podium-place:first-child .advent__podium-avatar { width: 3.4rem; height: 3.4rem; background: #ffe9ab; font-size: 1.2em; }
+.advent__podium-crown { color: #a86400; font-size: 1.4rem; line-height: 1; }
+.advent__podium-name { max-width: 100%; line-height: 1.2; }
+.advent__podium-score { margin: .25rem 0 .5rem; color: #694719; font-size: .85em; font-weight: 700; }
+.advent__podium-rank { box-sizing: border-box; width: 100%; min-height: 3.2rem; padding: .4rem; border: .08rem solid #c1d2b9; border-radius: .6rem .6rem .2rem .2rem; background: #e3eadc; color: #27533e; font: 800 1.5rem/1.2 var(--advent-heading-font); }
+.advent__podium-place:first-child .advent__podium-rank { min-height: 4.8rem; background: #f5d98d; border-color: #ddba61; }
+.advent__podium-place:nth-child(3) .advent__podium-rank { min-height: 2.5rem; background: #e9d7c5; border-color: #d5b9a3; }
+.advent__podium:has(.advent__podium-place:nth-child(2):last-child) { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 16rem; margin-inline: auto; }
+.advent__podium:has(.advent__podium-place:only-child) { grid-template-columns: minmax(0, 9rem); justify-content: center; }
+.advent__podium-place:only-child { grid-column: 1; }
+@container (max-width: 18rem) {
+  .advent__podium { display: flex; flex-direction: column; align-items: stretch; gap: .75rem; }
+  .advent__podium-place { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: .25rem .5rem; text-align: left; }
+  .advent__podium-crown, .advent__podium-avatar { display: none; }
+  .advent__podium-name { grid-column: 2; grid-row: 1; }
+  .advent__podium-score { grid-column: 2; grid-row: 2; margin: 0; }
+  .advent__podium-rank, .advent__podium-place:first-child .advent__podium-rank, .advent__podium-place:nth-child(3) .advent__podium-rank { grid-column: 1; grid-row: 1 / 3; display: grid; place-items: center; width: 2.5rem; min-height: 2.5rem; border-radius: .5rem; }
+}
+.advent__podium-reason { color: #075441; font-size: .9rem; }
+
+/* Preserve usable space and allow Material labels to wrap at enlarged text sizes. */
+.advent:has(.advent__christmas) .advent__content { padding-inline: 8px; }
+.advent__christmas-card { padding-inline: clamp(12px, 4vw, 2rem); }
+.advent__christmas-card h1 { font-size: clamp(1.25rem, 8vw, 3.5rem); }
+.advent__christmas-actions button { height: auto; min-height: 3rem; white-space: normal; padding: .5rem .75rem; }
+.advent__christmas-actions button .mdc-button__label { white-space: normal; overflow-wrap: anywhere; }
+.advent__christmas-actions button[mat-flat-button]:has(mat-icon[iconPositionEnd]) { padding: .5rem .75rem; }
+.advent__christmas-actions button mat-icon[iconPositionEnd] { position: static; margin-inline-start: .5rem; }

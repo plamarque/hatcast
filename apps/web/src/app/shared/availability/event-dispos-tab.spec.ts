@@ -151,6 +151,58 @@ async function setup(
 }
 
 describe('EventDisposTab', () => {
+  it('shows unknown names to members without writing and updates with the summary', async () => {
+    const { fixture, setMyAvailability, setParticipantAvailability } = await setup()
+    const el = fixture.nativeElement as HTMLElement
+    expect(el.textContent).toContain('2 personnes sans réponse')
+    expect(el.textContent).not.toContain('Relancer')
+    const toggle = el.querySelector<HTMLButtonElement>('[aria-controls="unanswered-list"]')!
+    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+    toggle.click()
+    fixture.detectChanges()
+    expect(toggle.getAttribute('aria-expanded')).toBe('true')
+    expect(el.querySelector('#unanswered-list')?.textContent).toContain('Alex')
+    expect(el.querySelector('#unanswered-list')?.textContent).toContain('Guest Artist')
+    const component = fixture.componentInstance as unknown as { onSummaryPatch: (s: EventAvailabilitySummary) => void }
+    component.onSummaryPatch({ ...mockSummary, participants: mockSummary.participants.slice(0, 2) })
+    fixture.detectChanges()
+    expect(el.textContent).toContain('1 personne sans réponse')
+    expect(el.querySelector('#unanswered-list')?.textContent).not.toContain('Guest Artist')
+    component.onSummaryPatch({ ...mockSummary, participants: [] })
+    fixture.detectChanges()
+    expect(el.textContent).toContain('0 personne sans réponse')
+    expect(el.textContent).toContain('Personne en attente de réponse')
+    expect(setMyAvailability).not.toHaveBeenCalled()
+    expect(setParticipantAvailability).not.toHaveBeenCalled()
+  })
+
+  it('uses the new event summary and resets expansion when the event changes', async () => {
+    const { fixture, getEventAvailabilitySummary } = await setup()
+    const el = fixture.nativeElement as HTMLElement
+    el.querySelector<HTMLButtonElement>('[aria-controls="unanswered-list"]')!.click()
+    fixture.detectChanges()
+    getEventAvailabilitySummary.mockResolvedValueOnce({ ok: true, status: 200, data: { ...mockSummary, eventId: 'event-2', participants: [mockSummary.participants[1]] } })
+    fixture.componentRef.setInput('event', { ...fixture.componentInstance.event(), id: 'event-2' })
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    expect(el.textContent).toContain('1 personne sans réponse')
+    expect(el.querySelector('[aria-controls="unanswered-list"]')?.getAttribute('aria-expanded')).toBe('false')
+  })
+
+  it('exposes reminder only when permitted and emits without a write', async () => {
+    const { fixture, setMyAvailability, setParticipantAvailability } = await setup()
+    const emitted = vi.fn()
+    fixture.componentInstance.relanceDispos.subscribe(emitted)
+    fixture.componentRef.setInput('canRelanceDispos', true)
+    fixture.detectChanges()
+    const button = [...(fixture.nativeElement as HTMLElement).querySelectorAll('button')].find((b) => b.textContent?.includes('Relancer'))!
+    button.click()
+    expect(emitted).toHaveBeenCalledOnce()
+    expect(setMyAvailability).not.toHaveBeenCalled()
+    expect(setParticipantAvailability).not.toHaveBeenCalled()
+  })
+
   it('renders unified poll view without Moi/Tous toggle', async () => {
     const { fixture } = await setup()
     const el = fixture.nativeElement as HTMLElement
