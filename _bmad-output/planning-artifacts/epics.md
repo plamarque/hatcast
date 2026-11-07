@@ -3859,6 +3859,14 @@ En tant que membre, je veux découvrir le podium final de l’Avent et comprendr
 
 **Material 3 et références :** appliquer FRONTEND_UI, Advent DESIGN, EXPERIENCE, AD-7 et la stratégie de tests visuels ; vérifier mobile, agrandissement du texte, clavier et isolation HatCast.
 
+### Story 25.25: Lire les anecdotes complètes avant de choisir
+
+En tant que membre, je veux pouvoir lire le récit complet associé à chaque proposition avant de répondre, afin de choisir en disposant des informations fournies par les contributeurs.
+
+**Critères :** Présenter les trois propositions courtes sélectionnables et permettre d’ouvrir indépendamment chaque récit disponible, sans modifier le choix. Si un récit manque, conserver la proposition courte sans commande vide. Préserver les récits et paragraphes, leur association aux propositions, le rappel au résultat, les règles d’accès aux jours et la révélation différée de la réponse et des points. Adapter les projections serveur, les contrats documentaires et les tests de confidentialité à cette divulgation volontaire des récits pendant le quiz.
+
+**Material 3 et références :** appliquer FRONTEND_UI, Advent DESIGN, EXPERIENCE, AD-7 et la stratégie de tests visuels ; voir la story détaillée 25.25. Cette décision fait évoluer le contrat « récits uniquement après révélation » de la story 25.22.
+
 ## Final validation
 
 
