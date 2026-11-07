@@ -94,3 +94,14 @@ context:
 
 - Run focused Angular availability component tests and the relevant API authorization tests if API behavior changes.
 - Run the applicable build and isolated targeted Playwright evidence; verify organizer and ordinary-member access and mobile layout.
+
+### Review Findings — final diff
+
+- [x] [Review][Patch] Verify the complete collective reminder request with multiple eligible recipients and an ineligible recipient [`apps/web/src/app/shared/share-announce/share-announce-dialog.spec.ts`] — the confirmation test and the sending test currently mock their connecting boundary independently, the added integration test now drives the real confirmation and checks that both eligible IDs, but not the ineligible ID, reach the request.
+
+#### Rejected findings
+
+- Bootstrap subject retention on an event switch: an isolated component-input sequence can retain the old subject, but the observed route path clears `event` and destroys this component before loading another event; no reachable user-visible failure was demonstrated.
+- Browser-only checks of count, names and no writes: the focused component test explicitly checks these behaviors; the reported lack of duplicated browser assertions is not itself a verified functional defect.
+- Browser-only stale, preference and authorization checks: existing targeted component and API tests cover the specified boundaries; no failure was established by the lack of a second browser-level assertion.
+- Delayed old-event summary: the generation guard invalidates older loads on event change; no missing guard was demonstrated.
