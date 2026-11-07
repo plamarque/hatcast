@@ -33,7 +33,7 @@ async function main() {
   if (snapshot.generation !== String(meta.generation)) fail()
   const rows = snapshot.rows
   if (rows.some(r => r.false_choice == null || [r.statement_0,r.statement_1,r.statement_2].some(v => !v))) fail()
-  const cols=['quiz_day','display_name','portrait_ref','statement_0','statement_1','statement_2','false_choice','explanation']
+  const cols=['quiz_day','display_name','portrait_ref','statement_0','statement_1','statement_2','false_choice','explanation','story_0','story_1','story_2']
   const sql=rows.map(r=>`INSERT INTO advent_quizzes (${cols.join(',')}) VALUES (${cols.map(c=>quote(r[c])).join(',')});`)
   // This check fails the Flyway migration if the disposable H2 database does not contain exactly the selected days.
   sql.push('CREATE TABLE advent_journey_preflight (valid INTEGER NOT NULL CHECK (valid = 1));')
