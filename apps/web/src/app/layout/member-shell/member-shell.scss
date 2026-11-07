@@ -104,6 +104,10 @@
 
 .member-shell__advent-entry--desktop {
   position: relative;
-  display: block;
+  top: auto;
+  inset-inline-end: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin: 0 auto;
 }

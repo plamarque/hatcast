@@ -54,6 +54,8 @@ integration database).
 
 ### Pending verification or operational follow-up
 
+BUG-107 is corrected locally and its desktop screenshot validated; mobile human verification remains pending.
+
 BUG-106 is corrected and verified against local PostgreSQL; staging CI must verify the fix.
 
 BUG-095 is corrected locally; the development deployment must be verified.
@@ -85,6 +87,14 @@ BUG-024, and BUG-021 have local fixes but still require their stated review,
 human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
+
+### BUG-107 — Advent gift shortcut shifted outside desktop rail
+- **Status**: Corrected locally; desktop screenshot validated; mobile human verification pending
+- **Severity**: Low
+- **Affected area**: V2 member desktop navigation
+- **Observed behavior**: The Advent gift shortcut is partly outside the left edge of the navigation rail.
+- **Expected behavior**: The shortcut is centered in the rail above the account control.
+- **Notes**: The desktop button inherited mobile positioning offsets, and its image overflowed the padded button content. The desktop override resets the offsets and centers the image without changing the mobile shortcut.
 
 ### BUG-106 — Advent PostgreSQL ranking fixture lacks received_at
 
