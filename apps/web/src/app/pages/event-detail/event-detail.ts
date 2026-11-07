@@ -1,4 +1,5 @@
 import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core'
+import { MatButtonModule } from '@angular/material/button'
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
@@ -52,8 +53,8 @@ import {
 } from '../season-home/event-form-dialog'
 import { EventDisposTab } from '../../shared/availability/event-dispos-tab'
 import { EventActiviteTab } from '../../shared/availability/event-activite-tab'
-import { EventDetailDraftBanner } from './event-detail-draft-banner'
 import { EventDetailHeader } from './event-detail-header'
+import type { CompositionEquipeStatus } from '../../core/composition/composition-equipe-status'
 import type { CompositionResponse } from '../../core/composition/composition-api.service'
 import { CompositionApiService } from '../../core/composition/composition-api.service'
 import {
@@ -93,11 +94,11 @@ function findLinkedSeasonParticipant(
   selector: 'app-event-detail',
   imports: [
     MatDialogModule,
+    MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatTabsModule,
-    EventDetailDraftBanner,
     EventDetailHeader,
     EventDisposTab,
     EventActiviteTab,
@@ -125,12 +126,14 @@ export class EventDetail implements OnDestroy, OnInit {
   private compositionLoadRequestId = 0
   private compositionLoadInFlight = false
   private tabBootstrapInFlight: { tab: EventPageTab } | null = null
+  private infosBootstrapInFlight: object | null = null
   private lastNotificationLinkCaptureKey = ''
   private tabBootstrapLoaded = signal<Record<EventPageTab, boolean>>({
     infos: false,
     dispos: false,
     equipe: false,
   })
+  protected readonly disposBootstrapError = signal(false)
   protected readonly isDisposBootstrapReady = computed(() => this.tabBootstrapLoaded().dispos)
 
   protected readonly slug = toSignal(
@@ -156,7 +159,7 @@ export class EventDetail implements OnDestroy, OnInit {
   protected readonly canSwitchSubject = computed(() => this.canManageComposition())
   protected readonly linkedParticipantId = signal<string | null>(null)
   protected readonly linkedParticipantName = signal<string | null>(null)
-  protected readonly activeTab = signal<EventDetailTab>('infos')
+  protected readonly activeTab = signal<EventDetailTab>('dispos')
   protected readonly organizersReloadTrigger = signal(0)
   protected readonly showConfirmPending = signal(false)
   protected readonly contextTroupeName = signal('')
@@ -165,9 +168,11 @@ export class EventDetail implements OnDestroy, OnInit {
   protected readonly contextLeagueTitle = signal('')
   protected readonly contextSeasonSlug = signal('')
   protected readonly composition = signal<CompositionResponse | null>(null)
+  protected readonly equipeStatus = signal<CompositionEquipeStatus | null>(null)
   protected readonly compositionLoaded = signal(false)
   protected readonly compositionInteractionBlocked = signal(false)
   protected readonly disposSummary = signal<EventAvailabilitySummary | null>(null)
+  protected readonly infosBootstrapError = signal(false)
   protected readonly infosOrganizers = signal<OrganizerResponse[] | null>(null)
   protected readonly infosCategories = signal<TroupeCategory[] | null>(null)
   protected readonly disposBootstrapSummary = signal<EventAvailabilitySummary | null>(null)
@@ -200,13 +205,6 @@ export class EventDetail implements OnDestroy, OnInit {
       return []
     }
     const items: ScopeAdminMenuItem[] = []
-    if (this.canManageEvents() && !ev.archived) {
-      items.push({
-        label: 'Modifier',
-        icon: 'edit',
-        action: () => this.openEdit(),
-      })
-    }
     if (this.canAnnouncePublishedEvent()) {
       items.push({
         label: 'Annoncer',
@@ -320,7 +318,7 @@ export class EventDetail implements OnDestroy, OnInit {
     )
   })
   protected readonly visibleTabs = computed((): EventDetailTab[] => {
-    const tabs: EventDetailTab[] = ['infos', 'dispos', 'equipe']
+    const tabs: EventDetailTab[] = ['dispos', 'equipe']
     if (this.showActiviteTab()) {
       tabs.push('activite')
     }
@@ -376,11 +374,12 @@ export class EventDetail implements OnDestroy, OnInit {
   private applyQueryParams(params: ParamMap): void {
     const tab = resolveEventDetailTab(params)
     this.activeTab.set(tab)
+    if (tab !== 'equipe') this.equipeStatus.set(null)
     this.showConfirmPending.set(params.get('showConfirm') === 'true')
     this.maybeCaptureNotificationLinkOpened(params)
 
     const tabParam = params.get('tab')
-    if (tabParam && !isEventDetailTabParamKnown(tabParam)) {
+    if (tabParam && (!isEventDetailTabParamKnown(tabParam) || ['infos', 'info'].includes(tabParam.toLowerCase()))) {
       void this.router.navigate([], {
         relativeTo: this.route,
         queryParams: { tab: eventDetailTabToQuery(tab) },
@@ -391,13 +390,18 @@ export class EventDetail implements OnDestroy, OnInit {
     this.ensureTabBootstrapLoaded()
   }
 
+  protected onEquipeStatusChanged(status: CompositionEquipeStatus | null): void {
+    if (this.activeTab() === 'equipe') this.equipeStatus.set(status)
+  }
+
   protected onCompositionInteractionBlockedChange(blocked: boolean): void {
     this.compositionInteractionBlocked.set(blocked)
   }
 
   protected onTabChange(index: number): void {
-    const tab = this.visibleTabs()[index] ?? 'infos'
+    const tab = this.visibleTabs()[index] ?? 'dispos'
     if (tab !== 'equipe') {
+      this.equipeStatus.set(null)
       this.compositionInteractionBlocked.set(false)
     }
     this.activeTab.set(tab)
@@ -432,13 +436,21 @@ export class EventDetail implements OnDestroy, OnInit {
     )
   }
 
+  protected canOpenEdit(): boolean {
+    const ev = this.event()
+    return !!ev && !ev.archived && (
+      this.canManageEvents() || this.canManageTroupe() || this.canManageEventOrganizersFor(ev.id) ||
+      (this.canManageComposition() && !this.compositionInteractionBlocked())
+    )
+  }
+
   protected openEdit(): void {
     const ev = this.event()
     const seasonId = this.seasonId()
     if (!ev || !seasonId) {
       return
     }
-    if (!this.canManageEvents()) {
+    if (!this.canOpenEdit()) {
       this.snack.open('Vous ne pouvez pas modifier ce spectacle.', 'OK', { duration: 5000 })
       return
     }
@@ -450,15 +462,42 @@ export class EventDetail implements OnDestroy, OnInit {
           seasonId,
           event: ev,
           canManagePublication: this.canManageComposition(),
+          canManageEvents: this.canManageEvents(),
+          canManageComposition: this.canManageComposition() && !this.compositionInteractionBlocked(),
+          troupeId: this.troupeId(),
+          troupeSlug: this.routeTroupeSlug(),
+          canManageTroupe: this.canManageTroupe(),
+          canManageEventOrganizers: this.canManageEventOrganizersFor(ev.id),
+          organizers: this.infosOrganizers(),
         },
         width: 'min(100vw - 2rem, 28rem)',
       },
     )
+    ref.componentInstance?.organizersChanged?.subscribe(() => {
+      if (this.event()?.id === ev.id && this.seasonId() === seasonId) {
+        this.infosOrganizers.set(null)
+        this.organizersReloadTrigger.update((value) => value + 1)
+        this.infosBootstrapInFlight = null
+        void this.loadInfosBootstrap(ev.slug || this.eventSlug())
+      }
+    })
+    ref.componentInstance?.categoriesChanged?.subscribe(() => {
+      if (this.event()?.id === ev.id && this.seasonId() === seasonId) {
+        this.infosBootstrapInFlight = null
+        void this.loadInfosBootstrap(ev.slug || this.eventSlug(), true)
+      }
+    })
     ref.afterClosed().subscribe((updated) => {
-      if (!updated) {
+      if (!updated || this.event()?.id !== ev.id || this.seasonId() !== seasonId) {
         return
       }
-      this.applyEventDetailUpdate(ev, updated)
+      this.onEventInfosUpdated(updated)
+      if (ev.templateType !== updated.templateType && this.canManageComposition()) {
+        this.analytics.captureCompositionMutation(this.analyticsContext(ev.id, seasonId, this.troupeId()), {
+          action: 'slot', outcome: 'succeeded',
+        })
+      }
+      this.snack.open(this.eventUpdateSnackMessage(ev, updated), 'OK', { duration: 4000 })
     })
   }
 
@@ -608,7 +647,11 @@ export class EventDetail implements OnDestroy, OnInit {
 
   protected onEventInfosUpdated(updated: EventResponse): void {
     const previous = this.event()
-    this.event.set(updated)
+    const current = updated.teamStatusBadge == null && previous?.id === updated.id
+      ? { ...updated, teamStatusBadge: previous.teamStatusBadge, compositionLifecycle: previous.compositionLifecycle }
+      : updated
+    this.event.set(current)
+    if (updated.teamStatusBadge == null) void this.refreshEventStatus(current)
     this.refreshDisposSummaryIfLoaded(updated)
     if (
       previous != null &&
@@ -625,6 +668,23 @@ export class EventDetail implements OnDestroy, OnInit {
       if (seasonId) {
         void this.loadComposition(seasonId, updated.id)
       }
+    }
+  }
+
+  private async refreshEventStatus(event: EventResponse): Promise<void> {
+    const seasonId = this.seasonId()
+    const segment = event.slug || this.eventSlug()
+    if (!seasonId || !segment) return
+    const requestId = this.loadRequestId
+    try {
+      const result = await this.eventsApi.getEventPage(seasonId, segment, {
+        tab: this.eventDetailTabToPageTab(this.activeTab()),
+        bySlug: !UUID_IN_PATH_REGEX.test(segment),
+      })
+      if (requestId !== this.loadRequestId || this.event() !== event || !result.ok || !result.data) return
+      this.event.set({ ...event, teamStatusBadge: result.data.event.teamStatusBadge, compositionLifecycle: result.data.event.compositionLifecycle })
+    } catch {
+      // Keep the last known status if refreshing it fails.
     }
   }
 
@@ -706,13 +766,17 @@ export class EventDetail implements OnDestroy, OnInit {
       this.loading.set(true)
       this.event.set(null)
       this.composition.set(null)
+      this.equipeStatus.set(null)
       this.compositionLoaded.set(false)
       this.compositionLoadInFlight = false
       this.disposSummary.set(null)
       this.disposBootstrapSummary.set(null)
+      this.disposBootstrapError.set(false)
       this.hasUnknownAvailability.set(false)
       this.infosOrganizers.set(null)
       this.infosCategories.set(null)
+      this.infosBootstrapError.set(false)
+      this.infosBootstrapInFlight = null
       this.tabBootstrapLoaded.set({ infos: false, dispos: false, equipe: false })
       this.tabBootstrapInFlight = null
       this.resetResolvedContext()
@@ -778,6 +842,8 @@ export class EventDetail implements OnDestroy, OnInit {
     }
     this.applyEventPageResponse(pageResult.data, pageTab, { markTabLoaded: pageTab })
     const found = pageResult.data.event
+    if (pageTab !== 'infos') void this.loadInfosBootstrap(found.slug || routeSegment)
+    else if (pageResult.data.categories == null) this.infosBootstrapError.set(true)
     if (isUuidSegment && found.slug && found.slug !== routeSegment) {
       await this.router.navigate(
         saisonEventPath(resolved.troupe.slug, resolved.season.slug, found.slug),
@@ -790,6 +856,40 @@ export class EventDetail implements OnDestroy, OnInit {
     this.maybeCaptureNotificationLinkOpened(this.route.snapshot.queryParamMap)
     this.clampActiveTab()
     this.ensureTabBootstrapLoaded()
+  }
+
+  protected retryInfosBootstrap(): void {
+    const event = this.event()
+    if (event) void this.loadInfosBootstrap(event.slug || this.eventSlug())
+  }
+
+  private async loadInfosBootstrap(routeSegment: string, refreshEvent = false): Promise<void> {
+    if (this.infosBootstrapInFlight || !this.seasonId() || !routeSegment) return
+    const request = {}
+    this.infosBootstrapInFlight = request
+    this.infosBootstrapError.set(false)
+    const requestId = this.loadRequestId
+    const seasonId = this.seasonId()
+    const eventAtRequest = this.event()
+    const eventId = eventAtRequest?.id
+    try {
+      const result = await this.eventsApi.getEventPage(seasonId, routeSegment, {
+        tab: 'infos', bySlug: !UUID_IN_PATH_REGEX.test(routeSegment),
+      })
+      if (this.infosBootstrapInFlight !== request || requestId !== this.loadRequestId || eventId !== this.event()?.id) return
+      if (!result.ok || !result.data || result.data.categories == null) {
+        this.infosBootstrapError.set(true)
+        return
+      }
+      if (refreshEvent && this.event() === eventAtRequest) this.event.set(result.data.event)
+      this.infosCategories.set(result.data.categories)
+      if (result.data.organizers != null) this.infosOrganizers.set(result.data.organizers)
+      this.tabBootstrapLoaded.update((loaded) => ({ ...loaded, infos: true }))
+    } catch {
+      if (this.infosBootstrapInFlight === request && requestId === this.loadRequestId && eventId === this.event()?.id) this.infosBootstrapError.set(true)
+    } finally {
+      if (this.infosBootstrapInFlight === request) this.infosBootstrapInFlight = null
+    }
   }
 
   private eventDetailTabToPageTab(tab: EventDetailTab): EventPageTab {
@@ -870,9 +970,11 @@ export class EventDetail implements OnDestroy, OnInit {
       return
     }
     const bootstrap = { tab }
+    if (tab === 'dispos') this.disposBootstrapError.set(false)
     this.tabBootstrapInFlight = bootstrap
     const requestId = this.loadRequestId
     const seasonId = this.seasonId()
+    const eventAtRequest = this.event()
     if (!seasonId) {
       this.tabBootstrapInFlight = null
       return
@@ -897,11 +999,22 @@ export class EventDetail implements OnDestroy, OnInit {
         }
         if (tab === 'equipe') {
           this.ensureCompositionLoaded()
+        } else if (tab === 'dispos') {
+          this.disposBootstrapError.set(true)
         }
         return
       }
-      this.applyEventPageResponse(pageResult.data, tab, { markTabLoaded: tab })
+      const currentEvent = this.event()
+      const page = currentEvent && currentEvent !== eventAtRequest
+        ? { ...pageResult.data, event: currentEvent }
+        : pageResult.data
+      this.applyEventPageResponse(page, tab, { markTabLoaded: tab })
       this.ensureCompositionLoaded()
+    } catch {
+      if (requestId === this.loadRequestId && this.eventDetailTabToPageTab(this.activeTab()) === tab) {
+        if (tab === 'dispos') this.disposBootstrapError.set(true)
+        if (tab === 'equipe') this.ensureCompositionLoaded()
+      }
     } finally {
       if (this.tabBootstrapInFlight === bootstrap) {
         this.tabBootstrapInFlight = null
@@ -912,12 +1025,17 @@ export class EventDetail implements OnDestroy, OnInit {
     }
   }
 
+  protected retryDisposBootstrap(): void {
+    this.disposBootstrapError.set(false)
+    this.ensureTabBootstrapLoaded()
+  }
+
   private clampActiveTab(): void {
     if (this.activeTab() === 'activite' && !this.showActiviteTab()) {
-      this.activeTab.set('infos')
+      this.activeTab.set('dispos')
       void this.router.navigate([], {
         relativeTo: this.route,
-        queryParams: { tab: eventDetailTabToQuery('infos') },
+        queryParams: { tab: eventDetailTabToQuery('dispos') },
         queryParamsHandling: 'merge',
         replaceUrl: true,
       })

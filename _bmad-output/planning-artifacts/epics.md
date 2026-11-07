@@ -362,21 +362,6 @@ Remplace le hub `/seasons`, introduit `/troupes` et `/troupes/:slug`, breadcrumb
 **Design :** [_bmad-output/design-thinking-2026-05-25.md](../design-thinking-2026-05-25.md) ; **UX :** [ux-design-journey-league-agenda.md](./ux-design-journey-league-agenda.md) (amended 2026-05-25, UX-DR19–21)  
 **Supersedes :** **Epic 14** (hub troupe — stories 14.1–14.5), ADR 0012 §3 (travel league), Story **13.6** (reportée)
 
-#### Story 17.46 : Détail spectacle — remplacer Infos par un bandeau
-
-En tant que membre ou organisateur·ice, je veux accéder aux trois autres onglets du spectacle avec un bandeau d’en-tête au-dessus, afin de simplifier la consultation du spectacle.
-
-**Acceptance Criteria (résumé)**
-
-- **Given** le détail d’un spectacle, **when** il est affiché, **then** l’onglet Infos est supprimé et un bandeau d’en-tête est présenté au-dessus des autres onglets, dans l’esprit de celui de l’agenda.
-- **Given** les autres onglets et les droits existants, **when** la navigation est utilisée, **then** ils restent accessibles selon les mêmes autorisations.
-- **Given** les informations et actions actuellement présentes dans Infos, **when** le design est étudié, **then** leur devenir est déterminé sans perte involontaire de fonctionnalité ni de contrôle d’accès.
-- Le contenu et le design détaillés du bandeau sont définis pendant le traitement de la story, avec vérifications mobile, accessibilité et Material 3.
-
-**Depends :** 17.43 ; 17.8 ; 17.14 ; 17.15.
-
----
-
 ### Epic 18 — Troupe Démo & politique d’adhésion (onboarding prod V2)
 
 Sandbox partagée **Démo** en production, seed pédagogique (~20 spectacles), participants fictifs, **self-join** pour tout utilisateur authentifié, modèle **`join_policy`** (`OPEN` | `INVITE_ONLY`), gouvernance **super-admin** uniquement pour changer la politique. Remplace le branchement provisoire « seed troupe = La Malice » (Story 2.1).
@@ -2388,6 +2373,21 @@ afin de **retrouver plus naturellement** ma vue perso avant l’espace collectif
 **Priorité :** P2 — patch **v2.4.3**.  
 **Depends :** 17.41 (done).  
 **Story file :** [_17-45-nav-stats-before-troupe.md_](../implementation-artifacts/17-45-nav-stats-before-troupe.md)
+
+---
+
+#### Story 17.46 : Détail spectacle — remplacer Infos par un bandeau
+
+En tant que membre ou organisateur·ice, je veux accéder aux trois autres onglets du spectacle avec un bandeau d’en-tête au-dessus, afin de simplifier la consultation du spectacle.
+
+**Acceptance Criteria (résumé)**
+
+- **Given** le détail d’un spectacle, **when** il est affiché, **then** l’onglet Infos est supprimé et un bandeau d’en-tête est présenté au-dessus des autres onglets, dans l’esprit de celui de l’agenda.
+- **Given** les autres onglets et les droits existants, **when** la navigation est utilisée, **then** ils restent accessibles selon les mêmes autorisations.
+- **Given** les informations et actions actuellement présentes dans Infos, **when** le spectacle est consulté, **then** elles restent accessibles selon leurs autorisations.
+- Le bandeau présente date, lieu, statut et aide, format et catégorie non principale ; le formulaire unifié respecte les droits de chaque champ. Vérifications mobile, accessibilité et Material 3.
+
+**Depends :** 17.43 ; 17.8 ; 17.14 ; 17.15.
 
 ---
 

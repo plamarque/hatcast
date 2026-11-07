@@ -101,7 +101,7 @@ supersedesPartially:
 
 | Surface | Fichier SCSS | Mixin | Centré | Notes |
 |---------|--------------|-------|--------|-------|
-| **Détail spectacle** | [`event-detail.scss`](../../apps/web/src/app/pages/event-detail/event-detail.scss) | `group()` | oui | Shell `event-detail__tabs-shell` flex center ; onglets Infos · Dispos · Équipe · Activité |
+| **Détail spectacle** | [`event-detail.scss`](../../apps/web/src/app/pages/event-detail/event-detail.scss) | `group()` | oui | Shell `event-detail__tabs-shell` flex center ; onglets Dispos · Équipe · Activité (selon les droits) |
 | **Mon compte** | [`account-placeholder.scss`](../../apps/web/src/app/pages/account-placeholder/account-placeholder.scss) | `nav-bar()` | non | 4 onglets ; scroll horizontal ≤ 480 px ; icônes C13 |
 | **Paramètres troupe** | [`troupe-settings.scss`](../../apps/web/src/app/pages/troupe-settings/troupe-settings.scss) | `group($centered: false)` | non | Shell prêt pour onglets futurs (Catégories MVP) |
 
@@ -109,7 +109,6 @@ supersedesPartially:
 
 | Onglet | `mat-icon` | Spec complémentaire |
 |--------|------------|---------------------|
-| Infos | `info` | — |
 | Dispos | `ballot` | [ux-design-dispos-poll D22](./ux-design-dispos-poll-2026-06-09.md) |
 | Équipe | `groups` | — |
 | Activité | `history` | [ux-design-audit-journal-9-1.md](./ux-design-audit-journal-9-1.md) |
@@ -187,3 +186,5 @@ Conserve les règles [ux-design-mon-compte.md](./ux-design-mon-compte.md) **C13*
 | Date | Auteur | Change |
 |------|--------|--------|
 | 2026-06-09 | Sally + Paige + Patrice | Spec initiale post-preview ; mixin `_hatcast-pill-tab-bar.scss` ; surfaces event-detail, compte, troupe-settings |
+
+**Amendement 17.46 :** Le bandeau spectacle précède la barre ; Infos ne constitue plus un onglet. Les détails complémentaires restent accessibles depuis le bandeau.

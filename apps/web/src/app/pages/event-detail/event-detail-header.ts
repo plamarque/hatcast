@@ -1,5 +1,5 @@
 import { Location } from '@angular/common'
-import { Component, computed, inject, input } from '@angular/core'
+import { Component, computed, inject, input, output } from '@angular/core'
 import { Router } from '@angular/router'
 import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
@@ -21,6 +21,8 @@ export class EventDetailHeader {
   private readonly router = inject(Router)
 
   readonly showBack = input(false)
+  readonly canEdit = input(false)
+  readonly edit = output<void>()
   readonly adminItems = input<ScopeAdminMenuItem[]>([])
 
   protected readonly showAdminMenu = computed(() => this.adminItems().length > 0)

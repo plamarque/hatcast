@@ -1,211 +1,124 @@
 <main class="event-infos">
+  <section class="event-infos__banner" [class.event-infos__banner--draft]="isDraft()" aria-label="Informations du spectacle">
+    <div class="event-infos__date">
+      @if (dateParts(); as date) {
+        <time [attr.datetime]="event().startsAt" [attr.aria-label]="formatDate(event().startsAt)">
+          <span class="event-infos__day" aria-hidden="true">{{ date.day }}</span>
+          <span class="event-infos__weekday" aria-hidden="true">{{ date.weekday }}</span>
+          <span class="event-infos__month-year" aria-hidden="true">{{ date.monthYear }}</span>
+          @if (date.time !== '00:00') {
+            <span class="event-infos__time" aria-hidden="true">{{ date.time }}</span>
+          }
+        </time>
+      } @else {
+        <span class="event-infos__empty">Date invalide</span>
+      }
+      @if (dateExportEnabled()) {
+        <button type="button" mat-icon-button class="event-infos__calendar"
+          [matMenuTriggerFor]="calendarMenu" aria-haspopup="menu"
+          [attr.aria-expanded]="calendarMenuOpen()"
+          [attr.aria-label]="'Ajouter à votre agenda : ' + formatDate(event().startsAt)"
+          (menuOpened)="onCalendarMenuOpened()" (menuClosed)="onCalendarMenuClosed()">
+          <mat-icon aria-hidden="true">event</mat-icon>
+        </button>
+        <mat-menu #calendarMenu="matMenu" class="event-infos__menu-panel" aria-label="Options d'agenda">
+          <div class="event-infos__menu-header" matMenuItem disabled>Ajouter à votre agenda :</div>
+          <button type="button" mat-menu-item (click)="exportToGoogleCalendar()">Google</button>
+          <button type="button" mat-menu-item (click)="exportToOutlook()">Outlook</button>
+          <button type="button" mat-menu-item (click)="exportToAppleCalendar()">Apple</button>
+        </mat-menu>
+      }
+    </div>
+    <div class="event-infos__banner-details">
+      <div class="event-infos__banner-meta">
+        <button type="button" mat-button class="event-infos__status-trigger"
+          data-testid="composition-status-help-trigger" id="composition-status-help-trigger"
+          [attr.aria-label]="'Comprendre le statut : ' + (isDraft() ? 'Brouillon' : (eventStatus()?.label || event().teamStatusBadge?.label || 'Collecte'))"
+          [attr.aria-expanded]="statusHelpOpen()"
+          [attr.aria-controls]="statusHelpOpen() ? 'composition-status-help-panel' : null"
+          (click)="statusHelpOpen.set(!statusHelpOpen())">
+          @if (isDraft()) {
+            <span class="event-infos__status-badge event-infos__status-badge--draft">Brouillon</span>
+          } @else if (eventStatus(); as status) {
+            <span class="event-infos__status-badge" data-testid="composition-status-badge"
+              [class.event-infos__status-badge--success]="status.tone === 'success'"
+              [class.event-infos__status-badge--warning]="status.tone === 'warning' || status.tone === 'info'">{{ status.label }}</span>
+          } @else {
+            <app-composition-status-badge [badge]="event().teamStatusBadge" />
+          }
+        </button>
+        @if (canEdit()) {
+          <button type="button" mat-icon-button aria-label="Modifier le spectacle" (click)="edit.emit()">
+            <mat-icon aria-hidden="true">edit</mat-icon>
+          </button>
+        }
+      </div>
+      @if (statusHelpOpen()) {
+        <div id="composition-status-help-panel" class="event-infos__status-help" role="region"
+          aria-labelledby="composition-status-help-trigger" data-testid="composition-status-help-panel">
+          <mat-icon aria-hidden="true">info</mat-icon>
+          @if (isDraft()) {
+            <p>@if (canManageComposition()) { Ce spectacle n’est pas visible dans l’agenda des membres. Publie-le pour rouvrir la collecte des disponibilités. } @else { Ce spectacle est en brouillon : il n’apparaît plus dans l’agenda et tu ne peux pas modifier tes disponibilités pour le moment. }</p>
+            @if (canManageComposition()) { <button type="button" mat-button [disabled]="publishing()" (click)="confirmPublish()">Publier</button> }
+          } @else {
+            <p data-testid="composition-status-hint">{{ eventStatus()?.managerGuideline || statusHelpText() }}</p>
+          }
+        </div>
+      }
+      @if (locationInteractive()) {
+        <button type="button" mat-button class="event-infos__location"
+          [matMenuTriggerFor]="mapsMenu" aria-haspopup="menu"
+          [attr.aria-expanded]="mapsMenuOpen()"
+          aria-label="Ouvrir le lieu dans une appli de navigation" [title]="event().location!"
+          (menuOpened)="onMapsMenuOpened()" (menuClosed)="onMapsMenuClosed()">
+          <mat-icon aria-hidden="true">place</mat-icon>
+          <span class="event-infos__action-text event-infos__action-text--truncate">{{ event().location }}</span>
+        </button>
+        <mat-menu #mapsMenu="matMenu" class="event-infos__menu-panel">
+          <button type="button" mat-menu-item (click)="openGoogleMaps()">Ouvrir dans Google Maps</button>
+          <button type="button" mat-menu-item (click)="openWaze()">Ouvrir dans Waze</button>
+        </mat-menu>
+      }
+      <div class="event-infos__format-summary">{{ typeIcon() }} {{ typeLabel() }}</div>
+      <button type="button" mat-button class="event-infos__details-action"
+        (click)="detailsExpanded.set(!detailsExpanded())"
+        [attr.aria-expanded]="detailsExpanded()" aria-controls="event-infos-extra">
+        {{ detailsExpanded() ? 'Voir moins' : 'Voir plus' }}
+      </button>
+      @if (bootstrapError()) {
+        <div role="alert">Impossible de charger les informations du spectacle.
+          <button type="button" mat-button (click)="retryBootstrap.emit()">Réessayer</button>
+        </div>
+      }
+    </div>
+    @if (isDraft() && canManageComposition()) {
+      <button type="button" mat-flat-button class="event-infos__publish" [disabled]="publishing()" (click)="confirmPublish()">{{ publishing() ? 'Publication…' : 'Publier le spectacle' }}</button>
+    }
+  </section>
+  @if (detailsExpanded()) {
+  <section id="event-infos-extra" class="event-infos__expanded" aria-label="Informations complémentaires">
   @if (event().description?.trim(); as description) {
     <div class="event-infos__field event-infos__field--description">
       <div class="event-infos__value">{{ description }}</div>
     </div>
   }
 
-  <div class="event-infos__field">
-    <span class="event-infos__label">Date</span>
-    @if (dateExportEnabled()) {
-      <button
-        type="button"
-        class="event-infos__action-row"
-        [matMenuTriggerFor]="calendarMenu"
-        aria-haspopup="menu"
-        [attr.aria-expanded]="calendarMenuOpen()"
-        aria-label="Ajouter à votre agenda"
-        (menuOpened)="onCalendarMenuOpened()"
-        (menuClosed)="onCalendarMenuClosed()"
-      >
-        <mat-icon aria-hidden="true">event</mat-icon>
-        <span class="event-infos__action-text">{{ formatDate(event().startsAt) }}</span>
-        <mat-icon
-          class="event-infos__chevron"
-          [class.event-infos__chevron--open]="calendarMenuOpen()"
-          aria-hidden="true"
-        >
-          expand_more
-        </mat-icon>
-      </button>
-      <mat-menu
-        #calendarMenu="matMenu"
-        class="event-infos__menu-panel"
-        aria-label="Options d'agenda"
-      >
-        <div class="event-infos__menu-header" matMenuItem disabled>
-          Ajouter à votre agenda :
-        </div>
-        <button type="button" mat-menu-item (click)="exportToGoogleCalendar()">
-          Google
-        </button>
-        <button type="button" mat-menu-item (click)="exportToOutlook()">
-          Outlook
-        </button>
-        <button type="button" mat-menu-item (click)="exportToAppleCalendar()">
-          Apple
-        </button>
-      </mat-menu>
-    } @else {
-      <div class="event-infos__action-row event-infos__action-row--disabled">
-        <mat-icon aria-hidden="true">event</mat-icon>
-        <span class="event-infos__action-text event-infos__action-text--muted">
-          {{ formatDate(event().startsAt) }}
-        </span>
-      </div>
-    }
-  </div>
 
-  <div class="event-infos__field">
-    <span class="event-infos__label">Lieu</span>
-    @if (locationInteractive()) {
-      <button
-        type="button"
-        class="event-infos__action-row"
-        [matMenuTriggerFor]="mapsMenu"
-        aria-haspopup="menu"
-        [attr.aria-expanded]="mapsMenuOpen()"
-        aria-label="Ouvrir le lieu dans une appli de navigation"
-        [title]="event().location!"
-        (menuOpened)="onMapsMenuOpened()"
-        (menuClosed)="onMapsMenuClosed()"
-      >
-        <mat-icon aria-hidden="true">place</mat-icon>
-        <span class="event-infos__action-text event-infos__action-text--truncate">{{
-          event().location
-        }}</span>
-        <mat-icon
-          class="event-infos__chevron"
-          [class.event-infos__chevron--open]="mapsMenuOpen()"
-          aria-hidden="true"
-        >
-          expand_more
-        </mat-icon>
-      </button>
-      <mat-menu #mapsMenu="matMenu" class="event-infos__menu-panel">
-        <button type="button" mat-menu-item (click)="openGoogleMaps()">
-          Ouvrir dans Google Maps
-        </button>
-        <button type="button" mat-menu-item (click)="openWaze()">
-          Ouvrir dans Waze
-        </button>
-      </mat-menu>
+  <section class="event-infos__organizers" aria-labelledby="event-infos-organizers-label">
+    <span id="event-infos-organizers-label" class="event-infos__label">Organisateur·ices</span>
+    @if (organizers().length > 0) {
+      <mat-chip-set class="event-infos__chip-set">
+        @for (organizer of organizers(); track organizer.userId) {
+          <mat-chip class="event-infos__organizer-chip">{{ organizerLabel(organizer) }}</mat-chip>
+        }
+      </mat-chip-set>
     } @else {
-      <div class="event-infos__value">
-        <span class="event-infos__empty">Non renseigné</span>
-      </div>
+      <span class="event-infos__empty">Aucun·e organisateur·ice dédié·e</span>
     }
-  </div>
-
-  <section
-    class="event-infos__format"
-    aria-labelledby="event-infos-format-label"
-  >
-    <div class="event-infos__format-header">
-      <span id="event-infos-format-label" class="event-infos__label">Format et besoins</span>
-    </div>
-    <div class="event-infos__format-body">
-      <div class="event-infos__type-row">
-        <span class="event-infos__type-icon" aria-hidden="true">{{ typeIcon() }}</span>
-        <span>{{ typeLabel() }}</span>
-      </div>
-      <app-role-display-chip-set
-        class="event-infos__roles-summary"
-        ariaLabel="Besoins en rôles"
-        [items]="summaryRoleChipItems()"
-        emptyMessage="Aucun besoin renseigné"
-      />
-    </div>
   </section>
-
-  @if (showOrganizersSection()) {
-    <section
-      class="event-infos__organizers"
-      aria-labelledby="event-infos-organizers-label"
-      aria-describedby="event-infos-organizers-help"
-    >
-      <span id="event-infos-organizers-label" class="event-infos__label">Organisateur·ices</span>
-      <p id="event-infos-organizers-help" class="event-infos__section-help">{{ organizersHelp }}</p>
-      @if (organizers().length > 0 || !canManageEventOrganizers()) {
-        <div class="event-infos__organizers-body">
-          @if (organizers().length > 0) {
-            <mat-chip-set class="event-infos__chip-set">
-              @for (organizer of organizers(); track organizer.userId) {
-                <mat-chip
-                  class="event-infos__organizer-chip"
-                  [disabled]="saving()"
-                  [removable]="canManageEventOrganizers()"
-                  (removed)="removeOrganizer(organizer.userId)"
-                >
-                  {{ organizerLabel(organizer) }}
-                  @if (canManageEventOrganizers()) {
-                    <mat-icon
-                      matChipRemove
-                      [attr.aria-label]="'Retirer ' + organizerLabel(organizer)"
-                    >
-                      cancel
-                    </mat-icon>
-                  }
-                </mat-chip>
-              }
-            </mat-chip-set>
-          } @else {
-            <span class="event-infos__empty">Aucun·e organisateur·ice dédié·e</span>
-          }
-        </div>
-      }
-      @if (canManageEventOrganizers()) {
-        <button
-          type="button"
-          class="event-infos__add-organizer"
-          [disabled]="saving()"
-          (click)="openOrganizersDialog()"
-        >
-          <mat-icon aria-hidden="true">person_add</mat-icon>
-          Ajouter un·e organisateur·ice
-        </button>
-      }
-    </section>
-  }
-
-  <section
-    class="event-infos__category"
-    aria-labelledby="event-infos-category-label"
-    aria-describedby="event-infos-category-help"
-  >
+  <section class="event-infos__category" aria-labelledby="event-infos-category-label">
     <span id="event-infos-category-label" class="event-infos__label">Catégorie</span>
-    <p id="event-infos-category-help" class="event-infos__section-help">{{ categoryHelp }}</p>
-    @if (glossaryLoading()) {
-      <div
-        class="event-infos__category-loading"
-        role="status"
-        aria-live="polite"
-        aria-busy="true"
-        aria-label="Chargement des catégories"
-      >
-        <mat-spinner diameter="24" />
-      </div>
-    } @else {
-      <app-event-category-select-chip-set
-        class="event-infos__category-chips"
-        ariaLabel="Catégorie du spectacle"
-        [options]="categoryOptions()"
-        [selectedSlug]="selectedCategorySlug()"
-        [disabled]="!canManageEvents() || saving()"
-        (categorySelect)="onCategorySelect($event)"
-      />
-    }
-    @if (canManageTroupe()) {
-      <button
-        type="button"
-        class="event-infos__add-organizer"
-        [disabled]="saving()"
-        (click)="navigateToCategorySettings()"
-      >
-        <mat-icon aria-hidden="true">settings</mat-icon>
-        Gérer les catégories
-      </button>
-    }
+    <span>{{ categoryLabel() || defaultCategoryLabel() }}</span>
   </section>
 
   @if (showScopeNav()) {
@@ -233,5 +146,7 @@
         </a>
       </mat-chip-set>
     </section>
+  }
+  </section>
   }
 </main>

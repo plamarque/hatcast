@@ -627,6 +627,52 @@ class EventControllerIntegrationTest {
     }
 
     @Test
+    fun `event organizer may patch only format on their own event`() {
+        val adminCookie = memberCookie("format-admin-${UUID.randomUUID()}")
+        val seasonId = createSeasonForEventsTests(adminCookie)
+        fun createEvent(title: String): String {
+            val response = mockMvc.perform(
+                post("/v1/seasons/$seasonId/events").cookie(adminCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"title":"$title","startsAt":"2032-06-01T19:00:00Z","templateType":"cabaret"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk).andReturn()
+            return mapper.readTree(response.response.contentAsString).get("id").asText()
+        }
+        val eventId = createEvent("Authorized event")
+        val otherId = createEvent("Other event")
+        val organizerSub = "format-organizer-${UUID.randomUUID()}"
+        val organizerCookie = TestAuthSupport.memberSessionCookieFromGoogleSignIn(
+            mockMvc, googleIdTokenService, organizerSub,
+            email = "$organizerSub@example.com", name = "Organizer",
+        )
+        mockMvc.perform(
+            post("/v1/seasons/$seasonId/events/$eventId/organizers").cookie(adminCookie)
+                .contentType(MediaType.APPLICATION_JSON).content("""{"email":"$organizerSub@example.com"}""")
+                .with(csrf()),
+        ).andExpect(status().isOk)
+        fun patchAs(cookie: jakarta.servlet.http.Cookie, id: String, body: String) =
+            mockMvc.perform(patch("/v1/seasons/$seasonId/events/$id").cookie(cookie)
+                .contentType(MediaType.APPLICATION_JSON).content(body).with(csrf()))
+        val format = """{"templateType":"deplacement","roleSlots":{"player":5}}"""
+        patchAs(organizerCookie, eventId, format).andExpect(status().isOk)
+            .andExpect(jsonPath("$.templateType").value("deplacement"))
+        patchAs(organizerCookie, otherId, format).andExpect(status().isForbidden)
+        patchAs(organizerCookie, eventId, """{"title":"Forbidden"}""").andExpect(status().isForbidden)
+        patchAs(organizerCookie, eventId, """{"templateType":"cabaret","category":null}""").andExpect(status().isForbidden)
+        patchAs(organizerCookie, eventId, """{"templateType":"cabaret","title":"Forbidden"}""").andExpect(status().isForbidden)
+        mockMvc.perform(get("/v1/seasons/$seasonId/events/$eventId").cookie(adminCookie))
+            .andExpect(status().isOk).andExpect(jsonPath("$.title").value("Authorized event"))
+            .andExpect(jsonPath("$.templateType").value("deplacement"))
+        val memberCookie = TestAuthSupport.memberSessionCookieFromGoogleSignIn(
+            mockMvc, googleIdTokenService, "format-member-${UUID.randomUUID()}",
+        )
+        patchAs(memberCookie, eventId, format).andExpect(status().isForbidden)
+        patchAs(adminCookie, eventId, """{"title":"Admin edit","templateType":"cabaret"}""")
+            .andExpect(status().isOk).andExpect(jsonPath("$.title").value("Admin edit"))
+    }
+
+    @Test
     fun `create event with explicit slug and collision suffix`() {
         val cookie = memberCookie("sub-event-slug-1")
         val seasonId = createSeasonForEventsTests(cookie)

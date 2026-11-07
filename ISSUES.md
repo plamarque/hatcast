@@ -57,6 +57,7 @@ integration database).
 BUG-107 is corrected locally and its desktop screenshot validated; mobile human verification remains pending.
 
 BUG-106 is corrected and verified against local PostgreSQL; staging CI must verify the fix.
+BUG-108 is corrected and verified locally in story 17.46; integration is local.
 
 BUG-095 is corrected locally; the development deployment must be verified.
 
@@ -113,6 +114,13 @@ BUG-037 and BUG-029 have fixture-only corrections verified by the complete API s
 - **Observed behavior**: In a long-running development session after story changes, the participant selector showed only its arrow. The unanswered-list chevron changed its expanded state, but its list remained empty. Browser logs reported `mat-form-field must contain a MatFormFieldControl` and an Angular expression-changed error.
 - **Expected behavior**: The subject selector renders its selected participant, and expanding the unanswered section renders its names.
 - **Evidence/limits**: The isolated Playwright suite passed with fresh servers before the report. A controlled restart of the same worktree offline stack restored both controls on the same seed event; opening and closing the unanswered list and opening the subject selector were verified in the browser. Hot module replacement or shared development cache state is a hypothesis, not a confirmed cause; persistence across clean production builds has not been demonstrated.
+### BUG-108 — Format editing permission differs between UI and API
+- **Status**: Corrected locally in story 17.46; local integration.
+- **Severity**: Medium (authorized-looking action can fail).
+- **Affected area**: Event format editing for event-scoped organizers.
+- **Observed behavior before correction**: The Équipe format action was exposed to composition managers, but `EventService.update` required troupe management for every update, so event organizers without troupe permission could not save it.
+- **Expected behavior**: The action and server authorization agree with the intended permission policy.
+- **Correction and verification**: The approved event-scoped exception permits composition managers to update only format and role needs. Integration tests pass for authorized organizers, unrelated events, unauthorized members, mixed payloads and troupe administrators; existing assignment-reconciliation tests also pass.
 
 ### BUG-103 — Advent journey can check a late result before confirmation completes
 - **Status**: Corrected locally; subsequent real-clock journey passed the late-answer step.
