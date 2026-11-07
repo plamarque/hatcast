@@ -83,6 +83,14 @@ human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
 
+### BUG-101 — Previous Advent result not shown on test notification opening
+- **Status**: Observed behavior explained by an existing seen marker; origin of the marker unverified. Device recipe accepted with the combined unseen-result scenario untested.
+- **Severity**: Undetermined.
+- **Affected area**: Advent test reminder and priority reveal on Android.
+- **Observed behavior**: During an Android test, the operator viewed a recorded answer on simulated December 8, advanced to December 9 without seeing its result, sent a test reminder, closed the app and opened the notification; the December 9 quiz appeared without the December 8 result. Screenshots show the neutral confirmation, December 9, accepted send and received notification.
+- **Expected behavior**: An eligible unseen result takes priority before the requested quiz, including in authorized test mode.
+- **Notes**: Actual notification receipt and opening were confirmed. A read-only check on the Cloud Run development database found the operator's day 8 answer already had a non-null `seen_at`, explaining why it was not treated as unseen. A fresh day 9 answer revealed correctly on advancing to day 10. The interaction that produced the earlier marker remains unverified. Patrice accepted the device recipe on 2026-11-07 without expanding test mode. No game data was modified.
+
 ### BUG-100 — Offline CORS test reads an unresolved placeholder
 - **Status**: Correction in progress; CI validation pending.
 - **Severity**: Medium.
