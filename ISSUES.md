@@ -54,6 +54,8 @@ integration database).
 
 ### Pending verification or operational follow-up
 
+BUG-107 is corrected in a static 375px and 430px browser reproduction; verification on a phone after deployment is pending.
+
 BUG-106 is corrected and verified against local PostgreSQL; staging CI must verify the fix.
 
 BUG-095 is corrected locally; the development deployment must be verified.
@@ -85,6 +87,17 @@ BUG-024, and BUG-021 have local fixes but still require their stated review,
 human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
+
+### BUG-107 — Statistics column labels show through the sticky Participant column
+
+- **Status:** Corrected; verification on a phone after deployment pending
+- **Severity:** Low (mobile readability of the season statistics grid)
+- **Affected area:** V2 season statistics grid (`apps/web/src/app/pages/season-home/season-statistics.scss`), mobile widths.
+- **Observed behavior:** A mobile session at 375px opened a detail group (JEU, DECORUM or BÉNÉVOLE) and scrolled the grid sideways. The second header row then showed faded column labels (MATCH, CAB, LONG, MC, DJ…) inside the sticky Participant column, out of line with their data columns. The replay vision scanner reported this as a toggle that overlaps column headers and a month header that moves away from its column.
+- **Expected behavior:** The sticky Participant column hides all cells that scroll under it, in every header row.
+- **Cause:** The rule for the second header row set `opacity: 0.85` on every cell, the sticky cell included. A translucent sticky cell lets the labels below it show through.
+- **Fix:** Apply the reduced opacity only to the cells that are not sticky.
+- **Notes:** A static browser reproduction measured header and body cell edges at 375px with groups and months open and closed: all month headers stay above their body columns at all scroll positions. A separate month header misalignment was not reproduced in V2. The same report named the V1 component `legacy/src/components/CastsView.vue`, but the session ran V2 routes (`/saison/…`, `/accueil`).
 
 ### BUG-106 — Advent PostgreSQL ranking fixture lacks received_at
 

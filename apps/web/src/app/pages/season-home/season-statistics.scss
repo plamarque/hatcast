@@ -134,7 +134,8 @@
   vertical-align: middle;
 }
 
-.season-statistics__subhead th {
+// The sticky cell must stay opaque, or scrolled labels show through it.
+.season-statistics__subhead th:not(.season-statistics__sticky) {
   font-size: 0.65rem;
   font-weight: 600;
   opacity: 0.85;
