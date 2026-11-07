@@ -53,6 +53,7 @@ class AdventMemberGameTest {
         val before = game.clockProjection().date
         assertEquals("locked", game.calendar(member).days!![1].state)
         assertThrows(ResponseStatusException::class.java) { game.quiz(2) }
+        assertEquals(listOf("Première\n\nDeuxième", null, "Fin"), game.quiz(2, testFuture = true)!!.stories)
         assertEquals("today", game.calendar(member, testFuture = true).days!![1].state)
         assertEquals("christmas", game.calendar(member, testFuture = true).days!![24].state)
         assertEquals("locked", game.calendar(member).days!![24].state)

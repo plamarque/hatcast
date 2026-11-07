@@ -30,7 +30,7 @@ class AdventTestAnswers(private val jdbc: JdbcTemplate) {
         }
     }
 
-    // Called only after the result's existing reveal and authorization checks have passed.
+    // Call only after the playable quiz or result has passed its authorization checks.
     fun revealedStories(day: Int): List<String?>? = jdbc.query(
         "SELECT story_0, story_1, story_2 FROM advent_quizzes WHERE quiz_day = ?", { rs, _ ->
             listOf(rs.getString(1), rs.getString(2), rs.getString(3))
@@ -313,7 +313,7 @@ object AdventParisTime {
     }
 }
 
-data class AdventQuiz(val name: String, val portraitRef: String?, val statements: List<String>, val falseChoice: Int, val explanation: String?)
+data class AdventQuiz(val name: String, val portraitRef: String?, val statements: List<String>, val falseChoice: Int, val explanation: String?, val stories: List<String?>? = null)
 
 data class RankingMember(val id: UUID, val name: String)
 data class RankingAnswer(val user: UUID, val day: Int, val correct: Boolean, val revealAt: Instant, val answeredAt: Instant = Instant.MIN)

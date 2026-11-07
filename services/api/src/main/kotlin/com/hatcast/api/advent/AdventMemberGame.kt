@@ -160,7 +160,7 @@ class AdventMemberGame(private val jdbc: JdbcTemplate, private val clock: Advent
         checkDay(day)
         val today = date(now(expected, simulated, preview))
         if (!preview && !testFuture && LocalDate.of(2026, 12, day).isAfter(today)) throw ResponseStatusException(HttpStatus.NOT_FOUND)
-        return memberQuiz(day)
+        return memberQuiz(day)?.copy(stories = quizzes.revealedStories(day))
     }
 
     @Transactional

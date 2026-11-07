@@ -25,7 +25,7 @@ interface AdventRanking { score: number; rank: number | null; entries: { name: s
 interface CalendarDay { day: number; state: 'locked' | 'played' | 'today' | 'past-unplayed' | 'missing' | 'christmas'; outcome?: 'pending' | 'correct' | 'incorrect' | null }
 interface History { quiz: FictionalQuiz; falseChoice: number; result: AdventResult | null }
 
-interface FictionalQuiz { day: number; name: string; portrait: string; statements: string[]; genericElf: boolean }
+interface FictionalQuiz { day: number; name: string; portrait: string; statements: string[]; genericElf: boolean; stories?: (string | null)[] | null }
 
 @Component({
   selector: 'app-advent-test',

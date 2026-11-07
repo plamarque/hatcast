@@ -7,6 +7,8 @@ import com.zaxxer.hikari.HikariDataSource
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.hamcrest.Matchers.containsString
+import org.hamcrest.Matchers.not
 import org.junit.jupiter.api.TestInstance
 import org.mockito.kotlin.whenever
 import org.mockito.kotlin.doReturn
@@ -98,6 +100,7 @@ class AdventOfflineIntegrationTest {
     }
 
     @Test fun `active membership protects each fictional door`() {
+        jdbc.update("UPDATE advent_quizzes SET story_0 = ?, story_1 = NULL, story_2 = ? WHERE quiz_day = 1", "Premier\n\nÉté", "Dernier")
         val active = TestAuthSupport.memberSessionCookieFromGoogleSignIn(mvc, google, "offline-active", emailVerified = true)
         val inactive = TestAuthSupport.memberSessionCookieFromGoogleSignIn(mvc, google, "offline-inactive", emailVerified = true)
         val external = TestAuthSupport.memberSessionCookieFromGoogleSignIn(mvc, google, "offline-external", emailVerified = true)
@@ -111,10 +114,10 @@ class AdventOfflineIntegrationTest {
         val token = com.jayway.jsonpath.JsonPath.read<String>(session, "$.sessionId")
         for (path in listOf("/v1/advent/doors/1", "/v1/advent/doors/1/answer", "/v1/advent/doors/1/result", "/v1/advent/calendar", "/v1/advent/doors/1/history")) {
             mvc.perform(get(path).header("X-Advent-Test-Session", token))
-                .andExpect(status().isUnauthorized).andExpect(header().string("Cache-Control", "private, no-store"))
+                .andExpect(status().isUnauthorized).andExpect(header().string("Cache-Control", "private, no-store")).andExpect(content().string(not(containsString("Premier"))))
             for (cookie in listOf(inactive, external, outsider)) {
                 mvc.perform(get(path).cookie(cookie).header("X-Advent-Test-Session", token))
-                    .andExpect(status().isForbidden).andExpect(header().string("Cache-Control", "private, no-store"))
+                    .andExpect(status().isForbidden).andExpect(header().string("Cache-Control", "private, no-store")).andExpect(content().string(not(containsString("Premier"))))
             }
         }
         for (cookie in listOf(inactive, external, outsider)) {
@@ -131,7 +134,9 @@ class AdventOfflineIntegrationTest {
         }
         mvc.perform(get("/v1/advent/doors/1").cookie(active).header("X-Advent-Test-Session", token))
             .andExpect(status().isOk).andExpect(header().string("Cache-Control", "private, no-store"))
-            .andExpect(jsonPath("$.statements.length()").value(3)).andExpect(jsonPath("$.falseChoice").doesNotExist())
+            .andExpect(jsonPath("$.statements.length()").value(3)).andExpect(jsonPath("$.stories[0]").value("Premier\n\nÉté"))
+            .andExpect(jsonPath("$.stories[1]").isEmpty).andExpect(jsonPath("$.stories[2]").value("Dernier"))
+            .andExpect(jsonPath("$.falseChoice").doesNotExist())
             .andExpect(jsonPath("$.explanation").doesNotExist()).andExpect(jsonPath("$.answer").doesNotExist())
         mvc.perform(get("/v1/advent-test/session").cookie(active))
             .andExpect(status().isForbidden).andExpect(header().string("Cache-Control", "private, no-store"))
