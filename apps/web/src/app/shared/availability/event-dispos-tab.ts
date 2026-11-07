@@ -46,6 +46,10 @@ export class EventDisposTab implements OnDestroy {
   readonly canManageComposition = input(false)
   readonly actorScope = input<ActorScope | undefined>(undefined)
   readonly explainabilityEnabled = input(false)
+  readonly canRelanceDispos = input(false)
+  readonly relanceDispos = output<void>()
+  protected readonly unansweredExpanded = signal(false)
+  protected readonly unanswered = computed(() => (this.summary()?.participants ?? []).filter((p) => p.status === 'unknown'))
   readonly bootstrapSummary = input<EventAvailabilitySummary | null>(null)
 
   readonly summaryChanged = output<EventAvailabilitySummary>()
@@ -93,7 +97,9 @@ export class EventDisposTab implements OnDestroy {
       const bootstrap = this.bootstrapSummary()
       if (eventId !== previousEventId) {
         previousEventId = eventId
-        if (bootstrap != null) {
+        this.summaryGeneration++
+        this.unansweredExpanded.set(false)
+        if (bootstrap != null && bootstrap.eventId === eventId) {
           this.summary.set(bootstrap)
           this.loading.set(false)
           this.loadError.set(false)
@@ -106,7 +112,7 @@ export class EventDisposTab implements OnDestroy {
         void this.load()
         return
       }
-      if (bootstrap != null && this.summary() == null) {
+      if (bootstrap != null && bootstrap.eventId === eventId && this.summary() == null) {
         this.summary.set(bootstrap)
         this.loading.set(false)
         this.loadError.set(false)

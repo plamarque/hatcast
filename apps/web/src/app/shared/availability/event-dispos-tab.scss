@@ -1,3 +1,8 @@
+ .event-dispos__unanswered { margin-top: 0.75rem; border: 1px solid var(--mat-sys-outline-variant); border-radius: 0.75rem; padding: 0 0.5rem; }
+.event-dispos__unanswered-header { display: flex; align-items: center; min-height: 3rem; }
+.event-dispos__unanswered-title { flex: 1; min-width: 0; font: var(--mat-sys-body-medium); }
+.event-dispos__unanswered ul { margin: 0 0 0.75rem; padding-left: 1.5rem; overflow-wrap: anywhere; }
+.event-dispos__unanswered p { margin: 0 0 0.75rem; font: var(--mat-sys-body-medium); }
 .event-dispos__toolbar {
   display: flex;
   flex-wrap: nowrap;

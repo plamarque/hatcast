@@ -43,6 +43,7 @@ export interface ShareAnnounceDialogData {
   compositionValidatedAt?: string | null
   troupeId?: string
   actorScope?: ActorScope
+  allRecipients?: boolean
 }
 
 interface RecipientChannelStatus {
@@ -206,7 +207,7 @@ export class ShareAnnounceDialog {
   protected openNotificationConfirmation(): void {
     if (this.confirmationOpen() || this.sendingReminder() || this.loadingRecipients() || this.recipientsError() || !this.reminderFingerprint() || !this.hasNotifiableRecipient()) return
     this.confirmationOpen.set(true)
-    const ref = this.dialog.open(AvailabilityReminderConfirmDialog, { data: { recipients: this.recipientCards(), messageText: this.messageText }, autoFocus: 'dialog', restoreFocus: true })
+    const ref = this.dialog.open(AvailabilityReminderConfirmDialog, { data: { recipients: this.recipientCards(), messageText: this.messageText, allRecipients: this.data.allRecipients, lastManualNotifyAt: this.lastManualNotifyAt(), guardDays: this.guardDays() }, autoFocus: 'dialog', restoreFocus: true })
     ref.afterClosed().subscribe((participantIds) => {
       this.confirmationOpen.set(false)
       if (participantIds) void this.sendReminder(participantIds)
@@ -260,6 +261,7 @@ export class ShareAnnounceDialog {
   }
 
   ngOnDestroy(): void {
+    this.loadRecipientsSeq++
     this.dismissCompositionAnnouncement()
   }
 
@@ -308,6 +310,10 @@ export class ShareAnnounceDialog {
       })),
     )
     this.reminderFingerprint.set(result.data.confirmationFingerprint ?? null)
+    if (this.data.allRecipients && !this.reminderFingerprint()) {
+      this.recipientsError.set(true)
+      return
+    }
     this.lastManualNotifyAt.set(result.data.lastManualNotifyAt ?? null)
     this.guardDays.set(result.data.guardDays ?? null)
   }

@@ -1,0 +1,15 @@
+{
+  "route": "/connexion",
+  "account_or_fixture_reference": "Comptes seed Improbots du mode offline ; utiliser un membre et un organisateur",
+  "actions": [
+    "Ouvrir un spectacle publié avec des personnes sans réponse et consulter Dispos en tant que membre.",
+    "Déplier et replier la liste des personnes sans réponse.",
+    "Se connecter comme organisateur, ouvrir le même panneau et utiliser Relancer, puis Notifier ; annuler si une confirmation est proposée."
+  ],
+  "expected_observations": [
+    "Le nombre et les noms des personnes sans réponse sont visibles pour les deux profils.",
+    "Relancer apparaît uniquement pour un organisateur autorisé, avant le chevron.",
+    "La fenêtre de relance habituelle est affichée ; si des canaux sont disponibles, la confirmation présente les destinataires éligibles sans sélection individuelle ; annuler ne déclenche aucun envoi.",
+    "Mode offline : les canaux peuvent être indisponibles ; aucun envoi réel ne doit être attendu."
+  ]
+}

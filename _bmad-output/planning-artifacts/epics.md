@@ -1113,20 +1113,21 @@ afin de **comprendre mes chances sans voir le brouillon de composition sur Équi
 
 #### Story 5.10 : Voir les personnes sans réponse aux disponibilités
 
-En tant qu’**organisateur ou administrateur autorisé**,
+En tant que **membre autorisé à consulter les disponibilités**,
 je veux voir les personnes qui n’ont pas encore renseigné leur disponibilité pour un spectacle,
-afin de savoir qui manque avant de décider d’une relance.
+afin de voir qui n’a pas encore répondu.
 
 **Acceptance Criteria**
 
-1. **Given** un organisateur autorisé consulte l’onglet Dispos, **when** des participants du résumé ont le statut non renseigné, **then** une ligne « Sans réponse » indique leur nombre et permet d’afficher leurs noms.
-2. **Given** aucun participant sans réponse, **when** l’organisateur consulte les Dispos, **then** l’état vide est compréhensible et ne suggère pas de personnes à relancer.
+1. **Given** une personne autorisée consulte l’onglet Dispos, **when** des participants du résumé ont le statut non renseigné, **then** une ligne « Sans réponse » indique leur nombre et permet d’afficher leurs noms.
+2. **Given** aucun participant sans réponse, **when** la personne consulte les Dispos, **then** l’état vide est compréhensible et ne suggère pas de personnes à relancer.
 3. **Given** une disponibilité est enregistrée ou actualisée, **when** le résumé change, **then** la liste et son nombre reflètent les données reçues sans écriture supplémentaire.
-4. **Given** une personne sans les droits organisateur requis, **when** elle consulte le spectacle ou ses données, **then** cette liste ne lui est pas exposée ; les permissions existantes restent inchangées et sont vérifiées côté serveur si nécessaire.
+4. **Given** une personne sans accès aux disponibilités, **when** elle consulte le spectacle ou ses données, **then** cette liste ne lui est pas exposée ; les permissions existantes restent inchangées et sont vérifiées côté serveur.
 5. **Given** la liste ouverte, **when** elle est consultée au clavier ou sur mobile et sur desktop, **then** son contrôle est accessible, son état est annoncé et les noms restent lisibles ; les composants Material et les tokens du thème existant sont utilisés selon la checklist M3.
 6. **Given** une consultation de la liste, **when** aucun autre geste n’est effectué, **then** aucun message, rappel ou modification de disponibilité n’est envoyé.
+7. **Given** un organisateur autorisé à relancer et des personnes sans réponse, **when** il utilise « Relancer » avec l’icône cloche dans l’en-tête avant le chevron, **then** la fenêtre de relance existante s’ouvre ; son action Notifier demande confirmation pour toutes les personnes sans réponse éligibles, sans sélection individuelle et dans le respect des préférences et des contrôles existants.
 
-**Périmètre :** consultation des non-répondants uniquement ; la restauration d’une vue complète « Tous », la modification des réponses et l’envoi de relances sont hors périmètre. Référence : [LIMIT-009](../../ISSUES.md#limit-009--dispos-v2--plus-dentrée--tous--ni-liste-des-non-répondants). La confidentialité, la définition exacte du public autorisé et les cas limites du résumé seront vérifiés au cadrage technique.
+**Périmètre :** consultation des non-répondants uniquement ; la restauration d’une vue complète « Tous », la modification des réponses et la sélection individuelle des destinataires sont hors périmètre. Référence : [LIMIT-009](../../ISSUES.md#limit-009--dispos-v2--plus-dentrée--tous--ni-liste-des-non-répondants). Décision Patrice : la liste est visible de toutes les personnes autorisées à consulter les disponibilités ; les permissions existantes restent inchangées.
 
 ---
 

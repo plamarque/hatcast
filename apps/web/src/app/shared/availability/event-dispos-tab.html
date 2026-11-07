@@ -62,4 +62,24 @@
   } @else {
     <p class="event-dispos__empty">Aucun participant lié à ce compte pour cet événement.</p>
   }
+  <section class="event-dispos__unanswered" aria-label="Personnes sans réponse">
+    <div class="event-dispos__unanswered-header">
+      <span class="event-dispos__unanswered-title">{{ unanswered().length }} personne{{ unanswered().length > 1 ? 's' : '' }} sans réponse</span>
+      @if (canRelanceDispos() && unanswered().length > 0) {
+        <button mat-button type="button" (click)="relanceDispos.emit()"><mat-icon aria-hidden="true">notifications_active</mat-icon>Relancer</button>
+      }
+      <button mat-icon-button type="button" [attr.aria-expanded]="unansweredExpanded()" aria-controls="unanswered-list" [attr.aria-label]="unansweredExpanded() ? 'Masquer les personnes sans réponse' : 'Afficher les personnes sans réponse'" (click)="unansweredExpanded.set(!unansweredExpanded())">
+        <mat-icon aria-hidden="true">{{ unansweredExpanded() ? 'expand_less' : 'expand_more' }}</mat-icon>
+      </button>
+    </div>
+    @if (unansweredExpanded()) {
+      <div id="unanswered-list">
+        @if (unanswered().length === 0) {
+          <p>Personne en attente de réponse.</p>
+        } @else {
+          <ul>@for (participant of unanswered(); track participant.participantId) { <li>{{ participant.displayName }}</li> }</ul>
+        }
+      </div>
+    } @else { <div id="unanswered-list" hidden></div> }
+  </section>
 }

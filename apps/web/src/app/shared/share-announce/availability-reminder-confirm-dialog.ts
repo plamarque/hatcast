@@ -15,6 +15,9 @@ export interface AvailabilityReminderConfirmData {
     }
   }>
   messageText: string
+  allRecipients?: boolean
+  lastManualNotifyAt?: string | null
+  guardDays?: number | null
 }
 
 @Component({
@@ -58,6 +61,10 @@ export class AvailabilityReminderConfirmDialog {
 
   confirm(): void {
     this.ref.close([...this.selectedParticipantIds()])
+  }
+
+  formatReminderDate(value: string): string {
+    return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeStyle: 'short' }).format(new Date(value))
   }
 
   initials(displayName: string): string {

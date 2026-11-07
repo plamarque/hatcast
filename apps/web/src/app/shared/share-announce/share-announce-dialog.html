@@ -59,7 +59,7 @@
   @if (loadingRecipients()) {
     <mat-progress-bar mode="indeterminate" aria-busy="true" />
   } @else if (recipientsError()) {
-    <p class="share-announce-dialog__error" role="alert">Impossible de charger les destinataires.</p>
+    <p class="share-announce-dialog__error" role="alert">Impossible de préparer un aperçu fiable des destinataires.</p>
     <button type="button" mat-button (click)="retryLoadRecipients()">Réessayer</button>
   } @else if (recipientCards().length > 0) {
     <div class="share-announce-dialog__recipients-line">

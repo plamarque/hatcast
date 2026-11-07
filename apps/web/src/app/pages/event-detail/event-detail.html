@@ -80,6 +80,8 @@
               [linkedParticipantId]="linkedParticipantId()"
               [canSwitchSubject]="canSwitchSubject()"
               [canManageComposition]="canManageComposition()"
+              [canRelanceDispos]="canRelanceDispos()"
+              (relanceDispos)="openRelanceDispos(true)"
               [actorScope]="actorScope()"
               [explainabilityEnabled]="disposExplainabilityEnabled()"
               [bootstrapSummary]="disposBootstrapSummary()"

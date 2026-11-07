@@ -15,6 +15,8 @@ historical registry below.
 
 ### Open defects and limitations
 
+BUG-105 (local availability controls fail to render after development-session changes; restart mitigates).
+
 BUG-096 (an Advent contribution was published with incomplete anecdotes).
 
 BUG-071 (Advent catalogue PostgreSQL integration test loses its connection in CI).
@@ -81,6 +83,14 @@ BUG-024, and BUG-021 have local fixes but still require their stated review,
 human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
+
+### BUG-105 — Availability controls stop rendering during local development
+- **Status**: Open — local smoke session restored by restarting its owned offline stack; root cause not established.
+- **Severity**: Medium (blocks the availability subject selector and unanswered-list disclosure during local human testing).
+- **Affected area**: V2 offline development stack, event availability tab.
+- **Observed behavior**: In a long-running development session after story changes, the participant selector showed only its arrow. The unanswered-list chevron changed its expanded state, but its list remained empty. Browser logs reported `mat-form-field must contain a MatFormFieldControl` and an Angular expression-changed error.
+- **Expected behavior**: The subject selector renders its selected participant, and expanding the unanswered section renders its names.
+- **Evidence/limits**: The isolated Playwright suite passed with fresh servers before the report. A controlled restart of the same worktree offline stack restored both controls on the same seed event; opening and closing the unanswered list and opening the subject selector were verified in the browser. Hot module replacement or shared development cache state is a hypothesis, not a confirmed cause; persistence across clean production builds has not been demonstrated.
 
 ### BUG-103 — Advent journey can check a late result before confirmation completes
 - **Status**: Corrected locally; subsequent real-clock journey passed the late-answer step.
@@ -965,6 +975,7 @@ not active work; items listed in the two sections above remain actionable.
 - **Expected behavior (V1)**: Pulldown first option « Tous » (`selectedTeamPlayer.id === 'all'`) rendered `EventRoleGroupingView` — named candidates per role. Combined with the season grid, orgs could also see unanswered cells.
 - **Notes**: Story 5.8 D1 removed Moi/Tous in favor of a WhatsApp-style poll (saisie + collective on one screen). Named unavailable list was an explicit non-goal (MVP+). Relance dispos (cog menu) still targets `unknown` but does not display the list. Organizer request 2026-09-16: restore a troupe overview, especially unanswered members.
 - **Reported by**: Organizer feedback (Nicolas Nasciet) via Patrice.
+- **Story 5.10**: The unanswered-participant list is addressed by the in-progress story; the broader requested overview remains open until separately resolved.
 
 ### BUG-018 — Staging Cloud Run traffic stuck on a named revision
 - **ID**: BUG-018
