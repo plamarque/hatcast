@@ -54,6 +54,8 @@ integration database).
 
 ### Pending verification or operational follow-up
 
+BUG-106 is corrected and verified against local PostgreSQL; staging CI must verify the fix.
+
 BUG-095 is corrected locally; the development deployment must be verified.
 
 BUG-094 is corrected locally and validated by Patrice on a phone; deployment remains separate.
@@ -83,6 +85,16 @@ BUG-024, and BUG-021 have local fixes but still require their stated review,
 human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
+
+### BUG-106 — Advent PostgreSQL ranking fixture lacks received_at
+
+- **Status:** Corrected locally; staging CI verification pending
+- **Severity:** High (staging release gate blocked)
+- **Affected area:** Advent PostgreSQL ranking regression test.
+- **Observed behavior:** On staging commit `8cf10c35`, CI run 42351194320 fails `AdventRankingPostgresTest` because its `advent_test_answers` fixture lacks `received_at`, which the ranking query selects.
+- **Expected behavior:** The test fixture matches the columns used by the ranking query and the PostgreSQL regression suite passes.
+- **Notes:** The production migration V70 defines `received_at`; this failure alone does not establish a production schema defect.
+- **Fix:** Add `received_at` and a non-null receipt time to the ranking fixture. All four PostgreSQL gate suites passed locally (10 tests).
 
 ### BUG-105 — Availability controls stop rendering during local development
 - **Status**: Open — local smoke session restored by restarting its owned offline stack; root cause not established.

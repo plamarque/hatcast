@@ -34,7 +34,7 @@ class AdventRankingPostgresTest {
                 "INSERT INTO advent_test_clock VALUES (1, 0, NULL)",
                 "CREATE TABLE users (id UUID PRIMARY KEY, email VARCHAR(320))",
                 "CREATE TABLE troupe_memberships (troupe_id UUID, user_id UUID, display_name VARCHAR(255), status VARCHAR(32), baseline_role VARCHAR(32))",
-                "CREATE TABLE advent_test_answers (user_id UUID, quiz_day INTEGER, choice INTEGER, correct_choice INTEGER, reveal_at TIMESTAMPTZ)"
+                "CREATE TABLE advent_test_answers (user_id UUID, quiz_day INTEGER, choice INTEGER, correct_choice INTEGER, reveal_at TIMESTAMPTZ, received_at TIMESTAMPTZ NOT NULL)"
             ).forEach(jdbc::execute)
             val user = UUID.randomUUID(); val troupe = UUID.randomUUID(); val excludedIds = setOf(UUID.randomUUID(), UUID.randomUUID())
             excludedIds.forEach { jdbc.update("INSERT INTO users VALUES (?, NULL)", it) }
@@ -50,7 +50,7 @@ class AdventRankingPostgresTest {
                     val writer = pool.submit {
                         tx.executeWithoutResult { status ->
                             jdbc.queryForObject("SELECT id FROM advent_test_clock WHERE id = 1 FOR UPDATE", Int::class.java)
-                            jdbc.update("INSERT INTO advent_test_answers VALUES (?, 1, 0, 0, ?)", user, Timestamp.from(Instant.parse("2026-12-01T23:00:00Z")))
+                            jdbc.update("INSERT INTO advent_test_answers (user_id, quiz_day, choice, correct_choice, reveal_at, received_at) VALUES (?, 1, 0, 0, ?, ?)", user, Timestamp.from(Instant.parse("2026-12-01T23:00:00Z")), Timestamp.from(now))
                             held.countDown(); check(release.await(10, TimeUnit.SECONDS))
                             if (!commit) status.setRollbackOnly()
                         }
