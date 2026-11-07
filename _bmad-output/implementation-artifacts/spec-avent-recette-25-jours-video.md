@@ -2,7 +2,8 @@
 title: 'Advent 26-day filmed acceptance journey'
 type: 'chore'
 created: '2026-11-04'
-status: 'ready-for-dev'
+status: 'in-progress'
+baseline_commit: 'cee8dcdea658612f46ac9717175a2c162bc58da5'
 route: 'dispatch'
 review_loop_iteration: 0
 context: []
@@ -14,11 +15,11 @@ context: []
 
 **Problem:** The complete Advent experience needs an observable day-by-day acceptance journey with persistent user state and a video.
 
-**Approach:** Run a Playwright journey against an isolated local application and API with fictional content, a normal member account, and the system clock read by the application and browser. Record the journey and report every verified behavior and limitation.
+**Approach:** Run a Playwright journey against an isolated local application and API with authorized official catalogue content, a normal member account, and the system clock read by the application and browser. Record the journey and report every verified behavior and limitation.
 
 ## Boundaries & Constraints
 
-**Always:** Cover December 1–26 in chronological order, using an isolated disposable database and fictional accounts and quizzes. Advance the system clock by one day at a time and restore the actual time and prior automatic-time setting after the run, including on failure. Exercise correct and incorrect answers, same-day return, ranking, calendar, past played and unplayed days, and future gifts. Check delayed disclosure, result content and score against the expected rules. Capture a reviewable video and document failures with evidence. Preserve existing databases and unrelated user work. Distinguish configured notification preference from actual push delivery; never claim delivery without observing it.
+**Always:** Cover December 1–26 in chronological order, using an isolated disposable database and fictional accounts. Load and verify all available complete official catalogue quizzes before changing the clock; report unavailable or non-official days explicitly. Keep private content and recordings out of Git and logs. Advance the system clock by one day at a time and restore the actual time and prior automatic-time setting after the run, including on failure. Exercise correct and incorrect answers, same-day return, ranking, calendar, past played and unplayed days, and future gifts. Check delayed disclosure, result content and score against the expected rules. Capture a reviewable video and document failures with evidence. Preserve existing databases and unrelated user work. Distinguish configured notification preference from actual push delivery; never claim delivery without observing it.
 
 **Never:** Use Advent test mode or an API clock override for the principal journey, use production data, send notifications to real members, reset shared data, or replace application/API responses with a fictional business implementation. The user explicitly authorizes changing the Mac system clock during this test; an isolated machine is an alternative. Do not claim all navigation paths were verified merely because the main journey passes.
 
@@ -26,7 +27,7 @@ context: []
 
 | Scenario | Input / State | Expected Output / Behavior | Error Handling |
 |----------|--------------|---------------------------|----------------|
-| Daily quiz | Day 1–24 with fictional quiz | Opening, answer confirmation and delayed result respect the documented rules | Report actual divergence and retain video |
+| Daily quiz | Day 1–24 with an available official quiz | Opening, answer confirmation and delayed result respect the documented rules | Report actual divergence and retain video |
 | Return before reveal | Answer recorded on same day | Pending screen, no correctness or points disclosed | Stop or report failure with evidence |
 | Future gift | Calendar before its day | Future door remains inaccessible, including API enforcement | Report failure with date and door |
 | Missed and played days | Revisit via calendar | Past history and late discovery follow documented rules | Report discrepancies |
@@ -48,12 +49,12 @@ context: []
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] Inspect applicable contracts, local fixtures, and isolation controls; prepare a disposable application and fictional catalogue.
+- [ ] Inspect applicable contracts, local fixtures, and isolation controls; prepare a disposable application and securely load and verify the available official catalogue.
 - [ ] Implement and run a Playwright journey with chronological system-clock changes, persistent answers, navigation assertions and recorded video.
 - [ ] Provide the video and a concise dated evidence report, including failures and notification limitations.
 
 **Acceptance Criteria:**
-- Given an isolated normal member account with fictional content, when the 26-day scenario runs, then each exercised screen and transition is checked against the contract and the recording is preserved even on failure.
+- Given an isolated normal member account with authorized official content, when the 26-day scenario runs, then each exercised screen and transition is checked against the contract and the recording is preserved even on failure.
 - Given a locked future day, when accessed from the calendar and directly through the API, then its content remains unavailable.
 - Given recorded and missed days, when revisited later, then the appropriate result or late-play behavior and score are verified.
 - Given notifications enabled, when local push delivery cannot be observed, then the report explicitly separates preference checks from delivery evidence.

@@ -75,6 +75,30 @@ human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
 
+### BUG-103 — Advent journey can check a late result before confirmation completes
+- **Status**: Corrected locally; subsequent real-clock journey passed the late-answer step.
+- **Severity**: Medium (acceptance-test reliability).
+- **Affected area**: Isolated Advent journey late-answer verification.
+- **Observed behavior**: The second recorded journey stopped at the late answer on 5 December with a generic assertion failure; the screenshot showed the answer confirmation. The test requested the result immediately after the confirmation click, without waiting for the asynchronous reveal.
+- **Expected behavior**: The test waits for the reveal before checking the persisted result and reports the failing status or field without private values.
+- **Notes**: The recorded evidence does not identify the exact assertion; a timing race is plausible, not proven. Chromium tests cover delayed reveal and sanitized diagnostics. This does not establish whether BUG-069 occurred in this run.
+
+### BUG-102 — Advent journey recording stalls after clock jumps
+- **Status**: Corrected locally; subsequent real-clock journey produced a playable recording.
+- **Severity**: Medium (acceptance evidence).
+- **Affected area**: Isolated Advent journey video and shutdown.
+- **Observed behavior**: The evidence report reached 26 December, but the recorded WebM remained on the 1 December waiting scene for almost its entire 417-second duration and the journey process remained alive after interruption.
+- **Expected behavior**: A reviewable video covers the exercised days and finalization terminates promptly.
+- **Notes**: A system-clock discontinuity affecting Playwright video timing is suspected, not established. A fixed-rate screenshot encoder was tested with synthetic discontinuities and 26 browser screens; a subsequent real-clock journey produced an 80.5-second playable recording. The day-26 entry ranking was asserted but not distinctly captured.
+
+### BUG-101 — Isolated Advent preview server returns generic image MIME types
+- **Status**: Fixed locally 2026-11-04; verified by three existing mocked UI diagnostics, including the previously failing welcome test.
+- **Severity**: Low (local test infrastructure).
+- **Affected area**: `apps/web/e2e/advent-isolation/full-stack-preview-server.cjs`.
+- **Observed behavior**: The server returned `application/octet-stream` for a WebP image, causing the welcome Playwright test to fail its image content-type assertion.
+- **Expected behavior**: Known image extensions are served with their image MIME types.
+- **Notes**: Observed against a local production PWA build with mocked API responses; this does not establish production behavior.
+
 ### BUG-092 — Advent domain contract disagrees with production preview replay
 - **Status**: Resolved 2026-11-02.
 - **Severity**: Low (documentation conflict).

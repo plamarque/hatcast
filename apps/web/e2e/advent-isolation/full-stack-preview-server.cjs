@@ -1,6 +1,6 @@
 const http = require('node:http'), fs = require('node:fs'), path = require('node:path')
 const root = path.resolve(process.env.ADVENT_WORKER_BUILD || '/private/tmp/hatcast-advent-build/browser')
-const mime = { '.html':'text/html', '.js':'text/javascript', '.json':'application/json', '.css':'text/css', '.webmanifest':'application/manifest+json' }
+const mime = { '.html':'text/html', '.js':'text/javascript', '.json':'application/json', '.css':'text/css', '.webmanifest':'application/manifest+json', '.webp':'image/webp', '.png':'image/png', '.svg':'image/svg+xml', '.jpg':'image/jpeg', '.jpeg':'image/jpeg', '.ico':'image/x-icon' }
 http.createServer((req,res)=>{
   if (req.url.startsWith('/v1/') || req.url.startsWith('/actuator/')) {
     const p = http.request({hostname:'127.0.0.1',port:18080,path:req.url,method:req.method,headers:req.headers}, r=>{res.writeHead(r.statusCode,r.headers);r.pipe(res)})
