@@ -98,3 +98,18 @@ En mode test isolé activé, le menu à trois points du mode test permet de gén
 ### Résultats — composition validée
 
 La bonne réponse associe un lutin joyeux sur fond vert et un bandeau crème courbe ; la mauvaise réponse présente un lutin déçu sur fond rouge et un titre encourageant. Les points et anecdotes sont intégrés au fond clair, sans empiler de panneaux dorés. Le portrait personnel reste en médaillon ; les informations, les commandes et les règles de révélation restent inchangées. Sur les écrans étroits avec texte agrandi, la composition se réorganise pour préserver lisibilité et accès aux commandes.
+
+
+### Accès anticipé en test de développement isolé
+
+En développement isolé, le testeur autorisé par le serveur peut, sans activer le mode test, ouvrir et répondre à un quiz futur disponible ; son résultat personnel détaillé reste indisponible jusqu’à minuit Europe/Paris suivant le jour du cadeau, y compris en mode test. Le classement du mode test explicitement activé peut toutefois afficher des points avant révélation et donner un indice ; une date simulée peut atteindre cette échéance. La sélection ne change pas la date simulée ni l’horloge partagée ; les réponses et le rejeu restent personnels. Les cadeaux futurs conservent leur apparence habituelle ; le 25 ouvre le bilan de Noël avec le score actuel, et les contenus manquants conservent leur comportement existant. Les règles de production, de classement et de révélation du jour restent inchangées.
+
+### Bilan de Noël — victoire
+
+La scène conserve le Père Noël et le cadeau La Malice. Une couronne accompagne le message de victoire, adapté aux ex æquo ; une étoile accueille les autres membres. Le score réel, le message de fêtes et les boutons Material « Voir le classement » et « Revenir à HatCast » sont lisibles et accessibles. Le calendrier reste accessible par la navigation existante. Les maquettes approuvées guident la composition sans remplacer les textes ni les commandes.
+
+Pour un score positif sans victoire, le bilan affiche le rang serveur lorsqu’il existe, en précisant « ex æquo » selon les rangs du classement, puis le score et « Merci pour ta participation ! ». Un compte hors classement voit son score et ce remerciement sans rang. À zéro, aucun rang ni participation ne sont affirmés. En mode test isolé, un aperçu supplémentaire permet de vérifier une place ex æquo hors victoire avec le même bilan.
+
+### Récits complets
+
+Après la carte de résultat et son explication éventuelle, présenter les récits disponibles dans des panneaux repliés, chacun identifié par son choix. Préserver les paragraphes, le défilement et la lisibilité à petite largeur et avec texte agrandi ; conserver les contrôles accessibles dans le thème isolé Avent. Sans récit, ne pas afficher la section.

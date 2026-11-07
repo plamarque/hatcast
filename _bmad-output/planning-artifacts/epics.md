@@ -3779,7 +3779,7 @@ As an authorized organizer using the installed PWA, I want to open the private A
 
 As an authorized development tester, I want to open future quiz gifts directly, so I can inspect and play them without changing the simulated date.
 
-**Acceptance criteria:** In isolated test mode, allow eligible future quiz gifts to be opened and played and show the tester their personal result immediately, as in the production preview. Preserve the simulated and shared clocks, isolated test data, privacy, replay rules, missing-content handling and the day 25 review. Ordinary members, test mode off and production retain their existing authorization and date restrictions. Verify server authorization, keyboard and mobile use, and Advent visual isolation.
+**Acceptance criteria:** For authorized isolated development testers, without requiring test mode, allow eligible future quiz gifts to be opened and played, with a neutral confirmation and the personal result revealed at Paris midnight after the gift’s day. Preserve the simulated and shared clocks, isolated test data, privacy, replay rules and missing-content handling; authorized testers can open the day 25 review early. Ordinary members and production retain their existing authorization and date restrictions; test controls still require explicit activation. Verify server authorization, keyboard and mobile use, and Advent visual isolation.
 
 **Material 3 and references:** Apply `docs/v2/technical/FRONTEND_UI.md`, Advent DESIGN, EXPERIENCE and AD-7; see `spec-25-19-open-future-advent-gifts-in-development-test-mode.md` for the approved scope.
 
@@ -3791,6 +3791,30 @@ As a member, I want the Advent journey checked day by day from December 1 throug
 **Acceptance criteria:** Use a normal member account and fictional content in an isolated local environment, exercising the ordinary application paths without the Advent test mode or API clock override. Advance the system clock day by day and restore its previous automatic-time setting and actual time after the run, including on failure. Check correct and incorrect answers, same-day return before revelation, ranking, calendar, previously played and missed days, locked future gifts, Christmas and the following day. Retain a reviewable video and report failures and coverage limitations. Verify notification preference where possible and distinguish it from actual push delivery; do not send notifications to real members or use production data.
 
 **References:** `spec-avent-recette-25-jours-video.md`; Advent DESIGN, EXPERIENCE and AD-7.
+
+### Story 25.21: Célébrer le bilan de Noël
+
+En tant que membre, je veux découvrir mon bilan de Noël et ma place au classement, afin de célébrer le parcours et la victoire avec les lutins.
+
+**Critères :** Après la révélation prioritaire, distinguer victoire seule ou ex æquo, place individuelle ou ex æquo, compte hors classement et score nul ; utiliser le classement final autorisé et conserver score, navigation et confidentialité. Présenter le Père Noël et la direction artistique validée ; permettre aux opérateurs isolés de visualiser ces variantes avec le même écran et des données fictives.
+
+**Material 3 et références :** réutiliser les commandes Material et appliquer DESIGN, EXPERIENCE, AD-7, la checklist FRONTEND_UI et la stratégie de tests visuels Avent. Vérifier mobile, clavier, mouvement réduit et isolation HatCast.
+
+### Story 25.22: Discover full Advent stories
+
+As a member, I want to read complete stories after discovering a quiz result, so that concise mobile choices preserve the contributor's full account.
+
+**Acceptance criteria:** Keep short choices and existing results unchanged; optionally associate complete ordered narratives with a quiz and disclose them only through authorized result projections after the applicable reveal. Preserve existing explanations, scoring, privacy, preview and compatibility. Synchronize optional stories through guarded private catalogue and local/cloud operators without deleting game data or silently dropping existing narratives. Verify source completeness and make the existing Advent contribution skill support the workflow. Use fictional fixtures in Git and review real content only in a private isolated local target.
+
+**Material 3 and references:** Apply Advent DESIGN, EXPERIENCE and AD-7, FRONTEND_UI.md and the visual isolation test strategy; verify mobile, enlarged text, keyboard, focus and isolation. See `spec-25-22-advent-long-stories.md` and BUG-096.
+
+### Story 25.23: Ouvrir un quiz Avent par son URL
+
+En tant qu’organisateur, je veux accéder à une case Avent par un lien contenant son jour, afin de vérifier facilement un lutin ou son quiz après modification.
+
+**Critères :** `/avent?jour=N` cible le quiz correspondant (1 à 24), y compris avec `preview=1` pour un compte autorisé. Le lien respecte les autorisations serveur, la découverte initiale, la priorité des révélations, l’état personnel et les règles de chaque environnement ; il ne déverrouille rien par lui-même. Après connexion ou une étape prioritaire, reprendre la destination si elle reste autorisée. Pour un jour invalide, indisponible ou interdit, revenir à un parcours autorisé sans divulguer de contenu. Vérifier les parcours et l’isolation avec des données fictives.
+
+**Material 3 et références :** appliquer FRONTEND_UI, Advent DESIGN, EXPERIENCE, AD-7 et la stratégie de tests visuels ; voir la story détaillée 25.23. Dépend des parcours et droits existants des stories 25.5, 25.15, 25.18 et 25.19.
 
 ## Final validation
 

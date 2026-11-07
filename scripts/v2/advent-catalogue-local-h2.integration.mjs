@@ -1,5 +1,5 @@
 import {test,after} from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs/promises';import os from 'node:os';import path from 'node:path';import {spawn,spawnSync} from 'node:child_process';import {once} from 'node:events';import {createInterface} from 'node:readline';import {fileURLToPath} from 'node:url';
-import {applyLocal,deleteLocalDays,applyLocalContent} from './advent-catalogue-local-apply.mjs';
+import {applyLocal,deleteLocalDays,applyLocalContent,openH2} from './advent-catalogue-local-apply.mjs';
 const jar=process.env.ADVENT_H2_JAR;if(!jar)throw Error('ADVENT_H2_JAR required');
 const temp=await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(),'advent-h2-integration-')));await fs.chmod(temp,0o700);
 const fixture=fileURLToPath(new URL('./AdventLocalH2Fixture.java',import.meta.url));
@@ -77,4 +77,32 @@ test('legacy local portrait bytes bind successfully for independent character an
   const img=(await original()).portraits[0].bytes;await fs.writeFile(path.join(f.dir,'fiction.png'),img);
   assert.equal(await applyLocalContent({source:src,days:[1],operation,database:f.db,portraitDir:f.dir,jar,write:()=>{},confirm:async p=>p}),'applied');
  }
+});
+
+test('old source preserves multiline stories when replacing another field',async()=>{
+ const f=await setup(),o=opts(f),snapshot=o.source.snapshot;
+ o.source.snapshot=async()=>{const v=await snapshot();Object.assign(v.rows[0],{story_0:'Un\n\nÉté',story_1:null,story_2:'Fin'});return v};
+ assert.equal(await applyLocal(o),'applied');
+ o.source.snapshot=async()=>{const v=await snapshot();v.rows[0].statement_0='Changed';return v};
+ o.confirmReplacement=async days=>`REMPLACER ${days.join(',')}`;assert.equal(await applyLocal(o),'applied');
+ const db=await openH2(f.db,jar);try{const parts=(await db.query('CHECK\t1')).split('\t');assert.equal(Buffer.from(parts[8],'base64').toString(),'Un\n\nÉté');assert.equal(parts[9],'-');assert.equal(Buffer.from(parts[10],'base64').toString(),'Fin');}finally{await db.close()}
+});
+
+test('independent quiz plan and apply report and persist ordered story changes',async()=>{
+ const f=await setup(),src=source(),original=src.snapshot;let stories=['PRIVATE-OLD','PRIVATE-OLD2',null];
+ src.snapshot=async(_days,operation)=>{const v=await original();Object.assign(v.rows[0],{character_key:'fiction-id',story_0:stories[0],story_1:stories[1],story_2:stories[2]});if(operation==='quiz')v.portraits=[];return v};
+ const lines=[],options={source:src,days:[1],operation:'character',database:f.db,portraitDir:f.dir,jar,write:s=>lines.push(s),confirm:async phrase=>phrase};
+ assert.equal(await applyLocalContent(options),'applied');options.operation='quiz';assert.equal(await applyLocalContent(options),'applied');
+ stories=[null,'PRIVATE-NEW','PRIVATE-ADDED'];lines.length=0;
+ options.confirm=async phrase=>{assert.deepEqual(lines.slice(1),['Jour 1 : récit choix 1 : suppression','Jour 1 : récit choix 2 : modification','Jour 1 : récit choix 3 : ajout']);return phrase};
+ assert.equal(await applyLocalContent(options),'applied');assert.doesNotMatch(lines.join(' '),/PRIVATE/);
+ const db=await openH2(f.db,jar);try{const p=(await db.query('CHECK\t1')).split('\t');assert.equal(p[8],'-');assert.equal(Buffer.from(p[9],'base64').toString(),'PRIVATE-NEW');assert.equal(Buffer.from(p[10],'base64').toString(),'PRIVATE-ADDED')}finally{await db.close()}
+});
+
+test('local replacement plan reports deletion before replacement approval',async()=>{
+ const f=await setup(),o=opts(f),original=o.source.snapshot;let stories=['PRIVATE-OLD',null,null];
+ o.source.snapshot=async()=>{const s=await original();Object.assign(s.rows[0],{story_0:stories[0],story_1:stories[1],story_2:stories[2]});return s};
+ assert.equal(await applyLocal(o),'applied');stories=[null,'PRIVATE-NEW',null];const lines=[];o.write=s=>lines.push(s);
+ o.confirmReplacement=async()=>{assert.deepEqual(lines.slice(1),['Jour 1 : récit choix 1 : suppression','Jour 1 : récit choix 2 : ajout']);return 'REFUS'};
+ assert.equal(await applyLocal(o),'conflict');assert.doesNotMatch(lines.join(' '),/PRIVATE/);
 });

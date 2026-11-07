@@ -37,13 +37,22 @@ class UserPushSubscriptionService(
 
     /** Register an Advent device without changing HatCast's global notification choice. */
     @Transactional
-    fun registerAdventDevice(userId: UUID, body: RegisterPushSubscriptionRequest, userAgent: String?) {
+    fun registerAdventDevice(userId: UUID, body: RegisterPushSubscriptionRequest, userAgent: String?) =
+        registerAdventDeviceInternal(userId, body, userAgent, false)
+
+    @Transactional
+    fun registerTestAdventDevice(userId: UUID, body: RegisterPushSubscriptionRequest, userAgent: String?) =
+        registerAdventDeviceInternal(userId, body, userAgent, true)
+
+    private fun registerAdventDeviceInternal(userId: UUID, body: RegisterPushSubscriptionRequest, userAgent: String?, test: Boolean) {
         val endpoint = body.endpoint.trim()
         validateEndpoint(endpoint)
         lockEndpoint(endpoint)
         val user = requireUser(userId)
         val general = subscriptionRepository.findByEndpoint(endpoint)
         val existing = adventDevices.findByEndpoint(endpoint)
+        if (test && ((general != null && general.user.id != userId) || (existing != null && existing.user.id != userId)))
+            throw ResponseStatusException(HttpStatus.CONFLICT, "Cet appareil est associé à un autre compte.")
         val p256dh = body.keys.p256dh.trim()
         val auth = body.keys.auth.trim()
         if ((general != null && (general.p256dhKey != p256dh || general.authKey != auth)) ||
@@ -66,6 +75,14 @@ class UserPushSubscriptionService(
             existing.lastUsedAt = now
             adventDevices.saveAndFlush(existing)
         }
+    }
+
+    @Transactional(readOnly = true)
+    fun ownsTestAdventDevice(userId: UUID, body: RegisterPushSubscriptionRequest): Boolean {
+        val device = adventDevices.findByEndpoint(body.endpoint.trim()) ?: return false
+        val general = subscriptionRepository.findByEndpoint(body.endpoint.trim())
+        return device.user.id == userId && (general == null || general.user.id == userId) &&
+            device.p256dhKey == body.keys.p256dh.trim() && device.authKey == body.keys.auth.trim()
     }
 
     @Transactional(readOnly = true)

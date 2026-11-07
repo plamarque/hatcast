@@ -32,6 +32,8 @@ class AdventResultIntegrationTest {
     }
 
     @Test fun `result remains secret until next Paris day and is acknowledged idempotently`() {
+        val stories = listOf("Premier\n\nÉté", null, "Troisième")
+        jdbc.update("UPDATE advent_quizzes SET story_0 = ?, story_2 = ? WHERE quiz_day = 1", stories[0], stories[2])
         answers.confirm(user, 1, 0, now)
         assertNull(answers.latestUnseen(user, now))
         assertNull(answers.result(user, 1, now))
@@ -43,6 +45,8 @@ class AdventResultIntegrationTest {
         assertEquals(11, result.totalPoints)
         assertFalse(result.seen)
         assertEquals("Explication fictive", result.explanation)
+        assertEquals(stories, result.stories)
+        assertEquals(stories, answers.result(user, 1, now)!!.stories)
         answers.acknowledge(user, 1, UUID.fromString(result.answerId), now)
         answers.acknowledge(user, 1, UUID.fromString(result.answerId), now)
         assertNull(answers.latestUnseen(user, now))

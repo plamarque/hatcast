@@ -62,6 +62,8 @@ jobs:
         run: python3 scripts/v2/test-advent-config.py
       - name: Service-worker privacy configuration
         run: node apps/web/e2e/advent-isolation/check-service-worker-config.cjs
+      - name: Advent push service-worker tests
+        run: node --test apps/web/e2e/advent-isolation/advent-push-worker.test.cjs
   member-shell:
     runs-on: ubuntu-latest
     steps:
@@ -144,12 +146,12 @@ jobs:
           cache: gradle
       - name: PostgreSQL privacy and concurrency tests
         working-directory: services/api
-        run: ./gradlew cleanTest test --no-daemon --tests '*AdventMemberPostgresTest' --tests '*AdventRankingPostgresTest' --tests '*AdventResultPostgresTest'
+        run: ./gradlew cleanTest test --no-daemon --tests '*AdventMemberPostgresTest' --tests '*AdventRankingPostgresTest' --tests '*AdventResultPostgresTest' --tests '*AdventEndpointOwnershipPostgresTest'
       - name: Require all PostgreSQL suites to execute
         if: always()
         run: >-
           python3 scripts/v2/ci/check_reports.py 'services/api/build/test-results/test/TEST-*.xml'
-          AdventMemberPostgresTest AdventRankingPostgresTest AdventResultPostgresTest
+          AdventMemberPostgresTest AdventRankingPostgresTest AdventResultPostgresTest AdventEndpointOwnershipPostgresTest
       - name: Upload Advent PostgreSQL reports
         if: always()
         uses: actions/upload-artifact@v4

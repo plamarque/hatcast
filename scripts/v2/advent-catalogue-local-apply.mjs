@@ -7,12 +7,12 @@ import {once} from 'node:events';
 import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import {createLocalPortraitStore} from './advent-catalogue-local-store.mjs';
-import {compareQuizzes} from './advent-catalogue-compare.mjs';
+import {compareQuizzes,storyChanges} from './advent-catalogue-compare.mjs';
 const fail=()=>{throw Error('Local synchronization refused')};
 const digest=b=>createHash('sha256').update(b).digest('hex');
-const encode=x=>x===null?'-':Buffer.from(String(x)).toString('base64');
+const encode=x=>x===undefined?'~':x===null?'-':Buffer.from(String(x)).toString('base64');
 const decode=x=>x==='-'?null:Buffer.from(x,'base64').toString();
-const cols=['display_name','portrait_ref','statement_0','statement_1','statement_2','false_choice','explanation'];
+const cols=['display_name','portrait_ref','statement_0','statement_1','statement_2','false_choice','explanation','story_0','story_1','story_2'];
 function materialize(s) {
  if(!s||typeof s.generation!=='string'||!s.generation||!Array.isArray(s.rows)||!Array.isArray(s.portraits))fail();
  const mapped=new Map();const portraits=[];
@@ -42,9 +42,9 @@ export async function applyLocal({source,days,database,portraitDir,jar,confirm,c
   const store=createLocalPortraitStore(portraitDir);await store.verify();
   await source.verify();db=await openH2(database,jar);
   const snapshot=await source.snapshot(days),selected=materialize(snapshot),existing=[];
-  for(const row of selected.rows){const reply=await db.query(`CHECK\t${row.quiz_day}`);if(reply==='ABSENT')continue;const p=reply.split('\t');if(p.length!==8||p[0]!=='ROW')fail();const target={quiz_day:row.quiz_day};cols.forEach((c,i)=>target[c]=decode(p[i+1]));target.false_choice=Number(target.false_choice);existing.push(target);}
+  for(const row of selected.rows){const reply=await db.query(`CHECK\t${row.quiz_day}`);if(reply==='ABSENT')continue;const p=reply.split('\t');if(p.length!==11||p[0]!=='ROW')fail();const target={quiz_day:row.quiz_day};cols.forEach((c,i)=>target[c]=decode(p[i+1]));target.false_choice=Number(target.false_choice);existing.push(target);}
   const statuses=compareQuizzes(selected.rows,existing),portraits=await store.inspect(selected.portraits);
-  for(const item of statuses)write(`Jour ${item.day} : ${item.status}`);
+  for(const item of statuses){write(`Jour ${item.day} : ${item.status}`);const row=selected.rows.find(r=>r.quiz_day===item.day),old=existing.find(r=>r.quiz_day===item.day);for(const change of storyChanges(row,old))write(change);}
   if(portraits.some(p=>p.status==='divergence')){write('Conflit : aucune modification.');return 'conflict';}
   const replacements=statuses.filter(s=>s.status==='divergence').map(s=>s.day).sort((a,b)=>a-b);
   if(replacements.length && (!confirmReplacement || await confirmReplacement(replacements)!==`REMPLACER ${replacements.join(',')}`)){write('Conflit : aucune modification.');return 'conflict';}
@@ -108,8 +108,10 @@ export async function applyLocalContent({source,days,operation,database,portrait
    }
    let status=previous?'divergence':'addition';
    if(operation==='character' && previous && previous[0]===row.character_key && previous[1]===row.display_name && previous[2]===row.portrait_ref)status='unchanged';
-   if(operation==='quiz') {const quiz=await db.query(`CHECK\t${row.quiz_day}`);if(quiz==='ABSENT')status='addition';else {const parts=quiz.split('\t').slice(1).map(decode);status=[row.statement_0,row.statement_1,row.statement_2,String(row.false_choice),row.explanation].every((v,i)=>v===parts[i+2])?'unchanged':'divergence';}}
+   let previousQuiz=null;
+   if(operation==='quiz') {const quiz=await db.query(`CHECK\t${row.quiz_day}`);if(quiz==='ABSENT')status='addition';else {const parts=quiz.split('\t').slice(1).map(decode);previousQuiz=Object.fromEntries(cols.map((c,i)=>[c,parts[i]]));status=[row.statement_0,row.statement_1,row.statement_2,String(row.false_choice),row.explanation,row.story_0,row.story_1,row.story_2].every((v,i)=>v===undefined || v===parts[i+2])?'unchanged':'divergence';}}
    write(`Jour ${row.quiz_day} : ${status}`);
+   if(operation==='quiz') for(const change of storyChanges(row,previousQuiz))write(change);
   }
   const phrase=`APPLIQUER ${operation} ${[...days].sort((a,b)=>a-b).join(',')}`;
   if(await confirm(phrase)!==phrase)return 'cancelled';
@@ -117,7 +119,7 @@ export async function applyLocalContent({source,days,operation,database,portrait
   hold=await source.acquire(snap);await hold.verify();
   if(operation==='character'){const items=materialize(snap).portraits;const states=await store.inspect(items);if(states.some(x=>x.status==='divergence'))fail();await store.stagePortraits(items,states);if((await store.inspect(items)).some(x=>x.status!=='unchanged'))fail();}
   if(fingerprint(await source.snapshot(days,snapshotOperation))!==before)fail();await hold.verify();
-  for(const row of selected){const values=[row.character_key,row.display_name,row.portrait_ref,row.statement_0,row.statement_1,row.statement_2,row.false_choice,row.explanation];if(await db.query([operation.toUpperCase(),row.quiz_day,...values.map(encode),verifiedLegacy.has(row.quiz_day)?'VERIFIED':'-'].join('\t'))!=='OK')fail();}
+  for(const row of selected){const values=[row.character_key,row.display_name,row.portrait_ref,row.statement_0,row.statement_1,row.statement_2,row.false_choice,row.explanation,row.story_0,row.story_1,row.story_2];if(await db.query([operation.toUpperCase(),row.quiz_day,...values.map(encode),verifiedLegacy.has(row.quiz_day)?'VERIFIED':'-'].join('\t'))!=='OK')fail();}
   if(await db.query('COMMIT')!=='COMMITTED')fail();write('Synchronisation locale terminée.');return 'applied';
  } catch {throw Error('Synchronisation locale refusée ou interrompue');}
  finally {let failed=false;if(hold)try{await hold.release()}catch{failed=true}if(db)await db.close();if(failed)throw Error('Protection temporaire à vérifier');}

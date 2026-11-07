@@ -32,7 +32,7 @@ class AdventOfflinePortraitTest {
         val request = MockHttpServletRequest().apply { addHeader("X-Advent-Test-Session", session.toString()) }
         whenever(game.quiz(24, session)).thenThrow(ResponseStatusException(HttpStatus.NOT_FOUND))
         val env = MockEnvironment().withProperty("hatcast.advent.troupe-id", troupe.toString()).apply { setActiveProfiles("offline") }
-        val controller = AdventMemberController(env, memberships, game, clock, root, mock(), mock())
+        val controller = AdventMemberController(env, memberships, game, clock, root, mock(), mock(), mock())
         assertEquals(404, assertThrows(ResponseStatusException::class.java) { controller.door(24, TestAuthSupport.testPrincipal(), request) }.statusCode.value())
         verify(root, never()).worktreeRoot()
     }
@@ -51,7 +51,7 @@ class AdventOfflinePortraitTest {
         val request = MockHttpServletRequest().apply { addHeader("X-Advent-Test-Session", session.toString()) }
         whenever(game.quiz(1, session)).thenReturn(AdventQuiz("Fictif existant", "fixture.png", listOf("A", "B", "C"), 0, null))
         val env = MockEnvironment().withProperty("hatcast.advent.troupe-id", troupe.toString()).apply { setActiveProfiles("offline") }
-        val controller = AdventMemberController(env, memberships, game, clock, root, mock(), mock())
+        val controller = AdventMemberController(env, memberships, game, clock, root, mock(), mock(), mock())
         val principal = TestAuthSupport.testPrincipal()
         val response = controller.door(1, principal, request)
         verify(memberships).requireActiveMemberMembership(principal.userId, troupe)

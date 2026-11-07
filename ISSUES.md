@@ -15,6 +15,8 @@ historical registry below.
 
 ### Open defects and limitations
 
+BUG-096 (an Advent contribution was published with incomplete anecdotes).
+
 BUG-071 (Advent catalogue PostgreSQL integration test loses its connection in CI).
 
 BUG-072 (V2 Playwright smoke suite fails on commit b560afa4).
@@ -50,6 +52,12 @@ stability), LIMIT-004 (seed roster), BUG-008 (push preferences), LIMIT-001
 integration database).
 
 ### Pending verification or operational follow-up
+
+BUG-095 is corrected locally; the development deployment must be verified.
+
+BUG-094 is corrected locally and validated by Patrice on a phone; deployment remains separate.
+
+BUG-093 is corrected locally and validated by Patrice on a phone; deployment remains separate.
 
 BUG-081 is closed as an accepted shared-browser-subscription behavior; the Advent opt-out isolation is covered by targeted tests.
 
@@ -98,6 +106,70 @@ BUG-037 and BUG-029 have fixture-only corrections verified by the complete API s
 - **Observed behavior**: The server returned `application/octet-stream` for a WebP image, causing the welcome Playwright test to fail its image content-type assertion.
 - **Expected behavior**: Known image extensions are served with their image MIME types.
 - **Notes**: Observed against a local production PWA build with mocked API responses; this does not establish production behavior.
+
+### BUG-100 — Offline CORS test reads an unresolved placeholder
+- **Status**: Correction in progress; CI validation pending.
+- **Severity**: Medium.
+- **Affected area**: API regression suite, offline CORS configuration test.
+- **Observed behavior**: The test reads a raw YAML value containing an environment placeholder and treats it as a resolved list, causing its Tailscale origin assertion to fail.
+- **Expected behavior**: Resolve the property through a Spring environment before checking the configured default origins.
+- **Notes**: Observed in GitHub Actions run 42199681602; this is a test failure and does not establish a runtime CORS defect.
+
+### BUG-099 — Catalogue database test can connect during initialization
+- **Status**: Correction in progress; CI validation pending.
+- **Severity**: Medium.
+- **Affected area**: Advent catalogue PostgreSQL test.
+- **Observed behavior**: The disposable database test reported an unexpectedly terminated connection immediately after its readiness check in GitHub Actions run 42198776176.
+- **Expected behavior**: Wait for the final PostgreSQL server to accept TCP connections before running integration tests.
+- **Notes**: The local-socket readiness check can succeed during PostgreSQL's temporary initialization server; this is a suspected race, pending validation.
+
+### BUG-098 — Advent test action changes keyboard regression order
+- **Status**: Correction in progress; CI validation pending.
+- **Severity**: Medium.
+- **Affected area**: Advent browser regression gate.
+- **Observed behavior**: The new reminder test button takes keyboard focus before the test actions menu, so the existing test fails on its previous tab-order assertion.
+- **Expected behavior**: Verify that both buttons are reached in order and the menu remains usable by keyboard.
+- **Notes**: Observed in GitHub Actions run 42198776314.
+
+### BUG-097 — Advent result PostgreSQL fixture lacks story columns
+- **Status**: Correction in progress; CI validation pending.
+- **Severity**: Medium.
+- **Affected area**: Advent PostgreSQL regression gate.
+- **Observed behavior**: The result test creates the quiz schema with migration V75 alone, while result reads now require the story columns introduced by V84.
+- **Expected behavior**: The fixture applies the relevant migration and continues exercising reveal serialization against PostgreSQL.
+- **Notes**: Observed in GitHub Actions run 42198776314; no production database was modified.
+
+### BUG-096 — Advent contribution published with incomplete anecdotes
+- **Status**: Open; correction and synchronized publication pending.
+- **Severity**: Medium.
+- **Affected area**: Private Advent catalogue and synchronized quiz data.
+- **Observed behavior**: A real contribution was prepared from a multi-paragraph draft using an extraction that retained only the first paragraph of each anecdote, and the incomplete text was synchronized to local, development, staging and production data.
+- **Expected behavior**: Prepared quiz content matches the complete approved contribution or a deliberately approved concise version; source narratives are preserved for the agreed reveal experience.
+- **Notes**: The source draft remains private. No personal content or answers are recorded here. A local mockup was approved; application support and content repair are not yet deployed.
+
+### BUG-095 — Advent browser gate rejects changed waiting text
+- **Status**: Corrected locally; development deployment pending.
+- **Severity**: Medium.
+- **Affected area**: Advent waiting screen and deployment regression gate.
+- **Observed behavior**: Story 25.19 changed the ordinary waiting message; its existing browser test failed and blocked the development deploy.
+- **Expected behavior**: Keep the ordinary waiting message, with a specific later-date message when revisiting a future gift.
+- **Notes**: Reported by GitHub Actions deployment run 41934865531; no test was disabled.
+
+### BUG-094 — Development tester sees a future Advent result immediately
+- **Status**: Corrected locally and validated by Patrice on a phone; deployment remains separate. Reported during story 25.19 human testing.
+- **Severity**: Medium.
+- **Affected area**: Advent gift access for authorized development testers.
+- **Observed behavior**: After a future quiz answer, the neutral confirmation is followed by the personal result; API result, calendar and history paths also permit early disclosure to that tester.
+- **Expected behavior**: The tester remains on neutral confirmation until the applicable reveal boundary, while retaining future gift access. The boundary is midnight Europe/Paris following the gift’s calendar day.
+- **Notes**: The implementation intentionally extended private production-preview immediate result semantics to development testers; ordinary-member and production-preview paths are distinct. Existing test-mode rankings can include unrevealed scores. Previously acknowledged answers remain seen and are available in history after revelation; they do not reappear as unseen priority results.
+
+### BUG-093 — Development future gift access changed calendar appearance and locked day 25
+- **Status**: Corrected locally and validated by Patrice on a phone; deployment remains separate.
+- **Severity**: Medium.
+- **Affected area**: Advent calendar for authorized development testers.
+- **Observed behavior**: Available future gifts appeared red and day 25 remained locked.
+- **Expected behavior**: Preserve the usual future appearance while allowing access; the authorized tester can open the existing day 25 recap.
+- **Notes**: Reported during story 25.19 human testing. Production preview's current code also locks day 25; production behavior is unchanged by this development correction.
 
 ### BUG-092 — Advent domain contract disagrees with production preview replay
 - **Status**: Resolved 2026-11-02.

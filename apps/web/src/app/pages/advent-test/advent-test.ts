@@ -1,10 +1,12 @@
+import { MatExpansionModule } from '@angular/material/expansion';
 import { Component, ElementRef, ViewChild, signal, inject, effect } from '@angular/core'
 import { NgTemplateOutlet } from '@angular/common'
 import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatRadioModule } from '@angular/material/radio'
-import { Router } from '@angular/router'
+import { NavigationEnd, Router } from '@angular/router'
+import { Subscription } from 'rxjs'
 import { AuthApiService } from '../../core/auth/auth-api.service'
 import { PushNotificationsService } from '../../core/push/push-notifications.service'
 
@@ -13,10 +15,11 @@ const REQUEST_TIMEOUT_MS = 10_000
 class TransientReadError extends Error {}
 class StaleRequestError extends Error {}
 
-interface AdventResult { answerId: string; day: number; selectedChoice: number; falseChoice: number; correct: boolean; responsePoints: number; participationPoints: number; bonusPoints: number; totalPoints: number; seen: boolean; explanation?: string | null; late?: boolean }
+interface AdventResult { answerId: string; day: number; selectedChoice: number; falseChoice: number; correct: boolean; responsePoints: number; participationPoints: number; bonusPoints: number; totalPoints: number; seen: boolean; explanation?: string | null; late?: boolean; stories?: (string | null)[] | null }
 
 interface ClockProjection { date: string; effectiveInstant: string; nextMidnight: string; simulated: boolean }
 
+type ChristmasFixture = 'sole' | 'shared' | 'participant' | 'participant-tied' | 'zero'
 interface AdventRanking { score: number; rank: number | null; entries: { name: string; score: number; rank: number; mine: boolean }[] }
 
 interface CalendarDay { day: number; state: 'locked' | 'played' | 'today' | 'past-unplayed' | 'missing' | 'christmas'; outcome?: 'pending' | 'correct' | 'incorrect' | null }
@@ -27,9 +30,9 @@ interface FictionalQuiz { day: number; name: string; portrait: string; statement
 @Component({
   selector: 'app-advent-test',
   standalone: true,
-  imports: [MatButtonModule, MatIconModule, MatMenuModule, MatRadioModule, NgTemplateOutlet],
+  imports: [MatExpansionModule, MatButtonModule, MatIconModule, MatMenuModule, MatRadioModule, NgTemplateOutlet],
   templateUrl: './advent-test.html',
-  styleUrls: ['./advent-test.scss', './advent-result.scss', './advent-ranking.scss', './advent-calendar.scss', './advent-illustrated.scss', './advent-welcome.scss', './advent-controls.scss', './advent-reminder.scss'],
+  styleUrls: ['./advent-christmas.scss', './advent-test.scss', './advent-result.scss', './advent-ranking.scss', './advent-calendar.scss', './advent-illustrated.scss', './advent-welcome.scss', './advent-controls.scss', './advent-reminder.scss'],
 })
 export class AdventTest {
   private readonly auth = inject(AuthApiService)
@@ -46,7 +49,36 @@ export class AdventTest {
   private async reminderRequest(path: string, method = 'GET', body?: unknown): Promise<any> {
     const response = await fetch(`${this.api}/${path}`, { method, credentials: 'include', cache: 'no-store', signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS), headers: { ...this.sessionHeaders(), 'X-Advent-User': this.identity ?? '', ...(method === 'GET' ? {} : { ...this.csrfHeaders(), 'Content-Type': 'application/json' }) }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) })
     if (!response.ok) throw new Error('Reminder request failed')
-    return response.status === 204 || path === 'reminder-device' ? null : response.json()
+    return response.status === 204 || path === 'reminder-device' || path === 'test-reminder-device' ? null : response.json()
+  }
+
+  readonly testReminderMessage = signal('')
+  readonly testReminderBusy = signal(false)
+  private notificationParametersConsumed = false
+
+  async sendTestReminder(): Promise<void> {
+    const date = this.simulatedDate()
+    if (!this.testMode() || !this.testControls() || this.testReminderBusy() || !date || !/^2026-12-(0[1-9]|1[0-9]|2[0-4])$/.test(date)) {
+      this.testReminderMessage.set('Choisis un jour du 1er au 24 décembre pour tester le rappel.')
+      return
+    }
+    const identity = this.identityEpoch
+    const context = this.projectionEpoch
+    this.testReminderBusy.set(true); this.testReminderMessage.set('')
+    try {
+      let subscription: PushSubscriptionJSON | null = null
+      const device = await this.push.activateAdventDevice(async value => {
+        if (identity !== this.identityEpoch || context !== this.projectionEpoch || !this.testMode()) return false
+        await this.reminderRequest('test-reminder-device', 'PUT', value)
+        subscription = value
+        return identity === this.identityEpoch && context === this.projectionEpoch && this.testMode()
+      })
+      if (identity !== this.identityEpoch || context !== this.projectionEpoch || !this.testMode()) return
+      if (!device.endpoint || !subscription) { this.testReminderMessage.set(device.message ?? 'Active les notifications sur cet appareil.'); return }
+      await this.reminderRequest('test-reminder', 'POST', subscription)
+      if (identity === this.identityEpoch && context === this.projectionEpoch) this.testReminderMessage.set('Envoi accepté. Vérifie la réception sur cet appareil.')
+    } catch { if (identity === this.identityEpoch && context === this.projectionEpoch) this.testReminderMessage.set('Envoi non confirmé. Vérifie ton appareil avant de réessayer.') }
+    finally { this.testReminderBusy.set(false) }
   }
 
   async loadReminder(): Promise<void> {
@@ -201,6 +233,17 @@ export class AdventTest {
       sessionStorage.removeItem('hatcast-advent-return')
       await this.router.navigateByUrl(target.startsWith('/') && !target.startsWith('//') && !target.startsWith('/avent') ? target : '/accueil')
   }
+  private requestedDay: number | null = this.dayFromUrl()
+  private dayQueryKey = this.dayKeyFromUrl()
+  private navigationSubscription?: Subscription
+  private dayKeyFromUrl(): string {
+    return JSON.stringify(this.router.parseUrl(this.router.url).queryParamMap.getAll('jour'))
+  }
+  private dayFromUrl(): number | null {
+    const values = this.router.parseUrl(this.router.url).queryParamMap.getAll('jour')
+    if (values.length !== 1 || !/^(?:[1-9]|1[0-9]|2[0-4])$/.test(values[0])) return null
+    return Number(values[0])
+  }
   private identity = this.auth.sessionUser()?.id ?? null
   private projectionEpoch = 0
   private identityEpoch = 0
@@ -215,6 +258,7 @@ export class AdventTest {
       const identity = this.auth.sessionUser()?.id ?? null
       if (identity === this.identity) return
       this.identity = identity
+      this.requestedDay = this.dayFromUrl()
       this.reminderLoadFailed.set(false); this.previewReminderEnabled.set(false); this.reminderEnabled.set(null); this.reminderDeviceOwned.set(false); this.reminderBusy.set(false); this.reminderMessage.set('')
       this.discoveryAttempt = null
       this.identityEpoch++
@@ -223,7 +267,8 @@ export class AdventTest {
       this.projectionEpoch++
       this.calendarDays.set([]); this.calendarOpen.set(false); this.welcome.set(false); this.discoveryError.set(false)
       this.result.set(null); this.resultContent.set(null); this.history.set(null)
-      this.ranking.set(null); this.fictionalRanking.set(null); this.lastFictionalRanking = null; this.rankingOpen.set(false); this.christmasScore.set(null)
+      this.christmasFixture.set(null)
+      this.ranking.set(null); this.fictionalRanking.set(null); this.lastFictionalRanking = null; this.rankingOpen.set(false); this.christmasScore.set(null); this.christmasPlace.set(null); this.christmasVictory.set(null); this.christmasPreviewOpen.set(false)
       this.quiz.set(null); this.preview.set(null); this.clearVisibilityListener(); this.stopWaiting()
       this.loading.set(false); this.submitting.set(false); this.closingDay.set(null)
       this.error.set(false); this.rankingError.set(false); this.christmasError.set(false); this.calendarActionMessage.set('')
@@ -238,6 +283,7 @@ export class AdventTest {
   readonly discoveryError = signal(false)
   private discoveryAttempt: string | null = null
   @ViewChild("welcomeHeading") private welcomeHeading?: ElementRef<HTMLElement>
+  @ViewChild("christmasHeading") private christmasHeading?: ElementRef<HTMLElement>
   readonly testControls = signal(false)
   readonly testMode = signal(false)
   readonly productionPreview = signal(false)
@@ -314,7 +360,11 @@ export class AdventTest {
   readonly calendarActionMessage = signal('')
   readonly christmasError = signal(false)
   readonly history = signal<History | null>(null)
+  readonly christmasFixture = signal<ChristmasFixture | null>(null)
+  readonly christmasPlace = signal<{ rank: number; tied: boolean } | null>(null)
   readonly christmasScore = signal<number | null>(null)
+  readonly christmasVictory = signal<'sole' | 'shared' | null>(null)
+  readonly christmasPreviewOpen = signal(false)
   @ViewChild('calendarHeading') private calendarHeading?: ElementRef<HTMLElement>
   @ViewChild('historyHeading') private historyHeading?: ElementRef<HTMLElement>
   readonly rankingOpen = signal(false)
@@ -384,7 +434,7 @@ export class AdventTest {
       if (!Number.isFinite(effective) || !Number.isFinite(midnight) || midnight <= effective || clock.simulated !== this.testMode()) throw new Error('Invalid clock projection')
       this.waitingError.set(false)
       const expectedDate = `2026-12-${String(this.selectedDay()).padStart(2, '0')}`
-      if (clock.date !== expectedDate) {
+      if (clock.date > expectedDate) {
         // The clock is only a hint. Read the server-authorized priority result.
         const latest = await this.requestJson<{ result: AdventResult | null }>('/v1/advent-test/results/latest-unseen', { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
         if (!this.waiting() || generation !== this.waitingGeneration) return
@@ -398,6 +448,17 @@ export class AdventTest {
           if (!result) throw new Error('Result requires refresh')
           await this.showResult(result, true, generation)
           if (this.result()?.answerId === result.answerId) this.clockDate.set(clock.date)
+        }
+        return
+      }
+      if (clock.date < expectedDate) {
+        this.remainingSeconds.set(null)
+        // Refresh at each real Paris midnight without presenting it as the gift's reveal.
+        if (!clock.simulated) {
+          const sample = performance.now()
+          this.waitingTimer = setInterval(() => {
+            if (performance.now() - sample >= midnight - effective) void this.refreshWaiting(generation)
+          }, 1000)
         }
         return
       }
@@ -462,20 +523,31 @@ export class AdventTest {
     return /^[aeiouyàâéèêëîïôùûü]/i.test(name) ? `d’${name}` : `de ${name}`
   }
 
-  ngOnInit(): void { void this.start(); setTimeout(() => this.entryHeading?.nativeElement.focus()) }
-  ngOnDestroy(): void { this.projectionEpoch++; this.clearVisibilityListener(); this.stopWaiting() }
+  ngOnInit(): void {
+    this.navigationSubscription = this.router.events.subscribe(event => {
+      if (!(event instanceof NavigationEnd)) return
+      const key = this.dayKeyFromUrl()
+      if (key === this.dayQueryKey) return
+      this.dayQueryKey = key
+      this.requestedDay = this.dayFromUrl()
+      void this.start()
+    })
+    void this.start(); setTimeout(() => this.entryHeading?.nativeElement.focus())
+  }
+  ngOnDestroy(): void { this.navigationSubscription?.unsubscribe(); this.projectionEpoch++; this.clearVisibilityListener(); this.stopWaiting() }
   private clearVisibilityListener(): void {
     if (this.visibilityListener) document.removeEventListener('visibilitychange', this.visibilityListener)
     this.visibilityListener = null
   }
 
   async start(openTestDay = false): Promise<void> {
+    this.christmasFixture.set(null)
     this.replayReloadFailed.set(false)
     this.replayReloading.set(false)
     this.stopWaiting()
     this.projectionEpoch++
     this.welcome.set(false); this.welcomePreview.set(false); this.confirmationPreview.set(false); this.discoveryError.set(false)
-    this.calendarOpen.set(false); this.calendarDays.set([]); this.history.set(null); this.christmasScore.set(null); this.lateDiscovery.set(false)
+    this.calendarOpen.set(false); this.calendarDays.set([]); this.history.set(null); this.christmasScore.set(null); this.christmasPlace.set(null); this.christmasVictory.set(null); this.christmasPreviewOpen.set(false); this.lateDiscovery.set(false)
     this.rankingOpen.set(false)
     this.ranking.set(null)
     this.fictionalRanking.set(null)
@@ -493,7 +565,17 @@ export class AdventTest {
     try {
       const session = await this.requestJson<{ testControls: boolean; productionPreview?: boolean; sessionId: string; transitionRequired?: boolean }>('/v1/advent/session', { credentials: 'include', cache: 'no-store' })
       if (!session.sessionId) throw new Error('Invalid session')
-      const previewRequested = this.router.parseUrl(this.router.url).queryParams['preview'] === '1'
+      const params = this.router.parseUrl(this.router.url).queryParams
+      if (!this.notificationParametersConsumed) {
+        this.notificationParametersConsumed = true
+        const day = this.dayFromUrl()
+        const notificationTest = params['test'] === '1' && day !== null && session.testControls === true
+        if (notificationTest) {
+          this.testMode.set(true)
+          this.simulatedDate.set(`2026-12-${String(day).padStart(2, '0')}`)
+        }
+      }
+      const previewRequested = params['preview'] === '1'
       this.productionPreview.set(previewRequested && session.productionPreview === true)
       this.testControls.set(!this.productionPreview() && session.testControls === true)
       if (this.productionPreview()) { this.testMode.set(false); this.simulatedDate.set(null) }
@@ -512,13 +594,16 @@ export class AdventTest {
         return
       }
       if (this.productionPreview()) { this.loading.set(false); await this.openCalendar() }
-      else await this.enterAt(clock.date, openTestDay && this.testMode())
+      else {
+        await this.enterAt(clock.date, openTestDay && this.testMode())
+      }
     } catch (error) { if (!(error instanceof StaleRequestError)) { this.error.set(true); this.loading.set(false) } }
   }
 
   previewWelcome(): void {
     if (this.welcome() || this.loading() || this.submitting() || this.closingDay() !== null || this.pendingMutations() || this.result() || this.sessionChanged() || this.transitionRequired() || this.unavailable()) return
     this.closeRanking()
+    this.christmasFixture.set(null); this.christmasPreviewOpen.set(false)
     this.welcomePreview.set(true); this.welcome.set(true); this.calendarOpen.set(false)
     setTimeout(() => this.welcomeHeading?.nativeElement.focus())
   }
@@ -549,6 +634,7 @@ export class AdventTest {
       if (!response.days) throw new Error('Calendar unavailable')
       this.discoveryAttempt = null
       this.calendarDays.set(response.days); this.welcome.set(false); this.calendarOpen.set(true)
+      if (this.requestedDay !== null) { this.loading.set(false); await this.openCalendar(); return }
       setTimeout(() => this.calendarHeading?.nativeElement.focus())
     } catch (error) {
       if (!(error instanceof StaleRequestError) && this.contextCurrent(epoch, identity)) this.discoveryError.set(true)
@@ -612,7 +698,7 @@ export class AdventTest {
     this.projectionEpoch++
     const returnToCalendar = this.calendarOpen()
     this.closeRanking()
-    this.calendarOpen.set(false); this.calendarDays.set([]); this.history.set(null); this.christmasScore.set(null); this.lateDiscovery.set(false)
+    this.calendarOpen.set(false); this.calendarDays.set([]); this.history.set(null); this.christmasScore.set(null); this.christmasPlace.set(null); this.christmasVictory.set(null); this.christmasPreviewOpen.set(false); this.lateDiscovery.set(false)
     this.clearVisibilityListener()
     this.result.set(null); this.resultContent.set(null); this.quiz.set(null); this.preview.set(null)
     this.generation = null; this.replayToken = null; this.choice.set(null)
@@ -627,6 +713,14 @@ export class AdventTest {
       this.result.set(null); this.resultContent.set(null); this.quiz.set(null); this.preview.set(null)
       this.replayToken = null
       this.unavailable.set(false)
+      if (this.requestedDay !== null) { this.loading.set(false); await this.openCalendar(); return }
+      if (!returnToCalendar && date === '2026-12-25') {
+        const epoch = this.projectionEpoch
+        const identity = this.auth.sessionUser()?.id ?? null
+        try { await this.loadChristmasScore() }
+        finally { if (this.contextCurrent(epoch, identity)) this.loading.set(false) }
+        return
+      }
       this.loading.set(false)
       if (returnToCalendar) await this.openCalendar()
       else if (date < '2026-12-25') {
@@ -638,16 +732,65 @@ export class AdventTest {
         }
         await this.selectDay(day, state.status === 'recorded' && !openTestDay)
       }
-      else if (date === '2026-12-25') await this.loadChristmasScore()
       else await this.openRanking()
     }
   }
 
   private async loadChristmasScore(): Promise<void> {
+    const epoch = this.projectionEpoch
+    const identity = this.auth.sessionUser()?.id ?? null
+    const date = this.clockDate()
+    const calendar = this.calendarOpen()
+    const ranking = this.rankingOpen()
+    const mode = this.testMode()
+    const simulatedDate = this.simulatedDate()
     const response = await this.requestJson<{ ranking: AdventRanking | null; priorityResult: AdventResult | null }>('/v1/advent-test/ranking', { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
-    if (response.priorityResult) { await this.showResult(response.priorityResult); return }
+    if (!this.contextCurrent(epoch, identity) || date !== this.clockDate() || calendar !== this.calendarOpen() || ranking !== this.rankingOpen() || mode !== this.testMode() || simulatedDate !== this.simulatedDate()) throw new StaleRequestError()
+    if (response.priorityResult) { await this.showResult(response.priorityResult); if (!this.result()) throw new Error('Priority result unavailable'); return }
     if (!response.ranking) throw new Error('Ranking unavailable')
-    this.christmasScore.set(response.ranking.score)
+    const fixture = this.testMode() ? this.christmasFixture() : null
+    const board: AdventRanking = fixture ? this.christmasFixtureRanking(fixture) : response.ranking
+    this.applyChristmasRanking(board)
+  }
+
+  private applyChristmasRanking(board: AdventRanking): void {
+    const mine = board.entries.find(entry => entry.mine)
+    const highest = Math.max(0, ...board.entries.map(entry => entry.score))
+    const winner = mine && highest > 0 && mine.score === highest && mine.score === board.score
+    this.christmasVictory.set(winner ? (board.entries.filter(entry => entry.score === highest).length > 1 ? 'shared' : 'sole') : null)
+    this.christmasPlace.set(board.score > 0 && !winner && board.rank !== null ? { rank: board.rank, tied: this.isTied(board, board.rank) } : null)
+    this.christmasScore.set(board.score)
+    setTimeout(() => this.christmasHeading?.nativeElement.focus())
+  }
+
+  private christmasFixtureRanking(kind: ChristmasFixture): AdventRanking {
+    const score = kind === 'zero' ? 0 : kind === 'participant' || kind === 'participant-tied' ? 143 : 250
+    if (kind === 'participant-tied') return { score, rank: 3, entries: [
+      { name: 'Membre', score: 250, rank: 1, mine: false },
+      { name: 'Toi', score, rank: 3, mine: true },
+      { name: 'Autre membre', score, rank: 3, mine: false },
+    ] }
+    const other = kind === 'sole' ? 143 : kind === 'participant' ? 250 : score
+    return { score, rank: kind === 'sole' ? 1 : 2, entries: [
+      { name: 'Toi', score, rank: kind === 'sole' ? 1 : 2, mine: true },
+      { name: 'Membre', score: other, rank: kind === 'participant' ? 1 : 2, mine: false },
+    ] }
+  }
+
+  async previewChristmas(kind: ChristmasFixture): Promise<void> {
+    if (!this.testMode() || !this.testControls() || this.loading() || this.submitting() || this.closingDay() !== null || this.pendingMutations() || this.result() || this.sessionChanged() || this.transitionRequired()) return
+    this.welcome.set(false); this.welcomePreview.set(false)
+    this.christmasFixture.set(kind)
+    this.simulatedDate.set('2026-12-25')
+    this.calendarOpen.set(false)
+    this.loading.set(true); this.error.set(false)
+    try { await this.enterAt('2026-12-25', true) }
+    catch (error) { if (!(error instanceof StaleRequestError)) { this.error.set(true); this.loading.set(false) } }
+  }
+
+  selectedFutureTestDay(): boolean {
+    const date = this.clockDate()
+    return this.testControls() && date !== null && date < `2026-12-${String(this.selectedDay()).padStart(2, '0')}`
   }
 
   selectedDayIsPast(): boolean {
@@ -658,9 +801,14 @@ export class AdventTest {
     return this.clockDate() === `2026-12-${String(day.day).padStart(2, '0')}`
   }
 
+  futureGiftAppearance(day: CalendarDay): boolean {
+    const date = this.clockDate()
+    return this.testControls() && !this.productionPreview() && date !== null && date < `2026-12-${String(day.day).padStart(2, '0')}` && (day.state === 'today' || day.state === 'christmas')
+  }
+
   calendarLabel(day: CalendarDay): string {
     if (day.state === 'played') return ({ pending: 'Réponse enregistrée, résultat en attente', correct: 'Bonne réponse', incorrect: 'Mauvaise réponse' })[day.outcome ?? 'pending']
-    if (this.productionPreview() && day.state === 'today' && !this.isCalendarToday(day)) return 'Cadeau disponible'
+    if ((this.productionPreview() || this.testControls()) && day.state === 'today' && !this.isCalendarToday(day)) return 'Cadeau disponible'
     return ({ locked: 'Verrouillé', played: 'Réponse enregistrée', today: 'Aujourd’hui', 'past-unplayed': 'Cadeau fermé', missing: 'Sans contenu', christmas: 'Résumé de Noël' })[day.state]
   }
 
@@ -678,9 +826,26 @@ export class AdventTest {
       if (response.priorityResult) { this.calendarOpen.set(false); this.history.set(null); await this.showResult(response.priorityResult); if (previousWaiting && !this.result()) throw new Error('Priority result unavailable'); return }
       if (!response.days) throw new Error('Calendar unavailable')
       this.replayReloadFailed.set(false)
-      this.calendarDays.set(response.days); this.history.set(null); this.closeRanking(); this.calendarOpen.set(true)
+      if (this.christmasFixture()) { this.christmasScore.set(null); this.christmasPlace.set(null); this.christmasVictory.set(null) }
+      this.christmasFixture.set(null)
+      this.calendarDays.set(response.days); this.history.set(null); this.closeRanking(); this.christmasPreviewOpen.set(false); this.calendarOpen.set(true)
       if (this.confirmationPreview()) { this.confirmationPreview.set(false); this.quiz.set(null) }
-      setTimeout(() => this.calendarHeading?.nativeElement.focus())
+      if (this.requestedDay !== null) {
+        const requested = this.requestedDay
+        const day = response.days.find(item => item.day === requested)
+        this.loading.set(false)
+        this.calendarActionMessage.set('')
+        const unavailable = !day || day.state === 'locked' || day.state === 'missing'
+        if (unavailable) this.calendarActionMessage.set('Ce quiz n’est pas disponible. Voici ton calendrier.')
+        const priorityInterrupt = !unavailable && day ? await this.openCalendarDay(day) : false
+        if (this.contextCurrent(epoch, identity) && this.unavailable() && !this.error() && !this.result()) {
+          this.unavailable.set(false)
+          this.calendarOpen.set(true)
+          this.calendarActionMessage.set('Ce quiz n’est pas disponible. Voici ton calendrier.')
+        }
+        if (this.contextCurrent(epoch, identity) && !priorityInterrupt && !this.error() && !this.sessionChanged()) this.requestedDay = null
+      }
+      if (this.calendarOpen()) setTimeout(() => this.calendarHeading?.nativeElement.focus())
     } catch (error) {
       if (error instanceof StaleRequestError || !this.contextCurrent(epoch, identity)) return
       this.error.set(true)
@@ -701,13 +866,13 @@ export class AdventTest {
 
   cancelPersonalReset(): void {
     this.personalResetConfirm.set(null)
-    setTimeout(() => (this.productionPreview() ? this.previewReplayButton : this.openingReplayButton)?.nativeElement.focus())
+    setTimeout(() => ((this.productionPreview() || (!this.testMode() && this.selectedFutureTestDay())) ? this.previewReplayButton : this.openingReplayButton)?.nativeElement.focus())
   }
 
   async confirmPersonalReset(): Promise<void> {
     const action = this.personalResetConfirm()
     this.personalResetConfirm.set(null)
-    if (!this.testMode() && !this.productionPreview()) return
+    if (!this.testMode() && !this.productionPreview() && !this.selectedFutureTestDay()) return
     if (action === 'calendar') await this.closeCalendarDay()
     if (action === 'replay') await this.replay()
   }
@@ -736,7 +901,7 @@ export class AdventTest {
     } finally { if (this.contextCurrent(epoch, identity)) this.closingDay.set(null) }
   }
 
-  async openCalendarDay(day: CalendarDay): Promise<void> {
+  async openCalendarDay(day: CalendarDay): Promise<boolean | void> {
     const epoch = this.projectionEpoch
     const identity = this.auth.sessionUser()?.id ?? null
     if (day.state === 'locked' || this.loading()) return
@@ -744,14 +909,14 @@ export class AdventTest {
       this.christmasError.set(false); this.loading.set(true)
       try {
         await this.loadChristmasScore()
-        if (!this.result()) { this.calendarOpen.set(false); this.history.set(null); this.quiz.set(null); this.preview.set(null); this.unavailable.set(false) }
+        if (!this.result()) { this.christmasPreviewOpen.set((this.clockDate() ?? '') < '2026-12-25'); this.calendarOpen.set(false); this.history.set(null); this.quiz.set(null); this.preview.set(null); this.unavailable.set(false); setTimeout(() => this.christmasHeading?.nativeElement.focus()) }
       } catch (error) {
       if (error instanceof StaleRequestError || !this.contextCurrent(epoch, identity)) return
         this.christmasError.set(true) }
       finally { if (this.contextCurrent(epoch, identity)) this.loading.set(false) }
       return
     }
-    if (day.state === 'today' || (day.state === 'played' && this.clockDate() === `2026-12-${String(day.day).padStart(2, '0')}`)) {
+    if (day.state === 'today' || (day.state === 'played' && (this.clockDate() === `2026-12-${String(day.day).padStart(2, '0')}` || (this.testControls() && (this.clockDate() ?? '') < `2026-12-${String(day.day).padStart(2, '0')}`)))) {
       this.lateDiscovery.set(false)
       this.calendarOpen.set(false); this.history.set(null); this.unavailable.set(false); await this.selectDay(day.day, day.state === 'played' && day.outcome === 'pending'); return
     }
@@ -759,7 +924,7 @@ export class AdventTest {
     this.loading.set(true); this.error.set(false)
     try {
       const history = await this.requestJson<History & { priorityResult: AdventResult | null }>(`/v1/advent-test/doors/${day.day}/history`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
-      if (history.priorityResult) { this.calendarOpen.set(false); await this.showResult(history.priorityResult); return }
+      if (history.priorityResult) { this.calendarOpen.set(false); await this.showResult(history.priorityResult); return true }
       if (!history.quiz) throw new Error('History unavailable')
       this.calendarOpen.set(false)
       if (history.result) { await this.showResult(history.result, true); return }
@@ -809,6 +974,8 @@ export class AdventTest {
       const response = await this.requestJson<{ ranking: AdventRanking | null; priorityResult: AdventResult | null }>('/v1/advent-test/ranking', { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
       if (response.priorityResult) { await this.showResult(response.priorityResult); if (previousWaiting && !this.result()) throw new Error('Priority result unavailable'); return }
       if (!response.ranking) throw new Error('Ranking unavailable')
+      if (this.christmasFixture()) this.applyChristmasRanking(response.ranking)
+      this.christmasFixture.set(null)
       this.ranking.set(response.ranking)
       if (this.confirmationPreview()) { this.confirmationPreview.set(false); this.quiz.set(null) }
       this.calendarOpen.set(false); this.history.set(null)
@@ -859,6 +1026,7 @@ export class AdventTest {
     if (!this.testMode() || !target || this.loading() || this.submitting() || this.closingDay() !== null) return
     this.loading.set(true)
     this.error.set(false)
+    this.christmasFixture.set(null)
     this.simulatedDate.set(target)
     try { await this.enterAt(target, true) }
     catch (error) { if (!(error instanceof StaleRequestError)) { this.error.set(true); this.loading.set(false) } }
@@ -879,8 +1047,15 @@ export class AdventTest {
       this.resultContent.set(null)
       this.replayToken = null
       this.unavailable.set(false)
+      if (this.requestedDay !== null) { this.loading.set(false); await this.openCalendar(); return }
+      if (clock.date === '2026-12-25') {
+        const epoch = this.projectionEpoch
+        const identity = this.auth.sessionUser()?.id ?? null
+        try { await this.loadChristmasScore() }
+        finally { if (this.contextCurrent(epoch, identity)) this.loading.set(false) }
+        return
+      }
       this.loading.set(false)
-      if (clock.date === '2026-12-25') { await this.loadChristmasScore(); return }
       if (clock.date > '2026-12-25') { await this.openRanking(); return }
       const day = Math.min(24, Math.max(1, Number(clock.date.slice(-2))))
       const state = await this.requestJson<{ status: string }>(`/v1/advent-test/doors/${day}/answer`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() })
@@ -930,7 +1105,7 @@ export class AdventTest {
       if (state.status === 'recorded') {
         const result = await this.requestJson<AdventResult | null>(`/v1/advent-test/doors/${day}/result`, { credentials: 'include', cache: 'no-store', headers: this.sessionHeaders() }, true)
         if (result) {
-          await this.showResult(result, this.productionPreview())
+          await this.showResult(result, this.productionPreview() || this.selectedFutureTestDay())
           return
         }
         this.replayToken = state.replayToken ?? null
@@ -967,6 +1142,7 @@ export class AdventTest {
     if (!this.testMode() || !target || this.loading() || this.submitting() || this.closingDay() !== null || (this.quiz() && this.answerState() === 'checking')) return
     this.loading.set(true)
     this.error.set(false)
+    this.christmasFixture.set(null)
     this.simulatedDate.set(target)
     try { await this.enterAt(target, true) }
     catch (error) { if (!(error instanceof StaleRequestError)) { this.error.set(true); this.loading.set(false) } }
@@ -1047,7 +1223,7 @@ export class AdventTest {
         this.resultContent.set(null)
         this.quiz.set(null)
         this.preview.set(null)
-        if (this.productionPreview()) {
+        if (this.productionPreview() || this.selectedFutureTestDay()) {
           this.replayReloadFailed.set(false)
           this.replayReloading.set(true)
           try {

@@ -41,3 +41,19 @@ test('notification links cannot navigate to a different origin', async () => {
   await pending
   assert.equal(shown[0].options.data.url, 'https://hatcast.example.test/')
 })
+
+
+test('only an Advent payload gets the Advent icon', async () => {
+  const { handlers, shown } = worker()
+  let pending
+  for (const payload of [
+    { title: 'Avent', kind: 'advent', url: '/avent?jour=5&test=1' },
+    { title: 'HatCast', url: '/avent?jour=5' },
+  ]) {
+    handlers.push({ stopImmediatePropagation() {}, data: { json: () => payload }, waitUntil: promise => { pending = promise } })
+    await pending
+  }
+  assert.equal(shown[0].options.icon, '/advent/gifts/gift-closed-v1.png')
+  assert.equal(shown[0].options.data.url, 'https://hatcast.example.test/avent?jour=5&test=1')
+  assert.equal(shown[1].options.icon, '/icons/manifest-icon-192.maskable.png')
+})

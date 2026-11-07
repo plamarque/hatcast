@@ -202,3 +202,24 @@ La route directe réservée aux deux personnes autorisées ouvre le calendrier e
 La barre de test propose à l’opérateur autorisé une action explicite pour préparer sa prochaine connexion. La confirmation indique la date ordinaire de développement et prévient que sa réponse à cette date sera effacée avant la déconnexion. Une date simulée différente ne change pas cette cible. Une date hors période, un quiz manquant ou un échec sont expliqués sans annoncer une réussite ; les résultats non vus conservent leur priorité normale.
 
 Dans le classement, les testeurs autorisés en mode test isolé peuvent générer des scores fictifs, puis régénérer ou revenir au classement calculé. La projection disparaît en quittant le classement, au rechargement ou au changement de mode, compte ou session ; elle ne modifie aucune réponse.
+
+
+### Accès anticipé en test de développement isolé
+
+En développement isolé, le testeur autorisé par le serveur peut, sans activer le mode test, ouvrir et répondre à un quiz futur disponible ; son résultat personnel détaillé reste indisponible jusqu’à minuit Europe/Paris suivant le jour du cadeau, y compris en mode test. Le classement du mode test explicitement activé peut toutefois afficher des points avant révélation et donner un indice ; une date simulée peut atteindre cette échéance. La sélection ne change pas la date simulée ni l’horloge partagée ; les réponses et le rejeu restent personnels. Les cadeaux futurs conservent leur apparence habituelle ; le 25 ouvre le bilan de Noël avec le score actuel, et les contenus manquants conservent leur comportement existant. Les règles de production, de classement et de révélation du jour restent inchangées.
+
+### Bilan de Noël — variantes approuvées
+
+Après la révélation prioritaire, le membre classable dont le score positif égale le meilleur score est félicité comme gagnant ; si plusieurs membres partagent ce score, le message précise « ex æquo », indépendamment des rangs numériques. Les comptes exclus ne gagnent pas. Un autre membre ayant un score positif est félicité pour sa participation ; à zéro, aucune participation n’est supposée. Le score personnel, le message de fêtes, le classement et le retour à HatCast restent accessibles ; le calendrier demeure accessible dans la barre.
+
+Pour un score positif sans victoire, le bilan affiche le rang serveur lorsqu’il existe, en précisant « ex æquo » selon les rangs du classement, puis le score et « Merci pour ta participation ! ». Un compte hors classement voit son score et ce remerciement sans rang. À zéro, aucun rang ni participation ne sont affirmés. En mode test isolé, un aperçu supplémentaire permet de vérifier une place ex æquo hors victoire avec le même bilan.
+
+### Découverte des récits
+
+Après révélation autorisée, chaque récit fourni peut être ouvert indépendamment sous son choix ; ses paragraphes restent complets. Les parcours sans récit et l'explication existante restent inchangés. Avant révélation, aucun récit ne doit être transmis au client.
+
+### Rappel de test sur appareil
+
+Dans la barre du mode test autorisé, une commande distincte de la case simulée demande un rappel immédiat sur cet appareil. Elle explique le refus ou l’absence d’autorisation et distingue l’acceptation de l’envoi de la réception effective. La date simulée détermine la case ; l’ouverture respecte la découverte et la révélation prioritaire. Une case manquante ou inaccessible conduit au calendrier et à une explication.
+
+Un lien vers une case verrouillée, absente ou indisponible ouvre le calendrier avec une explication, sans divulguer de contenu protégé.

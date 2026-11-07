@@ -489,6 +489,10 @@ Avant le 1er décembre 2026 à 00 h Europe/Paris, la navigation ordinaire ne ré
 
 La route directe partagée propose le quiz du jour et le classement ; seuls les deux opérateurs vérifiés en développement isolé disposent des commandes de test. Une réponse du jour est définitive et son accusé reste neutre jusqu’au lendemain à Paris. Une case passée non jouée peut être découverte et répondue une seule fois pour le plaisir ; son résultat immédiat vaut zéro et ne modifie ni score ni série. Après la première découverte du calendrier, la révélation non vue la plus récente précède le parcours et son accusé suit l’affichage effectif. Le classement et le score personnel ne prennent en compte que les réponses révélables à un même instant serveur. Les comptes exclus restent hors liste mais voient leur score. Le classement est final dès le 25 décembre ; l’accès est autorisé jusqu’au 15 janvier inclus et les résultats restent conservés. Le calendrier présente les jours 1 à 25 et permet de revoir les découvertes passées, avec réponse tardive sans point sur les cases non jouées. Le 25 décembre, une présentation de Noël donne accès au calendrier et au classement final, y compris sans participation ; du 26 décembre au 15 janvier, le classement est présenté. Les notifications ne sont pas comprises.
 
+### Lien direct vers un quiz Avent
+
+Un lien `/avent?jour=N` désigne une case de 1 à 24 et peut conserver les autres paramètres, dont `preview=1`. Après authentification, première découverte et présentation de chaque résultat prioritaire, le calendrier autorisé par le serveur détermine si et comment la case est ouverte. Le lien ne confère aucun accès et ne modifie ni les réponses ni les règles de date, de prévisualisation ou de mode test. Une case verrouillée, absente ou indisponible ouvre le calendrier avec une explication ; un paramètre invalide ou répété laisse suivre le parcours normal. La case 25 conserve son parcours habituel.
+
 ### Entrée dans le calendrier Avent
 
 Pendant la période autorisée, un cadeau près du compte permet aux membres éligibles de retrouver le parcours. Du 1er au 24 décembre, un quiz disponible et non répondu ouvre automatiquement le parcours lors de la visite, sauf fermeture explicite enregistrée pour ce membre et ce jour à Paris. L’absence de quiz ne consomme pas cette ouverture. Une réponse empêche également sa réouverture automatique. Après la première découverte, le résultat non vu le plus récent reste prioritaire ; une réponse normale du jour encore en attente conduit au décompte. Une fermeture qui ne peut être enregistrée est signalée et peut être réessayée.
@@ -504,7 +508,7 @@ The shared private Advent bucket stores the canonical catalogue under `catalogue
 
 Sur l’attente après réponse et les résultats, chaque membre peut choisir un rappel Avent partagé entre ses appareils. L’activation sur un appareil nécessite son autorisation et un abonnement de cet appareil ; un autre appareil peut nécessiter sa propre activation. La désactivation du rappel Avent ne modifie pas les autres notifications. Du 1er au 24 décembre 2026, un traitement à partir de 10 h à Paris tente au plus une invitation par membre et quiz disponible si le membre actif n’a pas répondu. Les invitations ne contiennent ni anecdote ni résultat ; elles ne sont ni reprises ni garanties. Le parcours conserve la découverte et les révélations prioritaires.
 
-Dans le mode test Avent autorisé, la case de rappel peut être manipulée en simulation sans activer un rappel réel ni modifier les abonnements.
+Dans le mode test Avent autorisé, la case de rappel peut être manipulée en simulation sans activer un rappel réel ni modifier les abonnements. Un geste distinct permet à l’opérateur de demander immédiatement un rappel sur son appareil courant, après autorisation et enregistrement de cet appareil. Le jour simulé détermine la destination ; la tentative ne change ni les préférences, ni les réponses, ni la réservation quotidienne. Son ouverture respecte la découverte et les révélations prioritaires ; si la case est inaccessible, le calendrier en explique la raison.
 
 ### Retour sur une réponse Avent en attente
 
@@ -515,3 +519,15 @@ Le membre qui rouvre une réponse normale du jour encore en attente depuis le ca
 En mode test, un opérateur autorisé dans un environnement de développement isolé peut préparer le rejeu de son ouverture automatique à la connexion. Après confirmation de la date ordinaire de développement et de l’effacement éventuel de sa propre réponse, seule sa réponse et sa fermeture enregistrée pour cette date sont effacées, puis il est déconnecté. La date simulée de l’onglet ne détermine pas cette opération. Si la date est hors période ou si le quiz manque, aucune suppression ni déconnexion ne sont effectuées. Les découvertes et les résultats non vus des autres jours sont conservés.
 
 En mode test explicitement activé en développement isolé, le classement propose une projection fictive des scores, signalée comme telle. Elle conserve les membres et exclusions du classement reçu, permet de revenir au classement calculé et disparaît en quittant cet écran ou lors d’un changement de session.
+
+En développement isolé, un testeur vérifié peut ouvrir et répondre à un cadeau futur sans activer le mode test. La confirmation reste neutre et le résultat personnel n’est révélable qu’à minuit Europe/Paris suivant le jour du cadeau ; le mode test explicitement activé peut atteindre cette échéance par sa date simulée. La prévisualisation personnelle de production conserve son résultat immédiat.
+
+### Bilan de Noël — variantes
+
+Après la révélation prioritaire, le bilan félicite les membres classables ayant le meilleur score positif comme gagnants, en précisant les victoires ex æquo. Les comptes exclus ne gagnent pas. Les autres membres ayant un score positif sont félicités pour leur participation ; à zéro, aucune participation n’est présumée. Le score personnel, les vœux, le classement et le retour à HatCast sont présentés ; le calendrier reste accessible par sa navigation.
+
+Pour un score positif sans victoire, le bilan affiche le rang serveur lorsqu’il existe, en précisant « ex æquo » selon les rangs du classement, puis le score et « Merci pour ta participation ! ». Un compte hors classement voit son score et ce remerciement sans rang. À zéro, aucun rang ni participation ne sont affirmés. En mode test isolé, un aperçu supplémentaire permet de vérifier une place ex æquo hors victoire avec le même bilan.
+
+### Avent — récits complets facultatifs
+
+Un quiz peut associer aux trois choix ordonnés des récits complets facultatifs. Ils ne sont accessibles qu'avec un résultat autorisé et révélable, y compris en prévisualisation autorisée ; le quiz jouable et l'attente ne les exposent pas. Les quiz sans récit conservent leur résultat et leur explication habituels.

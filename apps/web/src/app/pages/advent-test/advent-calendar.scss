@@ -71,7 +71,8 @@
   --gift-ink: var(--advent-gold-ink); --gift-paper: var(--hatcast-avent-gold); --gift-paper-light: var(--hatcast-avent-cream); --gift-ribbon: var(--hatcast-avent-white);
 }
 .advent__calendar .advent__calendar-door:disabled { opacity: 1; }
-.advent__calendar-door[data-state="locked"] .advent__gift-box {
+.advent__calendar-door[data-state="locked"] .advent__gift-box,
+.advent__calendar-door[data-future="true"] .advent__gift-box {
   --gift-ink: var(--hatcast-avent-ink); --gift-paper: color-mix(in srgb, var(--hatcast-avent-red) 32%, black); --gift-paper-light: color-mix(in srgb, var(--hatcast-avent-red) 45%, black); --gift-ribbon: var(--advent-gold-ink);
 }
 .advent__calendar-door[data-state="locked"] .advent__gift-body strong, .advent__calendar-door[data-state="locked"] .advent__gift-body mat-icon { color: var(--hatcast-avent-ink); }
@@ -104,3 +105,6 @@
 .advent__gift-caption { display: flex; flex-direction: column; align-items: center; color: var(--hatcast-avent-green); font: 700 .7rem/1.15 var(--advent-body-font); white-space: normal; overflow-wrap: anywhere; }
 .advent__gift-caption strong { font-size: 1.05rem; line-height: 1.1; }
 .advent__gift-caption span { display: block; }
+
+/* Future access does not change the usual future appearance. */
+.advent__calendar-door[data-future="true"] .advent__gift-art { filter: grayscale(.7) brightness(.45); }

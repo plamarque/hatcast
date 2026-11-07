@@ -22,23 +22,24 @@ public final class AdventLocalH2 {
           String[] p=line.split("\\t",-1);
           if(p[0].equals("CHECK")&&p.length==2) {
             int day=Integer.parseInt(p[1]);if(day<1||day>24)throw new Exception();
-            try(PreparedStatement q=c.prepareStatement("SELECT display_name,portrait_ref,statement_0,statement_1,statement_2,false_choice,explanation FROM advent_quizzes WHERE quiz_day=?")) {
-              q.setInt(1,day);try(ResultSet r=q.executeQuery()) {if(!r.next())out.println("ABSENT");else {StringJoiner j=new StringJoiner("\t","ROW\t","");for(int i=1;i<=7;i++)j.add(encode(r.getString(i)));out.println(j);}}
+            try(PreparedStatement q=c.prepareStatement("SELECT display_name,portrait_ref,statement_0,statement_1,statement_2,false_choice,explanation,story_0,story_1,story_2 FROM advent_quizzes WHERE quiz_day=?")) {
+              q.setInt(1,day);try(ResultSet r=q.executeQuery()) {if(!r.next())out.println("ABSENT");else {StringJoiner j=new StringJoiner("\t","ROW\t","");for(int i=1;i<=10;i++)j.add(encode(r.getString(i)));out.println(j);}}
             }
-          } else if(p[0].equals("ADD")&&p.length==9) {
+          } else if(p[0].equals("ADD")&&p.length==12) {
             int day=Integer.parseInt(p[1]);if(day<1||day>24)throw new Exception();
             for(String table:TABLES)try(PreparedStatement q=c.prepareStatement("SELECT 1 FROM "+table+" WHERE quiz_day=? LIMIT 1")){q.setInt(1,day);try(ResultSet r=q.executeQuery()){if(r.next())throw new Exception();}}
-            try(PreparedStatement q=c.prepareStatement("INSERT INTO advent_quizzes (quiz_day,display_name,portrait_ref,statement_0,statement_1,statement_2,false_choice,explanation) VALUES (?,?,?,?,?,?,?,?)")) {
-              q.setInt(1,day);for(int i=2;i<=6;i++)q.setString(i,decode(p[i]));q.setInt(7,Integer.parseInt(decode(p[7])));q.setString(8,decode(p[8]));if(q.executeUpdate()!=1)throw new Exception();
+            try(PreparedStatement q=c.prepareStatement("INSERT INTO advent_quizzes (quiz_day,display_name,portrait_ref,statement_0,statement_1,statement_2,false_choice,explanation,story_0,story_1,story_2) VALUES (?,?,?,?,?,?,?,?,?,?,?)")) {
+              q.setInt(1,day);for(int i=2;i<=6;i++)q.setString(i,decode(p[i]));q.setInt(7,Integer.parseInt(decode(p[7])));q.setString(8,decode(p[8]));for(int i=0;i<3;i++)q.setString(9+i,p[9+i].equals("~")?null:decode(p[9+i]));if(q.executeUpdate()!=1)throw new Exception();
             } out.println("OK");
-          } else if(p[0].equals("REPLACE")&&p.length==16) {
+          } else if(p[0].equals("REPLACE")&&p.length==22) {
             int day=Integer.parseInt(p[1]);if(day<1||day>24)throw new Exception();
             for(String table:TABLES)try(PreparedStatement q=c.prepareStatement("SELECT 1 FROM "+table+" WHERE quiz_day=? LIMIT 1")){q.setInt(1,day);try(ResultSet r=q.executeQuery()){if(r.next())throw new Exception();}}
-            String sql="UPDATE advent_quizzes SET display_name=?,portrait_ref=?,statement_0=?,statement_1=?,statement_2=?,false_choice=?,explanation=? WHERE quiz_day=? AND display_name IS NOT DISTINCT FROM ? AND portrait_ref IS NOT DISTINCT FROM ? AND statement_0 IS NOT DISTINCT FROM ? AND statement_1 IS NOT DISTINCT FROM ? AND statement_2 IS NOT DISTINCT FROM ? AND false_choice IS NOT DISTINCT FROM ? AND explanation IS NOT DISTINCT FROM ?";
+            String sql="UPDATE advent_quizzes SET display_name=?,portrait_ref=?,statement_0=?,statement_1=?,statement_2=?,false_choice=?,explanation=?,story_0=?,story_1=?,story_2=? WHERE quiz_day=? AND display_name IS NOT DISTINCT FROM ? AND portrait_ref IS NOT DISTINCT FROM ? AND statement_0 IS NOT DISTINCT FROM ? AND statement_1 IS NOT DISTINCT FROM ? AND statement_2 IS NOT DISTINCT FROM ? AND false_choice IS NOT DISTINCT FROM ? AND explanation IS NOT DISTINCT FROM ? AND story_0 IS NOT DISTINCT FROM ? AND story_1 IS NOT DISTINCT FROM ? AND story_2 IS NOT DISTINCT FROM ?";
             try(PreparedStatement q=c.prepareStatement(sql)) {
               for(int i=0;i<7;i++){if(i==5)q.setInt(i+1,Integer.parseInt(decode(p[2+i])));else q.setString(i+1,decode(p[2+i]));}
-              q.setInt(8,day);
-              for(int i=0;i<7;i++){if(i==5)q.setInt(i+9,Integer.parseInt(decode(p[9+i])));else q.setString(i+9,decode(p[9+i]));}
+              for(int i=0;i<3;i++)q.setString(8+i,decode(p[9+i].equals("~")?p[19+i]:p[9+i]));
+              q.setInt(11,day);
+              for(int i=0;i<10;i++){if(i==5)q.setInt(i+12,Integer.parseInt(decode(p[12+i])));else q.setString(i+12,decode(p[12+i]));}
               if(q.executeUpdate()!=1)throw new Exception();
             } out.println("OK");
           } else if(p[0].equals("RESERVATION")&&p.length==2) {
@@ -46,7 +47,7 @@ public final class AdventLocalH2 {
             try(PreparedStatement q=c.prepareStatement("SELECT character_key,display_name,portrait_ref FROM advent_character_reservations WHERE quiz_day=?")) {
               q.setInt(1,day);try(ResultSet r=q.executeQuery()){if(!r.next())out.println("ABSENT");else out.println("ROW\t"+encode(r.getString(1))+"\t"+encode(r.getString(2))+"\t"+encode(r.getString(3)));}
             }
-          } else if((p[0].equals("CHARACTER") || p[0].equals("QUIZ")) && p.length==11) {
+          } else if((p[0].equals("CHARACTER") || p[0].equals("QUIZ")) && p.length==14) {
             int day=Integer.parseInt(p[1]);String key=decode(p[2]),name=decode(p[3]),portrait=decode(p[4]);
             if(day<1||day>24||key==null||name==null||portrait==null)throw new Exception();
             boolean found=false;String oldKey=null,oldName=null,oldPortrait=null;
@@ -55,7 +56,7 @@ public final class AdventLocalH2 {
                 if(r.getInt(1)!=day||found)throw new Exception();found=true;oldKey=r.getString(2);oldName=r.getString(3);oldPortrait=r.getString(4);
               }}
             }
-            if(found && ((oldKey!=null&&!oldKey.equals(key))||(oldKey==null&&(!Objects.equals(oldName,name)||(!Objects.equals(oldPortrait,portrait)&&!p[10].equals("VERIFIED"))))))throw new Exception();
+            if(found && ((oldKey!=null&&!oldKey.equals(key))||(oldKey==null&&(!Objects.equals(oldName,name)||(!Objects.equals(oldPortrait,portrait)&&!p[13].equals("VERIFIED"))))))throw new Exception();
             if(p[0].equals("CHARACTER")){
               try(PreparedStatement q=c.prepareStatement("DELETE FROM advent_local_deleted_days WHERE quiz_day=?")){q.setInt(1,day);q.executeUpdate();}
               String sql=found?"UPDATE advent_character_reservations SET character_key=?,display_name=?,portrait_ref=? WHERE quiz_day=?":"INSERT INTO advent_character_reservations (character_key,display_name,portrait_ref,quiz_day) VALUES (?,?,?,?)";
@@ -64,10 +65,10 @@ public final class AdventLocalH2 {
             } else {
               if(!found)throw new Exception();
               try(PreparedStatement q=c.prepareStatement("UPDATE advent_character_reservations SET character_key=? WHERE quiz_day=?")){q.setString(1,key);q.setInt(2,day);q.executeUpdate();}
-              try(PreparedStatement q=c.prepareStatement("UPDATE advent_quizzes SET statement_0=?,statement_1=?,statement_2=?,false_choice=?,explanation=? WHERE quiz_day=?")){
-                for(int i=0;i<3;i++){String value=decode(p[5+i]);if(value==null)throw new Exception();q.setString(i+1,value);}int choice=Integer.parseInt(decode(p[8]));if(choice<0||choice>2)throw new Exception();q.setInt(4,choice);q.setString(5,decode(p[9]));q.setInt(6,day);
-                if(q.executeUpdate()==0)try(PreparedStatement add=c.prepareStatement("INSERT INTO advent_quizzes (quiz_day,display_name,portrait_ref,statement_0,statement_1,statement_2,false_choice,explanation) VALUES (?,?,?,?,?,?,?,?)")){
-                  add.setInt(1,day);add.setString(2,oldName);add.setString(3,oldPortrait);for(int i=0;i<3;i++)add.setString(4+i,decode(p[5+i]));add.setInt(7,choice);add.setString(8,decode(p[9]));add.executeUpdate();
+              try(PreparedStatement q=c.prepareStatement("UPDATE advent_quizzes SET statement_0=?,statement_1=?,statement_2=?,false_choice=?,explanation=?,story_0=CASE WHEN ? THEN ? ELSE story_0 END,story_1=CASE WHEN ? THEN ? ELSE story_1 END,story_2=CASE WHEN ? THEN ? ELSE story_2 END WHERE quiz_day=?")){
+                for(int i=0;i<3;i++){String value=decode(p[5+i]);if(value==null)throw new Exception();q.setString(i+1,value);}int choice=Integer.parseInt(decode(p[8]));if(choice<0||choice>2)throw new Exception();q.setInt(4,choice);q.setString(5,decode(p[9]));for(int i=0;i<3;i++){q.setBoolean(6+i*2,!p[10+i].equals("~"));q.setString(7+i*2,p[10+i].equals("~")?null:decode(p[10+i]));}q.setInt(12,day);
+                if(q.executeUpdate()==0)try(PreparedStatement add=c.prepareStatement("INSERT INTO advent_quizzes (quiz_day,display_name,portrait_ref,statement_0,statement_1,statement_2,false_choice,explanation,story_0,story_1,story_2) VALUES (?,?,?,?,?,?,?,?,?,?,?)")){
+                  add.setInt(1,day);add.setString(2,oldName);add.setString(3,oldPortrait);for(int i=0;i<3;i++)add.setString(4+i,decode(p[5+i]));add.setInt(7,choice);add.setString(8,decode(p[9]));for(int i=0;i<3;i++)add.setString(9+i,p[10+i].equals("~")?null:decode(p[10+i]));add.executeUpdate();
                 }
               }
             }

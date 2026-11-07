@@ -10,6 +10,11 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.context.TestPropertySource
+import org.mockito.Mockito
+import org.mockito.kotlin.whenever
+import org.mockito.kotlin.any
+import org.mockito.kotlin.mock
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.springframework.transaction.support.TransactionTemplate
@@ -23,6 +28,7 @@ import java.util.concurrent.TimeoutException
 /** Exercises real Spring/JPA service transactions against a disposable local PostgreSQL. */
 @SpringBootTest
 @ActiveProfiles("test")
+@TestPropertySource(properties = ["hatcast.web-push.vapid-public-key=test", "hatcast.web-push.vapid-private-key=test"])
 @EnabledIfEnvironmentVariable(named = "ADVENT_TEST_POSTGRES_URL", matches = ".+")
 class AdventEndpointOwnershipPostgresTest {
     @Autowired private lateinit var users: UserRepository
@@ -30,6 +36,7 @@ class AdventEndpointOwnershipPostgresTest {
     @Autowired private lateinit var advent: AdventReminderDeviceRepository
     @Autowired private lateinit var service: UserPushSubscriptionService
     @Autowired private lateinit var tx: TransactionTemplate
+    @Autowired private lateinit var sender: WebPushNotificationSender
 
     companion object {
         @JvmStatic @DynamicPropertySource
@@ -99,4 +106,36 @@ class AdventEndpointOwnershipPostgresTest {
             }
         } finally { pool.shutdownNow() }
     }
+    @Test fun `test delivery holds ownership stable until provider returns`() {
+        val a = users.saveAndFlush(UserEntity(displayName = "Test push owner"))
+        val b = users.saveAndFlush(UserEntity(displayName = "Test account switch"))
+        val request = RegisterPushSubscriptionRequest("https://push.example.test/" + UUID.randomUUID(), PushSubscriptionKeysDto("key", "auth"))
+        service.registerTestAdventDevice(a.id, request, null)
+        val pool = Executors.newSingleThreadExecutor()
+        try {
+            val response: org.apache.http.HttpResponse = mock()
+            val status: org.apache.http.StatusLine = mock()
+            whenever(response.statusLine).thenReturn(status)
+            whenever(status.statusCode).thenReturn(201)
+            var transfer: java.util.concurrent.Future<*>? = null
+            Mockito.mockConstruction(nl.martijndwars.webpush.Notification::class.java).use {
+                Mockito.mockConstruction(nl.martijndwars.webpush.PushService::class.java) { push, _ ->
+                    whenever(push.send(any<nl.martijndwars.webpush.Notification>())).thenAnswer {
+                        val started = CountDownLatch(1)
+                        transfer = pool.submit { started.countDown(); service.registerSubscription(b.id, request, null) }
+                        assertTrue(started.await(10, TimeUnit.SECONDS))
+                        assertThrows(TimeoutException::class.java) { transfer!!.get(200, TimeUnit.MILLISECONDS) }
+                        assertEquals(a.id, advent.findByEndpoint(request.endpoint)?.user?.id)
+                        response
+                    }
+                }.use {
+                    assertEquals(NotificationDeliveryStatus.SENT, sender.sendTestAdventPush(a.id, request, adventReminderPayload(5, true)).status)
+                }
+            }
+            transfer!!.get(10, TimeUnit.SECONDS)
+            assertEquals(b.id, generic.findByEndpoint(request.endpoint)?.user?.id)
+            assertNull(advent.findByEndpoint(request.endpoint))
+        } finally { pool.shutdownNow() }
+    }
+
 }
