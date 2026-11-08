@@ -12,7 +12,7 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ### BUG-113 — Private editor isolation test blocks the staging gate
 
-- **Status:** Open. **Severity:** Medium. **Affected area:** V2 release E2E test.
+- **Status:** Fixed locally; full release gate pending. **Severity:** Medium. **Affected area:** V2 release E2E test.
 - **Observed:** On `63eb2f45`, the private editor home-style isolation test fails waiting for a visible gift image before entering the editor. The staging promotion stops; the full run reported 140 passed, 7 skipped and 1 failed.
 - **Expected:** The test reaches the editor and verifies home styles before and after the visit using consistent fixture conditions.
 - **Context:** The test returns HTTP 404 for the entry endpoint while the shared home setup waits for the entry image. This apparent fixture contradiction has not yet been corrected or independently retested.

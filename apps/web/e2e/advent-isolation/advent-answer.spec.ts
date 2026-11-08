@@ -28,13 +28,16 @@ async function settleHome(page: Page) {
   await expect(heading).toBeVisible()
   await expect(button).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
+  return { heading, button }
+}
+
+async function settleGiftImage(page: Page) {
   const gift = page.locator('.member-shell__advent-entry:visible img')
   await expect(gift).toBeVisible()
   await gift.evaluate(async (image: HTMLImageElement) => {
     await image.decode()
   })
   await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
-  return { heading, button }
 }
 
 for (const width of [320, 375, 390, 430, 768, 1280]) {
@@ -67,6 +70,7 @@ test(`Advent preserves the HatCast home at ${width}px`, async ({ page }, testInf
 
   await page.goto('/accueil')
   const before = await settleHome(page)
+  await settleGiftImage(page)
   const headingStyles = await styles(before.heading)
   const buttonStyles = await styles(before.button)
   expect(headingStyles.advent).toBe('')
@@ -94,6 +98,7 @@ test(`Advent preserves the HatCast home at ${width}px`, async ({ page }, testInf
   await page.getByRole('button', { name: 'Fermer le quiz' }).click()
   await expect(page).toHaveURL(/\/accueil$/)
   const after = await settleHome(page)
+  await settleGiftImage(page)
   expect(await styles(after.heading)).toEqual(headingStyles)
   expect(await styles(after.button)).toEqual(buttonStyles)
   expect(await after.heading.screenshot({ animations: 'disabled' })).toEqual(headingImage)
@@ -130,6 +135,7 @@ test('private editor preserves computed HatCast home styles', async ({ page }) =
   })
   await page.goto('/accueil')
   const before = await settleHome(page)
+  await expect(page.locator('.member-shell__advent-entry:visible')).toHaveCount(0)
   const heading = await styles(before.heading), button = await styles(before.button)
   await page.goto('/avent?preview=1')
   await page.locator('[data-day="23"]').click()
@@ -138,6 +144,7 @@ test('private editor preserves computed HatCast home styles', async ({ page }) =
   await expect(page.locator('#edit-statement-0')).toBeVisible()
   await page.goto('/accueil')
   const after = await settleHome(page)
+  await expect(page.locator('.member-shell__advent-entry:visible')).toHaveCount(0)
   expect(await styles(after.heading)).toEqual(heading)
   expect(await styles(after.button)).toEqual(button)
   expect((await styles(after.heading)).advent).toBe('')
