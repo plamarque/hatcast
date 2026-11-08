@@ -2376,6 +2376,14 @@ afin de **retrouver plus naturellement** ma vue perso avant l’espace collectif
 
 ---
 
+#### Story 17.47 : Page À propos — menu utilisateur
+
+En tant que **membre connecté**, je veux ouvrir **À propos** depuis le menu utilisateur afin de consulter les informations de l’application dans une page dédiée.
+
+**Critères :** entrée dans le menu utilisateur ; page autonome conservant version, informations de build, nouveautés et vérification des mises à jour ; retrait de l’onglet Mon compte ; redirection de `/compte/a-propos` vers la nouvelle adresse ; navigation et accessibilité mobile et desktop préservées.
+
+**Dépendances :** 17.25, 10.2, 10.3b. **UX :** Material 3 et navigation membre existante.
+
 #### Story 17.46 : Détail spectacle — remplacer Infos par un bandeau
 
 En tant que membre ou organisateur·ice, je veux accéder aux trois autres onglets du spectacle avec un bandeau d’en-tête au-dessus, afin de simplifier la consultation du spectacle.

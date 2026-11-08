@@ -4,6 +4,7 @@ import { provideRouter, Router, type Route } from '@angular/router'
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { routes } from './app.routes'
+import { MemberShellBootstrapService } from './core/member-shell/member-shell-bootstrap.service'
 import { MemberShell } from './layout/member-shell/member-shell'
 import { AccountPlaceholder } from './pages/account-placeholder/account-placeholder'
 import { LegacyAccountTabRedirect } from './pages/account-placeholder/legacy-account-tab-redirect'
@@ -62,7 +63,7 @@ async function expectLazyLeaf(
 describe('app.routes', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideRouter(routes)],
+      providers: [provideRouter(routes), { provide: MemberShellBootstrapService, useValue: { ensureReady: async () => ({ ok: true }) } }],
     })
   })
 
@@ -98,7 +99,7 @@ describe('app.routes', () => {
     { url: '/compte', component: AccountProfileTab, leafPath: '' },
     { url: '/compte/preferences', component: AccountPreferencesTab, leafPath: 'preferences' },
     { url: '/compte/notifications', component: AccountNotificationsTab, leafPath: 'notifications' },
-    { url: '/compte/a-propos', component: AccountAboutTab, leafPath: 'a-propos' },
+    { url: '/a-propos', component: AccountAboutTab, leafPath: 'a-propos' },
     { url: '/compte/securite', component: LegacyAccountTabRedirect, leafPath: 'securite' },
     { url: '/membre/alice', component: MemberSeasonGlance, leafPath: 'membre/:userSlug' },
     { url: '/troupes', component: TroupesList, leafPath: 'troupes' },
@@ -160,6 +161,7 @@ describe('app.routes', () => {
 
     for (const path of [
       'agenda',
+      'a-propos',
       'compte',
       'troupes',
       'troupes/:slug',
@@ -195,6 +197,13 @@ describe('app.routes', () => {
     }
   })
 
+  it('redirects the former About URL to the standalone page', async () => {
+    const router = TestBed.inject(Router)
+    await router.navigateByUrl('/compte/a-propos')
+    expect(router.url).toBe('/a-propos')
+    expect(await leafRoute(router)!.loadComponent!()).toBe(AccountAboutTab)
+  })
+
   it('preserves auditScope on lazy audit routes', () => {
     expect(findMemberRoute('troupes/:slug/admin/audit')?.data?.['auditScope']).toBe('troupe')
     expect(findMemberRoute('saison/:troupeSlug/:seasonSlug/admin/audit')?.data?.['auditScope']).toBe(
@@ -207,6 +216,7 @@ describe('app.routes', () => {
     { path: 'agenda', component: UserAgenda },
     { path: 'membre/:userSlug', component: MemberSeasonGlance },
     { path: 'compte', component: AccountPlaceholder },
+    { path: 'a-propos', component: AccountAboutTab },
     { path: 'troupes', component: TroupesList },
     { path: 'troupes/:slug', component: TroupeHub },
     { path: 'troupes/:slug/admin/membres', component: AdminMembres },
@@ -243,7 +253,6 @@ describe('app.routes', () => {
     { path: 'notifications', component: AccountNotificationsTab },
     { path: 'securite', component: LegacyAccountTabRedirect },
     { path: 'identite', component: LegacyAccountTabRedirect },
-    { path: 'a-propos', component: AccountAboutTab },
   ])('loadComponent for compte/$path resolves expected export', async ({ path, component }) => {
     const route = findCompteTab(path)
     expect(route?.loadComponent).toBeDefined()

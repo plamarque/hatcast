@@ -1,4 +1,5 @@
 import { Component, computed, inject, ViewEncapsulation } from '@angular/core'
+import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
@@ -20,6 +21,7 @@ const CHECK_RESULT_MESSAGES: Record<Exclude<ManualUpdateCheckResult, 'busy'>, st
 @Component({
   selector: 'app-account-about-tab',
   imports: [
+    MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
@@ -33,6 +35,10 @@ export class AccountAboutTab {
   private readonly changelogDialog = inject(ChangelogDialogService)
   private readonly pwaUpdate = inject(PwaUpdateService)
   private readonly snack = inject(MatSnackBar)
+
+  constructor() {
+    void this.appVersion.ensureLoaded()
+  }
 
   protected readonly version = this.appVersion.version
   protected readonly buildMetaLine = computed(() => formatBuildMetaLine(this.appVersion.buildMeta()))

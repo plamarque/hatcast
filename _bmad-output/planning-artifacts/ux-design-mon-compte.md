@@ -53,7 +53,7 @@ relatedArtifacts:
 
 **Purpose:** Écran **Mon compte** aligné sur le shell membre (**Accueil**, **Agenda**, **Stats**), organisé en **onglets** (story **17.34**, amendé **17.36**) pour réduire le scroll et clarifier les regroupements. **Profil unifié** sur le premier onglet **Mon profil** (avatar, e-mail, pseudo, modes de connexion, zone sensible) ; **rôles préférés globaux** sur **Préférences**.
 
-**Principle:** Mon compte = **paramètres du compte HatCast** : profil et connexion, préférences de jeu (rôles), notifications, à propos. Pseudo et rôles préférés sont **uniques par utilisateur** (pas par troupe) — voir amendement [ux-design-troupe-hub.md](./ux-design-troupe-hub.md) § Mon compte — section Préférences membre.
+**Principle:** Mon compte = **paramètres du compte HatCast** : profil et connexion, préférences de jeu (rôles) et notifications. À propos est une page indépendante accessible depuis le menu utilisateur. Pseudo et rôles préférés sont **uniques par utilisateur** (pas par troupe) — voir amendement [ux-design-troupe-hub.md](./ux-design-troupe-hub.md) § Mon compte — section Préférences membre.
 
 **Historique :** La spec scroll unique (2026-05-28, story **17.24**) est **obsolète** pour la structure de navigation. **Amendement 2026-06-03 (révisé) :** **Se déconnecter** dans le **header de page** (C8b). **Amendement 2026-06-04 (a) :** pseudo sur **Identité** + rail pseudo (C2, C11) — story **17.35** `done`. **Amendement 2026-06-04 (b) — Sally :** fusion **Identité** + **Sécurité** → onglet **Mon profil** ; **4 onglets** ; e-mail modifiable via **icône crayon** (dialog **1.6**) ; section **Modes de connexion** (Google + mot de passe HatCast) ; **Supprimer mon compte** en bas du même onglet (C10) — story **17.36**. **Amendement 2026-06-08 — Sally + Patrice :** chaque onglet affiche une **icône Material distincte + libellé sur une ligne** (C13) ; icône **Préférences** = **`tune`** (curseurs verticaux — retenu après comparaison avec `equalizer`).
 
@@ -91,8 +91,8 @@ Référence implémentation actuelle (scroll, pré-17.34) : [`account-placeholde
 | C2 | **Pseudo membre** | **Un seul pseudo** (`memberDisplayName`) pour toutes les troupes — champ éditable sur l’onglet **Mon profil** (bloc profil avec genre, voir [ux-design-member-gender-parity.md](./ux-design-member-gender-parity.md) Screen 1). Max 255 ; non vide à l’enregistrement. **Pas** de hint sous le champ pseudo (2026-06-05). **Pas** de pseudo par troupe sur `/compte` ni dans le hub troupe. |
 | C2b | **Rôles préférés** | **Un jeu de rôles préférés** pour toutes les troupes — formulaire sur l’onglet **Préférences** (`RoleToggleChipSet` / chips M3 wrap ; composant `MemberPreferencesForm` **sans** le champ pseudo). Voir [ux-design-role-toggle-chips.md](./ux-design-role-toggle-chips.md). |
 | C3 | **Chrome page** | Même squelette que **Mon agenda** / **Mes Stats** : conteneur `max-width: 56rem`, header `h1` + `p` sous-titre. Typo L1/L2 : [`ux-design-hub-section-headers.md`](ux-design-hub-section-headers.md). |
-| C4 | **Navigation interne** | **4 onglets** Material (`mat-tab-nav-bar` + `mat-tab-link` + routes enfants) — **Mon profil** · Préférences · Notifications · À propos. **Pas** d’onglet Sécurité séparé (fusion **17.36**). |
-| C13 | **Icônes onglets** | Chaque `mat-tab-link` affiche **`mat-icon` + libellé français sur une ligne** (pas de pile icône au-dessus du texte, pas d’onglet icône seule). Mapping : `person` · **`tune`** · `notifications` · `info`. Icône décorative : `aria-hidden="true"` ; le texte visible porte le sens. **Livré** dans `account-placeholder` (one-shot 2026-06-08). |
+| C4 | **Navigation interne** | **3 onglets** Material (`mat-tab-nav-bar` + `mat-tab-link` + routes enfants) — **Mon profil** · Préférences · Notifications. **Pas** d’onglet Sécurité séparé (fusion **17.36**). |
+| C13 | **Icônes onglets** | Chaque `mat-tab-link` affiche **`mat-icon` + libellé français sur une ligne** (pas de pile icône au-dessus du texte, pas d’onglet icône seule). Mapping : `person` · **`tune`** · `notifications`. Icône décorative : `aria-hidden="true"` ; le texte visible porte le sens. **Livré** dans `account-placeholder` (one-shot 2026-06-08). |
 | C14 | **Style barre onglets** | Pattern **capsule M3** partagé ([ux-design-pill-tab-bar.md](./ux-design-pill-tab-bar.md)) : coque `surface-container-high`, pastille active `primary-container`, mixin `_hatcast-pill-tab-bar.scss` via `@include pill-tabs.nav-bar()`. Scroll horizontal mobile inchangé (≤ 480 px). |
 | C5 | **Avatar** | Gestion **photo de profil** (story **2.6**) en tête de l’onglet **Mon profil** — zone compacte inchangée. |
 | C6 | **E-mail — édition** | E-mail affiché à côté de l’avatar ; action **modifier** = `mat-icon-button` icône `edit` (`aria-label` *Modifier l’adresse e-mail*, `data-testid="account-email-edit"`) ouvrant le dialog **1.6** — **pas** de ligne liste « Changer l’adresse e-mail ». |
@@ -106,14 +106,14 @@ Référence implémentation actuelle (scroll, pré-17.34) : [`account-placeholde
 
 ---
 
-## Architecture — 4 onglets
+## Architecture — 3 onglets
 
 | # | Onglet | Contenu | Icône M3 | Route |
 |---|--------|---------|----------|-------|
 | 1 | **Mon profil** | Avatar ; e-mail + **icône modifier** ; `displayName` auth si distinct ; **pseudo** ; **Modes de connexion** (Google, MDP) ; **Zone sensible** (suppression) | `person` | `/compte` (défaut) |
 | 2 | **Préférences** | Rôles préférés globaux uniquement (sans pseudo) | **`tune`** (curseurs — **pas** `settings` ni `equalizer` ; choix validé 2026-06-08) | `/compte/preferences` |
 | 3 | **Notifications** | Push (`PushNotificationsSection`) + catégories (`NotificationPreferencesSection`) | `notifications` | `/compte/notifications` |
-| 4 | **À propos** | Carte identité app + **build meta** discrète (10.3b) + actions (changelog, check MAJ PWA si SW actif) + copyright | `info` | `/compte/a-propos` |
+| — | **À propos** | Page indépendante depuis le menu utilisateur ; version, build meta, actions et copyright conservés | `info` | `/a-propos` |
 
 **Compat routes obsolètes :** `/compte/securite` et `/compte/identite` → **redirect** vers `/compte` (`replaceUrl: true`) — liens e-mail, vérif compte, stories **1.6**/**1.7**.
 
@@ -129,6 +129,7 @@ Référence implémentation actuelle (scroll, pré-17.34) : [`account-placeholde
 | `/compte/notifications` | Onglet **Notifications** |
 | `/compte#notifications` | **Redirect** vers `/compte/notifications` (compat story **10.6** — `PushOptInDialog`) |
 | Menu avatar → Mon compte | `/compte` (Mon profil) |
+| Menu avatar → À propos | `/a-propos` (page indépendante) |
 | Post-login redirect `/compte` | Mon profil |
 
 ---
@@ -148,7 +149,7 @@ Aligné sur [`user-agenda__header`](../../apps/web/src/app/pages/user-agenda/use
 │  Mon compte                          [ Se déconnecter ]    │
 │  Paramètres de votre compte HatCast.                        │
 ├────────────────────────────────────────────────────────────┤
-│  👤 Mon profil │ 🎚 Préférences │ 🔔 Notifications │ ℹ À propos │
+│  👤 Mon profil │ 🎚 Préférences │ 🔔 Notifications │
 └────────────────────────────────────────────────────────────┘
 ```
 
@@ -170,7 +171,7 @@ Alignement visuel avec la nav membre ([`member-nav.html`](../../apps/web/src/app
 | Mon profil | `person` | Silhouette = « moi » |
 | Préférences | `tune` | Curseurs verticaux = réglages ; **retenu** vs `equalizer` (comparaison 2026-06-08, preview `_bmad-output/previews/account-tab-icons-compare.html`) |
 | Notifications | `notifications` | Cloche — convention forte |
-| À propos | `info` | Métadonnées app |
+
 
 **Markup cible** (dans chaque `mat-tab-link`) :
 
@@ -247,7 +248,7 @@ Ordre : push d’abord, puis préférences par catégorie. Pas de titre de secti
 
 **Grammaire visuelle (amendement 2026-06-08) :** cartes groupe type Réglages iOS — fond page `surface`, cartes `surface-container-high` radius 16 px ; titres **Messages pour moi** / **Rappels automatiques** **hors carte** ; deux switchers **Cet appareil** / **E-mail** par ligne, layout horizontal même sur mobile. Spec normative : [`ux-notification-prefs-phase1-as-shipped-2026-06-08.md`](./ux-notification-prefs-phase1-as-shipped-2026-06-08.md) § Refresh visuel.
 
-### Onglet 4 — À propos
+### Page indépendante — À propos
 
 **Amendement 2026-06-06** — carte identité + lignes d’action compactes (aligné Préférences / Notifications) ; check MAJ manuel (**10.2** + [spec-about-manual-pwa-update-check.md](../implementation-artifacts/spec-about-manual-pwa-update-check.md)).
 
@@ -275,7 +276,7 @@ Ordre : push d’abord, puis préférences par catégorie. Pas de titre de secti
 | **Vérifier les mises à jour** | Même pattern ; icône `system_update` ; visible **uniquement** si service worker actif (`SwUpdate.isEnabled`, prod / recette `--with-push`). Spinner pendant le check ; snackbar résultat (à jour / disponible / erreur). Si MAJ en attente → réaffiche la bannière **Mettre à jour** (**10.2**), y compris après dismiss session. |
 | **Copyright** | Pied de carte, typo 0.75 rem, centré : `© 2025–2026 Patrice Lamarque`. |
 | **Test ids** | `account-app-version` · **`account-app-build-meta`** (ligne build, si présente) · `account-changelog` · `account-check-updates` · `account-about-copyright` |
-| **Accessibilité** | Lignes action ≥ 48 dp ; `aria-label` dynamique pendant vérification MAJ ; titre section masqué visuellement (`account-page__visually-hidden`) — l’onglet porte déjà « À propos ». Si build meta affichée : `aria-describedby="account-app-build-meta"` sur le libellé version. |
+| **Accessibilité** | Lignes action ≥ 48 dp ; `aria-label` dynamique pendant vérification MAJ ; titre de page visible « À propos ». Si build meta affichée : `aria-describedby="account-app-build-meta"` sur le libellé version. |
 | **Hors scope** | Liens GitHub / licence MIT ; badge environnement **global** (story 10.3 reportée — **couvert** par la ligne build meta **sur À propos** via **10.3b**, sans badge permanent ailleurs) ; pas de badge permanent « MAJ dispo » sur la ligne action. |
 
 **Parcours MAJ en attente (non installée) :** l’app reste sur l’ancienne version ; le SW a téléchargé la nouvelle en arrière-plan. Bannière auto (**10.2**) ou check manuel → snackbar « Une mise à jour est disponible » + bannière → **Mettre à jour** → reload + changelog auto (**10.3**). Fermer la bannière = repousser (session), pas annuler la MAJ.
@@ -291,7 +292,7 @@ Ordre : push d’abord, puis préférences par catégorie. Pas de titre de secti
 │ Mon compte  [ Déco… ]   │  ← icône seule ≤ 480 px
 │ Paramètres de votre…    │
 ├─────────────────────────┤
-│ 👤 Mon profil │ 🎚 Préf. │ 🔔 Notif. │ ℹ À propos │  ← 4 tabs scrollables, icône+texte
+│ 👤 Mon profil │ 🎚 Préf. │ 🔔 Notif. │  ← 3 tabs scrollables, icône+texte
 ├─────────────────────────┤
 │ [Avatar] email@… [✎]    │
 │ Pseudo [___________]    │
@@ -344,7 +345,7 @@ Ordre : push d’abord, puis préférences par catégorie. Pas de titre de secti
 
 | Tâche | Fichier / action |
 |-------|------------------|
-| Routes enfants | `app.routes.ts` : `/compte`, `/compte/preferences`, `/compte/notifications`, `/compte/a-propos` ; redirect `securite` + `identite` → `''` (+ `#notifications`) |
+| Routes enfants | `app.routes.ts` : `/compte`, `/compte/preferences`, `/compte/notifications` ; `/compte/a-propos` redirige vers `/a-propos` ; redirect `securite` + `identite` → `''` (+ `#notifications`) |
 | Fusion profil (**17.36**) | Fusionner `account-security-tab` dans `account-identity-tab` → renommer `account-profile-tab` ; retirer onglet Sécurité du shell |
 | E-mail edit (C6) | `mat-icon-button` + dialog email ; supprimer ligne liste e-mail |
 | Modes connexion (C12) | Section sous pseudo ; logique MDP/Google depuis ancien `account-security-tab.ts` |
@@ -370,7 +371,7 @@ Ordre : push d’abord, puis préférences par catégorie. Pas de titre de secti
 | **1.7** | Suppression compte — bas **Mon profil** (FR37) |
 | **2.6** | Photo de profil (onglet **Mon profil**) |
 | **8.1** / **8.2** | Push + catégories (onglet **Notifications**) |
-| **10.3** | Version + changelog (onglet **À propos**) |
+| **10.3** | Version + changelog (page **À propos**) |
 | **10.3b** | Ligne build meta discrète (hash · horodatage · canal) — opérateur / support ; `data-testid="account-app-build-meta"` |
 | **10.2** | Check MAJ manuel + bannière apply-on-click (complète le parcours **À propos**) |
 | **FR9** | Pseudo membre — **global** (amendement vs per-troupe) |
@@ -385,7 +386,7 @@ Ordre : push d’abord, puis préférences par catégorie. Pas de titre de secti
 | Pseudo / rôles **globaux** sur Mon compte ? | **Oui** (C1, C2, C2b) — 17.24 scroll obsolète |
 | Pseudo sur **Mon profil**, rôles sur **Préférences** ? | **Oui** (C2 / C2b) |
 | Rail desktop : pseudo sous l’avatar (pas « Compte ») ? | **Oui** (C11) |
-| 4 onglets, fusion Identité + Sécurité ? | **Oui** (C4, amendement 2026-06-04b) |
+| Onglets après fusion Identité + Sécurité ? | **Trois** : Mon profil, Préférences, Notifications ; À propos est dans le menu utilisateur (17.47). |
 | E-mail modifiable via icône à côté de l’adresse ? | **Oui** (C6) |
 | Modes de connexion sous le pseudo ? | **Oui** (C12) |
 | Zone sensible en bas de Mon profil ? | **Oui** (C10) |
@@ -394,6 +395,6 @@ Ordre : push d’abord, puis préférences par catégorie. Pas de titre de secti
 | Icône + libellé sur chaque onglet ? | **Oui** (C13) |
 | Icône Préférences = `tune` (pas `equalizer`) ? | **Oui** — validé 2026-06-08 |
 | Ligne build meta discrète sous la version (À propos) ? | **Oui** — `{hash} · {YYYYMMDDHHmm} · canal {env}` ; masquée sans metadata (**10.3b**, 2026-06-14) |
-| Badge environnement global dans l’app ? | **Non** — visibilité canal **uniquement** sur l’onglet À propos |
+| Badge environnement global dans l’app ? | **Non** — visibilité canal **uniquement** sur la page À propos |
 
 **Statut :** `approved` (2026-06-03, amendé 2026-06-04a pseudo/rail, **2026-06-04b** fusion Mon profil, **2026-06-08** icônes onglets, **2026-06-14** build meta À propos — Sally + Patrice) — stories : [17-34](../implementation-artifacts/17-34-mon-compte-onglets-securite-preferences.md) `done` ; [17-35](../implementation-artifacts/17-35-mon-compte-pseudo-identite-rail-label.md) `done` ; [17-36](../implementation-artifacts/17-36-mon-compte-onglet-mon-profil.md) `done` ; [10-3b](../implementation-artifacts/10-3b-about-build-metadata.md) `done`. **C13 icônes onglets :** livré — [spec-account-tab-icons-c13.md](../implementation-artifacts/spec-account-tab-icons-c13.md).

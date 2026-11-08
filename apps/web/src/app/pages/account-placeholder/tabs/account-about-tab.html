@@ -1,5 +1,6 @@
-<div class="account-page__about-panel" aria-labelledby="account-about-heading">
-  <h2 id="account-about-heading" class="account-page__visually-hidden">À propos de HatCast</h2>
+<div class="account-page">
+  <h1 class="account-page__title">À propos</h1>
+  <div class="account-page__about-panel" aria-label="À propos de HatCast">
 
   <div class="account-page__about-brand">
     <img
@@ -34,19 +35,23 @@
   <div class="account-page__about-actions" role="group" aria-label="Actions À propos">
     <button
       type="button"
+      mat-button
       class="account-page__about-action"
       data-testid="account-changelog"
       [attr.aria-label]="versionTooltip()"
       (click)="openChangelog()"
     >
+      <span class="account-page__about-action-content">
       <mat-icon class="account-page__about-action-icon" aria-hidden="true">new_releases</mat-icon>
       <span class="account-page__about-action-text">Nouveautés</span>
       <mat-icon class="account-page__about-action-chevron" aria-hidden="true">chevron_right</mat-icon>
+      </span>
     </button>
 
     @if (manualCheckAvailable()) {
       <button
         type="button"
+        mat-button
         class="account-page__about-action"
         data-testid="account-check-updates"
         [disabled]="checkingUpdates()"
@@ -57,6 +62,7 @@
         "
         (click)="checkForUpdates()"
       >
+        <span class="account-page__about-action-content">
         @if (checkingUpdates()) {
           <mat-progress-spinner
             class="account-page__about-action-spinner"
@@ -71,6 +77,7 @@
         @if (!checkingUpdates()) {
           <mat-icon class="account-page__about-action-chevron" aria-hidden="true">chevron_right</mat-icon>
         }
+        </span>
       </button>
     }
   </div>
@@ -78,4 +85,5 @@
   <p class="account-page__about-copyright" data-testid="account-about-copyright">
     © 2025–2026 Patrice Lamarque
   </p>
+</div>
 </div>

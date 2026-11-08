@@ -2,3 +2,49 @@
 app-pwa-install-banner:has(.pwa-system-banner) ~ app-pwa-update-banner .pwa-system-banner--update {
   top: calc(3.25rem + env(safe-area-inset-top, 0));
 }
+
+/* On About, reserve the banners' actual height so the page and shell stay visible. */
+:host:has(app-account-about-tab) > div:has(.pwa-system-banner) {
+  position: sticky;
+  top: 0;
+  z-index: 100000;
+}
+
+:host:has(app-account-about-tab) ::ng-deep .pwa-system-banner {
+  position: static;
+}
+
+/* Keep mobile shortcuts fixed below the measured banner stack when scrolling. */
+:host:has(app-account-about-tab) ::ng-deep .member-shell__account-trigger,
+:host:has(app-account-about-tab) ::ng-deep .member-shell__advent-entry:not(.member-shell__advent-entry--desktop) {
+  position: fixed;
+  top: calc(var(--about-banner-height, 0px) + 0.25rem);
+}
+
+/* The desktop rail fills only the viewport left below the in-flow banners. */
+@media (min-width: 840px) {
+  :host:has(app-account-about-tab) {
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+    height: 100dvh;
+  }
+
+  :host:has(app-account-about-tab) ::ng-deep app-member-shell {
+    display: block;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  :host:has(app-account-about-tab) ::ng-deep .member-shell {
+    height: 100%;
+    min-height: 0;
+  }
+
+  :host:has(app-account-about-tab) ::ng-deep .member-nav__desktop-column {
+    height: 100%;
+    max-height: 100%;
+    align-self: stretch;
+    top: var(--about-banner-height, 0px);
+  }
+}
