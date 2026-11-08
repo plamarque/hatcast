@@ -93,6 +93,7 @@ export async function applyLocalContent({source,days,operation,database,portrait
   const before=fingerprint(snap);
   const selected=operation==='character'?materialize(snap).rows:snap.rows;
   const verifiedLegacy=new Set();
+  const replacements=[];
   for(const row of selected){
    const reply=reservations.get(row.quiz_day);
    if(reply!=='ABSENT'&&!reply.startsWith('ROW\t'))fail();
@@ -111,8 +112,10 @@ export async function applyLocalContent({source,days,operation,database,portrait
    let previousQuiz=null;
    if(operation==='quiz') {const quiz=await db.query(`CHECK\t${row.quiz_day}`);if(quiz==='ABSENT')status='addition';else {const parts=quiz.split('\t').slice(1).map(decode);previousQuiz=Object.fromEntries(cols.map((c,i)=>[c,parts[i]]));status=[row.statement_0,row.statement_1,row.statement_2,String(row.false_choice),row.explanation,row.story_0,row.story_1,row.story_2].every((v,i)=>v===undefined || v===parts[i+2])?'unchanged':'divergence';}}
    write(`Jour ${row.quiz_day} : ${status}`);
+   if(operation==='quiz' && status==='divergence')replacements.push(row.quiz_day);
    if(operation==='quiz') for(const change of storyChanges(row,previousQuiz))write(change);
   }
+  if(replacements.length){const replace=`REMPLACER ${replacements.sort((a,b)=>a-b).join(',')}`;if(await confirm(replace)!==replace)return 'cancelled';}
   const phrase=`APPLIQUER ${operation} ${[...days].sort((a,b)=>a-b).join(',')}`;
   if(await confirm(phrase)!==phrase)return 'cancelled';
   await source.verify(true);if(fingerprint(await source.snapshot(days,snapshotOperation))!==before)fail();

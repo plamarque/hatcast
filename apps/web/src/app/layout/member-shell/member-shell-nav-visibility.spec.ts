@@ -9,6 +9,7 @@ describe('isAccountPath', () => {
     expect(isAccountPath('/compte/notifications')).toBe(true)
     expect(isAccountPath('/compte/securite')).toBe(true)
     expect(isAccountPath('/compte/a-propos')).toBe(true)
+    expect(shouldShowMemberNav('/a-propos')).toBe(true)
     expect(isAccountPath('/agenda')).toBe(false)
   })
 })

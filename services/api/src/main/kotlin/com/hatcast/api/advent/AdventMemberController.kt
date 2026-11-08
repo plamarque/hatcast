@@ -27,6 +27,7 @@ class AdventMemberController(
     private val environment: Environment,
     private val memberships: TroupeMembershipService,
     private val game: AdventMemberGame,
+    private val editor: AdventQuizEditor,
     private val clock: AdventMemberClock,
     private val offlineRoot: AdventOfflineRoot,
     private val portraitStorage: AdventMemberPortraitStorage,
@@ -62,6 +63,33 @@ class AdventMemberController(
         val emails = environment.getProperty("hatcast.advent.preview-allowed-emails", "")
             .split(',').map { it.trim().lowercase() }.filter { it.isNotEmpty() }.toSet()
         return emails.size == 2 && principal.email?.trim()?.lowercase() in emails
+    }
+
+    // This capability is independent of preview/test mode and is checked for every operation.
+    private fun canEdit(principal: SessionUserPrincipal, request: HttpServletRequest): Boolean = canPreview(principal, request)
+
+    private fun requireEditor(principal: SessionUserPrincipal, request: HttpServletRequest) {
+        authorize(principal)
+        if (!canEdit(principal, request)) throw ResponseStatusException(HttpStatus.NOT_FOUND)
+    }
+
+    @GetMapping("/editor/days")
+    fun editableQuizDays(@AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): Map<String, Any> {
+        requireEditor(principal, request)
+        val days = editor.editableDays()
+        return mapOf("days" to days, "refreshAfterMs" to editor.refreshDelayMillis(days))
+    }
+
+    @GetMapping("/editor/{day}")
+    fun editQuiz(@PathVariable day: Int, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AdventQuizEditView {
+        requireEditor(principal, request)
+        return editor.read(day)
+    }
+
+    @PutMapping("/editor/{day}")
+    fun saveQuiz(@PathVariable day: Int, @RequestBody body: AdventQuizEditRequest, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AdventQuizEditView {
+        requireEditor(principal, request)
+        return editor.save(day, body)
     }
 
     private fun activeMode(principal: SessionUserPrincipal, request: HttpServletRequest): Boolean {
@@ -176,7 +204,7 @@ class AdventMemberController(
         authorize(principal)
         val capability = canControl(principal, request)
         simulated(principal, request)
-        return mapOf("testControls" to capability, "productionPreview" to canPreview(principal, request), "sessionId" to game.session())
+        return mapOf("testControls" to capability, "productionPreview" to canPreview(principal, request), "quizEditing" to canEdit(principal, request), "sessionId" to game.session())
     }
 
     @GetMapping("/preview-capability")

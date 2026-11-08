@@ -29,7 +29,7 @@ class AdventTestReminderControllerTest {
         .withProperty("hatcast.advent.excluded-user-ids", "$user,$other")
         .withProperty("hatcast.advent-test.allowed-emails", "operator@example.test,other@example.test")
         .apply { setActiveProfiles("dev") }
-    private val controller = AdventMemberController(environment, memberships, game, clock, mock(), mock(), subscriptions, sender)
+    private val controller = AdventMemberController(environment, memberships, game, mock(), clock, mock(), mock(), subscriptions, sender)
     private val device = RegisterPushSubscriptionRequest("https://push.example.test/device", PushSubscriptionKeysDto("key", "auth"))
     private fun request(): MockHttpServletRequest = MockHttpServletRequest().apply {
         getSession(true)!!.setAttribute("hatcast.auth.verified-email", true)

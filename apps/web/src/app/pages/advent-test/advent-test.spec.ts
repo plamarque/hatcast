@@ -37,6 +37,108 @@ describe('AdventTest', () => {
     await fixture.whenStable()
     fixture.detectChanges()
   }
+  it('retries a failed private day list without showing stale controls', async () => {
+    vi.useFakeTimers()
+    const component = fixture.componentInstance
+    component.quizEditing.set(true); component.editableDays.set([7])
+    const request = vi.mocked(window.fetch)
+    request.mockResolvedValueOnce(new Response('', { status: 503 }))
+      .mockResolvedValueOnce(Response.json({ days: [23], refreshAfterMs: 60000 }))
+    const editor = component as unknown as { loadEditableDays(): Promise<void> }
+    await editor.loadEditableDays()
+    expect(component.editableDays()).toEqual([])
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(component.editableDays()).toEqual([23])
+    fixture.destroy()
+  })
+  it('normalizes whitespace-only optional values before saving', async () => {
+    const component = fixture.componentInstance
+    component.editDraft.set({ day: 23, name: 'Fictif', version: '1', content: { statements: ['A', 'B', 'C'], stories: ['  ', ' récit ', null], falseChoice: 0, explanation: '  ' } })
+    const request = vi.mocked(window.fetch)
+    request.mockImplementationOnce(async (_input, options) => {
+      const body = JSON.parse(String(options?.body))
+      expect(body.content.stories).toEqual([null, ' récit ', null])
+      expect(body.content.explanation).toBeNull()
+      return Response.json({ ...component.editDraft(), content: body.content })
+    })
+    await component.saveEditor()
+    expect(component.editMessage()).toContain('enregistrées')
+  })
+
+  it('refreshes editable days at the server boundary and clears the timer on destruction', async () => {
+    vi.useFakeTimers()
+    const component = fixture.componentInstance
+    component.quizEditing.set(true)
+    const request = vi.mocked(window.fetch)
+    request.mockResolvedValueOnce(Response.json({ days: [23], refreshAfterMs: 10 }))
+      .mockResolvedValueOnce(Response.json({ days: [], refreshAfterMs: 60000 }))
+    const editor = component as unknown as { loadEditableDays(): Promise<void> }
+    await editor.loadEditableDays()
+    expect(component.editableDays()).toEqual([23])
+    await vi.advanceTimersByTimeAsync(10)
+    expect(component.editableDays()).toEqual([])
+    const count = request.mock.calls.length
+    fixture.destroy()
+    await vi.advanceTimersByTimeAsync(60001)
+    expect(request.mock.calls.length).toBe(count)
+  })
+
+  it('shows the edit icon on the quiz only for eligible days', () => {
+    const component = fixture.componentInstance
+    component.quizEditing.set(true); component.editableDays.set([23])
+    component.welcome.set(false); component.calendarOpen.set(false); component.loading.set(false)
+    component.quiz.set({ day: 23, name: 'Fictif', portrait: '', statements: ['A', 'B', 'C'], genericElf: true })
+    component.answerState.set('available')
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('[aria-label="Modifier le quiz du 23 décembre"]')).not.toBeNull()
+    component.editableDays.set([]); fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('[aria-label="Modifier le quiz du 23 décembre"]')).toBeNull()
+  })
+  it('returns to the updated quiz after saving and closes clean drafts without confirmation', async () => {
+    const component = fixture.componentInstance
+    const view = { day: 23, name: 'Fictif', version: '1', content: { statements: ['A', 'B', 'C'], stories: [null, null, null], falseChoice: 0, explanation: null } }
+    component.quiz.set({ day: 23, name: 'Fictif', portrait: '', statements: ['A', 'B', 'C'], genericElf: true })
+    component.editDraft.set(view)
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    component.closeEditor()
+    expect(confirm).not.toHaveBeenCalled()
+    component.editDraft.set(view); component.editField('statements', 0, 'Corrigé')
+    const saved = { ...view, content: { ...view.content, statements: ['Corrigé', 'B', 'C'] } }
+    vi.mocked(window.fetch).mockResolvedValueOnce(Response.json(saved))
+    await component.saveEditor()
+    expect(component.editDraft()).toBeNull()
+    expect(component.editDirty()).toBe(false)
+    expect(component.quiz()?.statements[0]).toBe('Corrigé')
+    expect(component.editMessage()).toContain('enregistrées')
+  })
+
+  it('asks before leaving a modified draft', () => {
+    const component = fixture.componentInstance
+    component.editDraft.set({ day: 23, name: 'Fictif', version: '1', content: { statements: ['A', 'B', 'C'], stories: [null, null, null], falseChoice: 0, explanation: null } })
+    component.editField('statements', 0, 'Brouillon')
+    vi.spyOn(window, 'confirm').mockReturnValue(false)
+    expect(component.canLeaveEditor()).toBe(false)
+    expect(component.editDraft()?.content.statements[0]).toBe('Brouillon')
+  })
+
+  it('keeps a private draft on conflict and expiry', async () => {
+    const component = fixture.componentInstance
+    component.quizEditing.set(true)
+    const view = { day: 24, name: 'Fictif', version: '1', content: { statements: ['A', 'B', 'C'], stories: [null, 'Récit', null], falseChoice: 1, explanation: null } }
+    vi.mocked(window.fetch).mockImplementation(async (_input, options) => options?.method === 'PUT' ? new Response('', { status: 409 }) : Response.json(view))
+    await component.loadEditor(24)
+    component.editField('statements', 0, 'Brouillon')
+    await component.saveEditor()
+    expect(component.editDraft()?.content.statements[0]).toBe('Brouillon')
+    expect(component.editConflict()).toBe(true)
+    expect(component.editMessage()).toContain('brouillon')
+    component.editConflict.set(false)
+    vi.mocked(window.fetch).mockResolvedValue(new Response('', { status: 410 }))
+    await component.saveEditor()
+    expect(component.editDraft()?.content.statements[0]).toBe('Brouillon')
+    expect(component.editMessage()).toContain('commencé')
+  })
+
   it.each(['', '0', '25', '06', '-1', '1.5', 'x', '6&jour=7'])('ignores invalid or repeated day parameter %s', value => {
     vi.spyOn(TestBed.inject(Router), 'url', 'get').mockReturnValue(`/avent?jour=${value}`)
     const internal = fixture.componentInstance as unknown as { dayFromUrl(): number | null }
@@ -2174,11 +2276,15 @@ describe('AdventTest', () => {
     expect(window.fetch).not.toHaveBeenCalled()
     expect(fixture.componentInstance.rankingOpen()).toBe(false)
   })
-  it('reports a missing quiz without suggesting reconnection', async () => {
+  it('shows the usual missing quiz screen without an edit action for an editor', async () => {
+    fixture.componentInstance.quizEditing.set(true)
+    fixture.componentInstance.editableDays.set([1])
     vi.mocked(window.fetch).mockResolvedValueOnce(new Response('', { status: 404 }))
     await fixture.componentInstance.selectDay(2)
     fixture.detectChanges()
     expect(fixture.nativeElement.querySelector('.advent__state[role=status]').textContent).toContain('Il n’y a rien ici')
+    expect(fixture.nativeElement.querySelector('#advent-edit-button')).toBeNull()
+    expect(fixture.nativeElement.querySelector('#advent-editor-title')).toBeNull()
     expect(fixture.nativeElement.textContent).not.toContain('déconnecte-toi')
   })
   it('reports removal while reconciling or reserving', async () => {

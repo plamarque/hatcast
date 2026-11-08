@@ -7,7 +7,7 @@ public class AdventLocalH2Fixture {
  s.execute("INSERT INTO users VALUES ('00000000-0000-0000-0000-000000000001')");
  java.nio.file.Path dir=java.nio.file.Paths.get(a[2]);
  try(java.util.stream.Stream<java.nio.file.Path> files=java.nio.file.Files.list(dir)){
-  for(java.nio.file.Path file:(Iterable<java.nio.file.Path>)files.filter(p->p.getFileName().toString().matches("V(7[0-9]|8[0-4])__.*\\.sql")).sorted()::iterator)
+  for(java.nio.file.Path file:(Iterable<java.nio.file.Path>)files.filter(p->p.getFileName().toString().matches("V(7[0-9]|8[0-5])__.*\\.sql")).sorted()::iterator)
    s.execute("RUNSCRIPT FROM '"+file.toAbsolutePath().toString().replace("'","''")+"'");
  }
  }}else if(a[1].equals("hold")){System.out.println("READY");System.out.flush();System.in.read();}

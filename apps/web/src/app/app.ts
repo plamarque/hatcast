@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, PLATFORM_ID } from '@angular/core';
+import { afterNextRender, Component, DestroyRef, ElementRef, inject, OnInit, PLATFORM_ID, viewChild } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
@@ -21,6 +21,21 @@ export class App implements OnInit {
   private readonly pwaUpdate = inject(PwaUpdateService);
   private readonly pushOptInPrompt = inject(PushOptInPromptService);
   private readonly platformId = inject(PLATFORM_ID);
+  private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly systemBanners = viewChild.required<ElementRef<HTMLElement>>('systemBanners');
+
+  constructor() {
+    afterNextRender(() => {
+      if (typeof ResizeObserver === 'undefined') return;
+      const banners = this.systemBanners().nativeElement;
+      const observer = new ResizeObserver(() => {
+        this.host.nativeElement.style.setProperty('--about-banner-height', `${banners.getBoundingClientRect().height}px`);
+      });
+      observer.observe(banners);
+      this.destroyRef.onDestroy(() => observer.disconnect());
+    });
+  }
 
   ngOnInit(): void {
     if (!isPlatformBrowser(this.platformId)) {

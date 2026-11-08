@@ -42,6 +42,8 @@ describe('postLoginRedirectStorage', () => {
   })
 
   it('accepts routable member routes', () => {
+    expect(isValidInternalRedirectPath('/a-propos')).toBe(true)
+    expect(isValidInternalRedirectPath('/a-propos?from=mail#top')).toBe(true)
     expect(isValidInternalRedirectPath('/agenda')).toBe(true)
     expect(isValidInternalRedirectPath('/avent?aper%C3%A7u=2')).toBe(true)
     expect(isValidInternalRedirectPath('/agenda?from=mail#top')).toBe(true)

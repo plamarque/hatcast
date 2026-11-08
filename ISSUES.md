@@ -10,6 +10,35 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Current follow-up
 
+### BUG-113 — Private editor isolation test blocks the staging gate
+
+- **Status:** Fixed locally; full release gate pending. **Severity:** Medium. **Affected area:** V2 release E2E test.
+- **Observed:** On `63eb2f45`, the private editor home-style isolation test fails waiting for a visible gift image before entering the editor. The staging promotion stops; the full run reported 140 passed, 7 skipped and 1 failed.
+- **Expected:** The test reaches the editor and verifies home styles before and after the visit using consistent fixture conditions.
+- **Context:** The test returns HTTP 404 for the entry endpoint while the shared home setup waits for the entry image. This apparent fixture contradiction has not yet been corrected or independently retested.
+
+### BUG-112 — Mobile navigation content too close to the top
+
+- **Status:** Fixed locally; validated by the user on a Pixel 9a and Safari on a simulated iPhone.
+- **Severity:** Low. **Affected area:** Member mobile navigation.
+- **Observed:** Icons and labels sit too close to the top of the bar on a Pixel 9a and an iPhone 17, as shown in user-provided screenshots.
+- **Expected:** Balance spacing above and below the navigation content while respecting device safe areas.
+- **Notes/context:** A 10 px upward offset was introduced for a Pixel 9a where Chrome did not expose a bottom safe-area inset.
+
+### BUG-111 — Production release blocked by missing Advent configuration
+
+- **Status:** Resolved by production configuration and successful deployment. **Severity:** High. **Affected area:** V2 production deployment.
+- **Observed:** The v2.8.0 deployment stopped before invoking Cloud Run because the production GitHub environment lacks `HATCAST_ADVENT_TROUPE_ID` and `HATCAST_ADVENT_EXCLUDED_USER_IDS`.
+- **Expected:** The production environment supplies a validated troupe UUID and two distinct excluded user UUIDs for its own database.
+- **Context:** GitHub Actions run 42499864632 initially failed on 2026-11-08. The validated production identifiers were configured and the same run succeeded on retry.
+
+### BUG-110 — Advent isolation screenshot intermittently differs
+
+- **Status:** Fixed locally; full release gate passed. **Severity:** Low. **Affected area:** Release E2E visual isolation test.
+- **Observed:** The 430 px before/after screenshot comparison failed during production promotion; differences were confined to the Advent gift image.
+- **Expected:** Compare the same fully rendered home page before and after the Advent journey.
+- **Context:** The first capture showed a blurred gift. Image decoding and rendering timing are the suspected cause; the test now waits for both before each capture. Root cause is not conclusively proven.
+
 ### BUG-109 — Christmas personal score missing
 
 - **Status:** Fixed locally; staging validation pending.

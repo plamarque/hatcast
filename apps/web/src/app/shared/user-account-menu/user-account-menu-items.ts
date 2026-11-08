@@ -1,5 +1,6 @@
 import { Component, computed, effect, inject, input, signal } from '@angular/core';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatDividerModule } from '@angular/material/divider';
 import { Router, RouterLink } from '@angular/router';
 
 import { AuthApiService } from '../../core/auth/auth-api.service';
@@ -9,18 +10,20 @@ import { PwaInstallService } from '../../core/pwa/pwa-install.service';
 /** Shared user menu: compte, PWA install, logout (nav principale via barre membre). */
 @Component({
   selector: 'app-user-account-menu-items',
-  imports: [MatMenuModule, RouterLink],
+  imports: [MatMenuModule, MatDividerModule, RouterLink],
   template: `
     @if (showAccountLink()) {
       <a mat-menu-item routerLink="/compte">Mon compte</a>
     }
-    @if (showAdventPreview()) {
-      <a mat-menu-item routerLink="/avent" [queryParams]="{ preview: 1 }">Prévisualiser l’Avent</a>
-    }
     @if (showInstallApp()) {
       <button type="button" mat-menu-item (click)="onInstallApp()">Installer l'app</button>
     }
+    <a mat-menu-item routerLink="/a-propos">À propos</a>
+    @if (showAdventPreview()) {
+      <a mat-menu-item routerLink="/avent" [queryParams]="{ preview: 1 }">Avent-première</a>
+    }
     @if (showLogout()) {
+      <mat-divider />
       <button type="button" mat-menu-item (click)="onLogout()">{{ logoutLabel() }}</button>
     }
   `,

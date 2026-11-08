@@ -29,6 +29,7 @@ describe('AccountAboutTab', () => {
         {
           provide: AppVersionService,
           useValue: {
+            ensureLoaded: vi.fn().mockResolvedValue(undefined),
             version: signal('1.2.3'),
             buildMeta: signal(buildMetaValue),
           },
@@ -98,6 +99,20 @@ describe('AccountAboutTab', () => {
 
     expect(el.querySelector('[data-testid="account-check-updates"]')).toBeNull()
     expect(el.querySelector('[data-testid="account-changelog"]')).toBeTruthy()
+  })
+
+  it('opens the changelog when its rendered action is clicked', () => {
+    const { fixture, openChangelog } = setup()
+    ;(fixture.nativeElement.querySelector('[data-testid="account-changelog"]') as HTMLButtonElement).click()
+    expect(openChangelog).toHaveBeenCalledOnce()
+  })
+
+  it('checks for updates when its rendered action is clicked', async () => {
+    const { fixture, checkForUpdatesManually, snackOpen } = setup()
+    ;(fixture.nativeElement.querySelector('[data-testid="account-check-updates"]') as HTMLButtonElement).click()
+    await fixture.whenStable()
+    expect(checkForUpdatesManually).toHaveBeenCalledOnce()
+    expect(snackOpen).toHaveBeenCalledWith('HatCast est à jour.', undefined, { duration: 4_000 })
   })
 
   it('checkForUpdates shows snackbar with result message', async () => {

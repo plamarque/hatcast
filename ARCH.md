@@ -187,7 +187,7 @@ La découverte est stockée par membre dans `advent_member_discoveries`. Les lec
 
 Les tentatives de découverte expirent 24 heures après leur émission selon l’horloge réelle du serveur, indépendamment de la date simulée. Les lectures et actions de découverte purgent les tentatives expirées sous le verrou. Après expiration, une invitation encore affichée doit être rechargée ; si la découverte est déjà enregistrée, la priorité normale de révélation s’applique.
 
-The shared private Advent bucket stores the canonical catalogue under `catalogue/` and elf images under `portraits/`. Cloud runtime resolves simple database portrait references under `portraits/`; offline uses the local private directory. Environments retain distinct databases. Migration and deployment require separate authorization; existing objects and game state are preserved.
+The shared private Advent bucket stores the private preparation catalogue under `catalogue/` and elf images under `portraits/`. Cloud runtime resolves simple database portrait references under `portraits/`; offline uses the local private directory. Environments retain distinct databases. Migration and deployment require separate authorization; existing objects and game state are preserved.
 
 ### Rappels Avent
 
@@ -205,3 +205,8 @@ La projection fictive du classement est calculée uniquement dans la mémoire de
 ### Accès anticipé en test de développement isolé
 
 En développement isolé, le testeur autorisé par le serveur peut, sans activer le mode test, ouvrir et répondre à un quiz futur disponible ; son résultat personnel détaillé reste indisponible jusqu’à minuit Europe/Paris suivant le jour du cadeau, y compris en mode test. Le classement du mode test explicitement activé peut toutefois afficher des points avant révélation et donner un indice ; une date simulée peut atteindre cette échéance. La sélection ne change pas la date simulée ni l’horloge partagée ; les réponses et le rejeu restent personnels. Les cadeaux futurs conservent leur apparence habituelle ; le 25 ouvre le bilan de Noël avec le score actuel, et les contenus manquants conservent leur comportement existant. Les règles de production, de classement et de révélation du jour restent inchangées.
+
+
+### Modification privée des quiz Avent
+
+Patrice et Antoine, membres actifs avec adresse vérifiée, peuvent modifier les trois affirmations ordonnées, leurs récits facultatifs, le choix faux et l’explication d’un quiz existant jusqu’au début de son jour réel à Paris. L’enregistrement est atomique et refuse une version périmée ; il ne modifie ni identité, portrait, réponses ni scores. La base de chaque environnement fait autorité pour le contenu servi. Le catalogue reste une source de préparation privée et peut diverger après une modification : comparer et réconcilier explicitement chaque cible avant de remplacer son contenu, sans publier ni synchroniser une cible non autorisée.

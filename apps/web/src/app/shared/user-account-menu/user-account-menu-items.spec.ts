@@ -58,14 +58,23 @@ describe('UserAccountMenuItemsComponent', () => {
   it('renders Mon compte and logout by default', async () => {
     const fixture = await setup();
     expect(fixture.nativeElement.textContent).toContain('Mon compte');
+    expect(fixture.nativeElement.querySelector('a[href="/a-propos"]')?.textContent).toContain('À propos');
     expect(fixture.nativeElement.textContent).toContain('Se déconnecter');
     expect(fixture.nativeElement.textContent).not.toContain("Ma saison en un clin d'œil");
     expect(fixture.nativeElement.textContent).not.toContain('Mon agenda');
   });
 
+  it('orders account, install, about, divider and logout', async () => {
+    const fixture = await setup({ pwaInstalled: false });
+    const elements = Array.from(fixture.nativeElement.querySelectorAll('[mat-menu-item], mat-divider')) as HTMLElement[];
+    expect(elements.map((element) => element.tagName === 'MAT-DIVIDER' ? 'separator' : element.textContent?.trim()))
+      .toEqual(['Mon compte', "Installer l'app", 'À propos', 'separator', 'Se déconnecter']);
+  });
+
   it('hides logout when showLogout is false', async () => {
     const fixture = await setup({ showLogout: false });
     expect(fixture.nativeElement.textContent).not.toContain('Se déconnecter');
+    expect(fixture.nativeElement.querySelector('mat-divider')).toBeNull();
   });
 
   it('hides Mon compte when already on /compte', async () => {
@@ -125,7 +134,7 @@ describe('UserAccountMenuItemsComponent', () => {
     sessionUser.set({ id: 'one' });
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ productionPreview: true }) }));
     const fixture = await setup();
-    await vi.waitFor(() => { fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain('Prévisualiser l’Avent'); });
+    await vi.waitFor(() => { fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain('Avent-première'); });
     expect(fixture.nativeElement.querySelector('a[href="/avent?preview=1"]')).not.toBeNull();
   });
 
@@ -139,7 +148,7 @@ describe('UserAccountMenuItemsComponent', () => {
     const fixture = await setup();
     await fixture.whenStable();
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).not.toContain('Avent');
+    expect(fixture.nativeElement.textContent).not.toContain('Avent-première');
   });
 
   it('clears authorization on account changes and ignores late responses including a return to the same identity', async () => {
@@ -152,23 +161,23 @@ describe('UserAccountMenuItemsComponent', () => {
     sessionIdentityVersion.update((n) => n + 1); sessionUser.set({ id: 'one' });
     resolveFirst({ ok: true, json: async () => ({ productionPreview: true }) });
     await fixture.whenStable(); fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).not.toContain('Avent');
+    expect(fixture.nativeElement.textContent).not.toContain('Avent-première');
     sessionIdentityVersion.update((n) => n + 1); sessionUser.set(null);
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).not.toContain('Avent');
+    expect(fixture.nativeElement.textContent).not.toContain('Avent-première');
   });
 
   it('immediately hides a granted capability on logout or account switch', async () => {
     sessionUser.set({ id: 'one' });
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ productionPreview: true }) }));
     const fixture = await setup();
-    await vi.waitFor(() => { fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain('Avent'); });
+    await vi.waitFor(() => { fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain('Avent-première'); });
     sessionIdentityVersion.update((n) => n + 1); sessionUser.set({ id: 'two' });
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).not.toContain('Avent');
+    expect(fixture.nativeElement.textContent).not.toContain('Avent-première');
     sessionIdentityVersion.update((n) => n + 1); sessionUser.set(null);
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).not.toContain('Avent');
+    expect(fixture.nativeElement.textContent).not.toContain('Avent-première');
   });
 
   it('revalidates on every opening and rejects an older overlapping success', async () => {
@@ -180,7 +189,7 @@ describe('UserAccountMenuItemsComponent', () => {
     fixture.componentInstance.refreshPreviewCapability();
     resolveFirst({ ok: true, json: async () => ({ productionPreview: true }) });
     await fixture.whenStable(); fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).not.toContain('Avent');
+    expect(fixture.nativeElement.textContent).not.toContain('Avent-première');
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 
@@ -203,6 +212,6 @@ describe('UserAccountMenuItemsComponent', () => {
     identity = 'two'; await auth.signInWithGoogleIdToken('second');
     resolveCapability({ ok: true, json: async () => ({ productionPreview: true }) });
     await fixture.whenStable(); fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).not.toContain('Avent');
+    expect(fixture.nativeElement.textContent).not.toContain('Avent-première');
   });
 });

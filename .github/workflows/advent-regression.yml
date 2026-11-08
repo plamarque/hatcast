@@ -25,12 +25,12 @@ jobs:
       - run: npm ci
       - name: Advent API security and game tests
         working-directory: services/api
-        run: ./gradlew cleanTest test --no-daemon --tests '*AdventMemberSecurityTest' --tests '*AdventMemberGameTest' --tests '*AdventOfflineIntegrationTest' --tests '*AdventMemberClockTest' --tests '*AdventParisTimeTest' --tests '*AdventRankingCalculatorTest' --tests '*AdventCloudPortraitTest' --tests '*AdventPortraitObjectTest'
+        run: ./gradlew cleanTest test --no-daemon --tests '*AdventQuizEditorTest' --tests '*AdventMemberSecurityTest' --tests '*AdventMemberGameTest' --tests '*AdventOfflineIntegrationTest' --tests '*AdventMemberClockTest' --tests '*AdventParisTimeTest' --tests '*AdventRankingCalculatorTest' --tests '*AdventCloudPortraitTest' --tests '*AdventPortraitObjectTest'
       - name: Require all API suites to execute
         if: always()
         run: >-
           python3 scripts/v2/ci/check_reports.py 'services/api/build/test-results/test/TEST-*.xml'
-          AdventMemberSecurityTest AdventMemberGameTest AdventOfflineIntegrationTest
+          AdventQuizEditorTest AdventMemberSecurityTest AdventMemberGameTest AdventOfflineIntegrationTest
           AdventMemberClockTest AdventParisTimeTest AdventRankingCalculatorTest
           AdventCloudPortraitTest AdventPortraitObjectTest
       - name: Upload Advent API reports
@@ -146,12 +146,12 @@ jobs:
           cache: gradle
       - name: PostgreSQL privacy and concurrency tests
         working-directory: services/api
-        run: ./gradlew cleanTest test --no-daemon --tests '*AdventMemberPostgresTest' --tests '*AdventRankingPostgresTest' --tests '*AdventResultPostgresTest' --tests '*AdventEndpointOwnershipPostgresTest'
+        run: ./gradlew cleanTest test --no-daemon --tests '*AdventQuizEditorPostgresTest' --tests '*AdventMemberPostgresTest' --tests '*AdventRankingPostgresTest' --tests '*AdventResultPostgresTest' --tests '*AdventEndpointOwnershipPostgresTest'
       - name: Require all PostgreSQL suites to execute
         if: always()
         run: >-
           python3 scripts/v2/ci/check_reports.py 'services/api/build/test-results/test/TEST-*.xml'
-          AdventMemberPostgresTest AdventRankingPostgresTest AdventResultPostgresTest AdventEndpointOwnershipPostgresTest
+          AdventQuizEditorPostgresTest AdventMemberPostgresTest AdventRankingPostgresTest AdventResultPostgresTest AdventEndpointOwnershipPostgresTest
       - name: Upload Advent PostgreSQL reports
         if: always()
         uses: actions/upload-artifact@v4

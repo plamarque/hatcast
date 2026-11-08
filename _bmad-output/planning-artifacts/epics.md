@@ -2376,6 +2376,14 @@ afin de **retrouver plus naturellement** ma vue perso avant l’espace collectif
 
 ---
 
+#### Story 17.47 : Page À propos — menu utilisateur
+
+En tant que **membre connecté**, je veux ouvrir **À propos** depuis le menu utilisateur afin de consulter les informations de l’application dans une page dédiée.
+
+**Critères :** entrée dans le menu utilisateur ; page autonome conservant version, informations de build, nouveautés et vérification des mises à jour ; retrait de l’onglet Mon compte ; redirection de `/compte/a-propos` vers la nouvelle adresse ; navigation et accessibilité mobile et desktop préservées.
+
+**Dépendances :** 17.25, 10.2, 10.3b. **UX :** Material 3 et navigation membre existante.
+
 #### Story 17.46 : Détail spectacle — remplacer Infos par un bandeau
 
 En tant que membre ou organisateur·ice, je veux accéder aux trois autres onglets du spectacle avec un bandeau d’en-tête au-dessus, afin de simplifier la consultation du spectacle.
@@ -3866,6 +3874,14 @@ En tant que membre, je veux pouvoir lire le récit complet associé à chaque pr
 **Critères :** Présenter les trois propositions courtes sélectionnables et permettre d’ouvrir indépendamment chaque récit disponible, sans modifier le choix. Si un récit manque, conserver la proposition courte sans commande vide. Préserver les récits et paragraphes, leur association aux propositions, le rappel au résultat, les règles d’accès aux jours et la révélation différée de la réponse et des points. Adapter les projections serveur, les contrats documentaires et les tests de confidentialité à cette divulgation volontaire des récits pendant le quiz.
 
 **Material 3 et références :** appliquer FRONTEND_UI, Advent DESIGN, EXPERIENCE, AD-7 et la stratégie de tests visuels ; voir la story détaillée 25.25. Cette décision fait évoluer le contrat « récits uniquement après révélation » de la story 25.22.
+
+### Story 25.26: Modifier un quiz Avent avant son jour
+
+En tant que responsable du contenu Avent, je veux corriger les textes d’un quiz existant avant son jour, afin de publier les ajustements sans redéployer l’application.
+
+**Critères :** Patrice et Antoine disposent d’un formulaire privé pour modifier les propositions, récits facultatifs, réponse fausse et phrase de résultat d’un quiz existant. Le serveur refuse toute modification dès le début de son jour à Paris. Aucun changement de jour, personne ou portrait, ni création de quiz. La base de chaque environnement devient la référence du contenu publié ; adapter les outils et procédures de contribution pour éviter tout écrasement silencieux. Préserver les droits, secrets et règles de révélation ; vérifier la concurrence et les limites temporelles.
+
+**Material 3 et références :** appliquer FRONTEND_UI, Advent DESIGN, EXPERIENCE, AD-7 et la stratégie de tests visuels ; voir la story détaillée 25.26.
 
 ## Final validation
 
