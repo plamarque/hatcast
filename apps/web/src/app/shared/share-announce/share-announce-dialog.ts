@@ -50,6 +50,7 @@ interface RecipientChannelStatus {
   eligible: boolean
   notified: boolean
   lastNotifiedAt?: string | null
+  unavailableReason?: string | null
 }
 
 interface RecipientCard {
@@ -138,6 +139,13 @@ export class ShareAnnounceDialog {
   protected readonly guardDays = signal<number | null>(null)
   protected readonly hasNotifiableRecipient = computed(() =>
     this.recipientCards().some((r) => r.channels.email.eligible || r.channels.push.eligible),
+  )
+  protected readonly notificationChannelsUnavailable = computed(
+    () =>
+      !this.hasNotifiableRecipient() &&
+      this.recipientCards().some(
+        (r) => r.channels.email.unavailableReason === 'channel_unavailable' || r.channels.push.unavailableReason === 'channel_unavailable',
+      ),
   )
 
   protected readonly alreadyNotifiedRecipients = computed(() =>

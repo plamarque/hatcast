@@ -10,6 +10,14 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Current follow-up
 
+### BUG-114 — Availability reminder offered on channels that cannot send
+
+- **Status:** Fixed locally; staging validation pending. **Severity:** Medium. **Affected area:** V2 availability reminder (organizer).
+- **Observed:** On staging, the confirmation offered a reminder to every unanswered person. After the organizer confirmed, the result was "Relance non envoyée" and every recipient was listed as failed.
+- **Expected:** The preview offers only the channels that the server can send. If no channel can send, the organizer cannot confirm a reminder and the dialog says why.
+- **Cause:** The preview set email and push eligibility from account data and preferences only. The send counts a person as reached only on a SENT or PARTIAL transport result. With email turned off or no mail service configured, and no push, every send was SKIPPED.
+- **Context:** The staging email configuration is the probable trigger and is not yet confirmed. The fix makes the preview check channel readiness and logs `share_recipients_channel_unavailable` with the configuration reason.
+
 ### BUG-113 — Private editor isolation test blocks the staging gate
 
 - **Status:** Fixed locally; full release gate pending. **Severity:** Medium. **Affected area:** V2 release E2E test.

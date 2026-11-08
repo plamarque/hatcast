@@ -63,6 +63,9 @@ class ShareRecipientsIntegrationTest {
     @MockBean
     private lateinit var notificationPort: CompositionNotificationPort
 
+    @MockBean
+    private lateinit var channelReadiness: com.hatcast.api.notification.NotificationChannelReadiness
+
     @Autowired
     private lateinit var membershipRepository: TroupeMembershipRepository
 

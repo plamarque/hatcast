@@ -79,6 +79,8 @@ An organizer eligible to send an availability reminder can use the bell-labelled
 
 Les demandes de rappel de disponibilité confirment les personnes retenues après la dernière vérification de leurs réponses, une fois par compte. La confirmation distingue les personnes avec au moins un canal envoyé ou partiellement envoyé des personnes dont la notification n’a pas abouti ; si personne ne reste éligible, elle le précise.
 
+L’aperçu du rappel ne propose un canal que si le serveur peut l’envoyer avec sa configuration actuelle (e-mail activé et service d’envoi configuré, clé push configurée). Sinon, le canal est indiqué comme indisponible pour chaque personne ; si aucun canal ne reste utilisable, **Notifier** est désactivé et la fenêtre l’explique.
+
 ---
 
 ## Organizer share and announce (V2 target)

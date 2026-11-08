@@ -16,6 +16,8 @@ class E2eEmailNotificationSender(
     mailSender: ObjectProvider<JavaMailSender>,
     @Value("\${hatcast.e2e.simulated-notification-success:false}") private val simulateSuccess: Boolean,
 ) : EmailNotificationSender(properties, cloudflare, mailSender) {
+    override fun unavailableReason(): String? = if (simulateSuccess) null else super.unavailableReason()
+
     override fun sendEmail(
         userId: UUID?, email: String, subject: String, htmlBody: String,
         intent: NotificationIntent, eventId: UUID?,

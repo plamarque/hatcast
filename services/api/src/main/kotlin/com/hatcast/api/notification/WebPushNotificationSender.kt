@@ -42,10 +42,12 @@ class WebPushNotificationSender(
         return send(userId, payload, "ADVENT_REMINDER", null, true, endpoint)
     }
 
+    fun isConfigured(): Boolean = webPushProperties.vapidPrivateKey.isNotBlank()
+
     private data class PushTarget(val endpoint: String, val p256dhKey: String, val authKey: String)
 
     private fun send(userId: UUID, payload: NotificationPayload, intent: String, eventId: UUID?, advent: Boolean, endpoint: String? = null): NotificationDeliveryResult {
-        if (webPushProperties.vapidPrivateKey.isBlank()) {
+        if (!isConfigured()) {
             log.warn(
                 "notification_push_skipped reason=missing_vapid_private_key intent={} userId={} eventId={}",
                 intent,

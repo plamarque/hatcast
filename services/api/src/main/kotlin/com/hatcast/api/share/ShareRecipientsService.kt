@@ -10,6 +10,7 @@ import com.hatcast.api.event.EventRepository
 import com.hatcast.api.event.isAvailabilityOpen
 import com.hatcast.api.notification.ManualAvailabilityNudgeProperties
 import com.hatcast.api.notification.NotificationCategory
+import com.hatcast.api.notification.NotificationChannelReadiness
 import com.hatcast.api.notification.NotificationChannel
 import com.hatcast.api.notification.NotificationDeliveryLogRepository
 import com.hatcast.api.notification.NotificationDeliveryStatus
@@ -32,6 +33,7 @@ import com.hatcast.api.share.dto.ShareRecipientDto
 import com.hatcast.api.share.dto.ShareRecipientsResponseDto
 import com.hatcast.api.troupe.TroupeAccessService
 import com.hatcast.api.troupe.TroupeMembershipStatus
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.beans.factory.ObjectProvider
 import org.springframework.stereotype.Service
@@ -62,6 +64,9 @@ enum class ShareRecipientIntent {
     }
 }
 
+/** Recipient channel reason: the server cannot send on this channel at all right now. */
+private const val CHANNEL_UNAVAILABLE = "channel_unavailable"
+
 @Service
 class ShareRecipientsService(
     private val seasonRepository: SeasonRepository,
@@ -81,7 +86,10 @@ class ShareRecipientsService(
     private val deliveryLogRepository: NotificationDeliveryLogRepository,
     private val preferenceEligibilityPort: ObjectProvider<NotificationPreferenceEligibilityPort>,
     private val userRepository: UserRepository,
+    private val channelReadiness: NotificationChannelReadiness,
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
+
     @Transactional(readOnly = true)
     fun getRecipients(
         seasonId: UUID,
@@ -337,12 +345,14 @@ class ShareRecipientsService(
         val pushCategory = NotificationCategory.AVAILABILITY_REQUEST
         val logIntents = resolveDeliveryLogIntents(intent)
         val channelDelivery = loadChannelDeliveryState(eventId, rows, logIntents)
+        val isReminderPreview = intent == ShareRecipientIntent.AVAILABILITY_NUDGE
+        val emailChannelReady = !isReminderPreview || isChannelReady(eventId, NotificationChannel.EMAIL)
+        val pushChannelReady = !isReminderPreview || isChannelReady(eventId, NotificationChannel.PUSH)
         val recipients =
             rows
                 .sortedByFrenchDisplayName { it.displayName }
                 .map { row ->
                     val account = row.userId?.let(usersById::get)
-                    val isReminderPreview = intent == ShareRecipientIntent.AVAILABILITY_NUDGE
                     val pushPreferenceAllowed =
                         !isReminderPreview || isAllowed(row.userId, NotificationChannel.PUSH)
                     val emailPreferenceAllowed =
@@ -350,7 +360,8 @@ class ShareRecipientsService(
                     val hasEmail =
                         if (isReminderPreview) {
                             account?.email?.isNotBlank() == true &&
-                                emailPreferenceAllowed
+                                emailPreferenceAllowed &&
+                                emailChannelReady
                         } else {
                             !row.email.isNullOrBlank()
                         }
@@ -358,7 +369,8 @@ class ShareRecipientsService(
                         availabilityPushIntent &&
                             row.userId != null &&
                             pushEligibilityPort.isPushAllowedForCategory(row.userId, pushCategory) &&
-                            pushPreferenceAllowed
+                            pushPreferenceAllowed &&
+                            pushChannelReady
                     ShareRecipientDto(
                         participantId = row.participantId,
                         displayName = row.displayName,
@@ -378,6 +390,7 @@ class ShareRecipientsService(
                                         else if (row.userId == null) "missing_account"
                                         else if (!emailPreferenceAllowed) "preference_disabled"
                                         else if (account?.email.isNullOrBlank()) "missing_email"
+                                        else if (!emailChannelReady) CHANNEL_UNAVAILABLE
                                         else null,
                                     ),
                                 push =
@@ -389,6 +402,7 @@ class ShareRecipientsService(
                                         if (!isReminderPreview) null
                                         else if (row.userId == null) "missing_account"
                                         else if (!pushPreferenceAllowed) "preference_disabled"
+                                        else if (!pushChannelReady) CHANNEL_UNAVAILABLE
                                         else if (!hasPush) "push_unavailable"
                                         else null,
                                     ),
@@ -504,6 +518,12 @@ class ShareRecipientsService(
             lastNotifiedAt = state?.lastNotifiedAt,
             unavailableReason = unavailableReason,
         )
+    }
+
+    private fun isChannelReady(eventId: UUID, channel: NotificationChannel): Boolean {
+        val reason = channelReadiness.unavailableReason(channel) ?: return true
+        log.warn("share_recipients_channel_unavailable eventId={} channel={} reason={}", eventId, channel, reason)
+        return false
     }
 
     private fun isAllowed(userId: UUID?, channel: NotificationChannel): Boolean =

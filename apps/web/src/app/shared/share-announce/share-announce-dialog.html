@@ -85,6 +85,12 @@
     }
   </div>
 
+  @if (data.intent === 'availability_nudge' && !loadingRecipients() && notificationChannelsUnavailable()) {
+    <p class="share-announce-dialog__reminder-warning" role="status">
+      Les notifications ne peuvent pas être envoyées pour le moment. Utilise Copier ou WhatsApp.
+    </p>
+  }
+
   @if (data.intent === 'availability_nudge' && lastManualNotifyAt()) {
     <p class="share-announce-dialog__reminder-warning" role="status">
       Une relance a déjà été demandée le {{ formatReminderDate(lastManualNotifyAt()!) }}.
