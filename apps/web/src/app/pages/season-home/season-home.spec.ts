@@ -100,7 +100,10 @@ describe('SeasonHome', () => {
   let snack: { open: ReturnType<typeof vi.fn> }
   let organizerApi: { mySeasonPermissions: ReturnType<typeof vi.fn> }
   let participantApi: { listSeasonParticipantSelectors: ReturnType<typeof vi.fn> }
-  let authApi: { ensureHatcastSession: ReturnType<typeof vi.fn> }
+  let authApi: {
+    discardRejectedSession: ReturnType<typeof vi.fn>
+    ensureHatcastSession: ReturnType<typeof vi.fn>
+  }
   let troupeApi: {
     listMyTroupes: ReturnType<typeof vi.fn>
     listCategories: ReturnType<typeof vi.fn>
@@ -126,6 +129,7 @@ describe('SeasonHome', () => {
     dialog = { open: vi.fn() }
     snack = { open: vi.fn() }
     authApi = {
+      discardRejectedSession: vi.fn(),
       ensureHatcastSession: vi.fn().mockResolvedValue({
         ok: true,
         data: { user: { email: 'a@example.com', displayName: 'Admin' } },

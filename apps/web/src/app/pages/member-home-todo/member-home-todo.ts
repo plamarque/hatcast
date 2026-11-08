@@ -422,6 +422,7 @@ export class MemberHomeTodo implements OnInit, OnDestroy {
     this.snack.open('Votre session a expiré ou vous n’êtes pas connecté.', 'OK', {
       duration: 6000,
     })
+    this.auth.discardRejectedSession()
     rememberCurrentUrlForPostLogin(this.router)
     await this.router.navigate(['/connexion'], { replaceUrl: true })
   }

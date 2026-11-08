@@ -474,6 +474,7 @@ export class MemberSeasonGlance implements OnInit, OnDestroy {
   }
 
   private async redirectToLogin(): Promise<void> {
+    this.auth.discardRejectedSession()
     rememberCurrentUrlForPostLogin(this.router)
     await this.router.navigate(['/connexion'], { replaceUrl: true })
   }

@@ -46,6 +46,7 @@ describe('MemberHomeTodo', () => {
   }
   let auth: {
     sessionUser: ReturnType<typeof signal<UserSummary | null>>
+    discardRejectedSession: ReturnType<typeof vi.fn>
     ensureHatcastSession: ReturnType<typeof vi.fn>
   }
   let memberBootstrap: { ensureReady: ReturnType<typeof vi.fn> }
@@ -80,6 +81,7 @@ describe('MemberHomeTodo', () => {
     })
     auth = {
       sessionUser,
+      discardRejectedSession: vi.fn(),
       ensureHatcastSession: vi.fn().mockResolvedValue({
         ok: true,
         status: 200,

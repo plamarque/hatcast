@@ -68,6 +68,7 @@ describe('SeasonsList', () => {
           provide: AuthApiService,
           useValue: {
             sessionUser: signal(null), sessionIdentityVersion: signal(0),
+            discardRejectedSession: vi.fn(),
             ensureHatcastSession: vi.fn().mockResolvedValue({
               ok: true,
               data: { user: {}, platformAdmin: false },
@@ -395,6 +396,7 @@ describe('SeasonsList', () => {
           provide: AuthApiService,
           useValue: {
             sessionUser: signal(null), sessionIdentityVersion: signal(0),
+            discardRejectedSession: vi.fn(),
             ensureHatcastSession: vi.fn().mockResolvedValue({
               ok: true,
               data: {

@@ -325,6 +325,32 @@ describe('AuthApiService', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 
+  it('discardRejectedSession efface l’utilisateur et force un nouveau GET /v1/auth/me', async () => {
+    const body = {
+      user: { id: 'u1', slug: 'pat', email: 'a@b.c', displayName: 'Pat' },
+    }
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(body),
+      })
+      .mockResolvedValueOnce({ ok: false, status: 401 })
+    vi.stubGlobal('fetch', fetchMock)
+    const invalidateTroupes = vi.spyOn(TestBed.inject(TroupeApiService), 'invalidateCache')
+
+    const auth = service()
+    await auth.ensureHatcastSession()
+    auth.discardRejectedSession()
+    const after = await auth.ensureHatcastSession()
+
+    expect(auth.sessionUser()).toBeNull()
+    expect(invalidateTroupes).toHaveBeenCalled()
+    expect(after.ok).toBe(false)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
   it('invalide le cache troupes quand l’utilisateur de session change', async () => {
     const invalidateTroupes = vi.fn()
     const invalidatePreferences = vi.fn()

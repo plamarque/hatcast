@@ -71,6 +71,7 @@ describe('MemberSeasonGlance', () => {
       ),
     }
     const authApi = {
+      discardRejectedSession: vi.fn(),
       ensureHatcastSession: vi.fn().mockResolvedValue({
         ok: true,
         data: {
