@@ -32,7 +32,7 @@ interface FictionalQuiz { day: number; name: string; portrait: string; statement
   standalone: true,
   imports: [MatExpansionModule, MatButtonModule, MatIconModule, MatMenuModule, MatRadioModule, NgTemplateOutlet],
   templateUrl: './advent-test.html',
-  styleUrls: ['./advent-christmas.scss', './advent-test.scss', './advent-result.scss', './advent-ranking.scss', './advent-calendar.scss', './advent-illustrated.scss', './advent-welcome.scss', './advent-controls.scss', './advent-reminder.scss'],
+  styleUrls: ['./advent-christmas.scss', './advent-test.scss', './advent-waiting.scss', './advent-result.scss', './advent-ranking.scss', './advent-calendar.scss', './advent-illustrated.scss', './advent-welcome.scss', './advent-controls.scss', './advent-reminder.scss'],
 })
 export class AdventTest {
   private readonly auth = inject(AuthApiService)
