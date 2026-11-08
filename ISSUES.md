@@ -10,9 +10,16 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Current follow-up
 
+### BUG-111 — Production release blocked by missing Advent configuration
+
+- **Status:** Resolved by production configuration and successful deployment. **Severity:** High. **Affected area:** V2 production deployment.
+- **Observed:** The v2.8.0 deployment stopped before invoking Cloud Run because the production GitHub environment lacks `HATCAST_ADVENT_TROUPE_ID` and `HATCAST_ADVENT_EXCLUDED_USER_IDS`.
+- **Expected:** The production environment supplies a validated troupe UUID and two distinct excluded user UUIDs for its own database.
+- **Context:** GitHub Actions run 42499864632 initially failed on 2026-11-08. The validated production identifiers were configured and the same run succeeded on retry.
+
 ### BUG-110 — Advent isolation screenshot intermittently differs
 
-- **Status:** Fix under validation. **Severity:** Low. **Affected area:** Release E2E visual isolation test.
+- **Status:** Fixed locally; full release gate passed. **Severity:** Low. **Affected area:** Release E2E visual isolation test.
 - **Observed:** The 430 px before/after screenshot comparison failed during production promotion; differences were confined to the Advent gift image.
 - **Expected:** Compare the same fully rendered home page before and after the Advent journey.
 - **Context:** The first capture showed a blurred gift. Image decoding and rendering timing are the suspected cause; the test now waits for both before each capture. Root cause is not conclusively proven.
