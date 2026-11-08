@@ -1,5 +1,31 @@
 # Changelog
 
+## [2.8.1] - 2026-11-08
+
+### ✨ New Features
+- feat(advent): Integrate quiz editor
+- feat(advent): Allow private quiz editing
+- feat(ui): Merge About page story
+- feat(ui): Add standalone About page
+
+### 🐛 Bug Fixes
+- fix(test): Repair editor isolation fixture
+- fix(navigation): Integrate mobile bar spacing
+- fix(advent): Refine quiz editor experience
+- fix(navigation): Balance mobile bar spacing
+- fix(ui): Rename Advent preview menu item
+
+### 📝 Other Changes
+- chore(v2): promote v2 to staging-v2
+- docs: Record release test failure
+- docs(release): Add 2.8.1 release notes
+- docs(release): Record production recovery
+- test(avent): Stabilize gift image capture
+- docs(advent): Prepare quiz editing story
+- chore(v2): sync release v2.8.0-rc.2 artifacts to v2
+
+---
+
 ## [2.8.0] - 2026-11-08
 
 ### ✨ New Features

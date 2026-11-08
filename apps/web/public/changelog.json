@@ -1,5 +1,13 @@
 [
   {
+    "version": "2.8.1",
+    "date": "2026-11-08",
+    "changes": [
+      "✨ À propos — retrouve les informations et les mises à jour de l’application directement depuis ton menu.",
+      "🐛 Mobile — les icônes et les libellés de la barre de navigation sont mieux espacés."
+    ]
+  },
+  {
     "version": "2.8.0",
     "date": "2026-11-08",
     "changes": [
