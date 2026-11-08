@@ -10,6 +10,14 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Current follow-up
 
+### BUG-109 — Christmas personal score missing
+
+- **Status:** Fixed locally; staging validation pending.
+- **Severity:** Medium. **Affected area:** Advent Christmas recap.
+- **Observed:** The recap omitted the player's personal score and rank, including when no podium was available.
+- **Expected:** Show the personal score, including zero, and the server-provided rank when available; do not invent a rank for excluded members.
+- **Context:** Reported while inspecting the local Christmas preview on 2026-11-07.
+
 This index is the active reading surface. Full evidence remains in the
 historical registry below.
 
@@ -362,9 +370,9 @@ BUG-037 and BUG-029 have fixture-only corrections verified by the complete API s
 - **Status**: Corrected locally; integration pending.
 - **Severity**: High (production-local build blocked).
 - **Affected area**: Advent Angular component stylesheet.
-- **Observed behavior**: The production-local build failed because the component stylesheet compiled to 12.53 kB, exceeding its 12 kB error budget.
+- **Observed behavior**: The production-local build failed because the component stylesheet compiled to 12.53 kB, exceeding its 12 kB error budget. The GitHub Actions run 42460659806 later failed at 12.22 kB, 223 bytes above the same limit.
 - **Expected behavior**: The production-local build succeeds within the existing error budget while preserving the Advent visual contract.
-- **Notes/context**: Removed generated scenery pseudo-elements already hidden by the illustrated design and an unused selector. The build now succeeds at 11.74 kB; the existing 9 kB warning remains. No budget was increased.
+- **Notes/context**: Removed generated scenery pseudo-elements already hidden by the illustrated design and an unused selector. The prior build succeeded at 11.74 kB. After the later CI failure, waiting-screen rules were extracted unchanged into a separate component stylesheet; the production build succeeds at 11.25 kB. The existing 9 kB warning remains; no budget was increased.
 
 ### BUG-075 — Late test replay is closed on its simulated day
 - **Status**: Closed on 2026-11-01 at Patrice's request; deployed and verified in development.

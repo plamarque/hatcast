@@ -195,7 +195,7 @@ Depuis le calendrier, revenir sur une réponse normale enregistrée et encore en
 
 ### Prévisualisation privée de production
 
-La route directe réservée aux deux personnes autorisées ouvre le calendrier et ses cases futures ; son résultat personnel et son explication sont immédiatement consultables et récupérables. Identifier clairement la prévisualisation avec une action confirmée pour effacer uniquement sa réponse au jour sélectionné et rejouer, sans contrôle de simulation ou de remise à zéro commune. Préserver clavier, focus, mouvement réduit, lisibilité mobile et isolation visuelle Advent. Dans la navigation ordinaire, aucune erreur ne révèle l’Avent avant son ouverture.
+La route directe réservée aux deux personnes autorisées ouvre le calendrier et ses cases futures ; son résultat personnel et son explication sont immédiatement consultables et récupérables. Présenter directement une action confirmée, sans message ni menu de prévisualisation, pour effacer uniquement sa réponse au jour sélectionné et rejouer, sans contrôle de simulation ou de remise à zéro commune. Préserver clavier, focus, mouvement réduit, lisibilité mobile et isolation visuelle Advent. Dans la navigation ordinaire, aucune erreur ne révèle l’Avent avant son ouverture.
 
 ### Rejouer l’ouverture à la connexion (mode test)
 
@@ -211,6 +211,8 @@ En développement isolé, le testeur autorisé par le serveur peut, sans activer
 ### Bilan de Noël — podium
 
 Après la révélation prioritaire, le bilan présente jusqu’aux trois premiers membres classables ayant un score positif. Une phrase courte explique le critère décisif d’une égalité affectant le podium, y compris avec la quatrième place. En l’absence de score positif, afficher les vœux et la navigation sans podium ni présomption de participation. Le membre est remercié pour sa participation seulement si son score personnel est positif, y compris hors classement. Les aperçus anticipés autorisés sont explicitement provisoires. Le calendrier, le classement final et le retour à HatCast restent accessibles.
+
+Dans tous les environnements, l’entrée dans le bilan de Noël déclenche une explosion de confettis décorative, supprimée si la réduction des animations est demandée. Le podium conserve les noms des membres. L’aperçu privé autorisé peut ouvrir le 25 avant la date réelle en préproduction et en production, sans condition de participation aux autres jours ; la révélation prioritaire reste applicable et le bilan est indiqué comme provisoire. Les membres ordinaires restent soumis à la date réelle.
 
 ### Découverte des récits
 
