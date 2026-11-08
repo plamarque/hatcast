@@ -453,7 +453,6 @@ export class SeasonHome implements OnDestroy, OnInit {
           'OK',
           { duration: 6000 },
         )
-        this.auth.discardRejectedSession()
         rememberCurrentUrlForPostLogin(this.router)
         await this.router.navigate(['/connexion'], { replaceUrl: true })
         return

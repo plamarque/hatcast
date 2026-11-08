@@ -196,7 +196,6 @@ describe('AccountPlaceholder', () => {
 
     const authApi = {
       sessionUser: signal(options.session?.ok === false ? null : user),
-      discardRejectedSession: vi.fn(),
       ensureHatcastSession: vi.fn().mockResolvedValue(
         options.session ?? {
           ok: true,

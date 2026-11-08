@@ -55,7 +55,6 @@ describe('UserAgenda', () => {
   let agendaApi: { listAgenda: ReturnType<typeof vi.fn> }
   let auth: {
     sessionUser: ReturnType<typeof signal<UserSummary | null>>
-    discardRejectedSession: ReturnType<typeof vi.fn>
     ensureHatcastSession: ReturnType<typeof vi.fn>
     logout: ReturnType<typeof vi.fn>
   }
@@ -86,7 +85,6 @@ describe('UserAgenda', () => {
     })
     auth = {
       sessionUser,
-      discardRejectedSession: vi.fn(),
       ensureHatcastSession: vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
@@ -298,10 +296,6 @@ describe('UserAgenda', () => {
       { duration: 6000 },
     )
     expect(navigateSpy).toHaveBeenCalledWith(['/connexion'], { replaceUrl: true })
-    expect(auth.discardRejectedSession).toHaveBeenCalled()
-    expect(auth.discardRejectedSession.mock.invocationCallOrder[0]).toBeLessThan(
-      navigateSpy.mock.invocationCallOrder[0],
-    )
   })
 
   it('affiche une erreur retryable pour les erreurs non-auth', async () => {

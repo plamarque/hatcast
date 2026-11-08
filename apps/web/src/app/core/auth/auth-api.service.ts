@@ -96,13 +96,6 @@ export class AuthApiService {
     this.ensureInFlight = null
   }
 
-  /** Drops the session user and memo after an API 401 — next ensureHatcastSession refetches /v1/auth/me. */
-  discardRejectedSession(): void {
-    this.setSessionUser(null)
-    this.invalidateSessionCache()
-    this.troupeApi.invalidateCache()
-  }
-
   private writeSessionCache(result: AuthSessionResult, generation: number): void {
     if (result.ok && generation === this.sessionCacheGeneration) {
       this.sessionCache = result
@@ -116,7 +109,9 @@ export class AuthApiService {
       return
     }
     if (result.status === 401) {
-      this.discardRejectedSession()
+      this.setSessionUser(null)
+      this.invalidateSessionCache()
+      this.troupeApi.invalidateCache()
     }
   }
 
