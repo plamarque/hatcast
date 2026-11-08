@@ -3867,6 +3867,14 @@ En tant que membre, je veux pouvoir lire le récit complet associé à chaque pr
 
 **Material 3 et références :** appliquer FRONTEND_UI, Advent DESIGN, EXPERIENCE, AD-7 et la stratégie de tests visuels ; voir la story détaillée 25.25. Cette décision fait évoluer le contrat « récits uniquement après révélation » de la story 25.22.
 
+### Story 25.26: Modifier un quiz Avent avant son jour
+
+En tant que responsable du contenu Avent, je veux corriger les textes d’un quiz existant avant son jour, afin de publier les ajustements sans redéployer l’application.
+
+**Critères :** Patrice et Antoine disposent d’un formulaire privé pour modifier les propositions, récits facultatifs, réponse fausse et phrase de résultat d’un quiz existant. Le serveur refuse toute modification dès le début de son jour à Paris. Aucun changement de jour, personne ou portrait, ni création de quiz. La base de chaque environnement devient la référence du contenu publié ; adapter les outils et procédures de contribution pour éviter tout écrasement silencieux. Préserver les droits, secrets et règles de révélation ; vérifier la concurrence et les limites temporelles.
+
+**Material 3 et références :** appliquer FRONTEND_UI, Advent DESIGN, EXPERIENCE, AD-7 et la stratégie de tests visuels ; voir la story détaillée 25.26.
+
 ## Final validation
 
 
