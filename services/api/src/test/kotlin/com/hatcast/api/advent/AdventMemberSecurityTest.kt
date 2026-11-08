@@ -8,12 +8,15 @@ import org.hamcrest.Matchers.containsString
 import org.hamcrest.Matchers.not
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.mockito.Mockito.`when`
+import org.mockito.Mockito.doReturn
+import org.springframework.boot.test.mock.mockito.SpyBean
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.core.env.ConfigurableEnvironment
 import org.springframework.core.env.MapPropertySource
 import org.springframework.http.MediaType
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
 import java.time.Instant
 import java.util.UUID
 import org.springframework.beans.factory.annotation.Autowired
@@ -33,6 +36,8 @@ class AdventMemberSecurityTest {
     @MockBean lateinit var google: GoogleIdTokenService
     @MockBean lateinit var idp: IdpIdTokenVerifier
     @MockBean lateinit var clock: AdventMemberClock
+    @MockBean lateinit var realClock: AdventRealClock
+    @SpyBean lateinit var databaseClock: AdventDatabaseClock
     @Autowired lateinit var jdbc: JdbcTemplate
     @Autowired lateinit var json: ObjectMapper
     @Autowired lateinit var environment: ConfigurableEnvironment
@@ -68,6 +73,26 @@ class AdventMemberSecurityTest {
                 .andExpect(status().isOk).andExpect(header().string("Cache-Control", "private, no-store"))
                 .andExpect(jsonPath("$.productionPreview").value(true)).andExpect(jsonPath("$.sessionId").doesNotExist())
             mvc.perform(get("/v1/advent/preview-capability").cookie(third)).andExpect(status().isOk).andExpect(jsonPath("$.productionPreview").value(false))
+            `when`(realClock.instant()).thenReturn(Instant.parse("2026-12-01T00:00:00Z"))
+            doReturn("TIMESTAMP WITH TIME ZONE '2026-12-01 00:00:00+00'").`when`(databaseClock).expression
+            mvc.perform(get("/v1/advent/editor/days").cookie(first)).andExpect(status().isOk).andExpect(header().string("Cache-Control", "private, no-store"))
+                .andExpect(jsonPath("$.days", org.hamcrest.Matchers.hasItems(7, 23)))
+            mvc.perform(get("/v1/advent/editor/days").cookie(third)).andExpect(status().isNotFound)
+            mvc.perform(get("/v1/advent/editor/23").cookie(second)).andExpect(status().isOk)
+            mvc.perform(get("/v1/advent/editor/25").cookie(first)).andExpect(status().isNotFound)
+            val editorRead = mvc.perform(get("/v1/advent/editor/23").cookie(first)).andExpect(status().isOk)
+                .andExpect(header().string("Cache-Control", "private, no-store")).andReturn()
+            mvc.perform(get("/v1/advent/editor/23").cookie(third)).andExpect(status().isNotFound)
+                .andExpect(content().string(not(containsString("Récit privé"))))
+            val editorBody = json.readTree(editorRead.response.contentAsString)
+            val editRequest = json.writeValueAsString(mapOf("version" to editorBody["version"].asText(), "content" to editorBody["content"]))
+            mvc.perform(put("/v1/advent/editor/23").cookie(first).contentType(MediaType.APPLICATION_JSON).content(editRequest)).andExpect(status().isForbidden)
+            mvc.perform(put("/v1/advent/editor/23").cookie(third).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(editRequest)).andExpect(status().isNotFound)
+            mvc.perform(put("/v1/advent/editor/23").cookie(first).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(editRequest)).andExpect(status().isOk)
+            mvc.perform(put("/v1/advent/editor/23").cookie(first).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(editRequest)).andExpect(status().isConflict)
+            val secondView = json.readTree(mvc.perform(get("/v1/advent/editor/23").cookie(second)).andExpect(status().isOk).andReturn().response.contentAsString)
+            val secondRequest = json.writeValueAsString(mapOf("version" to secondView["version"].asText(), "content" to secondView["content"]))
+            mvc.perform(put("/v1/advent/editor/23").cookie(second).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(secondRequest)).andExpect(status().isOk)
             val token = json.readTree(mvc.perform(get("/v1/advent/session").cookie(first)).andReturn().response.contentAsString)["sessionId"].asText()
             mvc.perform(get("/v1/advent/calendar").cookie(first).header("X-Advent-Test-Session", token).header("X-Advent-Preview", "true"))
                 .andExpect(status().isOk).andExpect(jsonPath("$.days[24].state").value("christmas"))
@@ -154,7 +179,13 @@ class AdventMemberSecurityTest {
             mvc.perform(get("/v1/advent/preview-capability").cookie(unverified)).andExpect(jsonPath("$.productionPreview").value(false))
             mvc.perform(get("/v1/advent/doors/23").cookie(unverified).header("X-Advent-Test-Session", token).header("X-Advent-Preview", "true")).andExpect(status().isNotFound)
             mvc.perform(previewReplay(unverified, 23, firstAnswer)).andExpect(status().isNotFound)
+            mvc.perform(get("/v1/advent/editor/days").cookie(unverified)).andExpect(status().isNotFound)
+            mvc.perform(get("/v1/advent/editor/23").cookie(unverified)).andExpect(status().isNotFound)
+            mvc.perform(put("/v1/advent/editor/23").cookie(unverified).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(editRequest)).andExpect(status().isNotFound)
             jdbc.update("UPDATE troupe_memberships SET status = 'INACTIVE' WHERE troupe_id = ? AND user_id = ?", troupe, ids[0])
+            mvc.perform(get("/v1/advent/editor/days").cookie(first)).andExpect(status().isForbidden)
+            mvc.perform(get("/v1/advent/editor/23").cookie(first)).andExpect(status().isForbidden)
+            mvc.perform(put("/v1/advent/editor/23").cookie(first).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(editRequest)).andExpect(status().isForbidden)
             mvc.perform(get("/v1/advent/session").cookie(first)).andExpect(status().isForbidden)
             mvc.perform(get("/v1/advent/preview-capability").cookie(first)).andExpect(status().isForbidden).andExpect(header().string("Cache-Control", "private, no-store"))
         } finally {
@@ -163,10 +194,13 @@ class AdventMemberSecurityTest {
     }
     @Test fun `anonymous and unrelated user cannot access member data and errors are not cached`() {
         val cookie = TestAuthSupport.sessionCookieFromGoogleSignIn(mvc, google, "outsider-advent-member")
-        for (path in listOf("/v1/advent/preview-capability", "/v1/advent/discovery", "/v1/advent/entry", "/v1/advent/clock", "/v1/advent/doors/1", "/v1/advent/doors/1/answer", "/v1/advent/doors/1/result", "/v1/advent/results/latest-unseen", "/v1/advent/ranking", "/v1/advent/calendar", "/v1/advent/doors/1/history")) {
+        for (path in listOf("/v1/advent/editor/days", "/v1/advent/editor/23", "/v1/advent/preview-capability", "/v1/advent/discovery", "/v1/advent/entry", "/v1/advent/clock", "/v1/advent/doors/1", "/v1/advent/doors/1/answer", "/v1/advent/doors/1/result", "/v1/advent/results/latest-unseen", "/v1/advent/ranking", "/v1/advent/calendar", "/v1/advent/doors/1/history")) {
             mvc.perform(get(path)).andExpect(status().isUnauthorized).andExpect(header().string("Cache-Control", "private, no-store"))
             mvc.perform(get(path).cookie(cookie)).andExpect(status().isForbidden).andExpect(header().string("Cache-Control", "private, no-store"))
         }
+        val editorBody = """{"version":"fictional","content":{"statements":["A","B","C"],"stories":[null,null,null],"falseChoice":0,"explanation":null}}"""
+        mvc.perform(put("/v1/advent/editor/23").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(editorBody)).andExpect(status().isUnauthorized)
+        mvc.perform(put("/v1/advent/editor/23").cookie(cookie).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(editorBody)).andExpect(status().isForbidden)
         mvc.perform(post("/v1/advent/discovery").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("""{"attemptId":"${UUID.randomUUID()}"}""")).andExpect(status().isUnauthorized).andExpect(header().string("Cache-Control", "private, no-store"))
         mvc.perform(post("/v1/advent/discovery").cookie(cookie).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("""{"attemptId":"${UUID.randomUUID()}"}""")).andExpect(status().isForbidden).andExpect(header().string("Cache-Control", "private, no-store"))
     }

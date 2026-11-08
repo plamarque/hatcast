@@ -45,7 +45,7 @@ export const routes: Routes = [
         path: 'a-propos',
         loadComponent: () => import('./pages/account-placeholder/tabs/account-about-tab').then((m) => m.AccountAboutTab),
       },
-      { path: 'avent', loadComponent: () => import('./pages/advent-test/advent-test').then((m) => m.AdventTest) },
+      { path: 'avent', canDeactivate: [(component: { canLeaveEditor(): boolean }) => component.canLeaveEditor()], loadComponent: () => import('./pages/advent-test/advent-test').then((m) => m.AdventTest) },
       {
         path: 'agenda',
         loadComponent: () =>

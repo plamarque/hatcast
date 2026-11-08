@@ -20,3 +20,13 @@ test('quiz plan describes ordered story operations before confirmation without c
  }}));
  assert.doesNotMatch(messages.join(' '),/PRIVATE/);
 });
+
+
+test('divergent quiz requires a separate day-specific replacement confirmation',async()=>{
+ const old={quiz_day:1,statement_0:'old',statement_1:'b',statement_2:'c',false_choice:0,explanation:null,story_0:null,story_1:null,story_2:null};
+ const row={...old,character_key:'fiction',statement_0:'new'};const prompts=[];
+ const db={query:async sql=>({rows:sql.includes('advent_character_reservations')?[{quiz_day:1,character_key:'fiction'}]:[old]})};
+ const source={verify:async()=>{},snapshot:async()=>({generation:'1',rows:[row],portraits:[]})};
+ await assert.rejects(runCloudContent({source,store:{verify:async()=>{}},db,days:[1],operation:'quiz',environment:'development',write:()=>{},ask:async prompt=>{prompts.push(prompt);return 'APPLIQUER quiz 1'}}));
+ assert.equal(prompts.length,1);assert.match(prompts[0],/REMPLACER 1/);
+});
