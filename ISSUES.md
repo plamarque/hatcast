@@ -10,6 +10,13 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Current follow-up
 
+### BUG-114 — Release checks require retries on several journeys
+
+- **Status:** Open. **Severity:** Medium. **Affected area:** V2 staging CI and E1 preproduction checks.
+- **Observed:** On RC `v2.8.1-rc.1`, the staging CI smoke reported three flaky tests (composition publication, member re-addition via typeahead, and mobile availability save/reopen). E1 reported one flaky organizer statistics test. Each passed on retry; both jobs concluded successfully.
+- **Expected:** These release checks pass reliably on their first attempt.
+- **Context:** GitHub Actions run 42507226496, commit `f66d8e0d5b8ce0cf5a493f5b99004bc599010226`. Root causes are not established; the composition case may relate to BUG-038.
+
 ### BUG-113 — Private editor isolation test blocks the staging gate
 
 - **Status:** Fixed locally; full release gate pending. **Severity:** Medium. **Affected area:** V2 release E2E test.
