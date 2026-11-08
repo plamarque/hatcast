@@ -148,6 +148,7 @@ Gender is **never required**; workflows must not block when unset.
 
 ### Profile (member self-service)
 
+- **Given** a signed-in user, **when** they select **À propos** from the user menu, **then** the application information page opens at `/a-propos`, with version, available build metadata, changelog, conditional update check and copyright. The former `/compte/a-propos` URL redirects there.
 - **Given** a signed-in user, **when** they edit **Mon compte → Mon profil**, **then** they can set gender to Homme, Femme, or Non précisé (default).
 - **Given** gender is saved, **when** the API persists, **then** `users.gender` is `male` | `female` | `non_specified`.
 - **Given** gender is unset or Non précisé, **when** role labels render, **then** inclusive middot forms remain (current V2 behaviour).

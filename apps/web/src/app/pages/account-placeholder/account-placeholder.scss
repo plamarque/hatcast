@@ -385,6 +385,10 @@
   background: color-mix(in srgb, var(--mat-sys-surface-container) 55%, transparent);
 }
 
+.account-page__title + .account-page__about-panel {
+  margin-top: 1rem;
+}
+
 .account-page__about-panel {
   display: flex;
   flex-direction: column;
@@ -478,6 +482,18 @@
     opacity: 0.72;
     cursor: default;
   }
+}
+
+.account-page__about-action .mdc-button__label {
+  width: 100%;
+}
+
+.account-page__about-action-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  text-align: start;
 }
 
 .account-page__about-action-text {

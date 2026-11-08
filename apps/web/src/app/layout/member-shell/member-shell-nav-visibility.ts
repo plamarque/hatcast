@@ -30,6 +30,7 @@ const AUTH_PATHS_WITHOUT_NAV = new Set([
 const MEMBER_NAV_PATH_PATTERNS: RegExp[] = [
   /^\/accueil$/,
   /^\/agenda$/,
+  /^\/a-propos$/,
   /^\/compte(\/.*)?$/,
   /^\/troupes$/,
   /^\/membre\/[^/]+$/,

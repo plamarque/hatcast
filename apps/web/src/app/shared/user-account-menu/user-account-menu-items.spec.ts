@@ -58,14 +58,23 @@ describe('UserAccountMenuItemsComponent', () => {
   it('renders Mon compte and logout by default', async () => {
     const fixture = await setup();
     expect(fixture.nativeElement.textContent).toContain('Mon compte');
+    expect(fixture.nativeElement.querySelector('a[href="/a-propos"]')?.textContent).toContain('À propos');
     expect(fixture.nativeElement.textContent).toContain('Se déconnecter');
     expect(fixture.nativeElement.textContent).not.toContain("Ma saison en un clin d'œil");
     expect(fixture.nativeElement.textContent).not.toContain('Mon agenda');
   });
 
+  it('orders account, install, about, divider and logout', async () => {
+    const fixture = await setup({ pwaInstalled: false });
+    const elements = Array.from(fixture.nativeElement.querySelectorAll('[mat-menu-item], mat-divider')) as HTMLElement[];
+    expect(elements.map((element) => element.tagName === 'MAT-DIVIDER' ? 'separator' : element.textContent?.trim()))
+      .toEqual(['Mon compte', "Installer l'app", 'À propos', 'separator', 'Se déconnecter']);
+  });
+
   it('hides logout when showLogout is false', async () => {
     const fixture = await setup({ showLogout: false });
     expect(fixture.nativeElement.textContent).not.toContain('Se déconnecter');
+    expect(fixture.nativeElement.querySelector('mat-divider')).toBeNull();
   });
 
   it('hides Mon compte when already on /compte', async () => {

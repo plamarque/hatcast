@@ -40,6 +40,11 @@ export const routes: Routes = [
     canActivate: [memberShellBootstrapGuard],
     children: [
       { path: 'accueil', component: MemberHomeTodo },
+      { path: 'compte/a-propos', pathMatch: 'full', redirectTo: '/a-propos' },
+      {
+        path: 'a-propos',
+        loadComponent: () => import('./pages/account-placeholder/tabs/account-about-tab').then((m) => m.AccountAboutTab),
+      },
       { path: 'avent', loadComponent: () => import('./pages/advent-test/advent-test').then((m) => m.AdventTest) },
       {
         path: 'agenda',
@@ -93,13 +98,6 @@ export const routes: Routes = [
             loadComponent: () =>
               import('./pages/account-placeholder/legacy-account-tab-redirect').then(
                 (m) => m.LegacyAccountTabRedirect,
-              ),
-          },
-          {
-            path: 'a-propos',
-            loadComponent: () =>
-              import('./pages/account-placeholder/tabs/account-about-tab').then(
-                (m) => m.AccountAboutTab,
               ),
           },
           { path: '**', redirectTo: '' },

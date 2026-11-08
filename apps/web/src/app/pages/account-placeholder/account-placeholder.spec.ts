@@ -263,13 +263,13 @@ describe('AccountPlaceholder', () => {
     expect(text).toContain('Paramètres de votre compte HatCast.')
   })
 
-  it('affiche les quatre onglets de navigation', async () => {
+  it('affiche les trois onglets de navigation', async () => {
     const { fixture } = await setup()
     const text = fixture.nativeElement.textContent ?? ''
     expect(text).toContain('Mon profil')
     expect(text).toContain('Préférences')
     expect(text).toContain('Notifications')
-    expect(text).toContain('À propos')
+    expect(text).not.toContain('À propos')
     expect(text).not.toContain('Identité')
     expect(text).not.toContain('Sécurité')
   })
@@ -277,13 +277,12 @@ describe('AccountPlaceholder', () => {
   it('affiche une icône Material distincte sur chaque onglet', async () => {
     const { fixture } = await setup()
     const tabs = fixture.nativeElement.querySelectorAll('.account-page__tab-item')
-    expect(tabs.length).toBe(4)
+    expect(tabs.length).toBe(3)
 
     const expected = [
       { icon: 'person', label: 'Mon profil' },
       { icon: 'tune', label: 'Préférences' },
       { icon: 'notifications', label: 'Notifications' },
-      { icon: 'info', label: 'À propos' },
     ]
 
     expected.forEach(({ icon, label }, index) => {
@@ -355,10 +354,6 @@ describe('AccountPlaceholder', () => {
     expect(router.url).toContain('/compte/preferences')
     expect(fixture.nativeElement.querySelector('[data-testid="member-preferences-save"]')).toBeTruthy()
 
-    clickTab('À propos')
-    await fixture.whenStable()
-    expect(router.url).toContain('/compte/a-propos')
-    expect(fixture.nativeElement.querySelector('[data-testid="account-app-version"]')).toBeTruthy()
   })
 
   it('n’affiche pas le pseudo sur Préférences (rôles seuls)', async () => {
@@ -508,26 +503,6 @@ describe('AccountPlaceholder', () => {
   it('utilise le displayName compte pour l’avatar, pas le pseudo troupe', async () => {
     const { fixture } = await setup()
     expect(fixture.nativeElement.textContent).toContain('Léa Martin')
-  })
-
-  it('affiche la version dans À propos et ouvre le changelog au clic', async () => {
-    const { fixture, router, openChangelog } = await setup({ appVersion: '2.1.0' })
-    await router.navigateByUrl('/compte/a-propos')
-    fixture.detectChanges()
-    await fixture.whenStable()
-    fixture.detectChanges()
-
-    const versionLabel = fixture.nativeElement.querySelector(
-      '[data-testid="account-app-version"]',
-    ) as HTMLElement
-    expect(versionLabel).toBeTruthy()
-    expect(versionLabel.textContent).toContain('2.1.0')
-
-    const changelogButton = fixture.nativeElement.querySelector(
-      '[data-testid="account-changelog"]',
-    ) as HTMLButtonElement
-    changelogButton.click()
-    expect(openChangelog).toHaveBeenCalled()
   })
 
   it('redirige une route enfant /compte inconnue vers Mon profil', async () => {
