@@ -1,4 +1,4 @@
 2.8.0
-Staging RC build - 2026-11-07
-Git: 60b836ce
-Build: 2026-11-07T15:08:08+0100
+Staging RC build - 2026-11-08
+Git: 4da67adb
+Build: 2026-11-08T13:26:33+0100
