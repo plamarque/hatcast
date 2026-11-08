@@ -10,6 +10,13 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Current follow-up
 
+### BUG-110 — Advent isolation screenshot intermittently differs
+
+- **Status:** Fix under validation. **Severity:** Low. **Affected area:** Release E2E visual isolation test.
+- **Observed:** The 430 px before/after screenshot comparison failed during production promotion; differences were confined to the Advent gift image.
+- **Expected:** Compare the same fully rendered home page before and after the Advent journey.
+- **Context:** The first capture showed a blurred gift. Image decoding and rendering timing are the suspected cause; the test now waits for both before each capture. Root cause is not conclusively proven.
+
 ### BUG-109 — Christmas personal score missing
 
 - **Status:** Fixed locally; staging validation pending.

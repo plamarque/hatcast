@@ -28,6 +28,12 @@ async function settleHome(page: Page) {
   await expect(heading).toBeVisible()
   await expect(button).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
+  const gift = page.locator('.member-shell__advent-entry:visible img')
+  await expect(gift).toBeVisible()
+  await gift.evaluate(async (image: HTMLImageElement) => {
+    await image.decode()
+  })
+  await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
   return { heading, button }
 }
 
