@@ -10,6 +10,15 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Current follow-up
 
+### BUG-114 — Sign-in loops between agenda and login after an API 401
+
+- **Status:** Fixed locally; production verification pending. **Severity:** High. **Affected area:** V2 web authentication (`/agenda`, `/connexion`).
+- **Observed:** When the server session expires, `/v1/me/agenda` returns 401 and the page redirects to `/connexion`. The login page reads the memoized "ok" session, so it sends the user back to `/agenda`. The cycle repeats with a "session expired" snackbar until the user closes the window. Product analytics shows this loop on staging and on production.
+- **Expected:** After an API 401, the login page asks `/v1/auth/me` again and stays on `/connexion` when the session is not valid.
+- **Cause:** Page-level `redirectToLogin()` methods do not clear the `AuthApiService` session memo, and `Login.ngOnInit` trusted the memo.
+- **Fix:** `/connexion` uses `ensureHatcastSession({ force: true })`. A 401 from `/v1/auth/me` then clears the session user and the memo, which covers every redirect path to the login page.
+- **Notes/context:** A related "Connexion refusée" snackbar stays visible after a successful sign-in on some sessions. It comes from a 401 on `/v1/auth/google` or `/v1/auth/idp`. The cause is not known, and this fix does not address it.
+
 ### BUG-113 — Private editor isolation test blocks the staging gate
 
 - **Status:** Fixed locally; full release gate pending. **Severity:** Medium. **Affected area:** V2 release E2E test.

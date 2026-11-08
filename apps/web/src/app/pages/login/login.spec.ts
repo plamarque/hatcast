@@ -85,6 +85,12 @@ describe('Login returnUrl', () => {
     expect(getPendingPostLoginRedirect()).toBe('/saison/festibask/event/e1?showConfirm=true')
   })
 
+  it('revalidates the session on init instead of trusting the memo', () => {
+    fixture.detectChanges()
+
+    expect(TestBed.inject(AuthApiService).ensureHatcastSession).toHaveBeenCalledWith({ force: true })
+  })
+
   it('clears storage when returnUrl is invalid', async () => {
     TestBed.resetTestingModule()
     localStorage.clear()
