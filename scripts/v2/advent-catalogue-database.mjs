@@ -32,7 +32,7 @@ export async function insertReviewedQuizzes(client, selected, reviewed, expected
       if (activity.rowCount) throw new SynchronizationConflict();
       for (const row of replacements) {
         const previous=current.rows.find(q=>q.quiz_day===row.quiz_day);
-        const updated=await client.query(`UPDATE advent_quizzes SET display_name=$2, portrait_ref=$3, statement_0=$4, statement_1=$5, statement_2=$6, false_choice=$7, explanation=$8, story_0=$9, story_1=$10, story_2=$11 WHERE quiz_day=$1`,columns.map(c=>row[c] === undefined ? previous[c] : row[c]));
+        const updated=await client.query(`UPDATE advent_quizzes SET display_name=$2, portrait_ref=$3, statement_0=$4, statement_1=$5, statement_2=$6, false_choice=$7, explanation=$8, story_0=$9, story_1=$10, story_2=$11, content_revision=content_revision+1 WHERE quiz_day=$1`,columns.map(c=>row[c] === undefined ? previous[c] : row[c]));
         if(updated.rowCount!==1)throw new SynchronizationConflict();
       }
       for (const row of additions) {

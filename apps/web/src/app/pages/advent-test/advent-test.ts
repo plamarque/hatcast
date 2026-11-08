@@ -1,10 +1,12 @@
 import { MatExpansionModule } from '@angular/material/expansion';
-import { Component, ElementRef, ViewChild, signal, inject, effect } from '@angular/core'
+import { Component, ElementRef, ViewChild, HostListener, signal, inject, effect } from '@angular/core'
 import { NgTemplateOutlet } from '@angular/common'
 import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatRadioModule } from '@angular/material/radio'
+import { MatFormFieldModule } from '@angular/material/form-field'
+import { MatInputModule } from '@angular/material/input'
 import { NavigationEnd, Router } from '@angular/router'
 import { Subscription } from 'rxjs'
 import { AuthApiService } from '../../core/auth/auth-api.service'
@@ -22,6 +24,9 @@ interface ClockProjection { date: string; effectiveInstant: string; nextMidnight
 type ChristmasFixture = 'sole' | 'shared' | 'participant' | 'participant-tied' | 'zero'
 interface AdventRanking { score: number; rank: number | null; entries: { name: string; score: number; rank: number; mine: boolean; tieReason?: 'CORRECT' | 'ANSWERS' | 'STREAK' | 'ATTAINMENT' | 'NAME' | 'ID' | null }[] }
 
+interface QuizEditContent { statements: string[]; stories: (string | null)[]; falseChoice: number; explanation: string | null }
+interface QuizEditView { day: number; name: string; version: string; content: QuizEditContent }
+
 interface CalendarDay { day: number; state: 'locked' | 'played' | 'today' | 'past-unplayed' | 'missing' | 'christmas'; outcome?: 'pending' | 'correct' | 'incorrect' | null }
 interface History { quiz: FictionalQuiz; falseChoice: number; result: AdventResult | null }
 
@@ -30,7 +35,7 @@ interface FictionalQuiz { day: number; name: string; portrait: string; statement
 @Component({
   selector: 'app-advent-test',
   standalone: true,
-  imports: [MatExpansionModule, MatButtonModule, MatIconModule, MatMenuModule, MatRadioModule, NgTemplateOutlet],
+  imports: [MatExpansionModule, MatButtonModule, MatIconModule, MatMenuModule, MatRadioModule, MatFormFieldModule, MatInputModule, NgTemplateOutlet],
   templateUrl: './advent-test.html',
   styleUrls: ['./advent-christmas.scss', './advent-test.scss', './advent-waiting.scss', './advent-result.scss', './advent-ranking.scss', './advent-calendar.scss', './advent-illustrated.scss', './advent-welcome.scss', './advent-controls.scss', './advent-reminder.scss'],
 })
@@ -273,7 +278,7 @@ export class AdventTest {
       this.loading.set(false); this.submitting.set(false); this.closingDay.set(null)
       this.error.set(false); this.rankingError.set(false); this.christmasError.set(false); this.calendarActionMessage.set('')
       this.generation = null; this.replayToken = null; this.sessionId = null; this.recordedLate = false
-      this.choice.set(null); this.answerState.set('checking'); this.testControls.set(false); this.testMode.set(false); this.productionPreview.set(false); this.sessionChanged.set(false)
+      clearTimeout(this.editorRefreshTimer); this.editorListEpoch++; this.editorRetryDelay = 1000; this.editDraft.set(null); this.editDirty.set(false); this.editMessage.set(''); this.editableDays.set([]); this.quizEditing.set(false); this.editBusy.set(false); this.editConflict.set(false); this.choice.set(null); this.answerState.set('checking'); this.testControls.set(false); this.testMode.set(false); this.productionPreview.set(false); this.sessionChanged.set(false)
       if (identity) void this.start()
     })
   }
@@ -284,6 +289,94 @@ export class AdventTest {
   private discoveryAttempt: string | null = null
   @ViewChild("welcomeHeading") private welcomeHeading?: ElementRef<HTMLElement>
   @ViewChild("christmasHeading") private christmasHeading?: ElementRef<HTMLElement>
+  readonly quizEditing = signal(false)
+  readonly editableDays = signal<number[]>([])
+  private editorRefreshTimer: ReturnType<typeof setTimeout> | undefined
+  private editorListEpoch = 0
+  private editorRetryDelay = 1000
+  private async loadEditableDays(): Promise<void> {
+    const identity = this.identityEpoch
+    const revision = ++this.editorListEpoch
+    clearTimeout(this.editorRefreshTimer)
+    this.editableDays.set([])
+    if (!this.quizEditing()) return
+    try {
+      const response = await fetch('/v1/advent/editor/days', { credentials: 'include', cache: 'no-store', signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) })
+      if (!response.ok) throw new Error('Editor list unavailable')
+      const result = await response.json() as { days: number[]; refreshAfterMs?: number }
+      if (!Array.isArray(result.days)) throw new Error('Invalid editor list')
+      if (identity === this.identityEpoch && revision === this.editorListEpoch && this.quizEditing() && Array.isArray(result.days)) {
+        this.editableDays.set(result.days)
+        this.editorRetryDelay = 1000
+        const delay = Math.max(1, Math.min(21_600_000, Number(result.refreshAfterMs) || 21_600_000))
+        this.editorRefreshTimer = setTimeout(() => void this.loadEditableDays(), delay)
+      }
+    } catch {
+      if (identity === this.identityEpoch && revision === this.editorListEpoch && this.quizEditing()) {
+        const delay = this.editorRetryDelay
+        this.editorRetryDelay = Math.min(delay * 2, 30_000)
+        this.editorRefreshTimer = setTimeout(() => void this.loadEditableDays(), delay)
+      }
+    }
+  }
+  readonly editDraft = signal<QuizEditView | null>(null)
+  readonly editDirty = signal(false)
+  canLeaveEditor(): boolean { return !this.editDirty() || window.confirm('Quitter et perdre le brouillon non enregistré ?') }
+  @HostListener('window:beforeunload', ['$event'])
+  onBeforeUnload(event: BeforeUnloadEvent): void { if (this.editDirty()) { event.preventDefault(); event.returnValue = '' } }
+  readonly editMessage = signal('')
+  readonly editBusy = signal(false)
+  readonly editConflict = signal(false)
+
+  async loadEditor(day: number, discard = false): Promise<void> {
+    if (!this.quizEditing() || this.editBusy()) return
+    if (this.editDraft() && !discard && !window.confirm('Abandonner les modifications en cours ?')) return
+    if (discard && !window.confirm('Recharger effacera ton brouillon. Continuer ?')) return
+    const identity = this.identityEpoch
+    this.editBusy.set(true); this.editMessage.set('')
+    try {
+      const response = await fetch(`/v1/advent/editor/${day}`, { credentials: 'include', cache: 'no-store', signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) })
+      if (identity !== this.identityEpoch) return
+      if (!response.ok) { this.editMessage.set(response.status === 410 ? 'Ce quiz ne peut plus être modifié : son jour a commencé.' : 'Ce quiz est indisponible ou tu ne peux pas le modifier.'); return }
+      const view = await response.json() as QuizEditView
+      if (identity !== this.identityEpoch) return
+      this.editDraft.set(view); this.editDirty.set(false); this.editConflict.set(false)
+      setTimeout(() => document.getElementById('advent-editor-title')?.focus())
+    } catch { if (identity === this.identityEpoch) this.editMessage.set('Impossible de charger le quiz. Réessaie.') }
+    finally { if (identity === this.identityEpoch) this.editBusy.set(false) }
+  }
+
+  editField(field: 'statements' | 'stories', index: number, value: string): void {
+    this.editDirty.set(true)
+    this.editDraft.update(draft => {
+      if (!draft) return null
+      const values = [...draft.content[field]]; values[index] = field === 'stories' && !value ? null : value
+      return { ...draft, content: { ...draft.content, [field]: values } }
+    })
+  }
+  editExplanation(value: string): void { this.editDirty.set(true); this.editDraft.update(draft => draft && ({ ...draft, content: { ...draft.content, explanation: value || null } })) }
+  editFalseChoice(value: number): void { this.editDirty.set(true); this.editDraft.update(draft => draft && ({ ...draft, content: { ...draft.content, falseChoice: value } })) }
+  closeEditor(): void { if (this.editDraft() && !window.confirm('Abandonner les modifications en cours ?')) return; this.editDraft.set(null); this.editDirty.set(false); this.editMessage.set(''); this.editConflict.set(false) }
+
+  async saveEditor(): Promise<void> {
+    const draft = this.editDraft()
+    if (!draft || this.editBusy() || this.editConflict()) return
+    const identity = this.identityEpoch
+    this.editBusy.set(true); this.editMessage.set('')
+    const content = { ...draft.content, stories: draft.content.stories.map(value => value?.trim() ? value : null), explanation: draft.content.explanation?.trim() ? draft.content.explanation : null }
+    try {
+      const response = await fetch(`/v1/advent/editor/${draft.day}`, { method: 'PUT', credentials: 'include', cache: 'no-store', signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS), headers: { ...this.csrfHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({ version: draft.version, content }) })
+      if (identity !== this.identityEpoch) return
+      if (response.status === 409) { this.editConflict.set(true); this.editMessage.set('Ce quiz a été modifié ailleurs. Ton brouillon est conservé ; copie-le avant de recharger.'); return }
+      if (response.status === 410) { this.editableDays.update(days => days.filter(day => day !== draft.day)); this.editMessage.set('Le jour du quiz a commencé. Ton brouillon est conservé mais ne peut plus être enregistré.'); return }
+      if (!response.ok) { this.editMessage.set('Enregistrement impossible. Vérifie les champs et réessaie ; ton brouillon est conservé.'); return }
+      const saved = await response.json() as QuizEditView
+      if (identity !== this.identityEpoch) return
+      this.editDraft.set(saved); this.editDirty.set(false); this.editMessage.set('Modifications enregistrées dans cet environnement.')
+    } catch { if (identity === this.identityEpoch) this.editMessage.set('Enregistrement non confirmé. Ton brouillon est conservé ; vérifie avant de réessayer.') }
+    finally { if (identity === this.identityEpoch) this.editBusy.set(false) }
+  }
+
   readonly testControls = signal(false)
   readonly testMode = signal(false)
   readonly productionPreview = signal(false)
@@ -535,7 +628,7 @@ export class AdventTest {
     })
     void this.start(); setTimeout(() => this.entryHeading?.nativeElement.focus())
   }
-  ngOnDestroy(): void { this.navigationSubscription?.unsubscribe(); this.projectionEpoch++; this.clearVisibilityListener(); this.stopWaiting() }
+  ngOnDestroy(): void { this.editorListEpoch++; clearTimeout(this.editorRefreshTimer); this.navigationSubscription?.unsubscribe(); this.projectionEpoch++; this.clearVisibilityListener(); this.stopWaiting() }
   private clearVisibilityListener(): void {
     if (this.visibilityListener) document.removeEventListener('visibilitychange', this.visibilityListener)
     this.visibilityListener = null
@@ -564,7 +657,7 @@ export class AdventTest {
     this.generation = null; this.replayToken = null; this.choice.set(null)
     this.clockDate.set(null)
     try {
-      const session = await this.requestJson<{ testControls: boolean; productionPreview?: boolean; sessionId: string; transitionRequired?: boolean }>('/v1/advent/session', { credentials: 'include', cache: 'no-store' })
+      const session = await this.requestJson<{ testControls: boolean; productionPreview?: boolean; quizEditing?: boolean; sessionId: string; transitionRequired?: boolean }>('/v1/advent/session', { credentials: 'include', cache: 'no-store' })
       if (!session.sessionId) throw new Error('Invalid session')
       const params = this.router.parseUrl(this.router.url).queryParams
       if (!this.notificationParametersConsumed) {
@@ -577,6 +670,8 @@ export class AdventTest {
         }
       }
       const previewRequested = params['preview'] === '1'
+      this.quizEditing.set(session.quizEditing === true)
+      await this.loadEditableDays()
       this.productionPreview.set(previewRequested && session.productionPreview === true)
       this.testControls.set(!this.productionPreview() && session.testControls === true)
       if (this.productionPreview()) { this.testMode.set(false); this.simulatedDate.set(null) }
@@ -828,6 +923,7 @@ export class AdventTest {
     const epoch = this.projectionEpoch
     const identity = this.auth.sessionUser()?.id ?? null
     if (this.loading() || this.submitting() || this.result() || this.sessionChanged()) return
+    void this.loadEditableDays()
     const restoreWaiting = this.waiting()
     const previousWaiting = restoreWaiting ? { day: this.selectedDay(), quiz: this.quiz(), preview: this.preview(), replay: this.replayToken, historical: this.historicalResult() } : null
     if (restoreWaiting) this.stopWaiting()

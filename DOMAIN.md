@@ -342,7 +342,7 @@ En développement isolé, les flèches changent uniquement la date simulée de l
 
 ### Advent quiz content
 
-The private catalogue is the canonical preparation source; only validated contributions are selected for synchronization. Each character has a stable identity and fixed day, represented by a private reservation independently of its optional quiz. Prepared complete quizzes in the target database are the runtime content. Deletion from a test target removes its selected reservations and preserves assignments in the canonical source.
+The private catalogue is a preparation source; only validated contributions are selected for synchronization. Each character has a stable identity and fixed day, represented by a private reservation independently of its optional quiz. Prepared complete quizzes in the target database are the runtime content. Deletion from a test target removes its selected reservations and preserves assignments in the canonical source.
 
 A prepared quiz identifies a day, a display name, three ordered statements and the index of the false statement, with an optional private portrait reference and explanation. The explanation is disclosed only with an eligible result. Test game state is separate from quiz content. An exceptional edit during play may produce an inconsistent result.
 
@@ -366,7 +366,7 @@ La fermeture explicite du parcours est propre à un membre et à une date civile
 
 La découverte du calendrier est un état propre à chaque membre, durable et partagé entre ses appareils. Elle résulte exclusivement de l’action explicite d’ouverture du calendrier ; elle est distincte des fermetures quotidiennes et des réponses.
 
-The shared private Advent bucket stores the canonical catalogue under `catalogue/` and elf images under `portraits/`. Cloud runtime resolves simple database portrait references under `portraits/`; offline uses the local private directory. Environments retain distinct databases. Migration and deployment require separate authorization; existing objects and game state are preserved.
+The shared private Advent bucket stores the private preparation catalogue under `catalogue/` and elf images under `portraits/`. Cloud runtime resolves simple database portrait references under `portraits/`; offline uses the local private directory. Environments retain distinct databases. Migration and deployment require separate authorization; existing objects and game state are preserved.
 
 ### Préférence et tentative de rappel Avent
 
@@ -379,3 +379,8 @@ En développement isolé, un testeur vérifié peut ouvrir et répondre à un ca
 ### Départage du classement final Avent
 
 À partir du 25 décembre, à score égal, les membres sont départagés successivement par nombre de bonnes réponses, nombre de réponses à temps, plus longue série de bonnes réponses, moment où leur total final a été atteint, nom affiché et identifiant stable. Les métriques utilisent les seules réponses admissibles et révélables selon le mode ; une journée manquée ne rompt pas une série. Les horaires et détails de réponse restent côté serveur.
+
+
+### Modification privée des quiz Avent
+
+Patrice et Antoine, membres actifs avec adresse vérifiée, peuvent modifier les trois affirmations ordonnées, leurs récits facultatifs, le choix faux et l’explication d’un quiz existant jusqu’au début de son jour réel à Paris. L’enregistrement est atomique et refuse une version périmée ; il ne modifie ni identité, portrait, réponses ni scores. La base de chaque environnement fait autorité pour le contenu servi. Le catalogue reste une source de préparation privée et peut diverger après une modification : comparer et réconcilier explicitement chaque cible avant de remplacer son contenu, sans publier ni synchroniser une cible non autorisée.

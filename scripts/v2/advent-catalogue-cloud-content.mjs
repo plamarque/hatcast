@@ -8,6 +8,7 @@ export async function runCloudContent({source,store,db,days,operation,environmen
       if(operation==='quiz'&&snapshot.rows.some(r=>r.statement_0===null))refuse();
       const fingerprint=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
       const sourceHash=fingerprint(snapshot),reviewed=await inspectSelectedContent(db,snapshot.rows);
+      const replacements=[];
       for(const row of snapshot.rows){
         const existing=reviewed.reservations.find(r=>r.quiz_day===row.quiz_day);
         if(reviewed.reservations.some(r=>r.character_key===row.character_key&&r.quiz_day!==row.quiz_day) || (existing?.character_key && existing.character_key!==row.character_key) || (operation==='quiz'&&!existing))refuse();
@@ -16,8 +17,10 @@ export async function runCloudContent({source,store,db,days,operation,environmen
         const previous=operation==='character'?existing:quiz;
         const status=!previous?'addition':fields.every(field=>(field.startsWith('story_') && row[field]===undefined) || previous[field]===row[field])?'unchanged':'divergence';
         write(`Jour ${row.quiz_day} : ${status}`);
+        if(operation==='quiz' && status==='divergence')replacements.push(row.quiz_day);
         if(operation==='quiz') for(const change of storyChanges(row,quiz)) write(change);
       }
+      if(replacements.length){const replace=`REMPLACER ${replacements.sort((a,b)=>a-b).join(',')}`;if(await ask(`Contenu divergent : saisir ${replace} : `)!==replace)refuse();}
       const phrase=`APPLIQUER ${operation} ${[...days].sort((a,b)=>a-b).join(',')}`;
       if(await ask(`Cible ${environment} : saisir ${phrase} : `)!==phrase)refuse();
       if(environment==='production'){

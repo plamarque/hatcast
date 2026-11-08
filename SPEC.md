@@ -522,7 +522,7 @@ Pendant la période autorisée, un cadeau près du compte permet aux membres él
 
 À la première visite, une invitation précède le parcours. Son action explicite ouvre le calendrier personnel et enregistre durablement la découverte ; fermer avant cette action ne l’enregistre pas. Une révélation existante reste non vue et reprend sa priorité aux visites suivantes.
 
-The shared private Advent bucket stores the canonical catalogue under `catalogue/` and elf images under `portraits/`. Cloud runtime resolves simple database portrait references under `portraits/`; offline uses the local private directory. Environments retain distinct databases. Migration and deployment require separate authorization; existing objects and game state are preserved.
+The shared private Advent bucket stores the private preparation catalogue under `catalogue/` and elf images under `portraits/`. Cloud runtime resolves simple database portrait references under `portraits/`; offline uses the local private directory. Environments retain distinct databases. Migration and deployment require separate authorization; existing objects and game state are preserved.
 
 ### Rappels du quiz Avent
 
@@ -551,3 +551,8 @@ Avant le 25 décembre, les égalités conservent leur rang partagé. Dès le 25 
 ### Avent — récits complets facultatifs
 
 Un quiz peut associer aux trois choix ordonnés des récits complets facultatifs. Ils sont accessibles avec le quiz jouable autorisé et avec un résultat autorisé et révélable, y compris en prévisualisation autorisée ; l’attente ne les expose pas. Les quiz sans récit conservent leur résultat et leur explication habituels.
+
+
+### Modification privée des quiz Avent
+
+Patrice et Antoine, membres actifs avec adresse vérifiée, peuvent modifier les trois affirmations ordonnées, leurs récits facultatifs, le choix faux et l’explication d’un quiz existant jusqu’au début de son jour réel à Paris. L’enregistrement est atomique et refuse une version périmée ; il ne modifie ni identité, portrait, réponses ni scores. La base de chaque environnement fait autorité pour le contenu servi. Le catalogue reste une source de préparation privée et peut diverger après une modification : comparer et réconcilier explicitement chaque cible avant de remplacer son contenu, sans publier ni synchroniser une cible non autorisée.
