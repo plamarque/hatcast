@@ -3,6 +3,8 @@ package com.hatcast.api.share
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.hatcast.api.auth.GoogleIdTokenService
 import com.hatcast.api.auth.IdpIdTokenVerifier
+import com.hatcast.api.notification.NotificationChannel
+import com.hatcast.api.notification.NotificationChannelReadiness
 import com.hatcast.api.notification.NotificationDispatchContext
 import com.hatcast.api.notification.NotificationDispatcher
 import com.hatcast.api.notification.NotificationIntent
@@ -68,6 +70,9 @@ class ManualAvailabilityNudgeIntegrationTest {
     @SpyBean
     private lateinit var recipientResolver: NotificationRecipientResolver
 
+    @MockBean
+    private lateinit var channelReadiness: NotificationChannelReadiness
+
     @Autowired
     private lateinit var membershipRepository: TroupeMembershipRepository
 
@@ -100,7 +105,7 @@ class ManualAvailabilityNudgeIntegrationTest {
 
     @BeforeEach
     fun resetMocks() {
-        reset(notificationDispatcher)
+        reset(notificationDispatcher, channelReadiness)
         whenever(notificationDispatcher.dispatch(any())).thenAnswer { invocation ->
             invocation.getArgument<NotificationDispatchContext>(0).recipientUserIds.toSet()
         }
@@ -692,6 +697,41 @@ class ManualAvailabilityNudgeIntegrationTest {
             post("/v1/seasons/$seasonId/events/$eventId/share-recipients/notify").cookie(admin)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"intent":"availability_nudge","messageText":"Rappel","confirmationFingerprint":"$fingerprint","recipientParticipantIds":[]}""")
+                .with(csrf()),
+        ).andExpect(status().isBadRequest)
+
+        verifyNoInteractions(notificationDispatcher)
+        org.junit.jupiter.api.Assertions.assertNull(manualShareNotifyRepository.findById(EventManualShareNotifyId(eventId, "availability_nudge")).orElse(null))
+    }
+
+    @Test
+    @Tag("FR31")
+    fun `email that cannot send is not offered and cannot be confirmed`() {
+        whenever(channelReadiness.unavailableReason(NotificationChannel.EMAIL)).thenReturn("email_disabled")
+        val admin = adminCookie("sub-nudge-email-unready")
+        memberCookie("sub-nudge-email-unready-member")
+        val seasonId = createSeason(admin)
+        ensureRoster(seasonId)
+        val eventId = createEvent(admin, seasonId)
+        openAvailability(admin, seasonId, eventId)
+        val preview =
+            mapper.readTree(
+                mockMvc.perform(get("/v1/seasons/$seasonId/events/$eventId/share-recipients").param("intent", "availability_nudge").cookie(admin))
+                    .andExpect(status().isOk)
+                    .andExpect(jsonPath("$.notifiableCount").value(0))
+                    .andExpect(jsonPath("$.recipients[*].channels.email.eligible", org.hamcrest.Matchers.everyItem(org.hamcrest.Matchers.equalTo(false))))
+                    .andReturn().response.contentAsString,
+            )
+        val member = preview.get("recipients").first { it.get("displayName").asText() == "Nudge Member" }
+        org.junit.jupiter.api.Assertions.assertEquals("channel_unavailable", member.get("channels").get("email").get("unavailableReason").asText())
+        val fingerprint = preview.get("confirmationFingerprint").asText()
+        val participantIds = preview.get("recipients").joinToString(",") { "\"${it.get("participantId").asText()}\"" }
+
+        reset(notificationDispatcher)
+        mockMvc.perform(
+            post("/v1/seasons/$seasonId/events/$eventId/share-recipients/notify").cookie(admin)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"intent":"availability_nudge","messageText":"Rappel","confirmationFingerprint":"$fingerprint","recipientParticipantIds":[$participantIds]}""")
                 .with(csrf()),
         ).andExpect(status().isBadRequest)
 

@@ -1,6 +1,7 @@
 package com.hatcast.api.notification
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.kotlin.any
@@ -105,5 +106,18 @@ class EmailNotificationSenderTest {
 
         assertEquals(NotificationDeliveryStatus.SKIPPED, result.status)
         assertEquals("mail_not_configured", result.errorMessage)
+    }
+
+    @Test
+    fun `reports why email cannot send`() {
+        val disabledSender = EmailNotificationSender(emailProperties.copy(enabled = false), cloudflareClient, mailSenderProvider)
+        assertEquals("email_disabled", disabledSender.unavailableReason())
+
+        whenever(cloudflareClient.isAvailable()).thenReturn(false)
+        whenever(mailSenderProvider.getIfAvailable()).thenReturn(null)
+        assertEquals("mail_not_configured", sender.unavailableReason())
+
+        whenever(mailSenderProvider.getIfAvailable()).thenReturn(mailSender)
+        assertNull(sender.unavailableReason())
     }
 }

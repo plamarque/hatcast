@@ -741,6 +741,9 @@ components:
         unavailableReason:
           type: string
           nullable: true
+          description: >-
+            Availability reminder only. One of missing_account, preference_disabled, missing_email,
+            push_unavailable, or channel_unavailable (the server cannot send on this channel with its current configuration).
 
     ShareRecipient:
       type: object

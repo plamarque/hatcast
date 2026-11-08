@@ -17,6 +17,15 @@ open class EmailNotificationSender(
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
+    /** Why no email can go out with the current configuration, or null when email can be sent. */
+    open fun unavailableReason(): String? =
+        when {
+            !emailProperties.enabled -> "email_disabled"
+            cloudflareEmailClient.isAvailable() -> null
+            mailSenderProvider.getIfAvailable() == null -> "mail_not_configured"
+            else -> null
+        }
+
     open fun sendEmail(
         userId: UUID?,
         email: String,
@@ -25,9 +34,10 @@ open class EmailNotificationSender(
         intent: NotificationIntent,
         eventId: UUID?,
     ): NotificationDeliveryResult {
-        if (!emailProperties.enabled) {
+        unavailableReason()?.let { reason ->
             log.warn(
-                "notification_email_skipped reason=email_disabled intent={} userId={} eventId={}",
+                "notification_email_skipped reason={} intent={} userId={} eventId={}",
+                reason,
                 intent,
                 userId,
                 eventId,
@@ -35,7 +45,7 @@ open class EmailNotificationSender(
             return NotificationDeliveryResult(
                 channel = NotificationChannel.EMAIL,
                 status = NotificationDeliveryStatus.SKIPPED,
-                errorMessage = "email_disabled",
+                errorMessage = reason,
             )
         }
 
@@ -43,22 +53,7 @@ open class EmailNotificationSender(
             return sendViaCloudflare(userId, email, subject, htmlBody, intent, eventId)
         }
 
-        val mailSender = mailSenderProvider.getIfAvailable()
-        if (mailSender == null) {
-            log.warn(
-                "notification_email_skipped reason=mail_not_configured intent={} userId={} eventId={}",
-                intent,
-                userId,
-                eventId,
-            )
-            return NotificationDeliveryResult(
-                channel = NotificationChannel.EMAIL,
-                status = NotificationDeliveryStatus.SKIPPED,
-                errorMessage = "mail_not_configured",
-            )
-        }
-
-        return sendViaSmtp(userId, email, subject, htmlBody, intent, eventId, mailSender)
+        return sendViaSmtp(userId, email, subject, htmlBody, intent, eventId, mailSenderProvider.getObject())
     }
 
     private fun sendViaCloudflare(

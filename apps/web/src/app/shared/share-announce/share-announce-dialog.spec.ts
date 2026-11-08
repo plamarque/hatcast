@@ -240,6 +240,25 @@ describe('ShareAnnounceDialog', () => {
     expect(dialog.open.mock.calls[0][1].data.allRecipients).toBe(true)
   })
 
+  it('disables Notifier and says why when no notification channel can send', async () => {
+    const unavailable = { eligible: false, notified: false, unavailableReason: 'channel_unavailable' }
+    const getRecipients = vi.fn().mockResolvedValue({
+      ...recipientsMock,
+      data: {
+        ...recipientsMock.data,
+        notifiableCount: 0,
+        confirmationFingerprint: 'preview-1',
+        recipients: [{ ...recipientsMock.data.recipients[0], channels: { email: unavailable, push: unavailable } }],
+      },
+    })
+    const fixture = await configureDialog({ ...baseDialogData, intent: 'availability_nudge' }, { getRecipients })
+    await vi.waitFor(() => {
+      fixture.detectChanges()
+      expect(fixture.nativeElement.textContent).toContain('Les notifications ne peuvent pas être envoyées pour le moment.')
+    })
+    expect(fixture.nativeElement.querySelector('button[aria-label="Notifier"]')?.disabled).toBe(true)
+  })
+
   it('passes every eligible recipient through the real confirmation to the request', async () => {
     const secondEligible = {
       ...recipientsMock.data.recipients[0],
