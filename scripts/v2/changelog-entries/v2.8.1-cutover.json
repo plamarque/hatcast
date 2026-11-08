@@ -1,0 +1,14 @@
+{
+  "version": "2.8.1",
+  "date": "__BUILD_DATE__",
+  "source": "curated-release",
+  "notes": "Product release",
+  "changes": [
+    "✨ À propos — retrouve les informations et les mises à jour de l’application directement depuis ton menu.",
+    "🐛 Mobile — les icônes et les libellés de la barre de navigation sont mieux espacés."
+  ],
+  "changes_en": [
+    "✨ About — find app information and updates directly from your user menu.",
+    "🐛 Mobile — navigation icons and labels now have more balanced spacing."
+  ]
+}
