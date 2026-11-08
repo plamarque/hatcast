@@ -10,6 +10,14 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Current follow-up
 
+### BUG-112 — Mobile navigation content too close to the top
+
+- **Status:** Fixed locally; validated by the user on a Pixel 9a and Safari on a simulated iPhone.
+- **Severity:** Low. **Affected area:** Member mobile navigation.
+- **Observed:** Icons and labels sit too close to the top of the bar on a Pixel 9a and an iPhone 17, as shown in user-provided screenshots.
+- **Expected:** Balance spacing above and below the navigation content while respecting device safe areas.
+- **Notes/context:** A 10 px upward offset was introduced for a Pixel 9a where Chrome did not expose a bottom safe-area inset.
+
 ### BUG-111 — Production release blocked by missing Advent configuration
 
 - **Status:** Resolved by production configuration and successful deployment. **Severity:** High. **Affected area:** V2 production deployment.
