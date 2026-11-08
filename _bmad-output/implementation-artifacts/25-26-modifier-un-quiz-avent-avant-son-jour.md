@@ -1,11 +1,11 @@
 ---
 feature_branch: feat/25-26-modifier-un-quiz-avent-avant-son-jour
-baseline_commit:
+baseline_commit: 734be68260f37eabd294bf5760d9c8aa02558bf8
 ---
 
 # Story 25.26 : Modifier un quiz Avent avant son jour
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -72,3 +72,4 @@ afin de **mettre à jour le contenu publié sans redéployer l’application**.
 ### Change Log
 
 - 2026-11-08 : story préparée selon le cadrage produit.
+- 2026-11-08 : recette locale validée ; commande crayon sur le quiz, retour après enregistrement et absence de commande sans quiz vérifiés.

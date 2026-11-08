@@ -113,6 +113,9 @@ test('private editor preserves computed HatCast home styles', async ({ page }) =
     else if (path === '/v1/advent/entry') return route.fulfill({ status: 404 })
     else if (path === '/v1/advent/session') body = { sessionId: 'fiction', testControls: false, productionPreview: true, quizEditing: true }
     else if (path === '/v1/advent/editor/days') body = { days: [23], refreshAfterMs: 60000 }
+    else if (path.endsWith('/doors/23')) body = { day: 23, name: 'Fictif', portrait: '', statements: ['A', 'B', 'C'], genericElf: true }
+    else if (path.endsWith('/answer/reconcile')) body = { status: 'available', generation: 'fixture' }
+    else if (path.endsWith('/answer')) body = { status: 'available' }
     else if (path === '/v1/advent/editor/23') body = { day: 23, name: 'Fictif', version: '1', content: { statements: ['A', 'B', 'C'], stories: [null, null, null], falseChoice: 0, explanation: null } }
     else if (path === '/v1/advent/clock') body = { date: '2026-11-30' }
     else if (path === '/v1/advent/discovery') body = { discovered: true }
@@ -123,6 +126,8 @@ test('private editor preserves computed HatCast home styles', async ({ page }) =
   const before = await settleHome(page)
   const heading = await styles(before.heading), button = await styles(before.button)
   await page.goto('/avent?preview=1')
+  await page.locator('[data-day="23"]').click()
+  await page.getByRole('button', { name: 'Ouvrir le cadeau du jour 23' }).click()
   await page.getByRole('button', { name: 'Modifier le quiz du 23 décembre' }).click()
   await expect(page.locator('#edit-statement-0')).toBeVisible()
   await page.goto('/accueil')

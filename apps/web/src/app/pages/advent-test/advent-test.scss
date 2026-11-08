@@ -138,9 +138,9 @@
 .advent__santa-logo { position: absolute; width: 110%; height: 110%; bottom: -1%; object-fit: contain; mix-blend-mode: multiply; }
 
 /* Private editor remains within the Advent theme root. */
-#advent-calendar-panel form fieldset { display: grid; grid-template-columns: minmax(0, 1fr); gap: .5rem; margin-block: 1rem; min-width: 0; }
-#advent-calendar-panel form mat-form-field { width: 100%; }
-#advent-calendar-panel form textarea { display: block; box-sizing: border-box; width: 100%; min-height: 5rem; font: inherit; }
-#advent-calendar-panel form button { margin: .5rem; }
+.advent__quiz form fieldset { display: grid; grid-template-columns: minmax(0, 1fr); gap: .5rem; margin-block: 1rem; min-width: 0; }
+.advent__quiz form mat-form-field { width: 100%; }
+.advent__quiz form textarea { display: block; box-sizing: border-box; width: 100%; min-height: 5rem; font: inherit; }
+.advent__quiz form button { margin: .5rem; }
 
-#advent-calendar-panel .advent__editor-action { height: auto; min-height: 3rem; white-space: normal; line-height: 1.3; }
+.advent__quiz .advent__editor-action { height: auto; min-height: 3rem; white-space: normal; line-height: 1.3; }

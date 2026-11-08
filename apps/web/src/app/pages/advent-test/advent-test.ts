@@ -330,7 +330,7 @@ export class AdventTest {
 
   async loadEditor(day: number, discard = false): Promise<void> {
     if (!this.quizEditing() || this.editBusy()) return
-    if (this.editDraft() && !discard && !window.confirm('Abandonner les modifications en cours ?')) return
+    if (this.editDirty() && !discard && !window.confirm('Abandonner les modifications non enregistrées ?')) return
     if (discard && !window.confirm('Recharger effacera ton brouillon. Continuer ?')) return
     const identity = this.identityEpoch
     this.editBusy.set(true); this.editMessage.set('')
@@ -356,7 +356,7 @@ export class AdventTest {
   }
   editExplanation(value: string): void { this.editDirty.set(true); this.editDraft.update(draft => draft && ({ ...draft, content: { ...draft.content, explanation: value || null } })) }
   editFalseChoice(value: number): void { this.editDirty.set(true); this.editDraft.update(draft => draft && ({ ...draft, content: { ...draft.content, falseChoice: value } })) }
-  closeEditor(): void { if (this.editDraft() && !window.confirm('Abandonner les modifications en cours ?')) return; this.editDraft.set(null); this.editDirty.set(false); this.editMessage.set(''); this.editConflict.set(false) }
+  closeEditor(): void { if (this.editDirty() && !window.confirm('Abandonner les modifications non enregistrées ?')) return; this.editDraft.set(null); this.editDirty.set(false); this.editMessage.set(''); this.editConflict.set(false); setTimeout(() => document.getElementById('advent-edit-button')?.focus()) }
 
   async saveEditor(): Promise<void> {
     const draft = this.editDraft()
@@ -372,7 +372,7 @@ export class AdventTest {
       if (!response.ok) { this.editMessage.set('Enregistrement impossible. Vérifie les champs et réessaie ; ton brouillon est conservé.'); return }
       const saved = await response.json() as QuizEditView
       if (identity !== this.identityEpoch) return
-      this.editDraft.set(saved); this.editDirty.set(false); this.editMessage.set('Modifications enregistrées dans cet environnement.')
+      this.quiz.update(quiz => quiz && quiz.day === saved.day ? { ...quiz, statements: [...saved.content.statements], stories: [...saved.content.stories] } : quiz); this.editDraft.set(null); this.editDirty.set(false); this.editConflict.set(false); this.editMessage.set('Modifications enregistrées.'); setTimeout(() => document.getElementById('advent-edit-success')?.focus())
     } catch { if (identity === this.identityEpoch) this.editMessage.set('Enregistrement non confirmé. Ton brouillon est conservé ; vérifie avant de réessayer.') }
     finally { if (identity === this.identityEpoch) this.editBusy.set(false) }
   }

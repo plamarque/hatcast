@@ -129,40 +129,9 @@
               <span class="advent__gift-box" aria-hidden="true"><img class="advent__gift-art" [src]="day.state === 'played' ? '/advent/gifts/gift-open-v2.png' : '/advent/gifts/gift-closed-v1.png'" alt="" (error)="$any($event.target).hidden = true" (load)="$any($event.target).hidden = false"><span class="advent__gift-lid"><span class="advent__gift-snow"></span></span><span class="advent__gift-body"></span></span>
               <span class="advent__gift-caption" aria-hidden="true"><strong>{{ day.day }}</strong></span>
             </button>
-            @if (quizEditing() && editableDays().includes(day.day)) { <button mat-button type="button" [disabled]="editBusy()" (click)="loadEditor(day.day)" [attr.aria-label]="'Modifier le quiz du ' + day.day + ' décembre'">Modifier</button> }
             </div>
           }
         </div>
-        @if (editMessage()) { <p role="status" aria-live="polite">{{ editMessage() }}</p> }
-        @if (editDraft(); as draft) {
-          <section aria-labelledby="advent-editor-title">
-            <h2 id="advent-editor-title" tabindex="-1">Modifier le quiz du {{ draft.day }} décembre : {{ draft.name }}</h2>
-            <p>Les modifications sont possibles jusqu’au début de ce jour, heure de Paris.</p>
-            <form (submit)="$event.preventDefault(); saveEditor()">
-              @for (statement of draft.content.statements; track $index; let i = $index) {
-                <fieldset [disabled]="editBusy()">
-                  <legend>Affirmation {{ i + 1 }}</legend>
-                  <label [attr.for]="'edit-statement-' + i">Texte</label>
-                  <mat-form-field>
-                    <textarea matInput [id]="'edit-statement-' + i" required maxlength="5000" [value]="statement" (input)="editField('statements', i, $any($event.target).value)"></textarea>
-                  </mat-form-field>
-                  <label [attr.for]="'edit-story-' + i">Récit complet (facultatif)</label>
-                  <mat-form-field>
-                    <textarea matInput [id]="'edit-story-' + i" maxlength="20000" [value]="draft.content.stories[i] || ''" (input)="editField('stories', i, $any($event.target).value)"></textarea>
-                  </mat-form-field>
-                  <mat-radio-button name="falseChoice" [checked]="draft.content.falseChoice === i" (change)="editFalseChoice(i)">Cette affirmation est fausse</mat-radio-button>
-                </fieldset>
-              }
-              <label for="edit-explanation">Explication du résultat (facultative)</label>
-              <mat-form-field>
-                <textarea matInput id="edit-explanation" [disabled]="editBusy()" maxlength="20000" [value]="draft.content.explanation || ''" (input)="editExplanation($any($event.target).value)"></textarea>
-              </mat-form-field>
-              <button mat-flat-button type="submit" [disabled]="editBusy() || editConflict()">Enregistrer</button>
-              @if (editConflict()) { <button mat-stroked-button class="advent__editor-action" type="button" [disabled]="editBusy()" (click)="loadEditor(draft.day, true)">Recharger le quiz</button> }
-              <button mat-button type="button" [disabled]="editBusy()" (click)="closeEditor()">Fermer</button>
-            </form>
-          </section>
-        }
       </section>
     } @else if (rankingOpen()) {
       @if (fictionalRanking() || ranking(); as board) {
@@ -331,6 +300,41 @@
       }
     } @else if (quiz(); as content) {
       <section class="advent__quiz" [attr.aria-labelledby]="answerState() === 'recorded' ? 'recorded-title' : 'quiz-title'">
+        @if (quizEditing() && editableDays().includes(content.day) && !editDraft()) {
+          <button id="advent-edit-button" mat-icon-button type="button" (click)="loadEditor(content.day)" [disabled]="editBusy()" [attr.aria-label]="'Modifier le quiz du ' + content.day + ' décembre'" title="Modifier le quiz"><mat-icon aria-hidden="true">edit</mat-icon></button>
+        }
+        @if (editMessage() && !editDraft()) { <p id="advent-edit-success" role="status" aria-live="polite" tabindex="-1">{{ editMessage() }}</p> }
+        @if (editDraft(); as draft) {
+          <section aria-labelledby="advent-editor-title">
+            <h2 id="advent-editor-title" tabindex="-1">Modifier le quiz du {{ draft.day }} décembre : {{ draft.name }}</h2>
+            <p>Les modifications sont possibles jusqu’au début de ce jour, heure de Paris.</p>
+            <form (submit)="$event.preventDefault(); saveEditor()">
+              @for (statement of draft.content.statements; track $index; let i = $index) {
+                <fieldset [disabled]="editBusy()">
+                  <legend>Affirmation {{ i + 1 }}</legend>
+                  <label [attr.for]="'edit-statement-' + i">Texte</label>
+                  <mat-form-field>
+                    <textarea matInput [id]="'edit-statement-' + i" required maxlength="5000" [value]="statement" (input)="editField('statements', i, $any($event.target).value)"></textarea>
+                  </mat-form-field>
+                  <label [attr.for]="'edit-story-' + i">Récit complet (facultatif)</label>
+                  <mat-form-field>
+                    <textarea matInput [id]="'edit-story-' + i" maxlength="20000" [value]="draft.content.stories[i] || ''" (input)="editField('stories', i, $any($event.target).value)"></textarea>
+                  </mat-form-field>
+                  <mat-radio-button name="falseChoice" [checked]="draft.content.falseChoice === i" (change)="editFalseChoice(i)">Cette affirmation est fausse</mat-radio-button>
+                </fieldset>
+              }
+              <label for="edit-explanation">Explication du résultat (facultative)</label>
+              <mat-form-field>
+                <textarea matInput id="edit-explanation" [disabled]="editBusy()" maxlength="20000" [value]="draft.content.explanation || ''" (input)="editExplanation($any($event.target).value)"></textarea>
+              </mat-form-field>
+              @if (editMessage()) { <p class="advent__feedback" role="status" aria-live="polite">{{ editMessage() }}</p> }
+              <button mat-flat-button type="submit" [disabled]="editBusy() || editConflict()">{{ editBusy() ? "Enregistrement…" : "Enregistrer" }}</button>
+              @if (editConflict()) { <button mat-stroked-button class="advent__editor-action" type="button" [disabled]="editBusy()" (click)="loadEditor(draft.day, true)">Recharger le quiz</button> }
+              <button mat-button type="button" [disabled]="editBusy()" (click)="closeEditor()">Fermer</button>
+            </form>
+          </section>
+        }
+        @if (!editDraft()) {
         @if (waiting()) { <p class="advent__date">{{ content.day }} décembre</p> }
         @if (answerState() !== 'recorded') {
           <p class="advent__date">{{ content.day }} décembre</p>
@@ -403,6 +407,7 @@
             <button mat-stroked-button type="button" (click)="reconcile()">Vérifier à nouveau</button>
           }
         } @else { <p class="advent__state" role="status">Vérification en cours…</p> }
+        }
       </section>
     }
   </div>
