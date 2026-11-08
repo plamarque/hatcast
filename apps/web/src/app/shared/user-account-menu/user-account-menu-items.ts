@@ -15,7 +15,7 @@ import { PwaInstallService } from '../../core/pwa/pwa-install.service';
       <a mat-menu-item routerLink="/compte">Mon compte</a>
     }
     @if (showAdventPreview()) {
-      <a mat-menu-item routerLink="/avent" [queryParams]="{ preview: 1 }">Prévisualiser l’Avent</a>
+      <a mat-menu-item routerLink="/avent" [queryParams]="{ preview: 1 }">Avent-première</a>
     }
     @if (showInstallApp()) {
       <button type="button" mat-menu-item (click)="onInstallApp()">Installer l'app</button>
