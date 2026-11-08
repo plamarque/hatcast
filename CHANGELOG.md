@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.8.0] - 2026-11-08
+
+### ✨ New Features
+- feat(avent): Celebrate Christmas preview
+
+### 🐛 Bug Fixes
+- fix(avent): Restore production build
+- fix(avent): Restore Christmas personal score
+- fix(avent): Simplify preview replay action
+
+### 📝 Other Changes
+- chore(v2): promote v2 to staging-v2
+- chore(v2): sync release v2.8.0-rc.1 artifacts to v2
+
+---
+
 ## [2.8.0] - 2026-11-07
 
 ### ✨ New Features
