@@ -108,7 +108,7 @@
       <section class="advent__quiz" aria-labelledby="history-title">
         <p class="advent__date">{{ past.quiz.day }} décembre</p>
         <div class="advent__portrait-scene"><div class="advent__portrait"><img [src]="past.quiz.portrait" [alt]="'Portrait du lutin ' + owner(past.quiz.name)"></div></div>
-        <h1 #historyHeading id="history-title" tabindex="-1">Les anecdotes {{ owner(past.quiz.name) }}</h1>
+        <h1 #historyHeading id="history-title" tabindex="-1">Les anecdotes {{ owner(past.quiz.name).slice(0, -past.quiz.name.length) }}<span class="advent__name">{{ owner(past.quiz.name).slice(-past.quiz.name.length) }}</span></h1>
         <ul class="advent__history-list">
           @for (statement of past.quiz.statements; track $index) {
             <li>{{ statement }} @if ($index === past.falseChoice) { <strong> — anecdote fausse</strong> } @if (past.result && $index === past.result.selectedChoice) { <strong> — ton choix</strong> }</li>
@@ -340,7 +340,7 @@
           <p class="advent__date">{{ content.day }} décembre</p>
           <div class="advent__portrait-scene"><span class="advent__portrait-spark advent__portrait-spark--left" aria-hidden="true">✦</span><div class="advent__portrait"><img [src]="content.portrait" [alt]="'Portrait du lutin '+ owner(content.name)"></div><span class="advent__portrait-spark advent__portrait-spark--right" aria-hidden="true">✧</span></div>
         }
-        <h2 #quizHeading id="quiz-title" tabindex="-1" [hidden]="answerState() === 'recorded'">Une anecdote sur {{ content.name }}</h2>
+        <h2 #quizHeading id="quiz-title" tabindex="-1" [hidden]="answerState() === 'recorded'">Une anecdote sur <span class="advent__name">{{ content.name }}</span></h2>
         @if (answerState() === 'available') {
           <p class="advent__question" [hidden]="answerState() === 'recorded'">Quelle affirmation est fausse ?</p>
           @if (lateDiscovery()) { <p>{{ clockDate() === '2026-12-' + (selectedDay() < 10 ? '0' : '') + selectedDay() ? 'Ce rejeu ne rapporte pas de points.' : 'Cette case est passée : tu peux jouer pour le plaisir, sans gagner de points.' }}</p> }

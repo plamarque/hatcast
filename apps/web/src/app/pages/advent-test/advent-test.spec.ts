@@ -2445,8 +2445,23 @@ describe('AdventTest', () => {
     fixture.detectChanges()
     await new Promise(resolve => setTimeout(resolve, 0))
     expect(fixture.nativeElement.textContent).toContain('Camille')
+    expect(fixture.nativeElement.querySelector('#quiz-title .advent__name').textContent).toBe('Camille')
     expect(fixture.nativeElement.querySelectorAll('mat-radio-button')).toHaveLength(3)
     expect(document.activeElement?.id).toBe('quiz-title')
+  })
+
+  it('highlights only the character name in history titles', () => {
+    for (const [name, title, highlighted] of [
+      ['Max', 'Les anecdotes de Max', 'Max'],
+      ['Angie', 'Les anecdotes d’Angie', 'Angie'],
+      ['Lutin de Noël', 'Les anecdotes du lutin de Noël', 'lutin de Noël'],
+    ]) {
+      fixture.componentInstance.history.set({ quiz: { day: 1, name, portrait: '', statements: [], genericElf: false }, falseChoice: 0, result: null })
+      fixture.detectChanges()
+      const heading = fixture.nativeElement.querySelector('#history-title')
+      expect(heading.textContent.trim()).toBe(title)
+      expect(heading.querySelector('.advent__name').textContent).toBe(highlighted)
+    }
   })
 
   it('requires a selection and reconciles an uncertain submission', async () => {
