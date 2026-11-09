@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import {createRequire} from 'node:module';
 import {stdin,stdout} from 'node:process';
+import {writeFileSync} from 'node:fs';
 import {createInterface} from 'node:readline/promises';
 import {createGcsSource} from './advent-catalogue-gcs-source.mjs';
 import {createGcsPortraitStore} from './advent-catalogue-gcs-store.mjs';
@@ -15,17 +16,17 @@ const require=createRequire(import.meta.url);
 const refuse=()=>{throw Error('Synchronization refused')};
 async function main() {
   // Production requires a second, plan-specific interactive authorization.
-  const operation=['character','quiz','delete','check'].includes(process.argv[2])?process.argv[2]:null;
+  const operation=['character','quiz','delete','check','replace-generic'].includes(process.argv[2])?process.argv[2]:null;
   const checking=operation==='check';
   const deletion=operation==='delete';
   const offset=operation?1:0;
   if(!operation||process.argv.length!==(checking?4:4+offset)||!['development','staging','production'].includes(process.argv[2+offset])||(!checking&&(!stdin.isTTY||!stdout.isTTY)))refuse();
   const environment=process.argv[2+offset];
-  if(deletion && environment==='production')refuse();
+  if((deletion && environment==='production') || (operation==='replace-generic' && environment!=='development'))refuse();
   const bucketName='impro-selector-avent-content-private';
   if(!bucketName)refuse();
   const days=checking?[]:process.argv[3+offset].split(',').map(s=>/^([1-9]|1[0-9]|2[0-4])$/.test(s)?Number(s):NaN);
-  if(days.some(Number.isNaN)||new Set(days).size!==days.length)refuse();
+  if(days.some(Number.isNaN)||new Set(days).size!==days.length || (operation==='replace-generic' && days.length!==1))refuse();
   const {ADVENT_DATABASE_URL,ADVENT_NEON_PROJECT,ADVENT_NEON_BRANCH,NEON_API_KEY,ADVENT_OPERATOR_SERVICE_ACCOUNT,ADVENT_OPERATOR_PRINCIPAL}=process.env;
   const principal=ADVENT_OPERATOR_PRINCIPAL || ADVENT_OPERATOR_SERVICE_ACCOUNT;
   if(!ADVENT_DATABASE_URL||!ADVENT_NEON_PROJECT||!ADVENT_NEON_BRANCH||!principal)refuse();
@@ -66,7 +67,7 @@ async function main() {
       console.log('Suppression ciblée terminée ; source et portraits conservés.');
       return;
     }
-    if(operation) {await runCloudContent({source,store,db,days,operation,environment,ask,write:line=>console.log(line)});return;}
+    if(operation) {await runCloudContent({source,store,db,days,operation,environment,ask,write:line=>console.log(line),reviewPrivate: value=>writeFileSync('/dev/tty', `\nContenu existant à examiner confidentiellement :\n${JSON.stringify(value,null,2)}\n`)});return;}
     const target={sharedPortraits:true,verify:forWrite=>store.verify(forWrite),inspect:async snapshot=>({identity,rows:(await db.query('SELECT quiz_day, display_name, portrait_ref, statement_0, statement_1, statement_2, false_choice, explanation, story_0, story_1, story_2 FROM advent_quizzes WHERE quiz_day=ANY($1::int[])',[snapshot.rows.map(row=>row.quiz_day)])).rows,portraits:snapshot.portraits.map(p=>({ref:p.ref,status:'unchanged'}))}),insert:(rows,reviewed,previous)=>insertReviewedQuizzes(db,rows,reviewed,previous)};
     await runOperator(source,target,days,{environment,write:line=>console.log(line),
       describeTarget:identity=>{const value=JSON.parse(identity);return `Projet Neon : ${value.neon.projectId} ; branche : ${value.neon.branchId} ; révision : ${value.run.revision} ; bucket : ${value.run.bucket}`;},
