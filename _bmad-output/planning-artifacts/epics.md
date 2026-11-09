@@ -277,6 +277,26 @@ Les **participants** (membres troupe liés, participants saison/événement, y c
 
 **FRs couverts :** FR15, FR16, FR17, FR18, FR19, FR46
 
+#### Story 5.11 : Vérifier sa disponibilité avec Google Agenda
+
+En tant que **membre** qui répond à un événement,
+je veux **connecter un agenda Google et consulter mes éventuels conflits dans HatCast**,
+afin de décider de ma disponibilité et d'ajouter l'événement à mon agenda lorsque je confirme.
+
+**Acceptance Criteria**
+
+1. **Given** un membre consulte le menu d'ajout à l'agenda d'un événement, **when** il choisit Google, **then** il peut connecter un seul agenda Google avec son consentement explicite.
+2. **Given** son agenda est connecté, **when** le membre renseigne sa disponibilité pour un événement, **then** HatCast indique si le créneau est libre ou occupé, sans afficher le contenu privé de ses rendez-vous.
+3. **Given** un conflit est détecté, **when** le membre souhaite consulter son agenda, **then** un lien ouvre Google Agenda à la date de l'événement.
+4. **Given** le membre confirme sa participation, **when** l'agenda est connecté, **then** l'événement y est ajouté automatiquement ; le résultat ou un échec est communiqué clairement.
+5. **Given** une connexion refusée, expirée ou indisponible, **when** la vérification échoue, **then** l'état est explicite et la réponse HatCast reste possible sans présenter une disponibilité inconnue comme libre.
+6. **Given** un membre consulte une disponibilité, **when** un autre participant est concerné ou un organisateur agit pour lui, **then** son agenda personnel et ses données ne sont pas exposés à autrui.
+7. **Given** les écrans sont utilisés au clavier ou sur mobile, **when** le membre connecte son agenda et consulte son statut, **then** les contrôles sont accessibles et respectent les composants et tokens Material 3 de HatCast.
+
+**Périmètre initial :** un seul agenda Google par membre ; la vérification et l'ajout concernent ses propres événements. Les modalités de choix de l'agenda, de déconnexion, de prévention des doublons et le moment exact de l'ajout seront précisés dans la spécification de la story.
+
+---
+
 ### Epic 6 — Tirage, composition et cycle de vie des confirmations
 
 Les organisateurs utilisent tirage pondéré et assignation manuelle, brouillon vs composition validée, états de cycle de vie, transparence des cotes ; les **participants liés** confirment ou déclinent ; gestion des retraits et créneaux à combler.
