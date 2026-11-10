@@ -132,8 +132,9 @@ describe('PwaUpdateService', () => {
 
     beforeEach(() => {
       reload = vi.fn();
-      postMessage = vi.fn();
       controllerListeners = [];
+      postMessage = vi.fn(() => controllerListeners.forEach((listener) => listener()));
+      TestBed.overrideProvider(RELEASE_CONTEXT, { useValue: { release_id: '2.7.0:abc1234', app_version: '2.7.0' } });
       vi.stubGlobal('document', { location: { reload } });
       getRegistration.mockResolvedValue({
         waiting: { state: 'installed', postMessage },
@@ -151,10 +152,7 @@ describe('PwaUpdateService', () => {
     });
 
     it('applyUpdate asks the waiting worker to skip waiting and reloads on controllerchange', async () => {
-      const service = createService();
-      postMessage.mockImplementation(() => controllerListeners.forEach((listener) => listener()));
-
-      await service.applyUpdate();
+      await createService().applyUpdate();
 
       expect(postMessage).toHaveBeenCalledWith({ type: 'SKIP_WAITING' });
       expect(activateUpdate).not.toHaveBeenCalled();
@@ -163,6 +161,7 @@ describe('PwaUpdateService', () => {
 
     it('applyUpdate reloads when the waiting worker does not take over in time', async () => {
       vi.useFakeTimers();
+      postMessage.mockReset();
       try {
         const service = createService();
         const applying = service.applyUpdate();
@@ -177,17 +176,12 @@ describe('PwaUpdateService', () => {
     });
 
     it('applyUpdate records the running release before reload', async () => {
-      TestBed.overrideProvider(RELEASE_CONTEXT, { useValue: { release_id: '2.7.0:abc1234', app_version: '2.7.0' } });
-      const service = createService();
-      postMessage.mockImplementation(() => controllerListeners.forEach((listener) => listener()));
-
-      await service.applyUpdate();
+      await createService().applyUpdate();
 
       expect(sessionStorage.getItem(UPDATE_APPLIED_FROM_RELEASE_KEY)).toBe('2.7.0:abc1234');
     });
 
     it('hides the fallback banner after an update reload that kept the same release', async () => {
-      TestBed.overrideProvider(RELEASE_CONTEXT, { useValue: { release_id: '2.7.0:abc1234', app_version: '2.7.0' } });
       sessionStorage.setItem(UPDATE_APPLIED_FROM_RELEASE_KEY, '2.7.0:abc1234');
       sessionStorage.setItem(SHOW_CHANGELOG_AFTER_RELOAD_KEY, '1');
       const service = createService();

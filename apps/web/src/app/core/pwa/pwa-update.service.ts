@@ -294,11 +294,11 @@ export class PwaUpdateService {
     try {
       const appliedFrom = sessionStorage.getItem(UPDATE_APPLIED_FROM_RELEASE_KEY);
       sessionStorage.removeItem(UPDATE_APPLIED_FROM_RELEASE_KEY);
-      if (!appliedFrom || appliedFrom !== this.release?.release_id) {
-        return false;
+      if (appliedFrom && appliedFrom === this.release?.release_id) {
+        sessionStorage.removeItem(SHOW_CHANGELOG_AFTER_RELOAD_KEY);
+        return true;
       }
-      sessionStorage.removeItem(SHOW_CHANGELOG_AFTER_RELOAD_KEY);
-      return true;
+      return false;
     } catch {
       return false;
     }

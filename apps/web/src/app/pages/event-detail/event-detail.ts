@@ -399,7 +399,7 @@ export class EventDetail implements OnDestroy, OnInit {
     const ev = this.event()
     if (ev) {
       // The link was already captured as 'confirm'; the new tab=equipe URL is not a second link open.
-      this.lastNotificationLinkCaptureKey = `${ev.id}:equipe`
+      this.lastNotificationLinkCaptureKey = notificationLinkCaptureKey(ev.id, 'equipe')
     }
     void this.router.navigate([], {
       relativeTo: this.route,
@@ -714,7 +714,7 @@ export class EventDetail implements OnDestroy, OnInit {
     if (!ev || !seasonId || !troupeId) {
       return
     }
-    const captureKey = `${ev.id}:${linkTab}`
+    const captureKey = notificationLinkCaptureKey(ev.id, linkTab)
     if (this.lastNotificationLinkCaptureKey === captureKey) {
       return
     }
@@ -1192,4 +1192,8 @@ export class EventDetail implements OnDestroy, OnInit {
       this.canManageEventOrganizersFor(eventId)
     )
   }
+}
+
+function notificationLinkCaptureKey(eventId: string, linkTab: string): string {
+  return `${eventId}:${linkTab}`
 }
