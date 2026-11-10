@@ -6,7 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { SHOW_CHANGELOG_AFTER_RELOAD_KEY } from '../app/changelog-keys';
 import { ProductAnalyticsService } from '../analytics/product-analytics.service';
-import { PwaUpdateService } from './pwa-update.service';
+import { RELEASE_CONTEXT } from '../analytics/release-context';
+import { PwaUpdateService, UPDATE_APPLIED_FROM_RELEASE_KEY } from './pwa-update.service';
 
 describe('PwaUpdateService', () => {
   let versionUpdates: Subject<VersionReadyEvent | { type: string }>;
@@ -122,6 +123,101 @@ describe('PwaUpdateService', () => {
       expect(activateUpdate).toHaveBeenCalledOnce();
       expect(reload).toHaveBeenCalledOnce();
     } finally { storage.mockRestore(); }
+  });
+
+  describe('with a waiting service worker', () => {
+    let reload: ReturnType<typeof vi.fn>;
+    let postMessage: ReturnType<typeof vi.fn>;
+    let controllerListeners: Array<() => void>;
+
+    beforeEach(() => {
+      reload = vi.fn();
+      postMessage = vi.fn();
+      controllerListeners = [];
+      vi.stubGlobal('document', { location: { reload } });
+      getRegistration.mockResolvedValue({
+        waiting: { state: 'installed', postMessage },
+        addEventListener: vi.fn(),
+        update: vi.fn().mockResolvedValue(undefined),
+      });
+      vi.stubGlobal('navigator', {
+        serviceWorker: {
+          getRegistration,
+          controller: {},
+          addEventListener: (_type: string, listener: () => void) => controllerListeners.push(listener),
+          removeEventListener: vi.fn(),
+        },
+      });
+    });
+
+    it('applyUpdate asks the waiting worker to skip waiting and reloads on controllerchange', async () => {
+      const service = createService();
+      postMessage.mockImplementation(() => controllerListeners.forEach((listener) => listener()));
+
+      await service.applyUpdate();
+
+      expect(postMessage).toHaveBeenCalledWith({ type: 'SKIP_WAITING' });
+      expect(activateUpdate).not.toHaveBeenCalled();
+      expect(reload).toHaveBeenCalledOnce();
+    });
+
+    it('applyUpdate reloads when the waiting worker does not take over in time', async () => {
+      vi.useFakeTimers();
+      try {
+        const service = createService();
+        const applying = service.applyUpdate();
+        await vi.runAllTimersAsync();
+        await applying;
+
+        expect(postMessage).toHaveBeenCalledWith({ type: 'SKIP_WAITING' });
+        expect(reload).toHaveBeenCalledOnce();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('applyUpdate records the running release before reload', async () => {
+      TestBed.overrideProvider(RELEASE_CONTEXT, { useValue: { release_id: '2.7.0:abc1234', app_version: '2.7.0' } });
+      const service = createService();
+      postMessage.mockImplementation(() => controllerListeners.forEach((listener) => listener()));
+
+      await service.applyUpdate();
+
+      expect(sessionStorage.getItem(UPDATE_APPLIED_FROM_RELEASE_KEY)).toBe('2.7.0:abc1234');
+    });
+
+    it('hides the fallback banner after an update reload that kept the same release', async () => {
+      TestBed.overrideProvider(RELEASE_CONTEXT, { useValue: { release_id: '2.7.0:abc1234', app_version: '2.7.0' } });
+      sessionStorage.setItem(UPDATE_APPLIED_FROM_RELEASE_KEY, '2.7.0:abc1234');
+      sessionStorage.setItem(SHOW_CHANGELOG_AFTER_RELOAD_KEY, '1');
+      const service = createService();
+      await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled());
+
+      fetchMock.mockResolvedValue({ ok: true, json: async () => ({ timestamp: 2 }) });
+      await service.pollForAppUpdate();
+
+      expect(service.showBanner()).toBe(false);
+      expect(sessionStorage.getItem(UPDATE_APPLIED_FROM_RELEASE_KEY)).toBeNull();
+      expect(sessionStorage.getItem(SHOW_CHANGELOG_AFTER_RELOAD_KEY)).toBeNull();
+
+      versionUpdates.next({
+        type: 'VERSION_READY',
+        currentVersion: { hash: 'a' },
+        latestVersion: { hash: 'b' },
+      } as VersionReadyEvent);
+      expect(service.showBanner()).toBe(true);
+    });
+
+    it('shows the fallback banner after an update reload that changed the release', async () => {
+      TestBed.overrideProvider(RELEASE_CONTEXT, { useValue: { release_id: '2.8.1:def5678', app_version: '2.8.1' } });
+      sessionStorage.setItem(UPDATE_APPLIED_FROM_RELEASE_KEY, '2.7.0:abc1234');
+      const service = createService();
+      await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled());
+
+      await service.pollForAppUpdate();
+
+      expect(service.showBanner()).toBe(true);
+    });
   });
 
   it('dismissBanner hides banner until next VERSION_READY', () => {

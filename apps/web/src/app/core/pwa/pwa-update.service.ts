@@ -5,6 +5,7 @@ import { filter, take } from 'rxjs';
 
 import { SHOW_CHANGELOG_AFTER_RELOAD_KEY } from '../app/changelog-keys';
 import { ProductAnalyticsService } from '../analytics/product-analytics.service';
+import { RELEASE_CONTEXT } from '../analytics/release-context';
 import type { PwaUpdateAvailabilitySource } from '../analytics/fr47-event-names';
 
 type UpdateReadySource = 'VERSION_READY' | 'fallback';
@@ -12,12 +13,17 @@ type UpdateReadySource = 'VERSION_READY' | 'fallback';
 export type ManualUpdateCheckResult = 'available' | 'up-to-date' | 'error' | 'disabled' | 'busy';
 
 const MANUAL_CHECK_VERSION_READY_MS = 5_000;
+const WAITING_WORKER_ACTIVATION_MS = 3_000;
+
+/** Release that was running when the user applied an update; consumed once on next load. */
+export const UPDATE_APPLIED_FROM_RELEASE_KEY = 'hatcast.pwaUpdateAppliedFromRelease';
 
 @Injectable({ providedIn: 'root' })
 export class PwaUpdateService {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly swUpdate = inject(SwUpdate);
   private readonly analytics = inject(ProductAnalyticsService);
+  private readonly release = inject(RELEASE_CONTEXT);
 
   readonly showBanner = signal(false);
   readonly refreshing = signal(false);
@@ -34,6 +40,8 @@ export class PwaUpdateService {
     if (!isPlatformBrowser(this.platformId) || !this.swUpdate.isEnabled) {
       return;
     }
+
+    this.bannerDismissed = this.consumeUnchangedReleaseAfterUpdate();
 
     this.swUpdate.versionUpdates
       .pipe(filter((event): event is VersionReadyEvent => event.type === 'VERSION_READY'))
@@ -244,15 +252,55 @@ export class PwaUpdateService {
     this.captureAnalytics(() => this.analytics.capturePwaUpdateApplyRequested());
     this.refreshing.set(true);
     try {
-      await this.swUpdate.activateUpdate();
+      const waiting = (await this.getServiceWorkerRegistration())?.waiting;
+      if (waiting) {
+        await this.activateWaitingWorker(waiting);
+      } else {
+        await this.swUpdate.activateUpdate();
+      }
       try {
         sessionStorage.setItem(SHOW_CHANGELOG_AFTER_RELOAD_KEY, '1');
+        if (this.release) {
+          sessionStorage.setItem(UPDATE_APPLIED_FROM_RELEASE_KEY, this.release.release_id);
+        }
       } catch {
         // The optional changelog must never prevent the confirmed update reload.
       }
       document.location.reload();
     } catch {
       this.refreshing.set(false);
+    }
+  }
+
+  /** A waiting worker never takes over through activateUpdate(): ask it to skip waiting. */
+  private activateWaitingWorker(worker: ServiceWorker): Promise<void> {
+    return new Promise((resolve) => {
+      const done = () => {
+        clearTimeout(timer);
+        navigator.serviceWorker.removeEventListener('controllerchange', done);
+        resolve();
+      };
+      const timer = setTimeout(done, WAITING_WORKER_ACTIVATION_MS);
+      navigator.serviceWorker.addEventListener('controllerchange', done);
+      worker.postMessage({ type: 'SKIP_WAITING' });
+    });
+  }
+
+  /**
+   * True when the last update reload kept the same release: the fallback banner would loop,
+   * so it stays hidden for this load (VERSION_READY can still show it).
+   */
+  private consumeUnchangedReleaseAfterUpdate(): boolean {
+    try {
+      const appliedFrom = sessionStorage.getItem(UPDATE_APPLIED_FROM_RELEASE_KEY);
+      sessionStorage.removeItem(UPDATE_APPLIED_FROM_RELEASE_KEY);
+      if (!appliedFrom || appliedFrom !== this.release?.release_id) {
+        return false;
+      }
+      sessionStorage.removeItem(SHOW_CHANGELOG_AFTER_RELOAD_KEY);
+      return true;
+    } catch {
+      return false;
     }
   }
 

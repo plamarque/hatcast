@@ -1367,6 +1367,14 @@ describe('EventDetail', () => {
       expect((fixture.componentInstance as unknown as EventDetailHarness).activeTab()).toBe('equipe')
       expect(dialogOpen).toHaveBeenCalled()
     })
+    expect(router.navigate).toHaveBeenCalledWith(
+      [],
+      expect.objectContaining({
+        queryParams: { showConfirm: null, tab: 'equipe' },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      }),
+    )
     expect(fixture.nativeElement.textContent).not.toContain(
       'La confirmation de participation sera disponible dans une prochaine version.',
     )

@@ -90,6 +90,7 @@ import {
   type ShareAnnounceDialogData,
 } from '../../shared/share-announce/share-announce-dialog'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
+import { ChangelogDialogService } from '../../shared/changelog/changelog-dialog.service'
 import { ConfirmDialog, type ConfirmDialogData } from '../seasons-list/confirm-dialog'
 import { EventEquipeEmpty } from './event-equipe-empty'
 import {
@@ -145,6 +146,7 @@ export class EventEquipeTab {
   private readonly snack = inject(MatSnackBar)
   private readonly dialog = inject(MatDialog)
   private readonly chanceBreakdown = inject(ChanceBreakdownService)
+  private readonly changelogDialog = inject(ChangelogDialogService)
 
   private readonly drawAnimation = viewChild(CompositionDrawAnimation)
   private readonly slotActions = viewChildren<ElementRef<HTMLButtonElement>>('slotAction')
@@ -167,6 +169,8 @@ export class EventEquipeTab {
   readonly eventUpdated = output<EventResponse>()
   readonly compositionInteractionBlockedChange = output<boolean>()
   readonly statusChanged = output<ReturnType<typeof resolveCompositionEquipeStatus>>()
+  /** The showConfirm deep link opened its dialog: the parent drops it so a reload does not reopen it. */
+  readonly showConfirmHandled = output<void>()
 
   protected readonly loading = signal(true)
   protected readonly loadError = signal(false)
@@ -619,7 +623,7 @@ export class EventEquipeTab {
         return
       }
       this.showConfirmOpened.set(true)
-      queueMicrotask(() => void this.openParticipationModal(row, { mode: 'self' }))
+      void this.openSelfParticipationAfterChangelog(row)
     })
   }
 
@@ -900,6 +904,12 @@ export class EventEquipeTab {
   }
 
   protected readonly emptySlotPlaceholder = 'À pourvoir'
+
+  private async openSelfParticipationAfterChangelog(row: SlotRow): Promise<void> {
+    await this.changelogDialog.maybeAutoOpenAfterPwaUpdate()
+    this.showConfirmHandled.emit()
+    void this.openParticipationModal(row, { mode: 'self' })
+  }
 
   private findOwnAssignedParticipationRow(): SlotRow | null {
     const viewerIds = this.viewerParticipantIds()

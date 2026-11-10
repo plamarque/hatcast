@@ -394,6 +394,21 @@ export class EventDetail implements OnDestroy, OnInit {
     if (this.activeTab() === 'equipe') this.equipeStatus.set(status)
   }
 
+  /** Replaces the one-shot showConfirm deep link with the plain Équipe tab URL. */
+  protected onShowConfirmHandled(): void {
+    const ev = this.event()
+    if (ev) {
+      // The link was already captured as 'confirm'; the new tab=equipe URL is not a second link open.
+      this.lastNotificationLinkCaptureKey = `${ev.id}:equipe`
+    }
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { showConfirm: null, tab: eventDetailTabToQuery('equipe') },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    })
+  }
+
   protected onCompositionInteractionBlockedChange(blocked: boolean): void {
     this.compositionInteractionBlocked.set(blocked)
   }

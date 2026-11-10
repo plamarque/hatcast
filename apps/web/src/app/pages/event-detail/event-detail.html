@@ -103,6 +103,7 @@
             [event]="ev"
             [canManageComposition]="canManageComposition()"
             [showConfirmPending]="showConfirmPending()"
+            (showConfirmHandled)="onShowConfirmHandled()"
             [compositionLoadManagedByParent]="true"
             [showStatus]="false"
             (statusChanged)="onEquipeStatusChanged($event)"

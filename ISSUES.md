@@ -10,6 +10,13 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Current follow-up
 
+### BUG-115 — PWA update banner returns after « Mettre à jour »
+
+- **Status:** Fixed in branch; production confirmation pending. **Severity:** Medium. **Affected area:** V2 PWA update banner, after-update changelog, `showConfirm` participation links.
+- **Observed:** With a new service worker waiting, the fallback banner shows on navigation. The click only called `SwUpdate.activateUpdate()` and reloaded, so the waiting worker did not take over: the app reloaded on the same release and the banner came back. Each reload could open the changelog again, and on a `showConfirm=true` link the participation dialog opened on top of it.
+- **Expected:** The click activates the waiting worker. A reload that keeps the same release does not show the fallback banner again. The participation dialog opens after the changelog closes, and only once.
+- **Context:** Product analytics showed sessions where the fallback banner came back after an apply click, and users who applied more than once. Why the worker stays waiting, although `ngsw-worker.js` calls `skipWaiting()` on install, is an open question. Success signal: `pwa_update_applied` follows `pwa_update_apply_requested` in the same session.
+
 ### BUG-114 — Release checks require retries on several journeys
 
 - **Status:** Open. **Severity:** Medium. **Affected area:** V2 staging CI and E1 preproduction checks.

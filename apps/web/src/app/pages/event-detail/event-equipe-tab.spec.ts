@@ -6,6 +6,7 @@ import { Subject } from 'rxjs'
 import { describe, expect, it, vi, type Mock } from 'vitest'
 
 import { MePreferencesApiService } from '../../core/account/me-preferences-api.service'
+import { ChangelogDialogService } from '../../shared/changelog/changelog-dialog.service'
 import { CompositionApiService, type CompositionResponse } from '../../core/composition/composition-api.service'
 import {
   DrawPolicyApiService,
@@ -78,6 +79,7 @@ describe('EventEquipeTab', () => {
   let dialogOpen: ReturnType<typeof vi.fn>
   let snackOpen: ReturnType<typeof vi.fn>
   let getPreferences: ReturnType<typeof vi.fn>
+  let maybeAutoOpenAfterPwaUpdate: ReturnType<typeof vi.fn>
   let dialogAfterClosed: Subject<unknown>
 
   beforeEach(async () => {
@@ -162,6 +164,7 @@ describe('EventEquipeTab', () => {
       close: vi.fn(),
     })
     snackOpen = vi.fn()
+    maybeAutoOpenAfterPwaUpdate = vi.fn().mockResolvedValue(undefined)
     getPreferences = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -202,6 +205,7 @@ describe('EventEquipeTab', () => {
           provide: DrawPolicyApiService,
           useValue: { getEffectiveDrawPolicy },
         },
+        { provide: ChangelogDialogService, useValue: { maybeAutoOpenAfterPwaUpdate } },
       ],
     }).compileComponents()
 
@@ -1538,6 +1542,43 @@ describe('EventEquipeTab', () => {
 
     await vi.waitFor(() => {
       expect(dialogOpen).toHaveBeenCalled()
+    })
+  })
+
+  it('opens the showConfirm participation modal only after the release notes close', async () => {
+    let closeReleaseNotes!: () => void
+    maybeAutoOpenAfterPwaUpdate.mockReturnValue(new Promise<void>((resolve) => (closeReleaseNotes = resolve)))
+    const handled = vi.fn()
+    fixture.componentInstance.showConfirmHandled.subscribe(handled)
+    getComposition.mockResolvedValue({
+      ok: true,
+      data: {
+        publishedAt: null,
+        validatedAt: '2026-01-01T00:00:00.000Z',
+        visibility: 'validated',
+        viewerParticipantIds: ['p-me'],
+        slots: [
+          {
+            roleKey: 'player',
+            slotIndex: 0,
+            participantId: 'p-me',
+            participantDisplayName: 'Moi',
+            participationStatus: 'pending',
+          },
+        ],
+      },
+    })
+    fixture.componentRef.setInput('showConfirmPending', true)
+    fixture.detectChanges()
+
+    await vi.waitFor(() => expect(maybeAutoOpenAfterPwaUpdate).toHaveBeenCalled())
+    expect(dialogOpen).not.toHaveBeenCalled()
+    expect(handled).not.toHaveBeenCalled()
+
+    closeReleaseNotes()
+    await vi.waitFor(() => {
+      expect(dialogOpen).toHaveBeenCalled()
+      expect(handled).toHaveBeenCalledOnce()
     })
   })
 

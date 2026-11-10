@@ -53,6 +53,12 @@
     event.waitUntil(self.registration.showNotification(title, options));
   });
 
+  self.addEventListener('message', function (event) {
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+      self.skipWaiting();
+    }
+  });
+
   self.addEventListener('notificationclick', function (event) {
     event.notification.close();
     var targetUrl = sameOriginUrl(event.notification.data && event.notification.data.url);

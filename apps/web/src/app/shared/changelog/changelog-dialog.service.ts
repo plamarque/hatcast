@@ -20,12 +20,22 @@ export class ChangelogDialogService {
   private readonly appVersion = inject(AppVersionService);
   private readonly changelog = inject(ChangelogService);
 
+  private autoOpenAfterPwaUpdate: Promise<void> | null = null;
+
   open(): void {
     this.openDialog();
   }
 
-  /** Opens changelog once after a PWA update reload (Story 10.2 → 10.3). Resolves when skipped or closed (10.6). */
-  async maybeAutoOpenAfterPwaUpdate(): Promise<void> {
+  /**
+   * Opens changelog once after a PWA update reload (Story 10.2 → 10.3). Resolves when skipped or closed (10.6).
+   * Later callers share the same promise, so they can wait for the dialog to close.
+   */
+  maybeAutoOpenAfterPwaUpdate(): Promise<void> {
+    this.autoOpenAfterPwaUpdate ??= this.autoOpenOnceAfterPwaUpdate();
+    return this.autoOpenAfterPwaUpdate;
+  }
+
+  private async autoOpenOnceAfterPwaUpdate(): Promise<void> {
     if (!isPlatformBrowser(this.platformId)) {
       return;
     }
