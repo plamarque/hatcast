@@ -19,10 +19,10 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ### BUG-115 — PWA update banner can return after applying
 
-- **Status:** Fix implemented locally; integration and device validation pending. **Severity:** Medium. **Affected area:** V2 PWA update flow.
-- **Observed:** In a production session on 2026-11-10, two update requests each reloaded release `2.7.0:20d972b0` and were followed by another fallback update banner. A `version_ready` event appeared later in the same session.
-- **Expected:** An update request loads the available release, or clearly reports that it is still preparing or could not be verified.
-- **Context:** [PostHog report](https://eu.posthog.com/project/193437/inbox/01a17924-c6b4-7e9c-bfc2-157d4a7e5302) and [draft PR #20](https://github.com/plamarque/hatcast/pull/20). A fallback worker signal does not itself prove that an application version is ready.
+- **Status:** Fixed locally and validated on a phone; deployment pending. **Severity:** Medium. **Affected area:** V2 PWA update flow.
+- **Observed:** In a production session on 2026-11-10, two update requests each reloaded release `2.7.0:20d972b0` and were followed by another fallback update banner. A `version_ready` event appeared later in the same session. The user also reported recurring update banners.
+- **Expected:** An update request loads the available release, or clearly reports that it is still preparing, could not be applied, or could not be verified.
+- **Context:** [PostHog report](https://eu.posthog.com/project/193437/inbox/01a17924-c6b4-7e9c-bfc2-157d4a7e5302) and [PR #20](https://github.com/plamarque/hatcast/pull/20), closed without merging. The cause and frequency are not established; a fallback worker signal does not itself prove that an application version is ready. On 2026-11-11, the user installed the isolated local PWA, applied a subsequent local build, observed release notes, and confirmed the banner did not return.
 
 ### BUG-114 — Release checks require retries on several journeys
 
