@@ -10,6 +10,20 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Current follow-up
 
+### BUG-116 — Notification confirmation can overlap release notes
+
+- **Status:** Open; diagnosis and remediation pending. **Severity:** Medium. **Affected area:** V2 notification deep links and release notes.
+- **Observed:** The PostHog report describes a participation dialog opening over release notes after an update reload and a `showConfirm` query parameter remaining in the URL.
+- **Expected:** Dialogs do not overlap, and an already handled link does not repeat the action after reloading.
+- **Context:** [PostHog report](https://eu.posthog.com/project/193437/inbox/01a17924-c6b4-7e9c-bfc2-157d4a7e5302) and [PR #20](https://github.com/plamarque/hatcast/pull/20). The PR proposal may consume the link before the dialog actually opens; investigate separately from BUG-115.
+
+### BUG-115 — PWA update banner can return after applying
+
+- **Status:** Fix implemented locally; integration and device validation pending. **Severity:** Medium. **Affected area:** V2 PWA update flow.
+- **Observed:** In a production session on 2026-11-10, two update requests each reloaded release `2.7.0:20d972b0` and were followed by another fallback update banner. A `version_ready` event appeared later in the same session.
+- **Expected:** An update request loads the available release, or clearly reports that it is still preparing or could not be verified.
+- **Context:** [PostHog report](https://eu.posthog.com/project/193437/inbox/01a17924-c6b4-7e9c-bfc2-157d4a7e5302) and [draft PR #20](https://github.com/plamarque/hatcast/pull/20). A fallback worker signal does not itself prove that an application version is ready.
+
 ### BUG-114 — Release checks require retries on several journeys
 
 - **Status:** Open. **Severity:** Medium. **Affected area:** V2 staging CI and E1 preproduction checks.

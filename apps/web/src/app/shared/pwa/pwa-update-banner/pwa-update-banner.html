@@ -7,9 +7,9 @@
         : 'Mise à jour HatCast disponible'
     "
     title="HatCast"
-    subtitle="Une nouvelle version est disponible. Mettez à jour pour profiter des dernières améliorations."
-    primaryLabel="Mettre à jour"
-    primaryActionAriaLabel="Mettre à jour HatCast"
+    [subtitle]="pwaUpdate.updateMessage() ?? 'Une nouvelle version est disponible. Mettez à jour pour profiter des dernières améliorations.'"
+    [primaryLabel]="pwaUpdate.unverifiedWarning() ? 'Recharger' : pwaUpdate.canApply() ? 'Mettre à jour' : 'Réessayer'"
+    [primaryActionAriaLabel]="pwaUpdate.unverifiedWarning() ? 'Recharger sans vérification' : pwaUpdate.canApply() ? 'Mettre à jour HatCast' : 'Réessayer la mise à jour de HatCast'"
     primaryTestId="pwa-update-banner-apply"
     dismissTestId="pwa-update-banner-dismiss"
     dismissAriaLabel="Fermer la barre de mise à jour"

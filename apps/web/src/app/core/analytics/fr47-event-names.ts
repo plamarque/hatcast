@@ -38,7 +38,7 @@ export type PwaInstallInstructionVariant =
   | 'firefox'
   | 'other'
 export type PwaNativePromptOutcome = 'accepted' | 'dismissed'
-export type PwaUpdateAvailabilitySource = 'version_ready' | 'fallback'
+export type PwaUpdateAvailabilitySource = 'version_ready' | 'cached_ready' | 'fallback'
 
 /** Closed surfaces which can successfully open the chance-breakdown overlay. */
 export type ChanceBreakdownEntryPoint =

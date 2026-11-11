@@ -12,7 +12,7 @@ This contract belongs to Story 11.5. Story 11.6 owns PWA/Web adoption and its se
 | `pwa_install_instructions_viewed` | `entry_point`: banner/account_menu/manual_instructions_retry; `fallback_reason`: native_prompt_unavailable/untrusted_development_origin/native_prompt_failure; bounded `instruction_variant` |
 | `pwa_install_native_prompt_resolved` | `outcome`: accepted/dismissed |
 | `pwa_install_completed` | None; native `appinstalled` callback only, partial platform coverage |
-| `pwa_update_available` | `source`: version_ready/fallback; one hidden-to-visible banner transition |
+| `pwa_update_available` | `source`: version_ready or cached_ready; one hidden-to-visible banner transition. Historical clients may also emit fallback. |
 | `pwa_update_dismissed` | None; visible banner dismissed |
 | `pwa_update_apply_requested` | None; user requests activation |
 | `pwa_update_applied` | `previous_release_id`, `delay_bucket`: under_1m/under_1h/under_1d/over_1d |

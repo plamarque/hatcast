@@ -22,6 +22,9 @@ describe('PwaUpdateBannerComponent', () => {
           useValue: {
             showBanner,
             refreshing,
+            updateMessage: signal(null),
+            canApply: signal(true),
+            unverifiedWarning: signal(false),
             applyUpdate,
             dismissBanner,
           },
