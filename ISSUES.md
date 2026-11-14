@@ -10,6 +10,20 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Current follow-up
 
+### BUG-120 — Historical chance breakdown can mix current and recorded pools
+
+- **Status:** Open; scope and remediation to investigate. **Severity:** Medium. **Affected area:** V2 historical draw chance explanations.
+- **Observed:** Code inspection shows that a recorded target chance can be compared with reference and peer values calculated from the current pool, so the displayed base and ranking may describe different pools.
+- **Expected:** Historical explanations clearly distinguish recorded values from current estimates and do not imply an unrecoverable historical ranking.
+- **Context:** Found during story 19.23 review; production impact and UI paths have not been independently reproduced. Recorded snapshots do not contain all historical peer probabilities.
+
+### BUG-119 — Role request explanation can misattribute a pool effect
+
+- **Status:** Open. **Severity:** Medium. **Affected area:** V2 draw chance breakdown with role request factor.
+- **Observed:** The role-request label describes the target's requests even when a nonzero change comes from other candidates. For example, a target with zero requests can lose chance when another candidate receives a request bonus and still see a label saying the target requested the role zero times.
+- **Expected:** Attribute a pool effect to the other candidates and a personal factor to the target only when applicable.
+- **Context:** Identified by code analysis during story 19.23 review; not independently reproduced in production.
+
 ### BUG-118 — Displayed draw probability can differ from the actual draw probability
 
 - **Status:** Open. **Severity:** Medium. **Affected area:** V2 weighted draw chance display.
