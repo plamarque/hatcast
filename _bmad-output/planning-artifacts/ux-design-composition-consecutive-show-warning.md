@@ -1,14 +1,16 @@
 # UX — Consecutive-show assignment warning (Epic 6.20)
 
-**Status:** Spec for story **6.20** — SCP [2026-06-05](sprint-change-proposal-2026-06-05-composition-consecutive-show-warning.md)  
+**Status:** Current guidance amended by story **6.25**; originally story **6.20** — SCP [2026-06-05](sprint-change-proposal-2026-06-05-composition-consecutive-show-warning.md)
 **Screen:** Event detail → tab **Équipe** (`app-event-equipe-tab`)  
 **Audience:** Organizers and administrators only (draft + published composition editing)
 
 ---
 
+> Historical context: story 6.20 originally limited warnings to the same category. Story 6.25 supersedes that scope; the draw factor remains unchanged.
+
 ## Goal
 
-Surface a **non-blocking** hint when a slot assignment repeats the **same role** on the **immediately previous validated show** in the **same category compartment**.
+Surface a **non-blocking** hint when a slot assignment repeats the **same role** on either the **immediately previous validated show across all categories** or the **immediately previous validated show in the same category**, independently, within the season.
 
 ---
 
@@ -30,14 +32,14 @@ Follow the shared Équipe row grid: [_ux-design-composition-equipe-slot-rows.md_
 
 ```
 [🎤 MC]        (○) Name                           [×]
-               [⚠ Rejeu possible]  → tooltip on tap
+               [⚠ Joue deux fois de suite]  → tooltip on tap
 ```
 
 **Placement:** second grid row, columns 2–3; **left edge aligned with the avatar** (not the name).
 
-**Trigger:** compact pill (short label + `warning_amber` icon); **full sentence** in `matTooltip` / `aria-label` on tap — same pattern as multi-role hint.
+**Trigger:** compact pill (short label + `warning_amber` icon); **short event list** in `matTooltip`, with the trigger context in `aria-label` on tap — same pattern as multi-role hint.
 
-**Density:** short label on row; truncate long titles in tooltip.
+**Density:** short label on row; keep complete event titles readable in the opened detail, including on mobile.
 
 ---
 
@@ -58,22 +60,17 @@ Follow the shared Équipe row grid: [_ux-design-composition-equipe-slot-rows.md_
 
 **Template:**
 
-> Déjà en **{roleLabel}** au spectacle **« {eventTitle} »** ({formattedDate}).
+> - **jj/mm : titre du spectacle**
+> - **jj/mm : titre du spectacle**
 
-- `{roleLabel}` — from `ROLE_LABELS` (Joueur, MC, …)
-- `{eventTitle}` — previous event title
-- `{formattedDate}` — `d MMMM yyyy` in Europe/Paris (match agenda)
-
-**Example:**
-
-> Déjà en **Joueur** au spectacle **« Cabaret du 12 »** (5 juin 2026).
+List each matching event once, with its date and title. Dates use `dd/MM` in Europe/Paris. The visible detail does not label the scopes.
 
 ---
 
 ## Accessibility
 
 - Warning line: `role="note"` or live region not required (static after assign)
-- Icon `aria-hidden="true"`; full sentence readable by screen readers
+- Icon `aria-hidden="true"`; full detail available via `aria-label` and reachable by keyboard and touch
 - Contrast ≥ 4.5:1 on hint text (NFR-A1)
 
 ---
@@ -84,7 +81,14 @@ Follow the shared Équipe row grid: [_ux-design-composition-equipe-slot-rows.md_
 interface ConsecutiveShowWarning {
   previousEventId: string
   previousEventTitle: string
-  previousEventStartsAt: string // ISO
+  previousEventStartsAt: string // ISO; same-category match preferred for legacy clients
+  events: {
+    eventId: string
+    title: string
+    startsAt: string // ISO
+    category: string
+    scopes: ('global' | 'category')[]
+  }[]
 }
 // On CompositionSlot:
 consecutiveShowWarning?: ConsecutiveShowWarning | null

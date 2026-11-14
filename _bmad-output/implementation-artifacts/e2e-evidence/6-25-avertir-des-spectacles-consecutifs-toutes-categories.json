@@ -1,0 +1,18 @@
+{
+  "command": "HATCAST_E2E_NO_BROWSER_INSTALL=1 PLAYWRIGHT_REUSE_SERVERS=0 scripts/run_e2e.sh -- --project=chromium-6-25 e2e/story-6-25.spec.ts",
+  "discovered": [
+    "project:chromium-6-25",
+    "spec:apps/web/e2e/story-6-25.spec.ts"
+  ],
+  "disposition": "run",
+  "outcome": "passed",
+  "rationale": "Avertissement mobile et confidentialite membre",
+  "report_reference": "apps/web/playwright-report/index.html",
+  "schema": "hatcast.story-e2e-evidence.v1",
+  "selection": [
+    "project:chromium-6-25",
+    "spec:apps/web/e2e/story-6-25.spec.ts"
+  ],
+  "story_key": "6-25-avertir-des-spectacles-consecutifs-toutes-categories",
+  "target": "6-25"
+}
