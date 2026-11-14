@@ -10,6 +10,20 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Current follow-up
 
+### BUG-118 — Displayed draw probability can differ from the actual draw probability
+
+- **Status:** Open. **Severity:** Medium. **Affected area:** V2 weighted draw chance display.
+- **Observed:** The multiple-place probability calculator uses an expected-removal approximation although the draw picks weighted candidates sequentially without replacement. For the 16-player Caprani pool observed on 2026-11-13, with ten weights of 1, three weights of 0.5 and three excluded candidates, the calculator yields 41.87% (displayed 42%) while enumeration of all possible draw sequences yields 42.82% (rounded 43%) for a weight-1 candidate.
+- **Expected:** The displayed probability is explained consistently with its documented approximation; any move to exact rounded probabilities requires a product decision.
+- **Context:** The current normative specification explicitly uses an expected-removal approximation and documents a ±1 percentage point golden-test tolerance for unequal weights and multiple places. Production pool and Cambo assignments were read only. The screenshot displays 42%; exact reconstruction depends on the selected formula and historical inputs at capture time. This concerns the chance display; it does not establish a defect in the weighted selection itself. Exact precision is deferred by the 2026-11-14 change proposal.
+
+### BUG-117 — Draw explanation can misattribute the previous show
+
+- **Status:** Open. **Severity:** Medium. **Affected area:** V2 draw chance breakdown.
+- **Observed:** A screenshot reported on 2026-11-13 shows Rachid receiving +5 points beside « Déjà Comédien au spectacle “Match Cambo” », although Nicolas reports that Rachid was not selected for that show.
+- **Expected:** The explanation distinguishes a candidate who played the previous show from one whose chance increases because other candidates are penalized.
+- **Context:** Read-only production check on 2026-11-13: the validated 12 December 2026 Match Cambo composition has four assigned players and Rachid is not assigned. The breakdown calculates each factor's change across the whole pool, but the immediate replay factor's label always says the target played the previous show, even when its own replay predicate is false. The exact 42% calculation has not been independently reproduced.
+
 ### BUG-116 — Notification confirmation can overlap release notes
 
 - **Status:** Open; diagnosis and remediation pending. **Severity:** Medium. **Affected area:** V2 notification deep links and release notes.
