@@ -62,7 +62,7 @@ describe('ContextBreadcrumb', () => {
     const seasonLink = el.querySelector(
       '.context-breadcrumb__trail--desktop a.context-breadcrumb__link',
     ) as HTMLAnchorElement
-    expect(seasonLink.getAttribute('href')).toBe('/saison/saison-2025')
+    expect(seasonLink.getAttribute('href')).toBe('/saison/les-improbots/saison-2025')
 
     expect(el.querySelector('[aria-current="page"]')?.textContent).toContain('Match BIM')
     expect(el.querySelectorAll('.context-breadcrumb__sep').length).toBeGreaterThan(0)
@@ -134,7 +134,7 @@ describe('ContextBreadcrumb', () => {
     const seasonLink = mobileRow?.querySelector(
       'a.context-breadcrumb__mobile-title',
     ) as HTMLAnchorElement
-    expect(seasonLink?.getAttribute('href')).toBe('/saison/saison-2025')
+    expect(seasonLink?.getAttribute('href')).toBe('/saison/les-improbots/saison-2025')
     expect(mobileRow?.querySelector('app-context-switcher')).toBeNull()
   })
 
@@ -144,7 +144,7 @@ describe('ContextBreadcrumb', () => {
     const seasonLink = mobileRow?.querySelector(
       'a.context-breadcrumb__mobile-title',
     ) as HTMLAnchorElement
-    expect(seasonLink?.getAttribute('href')).toBe('/saison/saison-2025')
+    expect(seasonLink?.getAttribute('href')).toBe('/saison/les-improbots/saison-2025')
     expect(seasonLink?.textContent).toContain('Saison 2025-26')
   })
 
@@ -156,7 +156,7 @@ describe('ContextBreadcrumb', () => {
     const seasonLink = mobileRow?.querySelector(
       'a.context-breadcrumb__mobile-title',
     ) as HTMLAnchorElement
-    expect(seasonLink?.getAttribute('href')).toBe('/saison/saison-2025')
+    expect(seasonLink?.getAttribute('href')).toBe('/saison/les-improbots/saison-2025')
     expect(mobileRow?.querySelector('[aria-current="page"]')?.textContent).toContain('Participants')
   })
 
@@ -169,7 +169,7 @@ describe('ContextBreadcrumb', () => {
     const seasonLink = el.querySelector(
       '.context-breadcrumb__trail--desktop a.context-breadcrumb__link',
     ) as HTMLAnchorElement
-    expect(seasonLink.getAttribute('href')).toBe('/saison/saison-2025')
+    expect(seasonLink.getAttribute('href')).toBe('/saison/les-improbots/saison-2025')
     expect(el.querySelector('[aria-current="page"]')?.textContent).toContain('Participants')
   })
 
@@ -203,8 +203,8 @@ describe('ContextBreadcrumb', () => {
 
     const links = el.querySelectorAll('.context-breadcrumb__trail--desktop a.context-breadcrumb__link')
     expect(links.length).toBe(2)
-    expect(links[0]?.getAttribute('href')).toBe('/saison/saison-2025')
-    expect(links[1]?.getAttribute('href')).toBe('/saison/saison-2025/event/match-bim')
+    expect(links[0]?.getAttribute('href')).toBe('/saison/les-improbots/saison-2025')
+    expect(links[1]?.getAttribute('href')).toBe('/saison/les-improbots/saison-2025/event/match-bim')
     expect(el.querySelector('[aria-current="page"]')?.textContent).toContain('Participants')
   })
 

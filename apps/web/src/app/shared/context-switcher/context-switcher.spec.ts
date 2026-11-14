@@ -81,7 +81,7 @@ describe('ContextSwitcher', () => {
     }
     component.selectSeason({ slug: 'saison-2' } as never)
 
-    expect(router.navigate).toHaveBeenCalledWith(['/saison', 'saison-2'])
+    expect(router.navigate).toHaveBeenCalledWith(['/saison', 'troupe-a', 'saison-2'])
     expect(localStorage.getItem('lastVisitedSeason')).toBe('saison-2')
   })
 
@@ -113,7 +113,7 @@ describe('ContextSwitcher', () => {
     await component.selectTroupe({ id: 't-b', slug: 'troupe-b' } as never)
 
     expect(troupeContext.selectTroupe).toHaveBeenCalledWith('t-b')
-    expect(router.navigate).toHaveBeenCalledWith(['/saison', 'festibask'])
+    expect(router.navigate).toHaveBeenCalledWith(['/saison', 'troupe-b', 'festibask'])
   })
 
   it('disables trigger while loading', async () => {
