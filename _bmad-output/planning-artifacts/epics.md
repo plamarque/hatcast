@@ -1322,6 +1322,20 @@ afin de **décider en connaissance de cause** de maintenir ou changer ce choix.
 
 ---
 
+#### Story 6.25 : Avertir des spectacles consécutifs toutes catégories
+
+En tant qu’organisateur, je veux être averti lorsqu’une personne occupe le même rôle sur deux spectacles successifs, afin de décider librement de la composition.
+
+**Acceptance Criteria**
+
+1. Comparer chaque rôle séparément au spectacle précédent validé de la saison, toutes catégories confondues, et au précédent de la même catégorie ; tenir compte de l’ordre calendaire.
+2. Conserver le libellé « Joue deux fois de suite » ; enrichir le détail avec les contrôles applicables, les spectacles et leurs dates, sans répétition inutile.
+3. L’avertissement reste accessible aux organisateurs, non bloquant, et ne modifie ni poids ni tirage ; préserver les règles de visibilité et les comportements de retrait/remplacement.
+4. Vérifier les deux périmètres, leur coïncidence, les rôles distincts, les catégories CCAS et déplacements, et la présentation mobile. **UI :** critères Material 3 adaptés dans la story.
+5. **Source :** [Correct Course 2026-11-14](sprint-change-proposal-2026-11-14-draw-equity.md). Complète la story 6.20 historique sans en modifier le statut.
+
+---
+
 #### Story 6.21 : Hint parité de genre sur composition (rôle player) *(P2 — SCP 2026-06-05 G-011)*
 
 En tant qu’**organisateur** constituant l’équipe,  
@@ -3083,6 +3097,33 @@ afin que **l’explicabilité** reste cohérente si les politiques changent plus
 2. **Given** événement passé, **when** Dispos/Équipe lit snapshot, **then** % depuis snapshot ; libellé formule + catégorie visible orga (membre post-publish si FR24).
 3. **Given** full redraw, **when** snapshot remplacé, **then** métadonnées formule mises à jour (nouvelle formule si choix différent).
 4. **Couverture :** FR24, FR35 (hook audit optionnel). **Priorité :** P2. **Depends :** 19.21, **6.14**.
+
+---
+
+#### Story 19.23 : Expliquer les variations de chances dues au groupe
+
+En tant que membre, je veux une explication exacte de mes chances afin de comprendre l’effet des critères de tirage.
+
+**Acceptance Criteria**
+
+1. Lorsqu’un facteur augmente la chance d’une personne en modifiant les poids d’autres candidats, le libellé ne prétend pas que cette personne a joué au spectacle précédent.
+2. Les formules personnalisées et les effets positifs ou négatifs restent expliqués fidèlement ; la précision du calcul demeure celle du contrat existant.
+3. Vérifier les exemples concernés et l’affichage accessible sur mobile. **UI :** critères Material 3 adaptés dans la story.
+4. **Source :** BUG-117 et [Correct Course 2026-11-14](sprint-change-proposal-2026-11-14-draw-equity.md).
+
+---
+
+#### Story 19.24 : Regrouper les historiques de tirage par troupe
+
+En tant que troupe, je veux définir les catégories qui partagent un historique de tirage afin de refléter nos règles d’équité sans modifier les catégories des spectacles.
+
+**Acceptance Criteria**
+
+1. Pour la configuration approuvée, ordinaires et Apérocs partagent un historique par rôle ; CCAS et déplacements restent dans leurs historiques respectifs.
+2. Le comportement des autres troupes et catégories reste inchangé par défaut ; statistiques, compositions et snapshots historiques sont préservés.
+3. Les poids, pourcentages, explications et tirage utilisent le même périmètre et la même formule résolue ; la formule standard est la seule à appliquer aux ordinaires et Apérocs de la troupe concernée.
+4. La représentation des groupes et la migration ou configuration sont définies avant réalisation ; toute opération sur la production nécessite une autorisation distincte. **UI :** critères Material 3 adaptés si une interface est modifiée, sinon N/A explicite.
+5. **Source :** [Correct Course 2026-11-14](sprint-change-proposal-2026-11-14-draw-equity.md).
 
 ---
 
