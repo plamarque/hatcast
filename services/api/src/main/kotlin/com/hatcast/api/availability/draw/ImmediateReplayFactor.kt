@@ -34,7 +34,11 @@ class ImmediateReplayFactor(
         val date =
             context.immediatePredecessorStartsAt?.let(::formatPredecessorDate)
                 ?: "date inconnue"
-        return "Déjà $roleLabel au spectacle « $title » ($date)"
+        return if (context.playedSameRoleOnImmediatePredecessor) {
+            "Déjà $roleLabel au spectacle « $title » ($date)"
+        } else {
+            "Effet du spectacle « $title » ($date) sur les autres candidats"
+        }
     }
 
     companion object {

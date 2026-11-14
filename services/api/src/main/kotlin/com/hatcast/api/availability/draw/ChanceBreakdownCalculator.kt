@@ -158,22 +158,19 @@ object ChanceBreakdownCalculator {
         adjustments.sortByDescending { kotlin.math.abs(it.deltaPoints) }
 
         if (overrideChancePercent != null) {
-            val reconciliation =
-                chancePercent - referencePercent - adjustments.sumOf { it.deltaPoints }
+            // The persisted snapshot has no factor-level history. Current factors cannot
+            // explain historical odds, so never attribute the recorded delta to them.
+            adjustments.clear()
+            factorBreakdown.clear()
+            val reconciliation = chancePercent - referencePercent
             if (reconciliation != 0) {
-                if (adjustments.isNotEmpty()) {
-                    val last = adjustments.last()
-                    adjustments[adjustments.lastIndex] =
-                        last.copy(deltaPoints = last.deltaPoints + reconciliation)
-                } else {
-                    adjustments.add(
-                        ChanceAdjustmentDto(
-                            factorId = "snapshot",
-                            label = "Cote enregistrée au tirage",
-                            deltaPoints = reconciliation,
-                        ),
-                    )
-                }
+                adjustments.add(
+                    ChanceAdjustmentDto(
+                        factorId = "snapshot",
+                        label = "Cote enregistrée au tirage",
+                        deltaPoints = reconciliation,
+                    ),
+                )
             }
         }
 
