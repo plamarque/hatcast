@@ -70,6 +70,15 @@ class ConsecutiveShowWarningIntegrationTest {
     @Autowired
     private lateinit var eventRepository: EventRepository
 
+    @Autowired
+    private lateinit var categoryResolver: ImmediatePredecessorEventResolver
+
+    @Autowired
+    private lateinit var globalResolver: GlobalWarningPredecessorResolver
+
+    @Autowired
+    private lateinit var jdbc: org.springframework.jdbc.core.JdbcTemplate
+
     private val seedTroupeId: UUID = UUID.fromString("a0000001-0000-4000-8000-000000000001")
     private val mapper = ObjectMapper()
 
@@ -235,11 +244,13 @@ class ConsecutiveShowWarningIntegrationTest {
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.slots[0].consecutiveShowWarning.previousEventId").value(eventAId.toString()))
             .andExpect(jsonPath("$.slots[0].consecutiveShowWarning.previousEventTitle").value("Cabaret du 12"))
+            .andExpect(jsonPath("$.slots[0].consecutiveShowWarning.events[0].scopes[0]").value("global"))
+            .andExpect(jsonPath("$.slots[0].consecutiveShowWarning.events[0].scopes[1]").value("category"))
     }
 
     @Test
     @Tag("FR21")
-    fun `no warning when predecessor is in different compartment`() {
+    fun `global warning when predecessor is in different compartment`() {
         val adminCookie = memberCookie("sub-csw-admin-2", admin = true)
         val member = memberCookie("sub-csw-member-2")
         val seasonId = createSeason(adminCookie)
@@ -274,7 +285,164 @@ class ConsecutiveShowWarningIntegrationTest {
                     .content("""{"participantId":"$participantId"}""")
                     .with(csrf()),
             ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.slots[0].consecutiveShowWarning").doesNotExist())
+            .andExpect(jsonPath("$.slots[0].consecutiveShowWarning.previousEventId").value(aperockEventId.toString()))
+            .andExpect(jsonPath("$.slots[0].consecutiveShowWarning.events[0].eventId").value(aperockEventId.toString()))
+            .andExpect(jsonPath("$.slots[0].consecutiveShowWarning.events[0].scopes[0]").value("global"))
+    }
+
+    @Test
+    fun `category and global predecessors are matched independently`() {
+        val admin = memberCookie("sub-csw-scopes-admin", admin = true)
+        val member = memberCookie("sub-csw-scopes-member")
+        val season = createSeason(admin)
+        val person = participantIdForUser(season, "sub-csw-scopes-member")
+        val categoryEvent = createEvent(admin, season, "Category show", Instant.parse("2031-04-01T19:00:00Z"))
+        val globalEvent = createEvent(admin, season, "Travel show", Instant.parse("2031-05-01T19:00:00Z"), category = "deplacements")
+        val current = createEvent(admin, season, "Current show", Instant.parse("2031-06-01T19:00:00Z"))
+        listOf(categoryEvent, globalEvent, current).forEach { setAvailability(member, season, it) }
+        assignSlot(admin, season, categoryEvent, person)
+        validateComposition(categoryEvent)
+        assignSlot(admin, season, globalEvent, person)
+        validateComposition(globalEvent)
+        val currentEntity = eventRepository.findById(current).orElseThrow()
+        org.junit.jupiter.api.Assertions.assertEquals(categoryEvent, categoryResolver.resolve(currentEntity)?.id)
+        org.junit.jupiter.api.Assertions.assertEquals(globalEvent, globalResolver.resolve(currentEntity)?.id)
+        val warning = assignSlot(admin, season, current, person).path("slots")[0].path("consecutiveShowWarning")
+        org.junit.jupiter.api.Assertions.assertEquals(categoryEvent.toString(), warning.path("previousEventId").asText())
+        org.junit.jupiter.api.Assertions.assertEquals("Category show", warning.path("previousEventTitle").asText())
+        org.junit.jupiter.api.Assertions.assertEquals("2031-04-01T19:00:00Z", warning.path("previousEventStartsAt").asText())
+        val both = warning.path("events")
+        org.junit.jupiter.api.Assertions.assertEquals(2, both.size())
+        org.junit.jupiter.api.Assertions.assertEquals(globalEvent.toString(), both[0].path("eventId").asText())
+        org.junit.jupiter.api.Assertions.assertEquals("global", both[0].path("scopes")[0].asText())
+        org.junit.jupiter.api.Assertions.assertEquals(categoryEvent.toString(), both[1].path("eventId").asText())
+        org.junit.jupiter.api.Assertions.assertEquals("category", both[1].path("scopes")[0].asText())
+        val globalSlot = slotRepository.findByEventIdAndRoleKeyAndSlotIndex(globalEvent, "player", 0)!!
+        globalSlot.participationStatus = SlotParticipationStatus.DECLINED
+        slotRepository.save(globalSlot)
+        val categoryOnly = mockMvc.perform(get("/v1/seasons/$season/events/$current/composition").cookie(admin))
+            .andExpect(status().isOk).andReturn()
+        val events = mapper.readTree(categoryOnly.response.contentAsString).path("slots")[0].path("consecutiveShowWarning").path("events")
+        org.junit.jupiter.api.Assertions.assertEquals(1, events.size())
+        org.junit.jupiter.api.Assertions.assertEquals(categoryEvent.toString(), events[0].path("eventId").asText())
+        org.junit.jupiter.api.Assertions.assertEquals("category", events[0].path("scopes")[0].asText())
+    }
+
+    @Test
+    fun `more recent validated event in another season cannot become a predecessor`() {
+        val admin = memberCookie("sub-csw-season-admin", admin = true)
+        val member = memberCookie("sub-csw-season-member")
+        val season = createSeason(admin)
+        val otherSeason = createSeason(admin)
+        val person = participantIdForUser(season, "sub-csw-season-member")
+        val otherPerson = participantIdForUser(otherSeason, "sub-csw-season-member")
+        val eligible = createEvent(admin, season, "Eligible", Instant.parse("2031-01-01T19:00:00Z"))
+        val foreign = createEvent(admin, otherSeason, "Other season", Instant.parse("2031-02-01T19:00:00Z"), category = "deplacements")
+        val current = createEvent(admin, season, "Current", Instant.parse("2031-03-01T19:00:00Z"))
+        setAvailability(member, season, eligible)
+        setAvailability(member, otherSeason, foreign)
+        setAvailability(member, season, current)
+        assignSlot(admin, season, eligible, person)
+        validateComposition(eligible)
+        assignSlot(admin, otherSeason, foreign, otherPerson)
+        validateComposition(foreign)
+        val currentEntity = eventRepository.findById(current).orElseThrow()
+        org.junit.jupiter.api.Assertions.assertEquals(eligible, globalResolver.resolve(currentEntity)?.id)
+        val warning = assignSlot(admin, season, current, person).path("slots")[0].path("consecutiveShowWarning")
+        org.junit.jupiter.api.Assertions.assertEquals(eligible.toString(), warning.path("previousEventId").asText())
+        org.junit.jupiter.api.Assertions.assertEquals(1, warning.path("events").size())
+        org.junit.jupiter.api.Assertions.assertEquals(eligible.toString(), warning.path("events")[0].path("eventId").asText())
+        org.junit.jupiter.api.Assertions.assertEquals(listOf("global", "category"), warning.path("events")[0].path("scopes").map { it.asText() })
+    }
+
+    @Test
+    fun `archived and unvalidated shows are ignored before selecting a predecessor`() {
+        val admin = memberCookie("sub-csw-filter-admin", admin = true)
+        val member = memberCookie("sub-csw-filter-member")
+        val season = createSeason(admin)
+        val person = participantIdForUser(season, "sub-csw-filter-member")
+        val prior = createEvent(admin, season, "Eligible", Instant.parse("2031-01-01T19:00:00Z"))
+        val archived = createEvent(admin, season, "Archived", Instant.parse("2031-02-01T19:00:00Z"))
+        val draft = createEvent(admin, season, "Unvalidated", Instant.parse("2031-03-01T19:00:00Z"))
+        val current = createEvent(admin, season, "Current", Instant.parse("2031-04-01T19:00:00Z"))
+        listOf(prior, archived, draft, current).forEach { setAvailability(member, season, it) }
+        listOf(prior, archived, draft).forEach { assignSlot(admin, season, it, person) }
+        validateComposition(prior)
+        validateComposition(archived)
+        eventRepository.save(eventRepository.findById(archived).orElseThrow().apply { this.archived = true })
+        val warning = assignSlot(admin, season, current, person).path("slots")[0].path("consecutiveShowWarning")
+        org.junit.jupiter.api.Assertions.assertEquals(prior.toString(), warning.path("previousEventId").asText())
+    }
+
+    @Test
+    fun `a previous MC does not warn for a player`() {
+        val admin = memberCookie("sub-csw-role-admin", admin = true)
+        val member = memberCookie("sub-csw-role-member")
+        val season = createSeason(admin)
+        val person = participantIdForUser(season, "sub-csw-role-member")
+        val previous = createEvent(admin, season, "Previous", Instant.parse("2031-01-01T19:00:00Z"))
+        val current = createEvent(admin, season, "Current", Instant.parse("2031-02-01T19:00:00Z"))
+        listOf(previous, current).forEach { setAvailability(member, season, it) }
+        assignSlot(admin, season, previous, person)
+        val player = slotRepository.findByEventIdAndRoleKeyAndSlotIndex(previous, "player", 0)!!
+        player.participationStatus = SlotParticipationStatus.DECLINED
+        slotRepository.save(player)
+        slotRepository.save(EventCompositionSlotEntity(eventId = previous, roleKey = "mc", slotIndex = 0, seasonParticipantId = person))
+        validateComposition(previous)
+        val warning = assignSlot(admin, season, current, person).path("slots")[0].path("consecutiveShowWarning")
+        org.junit.jupiter.api.Assertions.assertTrue(warning.isMissingNode || warning.isNull)
+    }
+
+    @Test
+    fun `equal event times use creation time then id as strict tie breakers`() {
+        val admin = memberCookie("sub-csw-order-admin", admin = true)
+        val member = memberCookie("sub-csw-order-member")
+        val season = createSeason(admin)
+        val person = participantIdForUser(season, "sub-csw-order-member")
+        val sameTime = Instant.parse("2031-05-01T19:00:00Z")
+        val ids = (1..3).map { createEvent(admin, season, "Equal $it", sameTime) }.sortedBy { it.toString() }
+        ids.forEach { setAvailability(member, season, it); assignSlot(admin, season, it, person); validateComposition(it) }
+        val timestamp = java.sql.Timestamp.from(Instant.parse("2030-01-01T00:00:00Z"))
+        ids.forEach { jdbc.update("UPDATE events SET created_at = ? WHERE id = ?", timestamp, it) }
+        val current = eventRepository.findById(ids[2]).orElseThrow()
+        org.junit.jupiter.api.Assertions.assertEquals(ids[1], globalResolver.resolve(current)?.id)
+        org.junit.jupiter.api.Assertions.assertEquals(ids[1], categoryResolver.resolve(current)?.id)
+        jdbc.update("UPDATE events SET created_at = ? WHERE id = ?", java.sql.Timestamp.from(Instant.parse("2030-01-02T00:00:00Z")), ids[0])
+        val laterCurrent = eventRepository.findById(ids[0]).orElseThrow()
+        org.junit.jupiter.api.Assertions.assertEquals(ids[2], globalResolver.resolve(laterCurrent)?.id)
+        org.junit.jupiter.api.Assertions.assertEquals(ids[2], categoryResolver.resolve(laterCurrent)?.id)
+        val response = mockMvc.perform(get("/v1/seasons/$season/events/${ids[0]}/composition").cookie(admin))
+            .andExpect(status().isOk).andReturn()
+        val warning = mapper.readTree(response.response.contentAsString).path("slots")[0].path("consecutiveShowWarning")
+        org.junit.jupiter.api.Assertions.assertEquals(ids[2].toString(), warning.path("previousEventId").asText())
+    }
+
+    @Test
+    fun `warning refreshes on replacement publish validation and unlock`() {
+        val admin = memberCookie("sub-csw-lifecycle-admin", admin = true)
+        val member = memberCookie("sub-csw-lifecycle-member")
+        val other = memberCookie("sub-csw-lifecycle-other")
+        val season = createSeason(admin)
+        val person = participantIdForUser(season, "sub-csw-lifecycle-member")
+        val otherPerson = participantIdForUser(season, "sub-csw-lifecycle-other")
+        val previous = createEvent(admin, season, "Previous", Instant.parse("2031-01-01T19:00:00Z"))
+        val current = createEvent(admin, season, "Current", Instant.parse("2031-02-01T19:00:00Z"))
+        setAvailability(member, season, previous)
+        setAvailability(member, season, current)
+        setAvailability(other, season, current)
+        assignSlot(admin, season, previous, person)
+        validateComposition(previous)
+        org.junit.jupiter.api.Assertions.assertFalse(assignSlot(admin, season, current, person).path("slots")[0].path("consecutiveShowWarning").isNull)
+        val replaced = assignSlot(admin, season, current, otherPerson).path("slots")[0].path("consecutiveShowWarning")
+        org.junit.jupiter.api.Assertions.assertTrue(replaced.isMissingNode || replaced.isNull)
+        assignSlot(admin, season, current, person)
+        for (action in listOf("publish", "validate", "unlock", "validate")) {
+            mockMvc.perform(post("/v1/seasons/$season/events/$current/composition/$action").cookie(admin).with(csrf()))
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.slots[0].consecutiveShowWarning.previousEventId").value(previous.toString()))
+        }
+        mockMvc.perform(get("/v1/seasons/$season/events/$current/composition").cookie(other))
+            .andExpect(status().isOk).andExpect(jsonPath("$.slots[0].consecutiveShowWarning").doesNotExist())
     }
 
     @Test

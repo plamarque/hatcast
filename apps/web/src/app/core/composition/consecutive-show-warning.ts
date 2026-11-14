@@ -6,6 +6,7 @@ export interface ConsecutiveShowWarning {
   previousEventId: string
   previousEventTitle: string
   previousEventStartsAt: string
+  events?: { eventId: string; title: string; startsAt: string; category: string; scopes: ('global' | 'category')[] }[]
 }
 
 /** Compact label on the équipe row (story 6.20 UX). */
@@ -25,11 +26,15 @@ export function formatConsecutiveShowWarningDate(startsAt: string): string {
 /** Full detail for tooltip / aria-label on click. */
 export function formatConsecutiveShowWarningTooltip(
   warning: ConsecutiveShowWarning,
-  participantDisplayName: string,
+  _participantDisplayName: string,
 ): string {
-  const formattedDate = formatConsecutiveShowWarningDate(warning.previousEventStartsAt)
-  const name = participantDisplayName.trim() || 'Cette personne'
-  return `${name} est dans la composition du spectacle précédent du ${formattedDate} : « ${warning.previousEventTitle} ».`
+  const shortDate = (startsAt: string) => new Intl.DateTimeFormat('fr-FR', {
+    day: '2-digit', month: '2-digit', timeZone: AGENDA_TIME_ZONE,
+  }).format(new Date(startsAt))
+  const events = warning.events?.length
+    ? warning.events
+    : [{ title: warning.previousEventTitle, startsAt: warning.previousEventStartsAt }]
+  return events.map(event => `- ${shortDate(event.startsAt)} : ${event.title}`).join('\n')
 }
 
 /** @deprecated Use short label + tooltip — kept for API parity / legacy callers. */

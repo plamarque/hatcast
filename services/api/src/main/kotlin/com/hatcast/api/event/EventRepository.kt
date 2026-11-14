@@ -321,4 +321,24 @@ interface EventRepository : JpaRepository<EventEntity, UUID> {
         @Param("categorySlug") categorySlug: String,
         pageable: Pageable,
     ): List<EventEntity>
+    /** Immediate validated predecessor across all categories, in calendar order. */
+    @Query(
+        """
+        SELECT e FROM EventEntity e
+        INNER JOIN EventCompositionEntity c ON c.eventId = e.id
+        WHERE e.season.id = :seasonId AND e.archived = false AND c.validatedAt IS NOT NULL
+          AND (e.startsAt < :beforeStartsAt
+            OR (e.startsAt = :beforeStartsAt AND e.createdAt < :beforeCreatedAt)
+            OR (e.startsAt = :beforeStartsAt AND e.createdAt = :beforeCreatedAt AND e.id < :beforeEventId))
+        ORDER BY e.startsAt DESC, e.createdAt DESC, e.id DESC
+        """,
+    )
+    fun findImmediateValidatedPredecessorAcrossCategories(
+        @Param("seasonId") seasonId: UUID,
+        @Param("beforeEventId") beforeEventId: UUID,
+        @Param("beforeStartsAt") beforeStartsAt: Instant,
+        @Param("beforeCreatedAt") beforeCreatedAt: Instant,
+        pageable: Pageable,
+    ): List<EventEntity>
+
 }

@@ -423,3 +423,9 @@
     border: 0;
   }
 }
+
+.event-equipe-tab__consecutive-warning-tooltip .mat-mdc-tooltip-surface {
+  max-width: min(20rem, calc(100vw - 2rem));
+  max-height: 70vh;
+  white-space: pre-line;
+}
