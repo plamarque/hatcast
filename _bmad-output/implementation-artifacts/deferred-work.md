@@ -47,6 +47,14 @@ status: open
   summary: Verify screen-reader navigation of Advent radio choices and story controls.
   evidence: Unverified medium accessibility risk: controls are individually keyboard-operable, but no assistive-technology session checked their announcements inside the radiogroup.
 
+- source_spec: `spec-19-23-expliquer-les-variations-de-chances-dues-au-groupe.md`
+  summary: Avoid attributing another candidate's role-request bonus to a candidate without requests.
+  evidence: RoleRequestFactor labels a zero-request target as having requested the role while pool-wide deltas can be negative when peers receive a bonus.
+
+- source_spec: `spec-19-23-expliquer-les-variations-de-chances-dues-au-groupe.md`
+  summary: Align retrospective reference and ranking with historical draw context.
+  evidence: The calculator uses the current candidate pool for reference and peers while the target chance may come from a stored historical snapshot; participant counts or formulas can differ.
+
 - source_spec: `_bmad-output/implementation-artifacts/spec-limit-007-angular-suite.md`
   summary: Verify agenda visibility when a successful agenda response races a failed session check.
   evidence: Unverified medium: control both completion orders and failed navigation to determine whether loaded data remains visible; the API requires authentication and scopes results to the principal.

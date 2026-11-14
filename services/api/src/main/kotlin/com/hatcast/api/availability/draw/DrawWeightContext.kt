@@ -26,4 +26,5 @@ data class DrawWeightContext(
     val immediatePredecessorStartsAt: Instant? = null,
     /** Past validated events where participant was available for [roleKey] but not selected (19.10). */
     val unfulfilledRoleRequestCount: Int = 0,
+    val historyCategoryLabel: String? = null,
 )

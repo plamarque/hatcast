@@ -33,12 +33,14 @@ Lock V1-parity weighted draw (already delivered by Epic 6), prove it with golden
 - Story 19.20: Admin draw-policy UI
 - Story 19.21: Organizer formula overflow (Équipe)
 - Story 19.22: Formula snapshot on draw
+- Story 19.23: Explain group effects on draw chances
+- Story 19.24: Group draw histories per troupe
 
 ## Requirements & Constraints
 
 - Organizers see eligible available candidates per role and run a weighted random draw (eligibility + troupe/event rules). Members and organizers see per-role odds and factor breakdown only on the allowed surfaces: Dispos on published events regardless of composition draft; Équipe odds for members only after publish or validate; organizers see Équipe odds in draft. Draft events, archived events, and non-draw roles show no odds.
 - Displayed % must equal the server draw pipeline (invariant “% = tirage”).
-- V1 baseline (do not invent): `malus = 1/(1+pastSelectionCount)`, `weight = malus × requiredCountForRole`, cumulative random walk; displayed % from exact multi-place probability (documented ±1 point tolerance vs V1). History counts validated, non-archived, non-declined, same season, same role key. Intra-role without replacement; cross-role exclusion; full vs partial redraw semantics unchanged from 6.4.
+- V1 baseline (do not invent): `malus = 1/(1+pastSelectionCount)`, `weight = malus × requiredCountForRole`, cumulative random walk; displayed % from the documented V1 expected-removal approximation (documented ±1 point golden tolerance). History counts validated, non-archived, non-declined, same season, same role key. Intra-role without replacement; cross-role exclusion; full vs partial redraw semantics unchanged from 6.4.
 - Default pipeline must stay V1: only past-participation malus active unless a formula enables more factors. New factors off → golden suite unchanged.
 - Wave D: multiple named formulas per troupe (catalogued factors + params, no free-form scripts). Policies: troupe or season; default rule + per-category rules (`MANDATORY` one formula or `CHOICE` ≥1). Season overrides troupe. Resolve from `event.category` (glossary); unknown category → default; no policy → system V1 formula. No persisted per-event policy in MVP.
 - Draw API: mandatory or single-choice applies server-side; CHOICE ≥2 requires a valid `formulaId` in the allowed list. Troupe admin owns formulas + troupe policy; season admin owns season policy; organizer chooses formula only when CHOICE ≥2.

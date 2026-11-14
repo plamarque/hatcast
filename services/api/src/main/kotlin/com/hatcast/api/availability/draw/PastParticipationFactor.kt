@@ -24,11 +24,9 @@ class PastParticipationFactor(
     override fun adjustmentLabel(context: DrawWeightContext): String {
         val past = max(0, context.pastSelectionCount)
         val roleLabel = RoleLabels.label(context.roleKey, context.participantGender)
-        return if (past == 0) {
-            "Jamais $roleLabel"
-        } else {
-            "Déjà $roleLabel $past fois"
-        }
+        val categorySuffix = context.historyCategoryLabel?.let { " en $it" }.orEmpty()
+        val label = if (past == 0) "Jamais $roleLabel" else "$roleLabel $past fois"
+        return label + categorySuffix
     }
 
     companion object {

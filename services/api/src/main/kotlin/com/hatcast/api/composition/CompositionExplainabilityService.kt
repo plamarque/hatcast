@@ -24,6 +24,7 @@ import com.hatcast.api.participant.GuestInvitationAccessService
 import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.participant.SeasonParticipantService
 import com.hatcast.api.season.SeasonRepository
+import com.hatcast.api.troupe.TroupeCategoryRepository
 import com.hatcast.api.user.MemberGender
 import com.hatcast.api.user.ParticipantAvatarResolver
 import com.hatcast.api.user.ParticipantGenderResolver
@@ -55,6 +56,7 @@ class CompositionExplainabilityService(
     private val unfulfilledRoleRequestService: UnfulfilledRoleRequestService,
     private val drawWeightPipelineProvider: ObjectProvider<DrawWeightPipeline>,
     private val drawPolicyResolutionService: DrawPolicyResolutionService,
+    private val troupeCategoryRepository: TroupeCategoryRepository,
 ) {
     private fun resolveDrawPipeline(
         event: EventEntity,
@@ -114,6 +116,8 @@ class CompositionExplainabilityService(
                     .resolveByParticipantIds(eventId, setOf(participantId))[participantId],
             ) ?: MemberGender.NON_SPECIFIED
         val drawPipeline = resolveDrawPipeline(event, formulaId)
+        val historyCategoryLabel =
+            troupeCategoryRepository.findByTroupe_IdAndSlug(event.season.troupe.id, poolContext.categorySlug)?.label
         val breakdown =
             ChanceBreakdownCalculator.calculate(
                 candidates = candidates,
@@ -130,6 +134,7 @@ class CompositionExplainabilityService(
                 immediatePredecessorTitle = poolContext.replayPredecessorTitle,
                 immediatePredecessorStartsAt = poolContext.replayPredecessorStartsAt,
                 unfulfilledRoleRequestCountByParticipant = poolContext.unfulfilledByParticipant,
+                historyCategoryLabel = historyCategoryLabel,
             )
                 ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Breakdown indisponible")
 
