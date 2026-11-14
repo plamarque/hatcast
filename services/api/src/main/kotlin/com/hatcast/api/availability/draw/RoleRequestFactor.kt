@@ -25,7 +25,11 @@ class RoleRequestFactor(
     override fun adjustmentLabel(context: DrawWeightContext): String {
         val n = context.unfulfilledRoleRequestCount
         val roleLabel = RoleLabels.label(context.roleKey, context.participantGender)
-        return "A demandé $roleLabel $n fois sans être tiré·e — bonus aspiration"
+        return if (n > 0) {
+            "$roleLabel demandé $n fois sans l’obtenir"
+        } else {
+            "Demandes d’autres candidats pour ce rôle"
+        }
     }
 
     companion object {

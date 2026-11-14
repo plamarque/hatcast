@@ -70,7 +70,7 @@ class ChanceBreakdownCalculatorTest {
   }
 
   @Test
-  fun `veteran label uses gendered role without season wording`() {
+  fun `veteran label uses gendered role and the configured category`() {
     val candidates =
         listOf(
             candidate(alice, "Alice"),
@@ -85,9 +85,10 @@ class ChanceBreakdownCalculatorTest {
             targetParticipantId = bob,
             roleKey = "player",
             targetParticipantGender = MemberGender.MALE,
+            historyCategoryLabel = "Apéroc",
         )
     requireNotNull(result)
-    assertEquals("Déjà Comédien 2 fois", result.adjustments.first().label)
+    assertEquals("Comédien 2 fois en Apéroc", result.adjustments.first().label)
   }
 
   @Test
@@ -299,7 +300,55 @@ class ChanceBreakdownCalculatorTest {
     requireNotNull(result)
     val replayLine = result.adjustments.first { it.factorId == ImmediateReplayFactor.FACTOR_ID }
     assertTrue(replayLine.deltaPoints < -20)
-    assertTrue(replayLine.label.contains("Cabaret du 12"))
+    assertEquals("Comédien·ne au spectacle précédent", replayLine.label)
+  }
+
+  @Test
+  fun `previous show adjustment describes group when target did not play`() {
+    for (mode in listOf(ImmediateReplayMode.EXCLUDE, ImmediateReplayMode.MALUS)) {
+      val result =
+          ChanceBreakdownCalculator.calculate(
+              candidates = listOf(candidate(alice, "Alice"), candidate(bob, "Bob")),
+              requiredCount = 1,
+              pastSelectionCountByParticipant = emptyMap(),
+              targetParticipantId = alice,
+              roleKey = "player",
+              pipeline = DrawWeightPipelines.withImmediateReplay(mode),
+              playedSameRoleOnImmediatePredecessorByParticipant = mapOf(alice to false, bob to true),
+              immediatePredecessorTitle = "Match Cambo",
+              immediatePredecessorStartsAt = java.time.Instant.parse("2026-12-12T19:00:00Z"),
+          )
+      requireNotNull(result)
+      val line = result.adjustments.single { it.factorId == ImmediateReplayFactor.FACTOR_ID }
+      assertTrue(line.deltaPoints > 0)
+      assertEquals("Un autre candidat était comédien·ne au spectacle précédent", line.label)
+    }
+  }
+
+  @Test
+  fun `snapshot does not attribute historical odds to current factors`() {
+    val args = listOf(candidate(alice, "Alice"), candidate(bob, "Bob"))
+    fun calculate(snapshot: Int?) =
+        requireNotNull(
+            ChanceBreakdownCalculator.calculate(
+                candidates = args,
+                requiredCount = 1,
+                pastSelectionCountByParticipant = emptyMap(),
+                targetParticipantId = alice,
+                roleKey = "player",
+                pipeline = DrawWeightPipelines.withImmediateReplay(ImmediateReplayMode.MALUS),
+                playedSameRoleOnImmediatePredecessorByParticipant = mapOf(alice to false, bob to true),
+                overrideChancePercent = snapshot,
+            ),
+        )
+    val current = calculate(null)
+    val historical = calculate(55)
+    assertTrue(current.adjustments.any { it.factorId == ImmediateReplayFactor.FACTOR_ID })
+    assertTrue(historical.adjustments.none { it.factorId == ImmediateReplayFactor.FACTOR_ID })
+    assertTrue(historical.factorBreakdown.isEmpty())
+    val snapshot = historical.adjustments.single { it.factorId == "snapshot" }
+    assertEquals("Cote enregistrée au tirage", snapshot.label)
+    assertEquals(historical.chancePercent - historical.referencePercent, historical.adjustments.sumOf { it.deltaPoints })
   }
 
   @Test
@@ -329,7 +378,7 @@ class ChanceBreakdownCalculatorTest {
     assertEquals(89, result.chancePercent)
     val roleRequestLine = result.adjustments.single { it.factorId == RoleRequestFactor.FACTOR_ID }
     assertEquals(
-        "A demandé DJ 7 fois sans être tiré·e — bonus aspiration",
+        "DJ demandé 7 fois sans l’obtenir",
         roleRequestLine.label,
     )
     assertEquals(39, roleRequestLine.deltaPoints)

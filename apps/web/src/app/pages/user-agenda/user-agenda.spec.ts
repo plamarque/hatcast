@@ -271,6 +271,7 @@ describe('UserAgenda', () => {
   it('redirige vers connexion avec snackbar si la session est invalide', async () => {
     auth.ensureHatcastSession.mockResolvedValue({ ok: false, status: 401 })
     auth.sessionUser.set(null)
+    agendaApi.listAgenda.mockResolvedValue({ ok: false, status: 401 })
     Object.defineProperty(router, 'url', { value: '/agenda', configurable: true })
 
     await settle(fixture)
@@ -282,7 +283,9 @@ describe('UserAgenda', () => {
     )
     expect(getPendingPostLoginRedirect()).toBe('/agenda')
     expect(navigateSpy).toHaveBeenCalledWith(['/connexion'], { replaceUrl: true })
-    expect(agendaApi.listAgenda).not.toHaveBeenCalled()
+    expect(agendaApi.listAgenda).toHaveBeenCalledOnce()
+    expect(fixture.nativeElement.querySelectorAll('app-agenda-event-card')).toHaveLength(0)
+    expect(troupeContext.load).not.toHaveBeenCalled()
   })
 
   it('redirige vers connexion quand le chargement agenda retourne 401', async () => {
@@ -522,6 +525,7 @@ describe('UserAgenda', () => {
     }).compileComponents()
 
     router = TestBed.inject(Router)
+    Object.defineProperty(router, 'url', { value: '/agenda', configurable: true })
     navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true)
     fixture = TestBed.createComponent(UserAgenda)
     await settle(fixture)

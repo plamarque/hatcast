@@ -521,7 +521,7 @@ Per-candidate waterfall breakdown: how `chancePercent` differs from a **pure dra
 | `aheadCount` | Count of candidates with **strictly higher** `chancePercent` than the subject (= `pool.peers.length` when peers are returned). |
 | `tiedAtChanceCount` | Candidates sharing the subject’s `chancePercent` (including the subject); used for ex-aequo copy in UI. |
 | `chancePercent` | Effective % with `DrawWeightPipelines.DEFAULT` (or draw snapshot on retrospective events when present). |
-| `adjustments[]` | `{ factorId, label, deltaPoints }` — one row per **explainability** pipeline factor; **omit** `deltaPoints === 0` and **omit** `equity_tag` (category scope only). Sorted by \|delta\| desc. |
+| `adjustments[]` | `{ factorId, label, deltaPoints }` — one row per **explainability** pipeline factor; **omit** `deltaPoints === 0` and **omit** `equity_tag` (category scope only). Sorted by \|delta\| desc. A retrospective draw snapshot without factor history uses only a `snapshot` adjustment, when nonzero; current factors are not attributed to the historical draw. |
 | `requiredCount` | Places to fill for the role (multi-place hint in UI header). |
 | `pool.peers` | Candidates with **strictly higher** `chancePercent` than the subject, desc. **Not** rendered as a peer list in as-shipped UI (rank summary only); still returned for API completeness / client fallback when rank fields are absent. |
 | `factorBreakdown` | Optional engine detail (`multiplier`, `label`) — tests / diagnostics, not MVP UI. |
@@ -546,7 +546,11 @@ Per-candidate waterfall breakdown: how `chancePercent` differs from a **pure dra
 
 ### Labels
 
-`PastParticipationFactor` (`past_participation`): « Déjà {rôle} {n} fois » ou « Jamais {rôle} » si `n = 0` (`RoleLabels`). Count `n` is **category-scoped** for the event’s compartment.
+- `past_participation`: « MC 2 fois en Apéroc » or « Jamais MC en Apéroc ». The category suffix uses the troupe's label when available.
+- `immediate_replay`: « MC au spectacle précédent » if the target held the role, or « Un autre candidat était MC au spectacle précédent » when the adjustment comes from other candidates.
+- `role_request`: « MC demandé 2 fois sans l’obtenir » for the target's own unfulfilled requests, or « Demandes d’autres candidats pour ce rôle » when the target has none.
+
+`ImmediateReplayFactor` (`immediate_replay`): the personal « Déjà {rôle} » label applies only when the target held that role at the predecessor; otherwise a pool-wide change describes its effect on other candidates.
 
 **Not shown in breakdown:** `equity_tag` / « Compté dans un autre type de spectacle » (removed 2026-06-23 — see ISSUES BUG-012).
 

@@ -47,7 +47,7 @@ describe('LastVisitedSeasonShortcutService', () => {
 
     await service().refresh()
 
-    expect(service().link()).toEqual(['/saison', 'festibask'])
+    expect(service().link()).toEqual(['/saison', 'troupe', 'festibask'])
     expect(service().label()).toBe('Ma saison · Ligue 2026')
     expect(service().troupeSlug()).toBe('troupe')
     expect(service().troupeName()).toBe('Troupe')
@@ -87,7 +87,7 @@ describe('LastVisitedSeasonShortcutService', () => {
       .mockReturnValueOnce(first)
       .mockResolvedValue({
         kind: 'resolved',
-        troupe: { id: 't1', name: 'Troupe' },
+        troupe: { id: 't1', name: 'Troupe', slug: 'troupe' },
         season: { id: 's2', slug: 'ligue-b', title: 'Ligue B' } as SeasonResponse,
       })
 
@@ -97,7 +97,7 @@ describe('LastVisitedSeasonShortcutService', () => {
     const newer = svc.refresh()
     resolveFirst!({
       kind: 'resolved',
-      troupe: { id: 't1', name: 'Troupe' },
+      troupe: { id: 't1', name: 'Troupe', slug: 'troupe' },
       season: { id: 's1', slug: 'festibask', title: 'Ligue 2026' } as SeasonResponse,
     })
 
@@ -105,14 +105,14 @@ describe('LastVisitedSeasonShortcutService', () => {
 
     expect(svc.label()).toBe('Ma saison · Ligue B')
     expect(svc.ariaLabel()).toBe('Ma saison : Ligue B')
-    expect(svc.link()).toEqual(['/saison', 'ligue-b'])
+    expect(svc.link()).toEqual(['/saison', 'troupe', 'ligue-b'])
   })
 
   it('does not set loading again after the first refresh completed', async () => {
     rememberLastVisitedSeasonSlug('festibask')
     resolver.resolveSeasonSlug.mockResolvedValue({
       kind: 'resolved',
-      troupe: { id: 't1', name: 'Troupe' },
+      troupe: { id: 't1', name: 'Troupe', slug: 'troupe' },
       season: { id: 's1', slug: 'festibask', title: 'Ligue 2026' } as SeasonResponse,
     })
 
@@ -131,7 +131,7 @@ describe('LastVisitedSeasonShortcutService', () => {
 
     resolveSecond!({
       kind: 'resolved',
-      troupe: { id: 't1', name: 'Troupe' },
+      troupe: { id: 't1', name: 'Troupe', slug: 'troupe' },
       season: { id: 's1', slug: 'festibask', title: 'Ligue 2026' } as SeasonResponse,
     })
     await inFlight

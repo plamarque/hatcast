@@ -43,7 +43,7 @@ describe('MemberSeasonShortcut', () => {
     rememberLastVisitedSeasonSlug('festibask')
     resolver.resolveSeasonSlug.mockResolvedValue({
       kind: 'resolved',
-      troupe: { id: 't1', name: 'Troupe' },
+      troupe: { id: 't1', name: 'Troupe', slug: 'troupe' },
       season: { id: 's1', slug: 'festibask', title: 'Ligue 2026' } as SeasonResponse,
     })
 
@@ -52,7 +52,7 @@ describe('MemberSeasonShortcut', () => {
     fixture.detectChanges()
 
     const link = fixture.nativeElement.querySelector('a') as HTMLAnchorElement
-    expect(link.getAttribute('href')).toBe('/saison/festibask')
+    expect(link.getAttribute('href')).toBe('/saison/troupe/festibask')
     expect(link.textContent).toContain('Ma saison')
     expect(link.textContent).toContain('Ligue 2026')
     expect(link.getAttribute('aria-label')).toBe('Ma saison : Ligue 2026')

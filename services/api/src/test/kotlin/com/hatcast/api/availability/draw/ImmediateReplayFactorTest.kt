@@ -2,7 +2,6 @@ package com.hatcast.api.availability.draw
 
 import com.hatcast.api.user.MemberGender
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import java.time.Instant
@@ -60,12 +59,10 @@ class ImmediateReplayFactorTest {
     }
 
     @Test
-    fun `adjustment label includes predecessor title and date`() {
+    fun `adjustment label names the role at the previous show`() {
         val factor = ImmediateReplayFactor(ImmediateReplayMode.EXCLUDE)
         val label = factor.adjustmentLabel(context(triggered = true))
-        assertTrue(label.contains("Cabaret du 12"))
-        assertTrue(label.contains("mai 2031"))
-        assertTrue(label.startsWith("Déjà Comédien"))
+        assertEquals("Comédien au spectacle précédent", label)
     }
 
     @Test

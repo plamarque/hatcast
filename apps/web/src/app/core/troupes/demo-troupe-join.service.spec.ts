@@ -13,7 +13,7 @@ import { TroupeSeasonResolverService } from './troupe-season-resolver.service'
 describe('DemoTroupeJoinService', () => {
   let troupeApi: { joinTroupe: ReturnType<typeof vi.fn> }
   let troupeContext: { reloadAndSelect: ReturnType<typeof vi.fn> }
-  let resolver: { resolveSeasonSlug: ReturnType<typeof vi.fn> }
+  let resolver: { resolveSeasonInTroupe: ReturnType<typeof vi.fn> }
   let router: { navigate: ReturnType<typeof vi.fn> }
   let snack: { open: ReturnType<typeof vi.fn> }
 
@@ -23,7 +23,7 @@ describe('DemoTroupeJoinService', () => {
     troupeApi = { joinTroupe: vi.fn().mockResolvedValue({ ok: true, status: 200 }) }
     troupeContext = { reloadAndSelect: vi.fn().mockResolvedValue(true) }
     resolver = {
-      resolveSeasonSlug: vi.fn().mockResolvedValue({ kind: 'resolved', troupe: {}, season: {} }),
+      resolveSeasonInTroupe: vi.fn().mockResolvedValue({ kind: 'resolved', troupe: {}, season: {} }),
     }
     router = { navigate: vi.fn().mockResolvedValue(true) }
     snack = { open: vi.fn() }
@@ -52,6 +52,7 @@ describe('DemoTroupeJoinService', () => {
     expect(result).toEqual({ ok: true })
     expect(troupeApi.joinTroupe).toHaveBeenCalledWith(DEMO_TROUPE_ID)
     expect(troupeContext.reloadAndSelect).toHaveBeenCalledWith(DEMO_TROUPE_ID)
+    expect(resolver.resolveSeasonInTroupe).toHaveBeenCalledWith('demo', DEMO_ACTIVE_SEASON_SLUG)
     expect(snack.open).toHaveBeenCalledWith(
       'Tu as rejoint la troupe de démonstration.',
       'OK',
@@ -62,7 +63,7 @@ describe('DemoTroupeJoinService', () => {
   })
 
   it('retombe sur le hub Démo si la saison active est introuvable', async () => {
-    resolver.resolveSeasonSlug.mockResolvedValue({ kind: 'not-found' })
+    resolver.resolveSeasonInTroupe.mockResolvedValue({ kind: 'not-found' })
 
     const result = await service().join()
 
