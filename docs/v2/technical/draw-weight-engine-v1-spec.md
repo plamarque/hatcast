@@ -546,7 +546,9 @@ Per-candidate waterfall breakdown: how `chancePercent` differs from a **pure dra
 
 ### Labels
 
-`PastParticipationFactor` (`past_participation`): « Déjà {rôle} {n} fois » ou « Jamais {rôle} » si `n = 0` (`RoleLabels`). Count `n` is **category-scoped** for the event’s compartment.
+- `past_participation`: « MC 2 fois en Apéroc » or « Jamais MC en Apéroc ». The category suffix uses the troupe's label when available.
+- `immediate_replay`: « MC au spectacle précédent » if the target held the role, or « Un autre candidat était MC au spectacle précédent » when the adjustment comes from other candidates.
+- `role_request`: « MC demandé 2 fois sans l’obtenir » for the target's own unfulfilled requests, or « Demandes d’autres candidats pour ce rôle » when the target has none.
 
 `ImmediateReplayFactor` (`immediate_replay`): the personal « Déjà {rôle} » label applies only when the target held that role at the predecessor; otherwise a pool-wide change describes its effect on other candidates.
 

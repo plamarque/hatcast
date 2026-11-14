@@ -70,7 +70,7 @@ class ChanceBreakdownCalculatorTest {
   }
 
   @Test
-  fun `veteran label uses gendered role without season wording`() {
+  fun `veteran label uses gendered role and the configured category`() {
     val candidates =
         listOf(
             candidate(alice, "Alice"),
@@ -85,9 +85,10 @@ class ChanceBreakdownCalculatorTest {
             targetParticipantId = bob,
             roleKey = "player",
             targetParticipantGender = MemberGender.MALE,
+            historyCategoryLabel = "Apéroc",
         )
     requireNotNull(result)
-    assertEquals("Déjà Comédien 2 fois", result.adjustments.first().label)
+    assertEquals("Comédien 2 fois en Apéroc", result.adjustments.first().label)
   }
 
   @Test
@@ -299,7 +300,7 @@ class ChanceBreakdownCalculatorTest {
     requireNotNull(result)
     val replayLine = result.adjustments.first { it.factorId == ImmediateReplayFactor.FACTOR_ID }
     assertTrue(replayLine.deltaPoints < -20)
-    assertTrue(replayLine.label.contains("Cabaret du 12"))
+    assertEquals("Comédien·ne au spectacle précédent", replayLine.label)
   }
 
   @Test
@@ -320,8 +321,7 @@ class ChanceBreakdownCalculatorTest {
       requireNotNull(result)
       val line = result.adjustments.single { it.factorId == ImmediateReplayFactor.FACTOR_ID }
       assertTrue(line.deltaPoints > 0)
-      assertEquals("Effet du spectacle « Match Cambo » (12 décembre 2026) sur les autres candidats", line.label)
-      assertTrue(!line.label.startsWith("Déjà"))
+      assertEquals("Un autre candidat était comédien·ne au spectacle précédent", line.label)
     }
   }
 
@@ -378,7 +378,7 @@ class ChanceBreakdownCalculatorTest {
     assertEquals(89, result.chancePercent)
     val roleRequestLine = result.adjustments.single { it.factorId == RoleRequestFactor.FACTOR_ID }
     assertEquals(
-        "A demandé DJ 7 fois sans être tiré·e — bonus aspiration",
+        "DJ demandé 7 fois sans l’obtenir",
         roleRequestLine.label,
     )
     assertEquals(39, roleRequestLine.deltaPoints)

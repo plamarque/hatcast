@@ -30,3 +30,8 @@ context: []
 - Medium, defer: a historical target chance is ranked against current peer chances, so the resulting rank can combine different contexts.
 - Low, reject: when the target did play, the personal history label is factually true; the group effect can be material but the proposed extra wording would add complexity to an already long label.
 - Medium, defer: a role-request factor can attribute a pool-wide negative delta to a target with no role requests; this pre-existing related factor is outside the immediate replay correction.
+
+## Mobile Recipe Copy Follow-up
+
+- Use short role labels for past assignments, immediate replay and unfulfilled requests. Show the configured history category when available. Name other candidates explicitly when the target has no personal replay or request adjustment.
+- Mobile acceptance approved by Patrice after the demonstration of eight cases. 65 focused Kotlin tests passed before local integration.

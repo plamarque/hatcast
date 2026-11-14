@@ -41,6 +41,7 @@ object ChanceBreakdownCalculator {
         immediatePredecessorTitle: String? = null,
         immediatePredecessorStartsAt: java.time.Instant? = null,
         unfulfilledRoleRequestCountByParticipant: Map<UUID, Int> = emptyMap(),
+        historyCategoryLabel: String? = null,
     ): Result? {
         if (candidates.isEmpty()) {
             return null
@@ -108,6 +109,7 @@ object ChanceBreakdownCalculator {
                     immediatePredecessorTitle = immediatePredecessorTitle,
                     immediatePredecessorStartsAt = immediatePredecessorStartsAt,
                     unfulfilledRoleRequestCount = unfulfilledCount,
+                    historyCategoryLabel = historyCategoryLabel,
                 )
             val multiplier = factor.multiplier(context)
             val label =
