@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideRouter, Router } from '@angular/router';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 
 import { PushNotificationsService } from '../../../core/push/push-notifications.service';
 import {
@@ -39,6 +39,10 @@ describe('PushOptInDialog', () => {
     dialogClose = vi.fn();
     dialogDisableClose = false;
     markStandalone = vi.fn();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   async function createFixture(): Promise<ComponentFixture<PushOptInDialog>> {

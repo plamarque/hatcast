@@ -104,15 +104,17 @@ describe('SeasonHome', () => {
   let troupeApi: {
     listMyTroupes: ReturnType<typeof vi.fn>
     listCategories: ReturnType<typeof vi.fn>
+    resolveTroupeContextBySlug: ReturnType<typeof vi.fn>
   }
   let seasonsApi: {
     getSeasonBySlug: ReturnType<typeof vi.fn>
     getSeason: ReturnType<typeof vi.fn>
     getSeasonWorkspace: ReturnType<typeof vi.fn>
+    resolveSeasonByTroupeAndSeasonSlug: ReturnType<typeof vi.fn>
   }
   let eventsApi: { listEvents: ReturnType<typeof vi.fn> }
   let statisticsApi: { loadStatistics: ReturnType<typeof vi.fn> }
-  const paramMap$ = new BehaviorSubject(convertToParamMap({ slug: 'season-a' }))
+  const paramMap$ = new BehaviorSubject(convertToParamMap({ troupeSlug: 'troupe-1', seasonSlug: 'season-a' }))
   const queryParamMap$ = new BehaviorSubject(convertToParamMap({}))
 
   afterEach(() => {
@@ -121,7 +123,7 @@ describe('SeasonHome', () => {
 
   beforeEach(async () => {
     localStorage.clear()
-    paramMap$.next(convertToParamMap({ slug: 'season-a' }))
+    paramMap$.next(convertToParamMap({ troupeSlug: 'troupe-1', seasonSlug: 'season-a' }))
     router = { navigate: vi.fn() }
     dialog = { open: vi.fn() }
     snack = { open: vi.fn() }
@@ -138,10 +140,12 @@ describe('SeasonHome', () => {
         data: [troupe('troupe-1'), troupe('troupe-2')],
       }),
       listCategories: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
+      resolveTroupeContextBySlug: vi.fn().mockResolvedValue({ ok: false, status: 404 }),
     }
     seasonsApi = {
       getSeasonBySlug: vi.fn().mockResolvedValue({ ok: true, status: 200, data: season('season-1', 'troupe-1') }),
       getSeason: vi.fn(),
+      resolveSeasonByTroupeAndSeasonSlug: vi.fn().mockResolvedValue({ ok: false, status: 404 }),
       getSeasonWorkspace: vi.fn().mockImplementation(async (seasonId: string) =>
         workspaceBootstrap(seasonId),
       ),
@@ -219,7 +223,7 @@ describe('SeasonHome', () => {
 
     component.openEvent('event-1')
 
-    expect(router.navigate).toHaveBeenCalledWith(['/saison', 'season-a', 'event', 'event-1'])
+    expect(router.navigate).toHaveBeenCalledWith(['/saison', 'troupe-1', 'season-a', 'event', 'event-1'])
   })
 
   it('redirects legacy event_details modal query to event detail route', async () => {
@@ -230,7 +234,7 @@ describe('SeasonHome', () => {
 
     await vi.waitFor(() => {
       expect(router.navigate).toHaveBeenCalledWith(
-        ['/saison', 'season-a', 'event', 'event-legacy'],
+        ['/saison', 'troupe-1', 'season-a', 'event', 'event-legacy'],
         expect.objectContaining({
           queryParams: { tab: 'dispos' },
           replaceUrl: true,
@@ -268,29 +272,30 @@ describe('SeasonHome', () => {
   })
 
   it('calls rememberLastVisitedTroupeSlug when season resolves', async () => {
-    const rememberTroupe = vi.spyOn(lastVisitedTroupeStorage, 'rememberLastVisitedTroupeSlug')
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(rememberTroupe).toHaveBeenCalledWith('troupe-1')
+      expect(lastVisitedTroupeStorage.getLastVisitedTroupeSlug()).toBe('troupe-1')
     })
-    rememberTroupe.mockRestore()
   })
 
-  it('redirige vers /agenda quand l’utilisateur n’a aucune troupe', async () => {
+  it('redirige vers /agenda quand aucune troupe ni saison invitée ne correspond', async () => {
     troupeApi.listMyTroupes.mockResolvedValue({ ok: true, status: 200, data: [] })
-    paramMap$.next(convertToParamMap({ slug: 'deplacements-2026-27' }))
     fixture.detectChanges()
 
     await vi.waitFor(() => {
       expect(router.navigate).toHaveBeenCalledWith(['/agenda'], { replaceUrl: true })
     })
+    expect(troupeApi.resolveTroupeContextBySlug).toHaveBeenCalledWith('troupe-1')
+    expect(seasonsApi.getSeasonBySlug).not.toHaveBeenCalled()
+    expect(seasonsApi.resolveSeasonByTroupeAndSeasonSlug).toHaveBeenCalledWith('troupe-1', 'season-a')
+    expect(seasonsApi.getSeasonWorkspace).not.toHaveBeenCalled()
     expect(snack.open).not.toHaveBeenCalled()
   })
 
   it('redirige vers le hub troupe quand le slug de saison est inconnu', async () => {
     seasonsApi.getSeasonBySlug.mockResolvedValue({ ok: false, status: 404 })
-    paramMap$.next(convertToParamMap({ slug: 'inconnue' }))
+    paramMap$.next(convertToParamMap({ troupeSlug: 'troupe-1', seasonSlug: 'inconnue' }))
     fixture.detectChanges()
 
     await vi.waitFor(() => {
@@ -299,16 +304,17 @@ describe('SeasonHome', () => {
       })
     })
     expect(snack.open).not.toHaveBeenCalled()
+    expect(seasonsApi.resolveSeasonByTroupeAndSeasonSlug).toHaveBeenCalledWith('troupe-1', 'inconnue')
   })
 
-  it('résout la saison dans la troupe sélectionnée avant les autres', async () => {
-    localStorage.setItem('hatcast.selectedTroupeId', 'troupe-2')
+  it('résout la saison dans la troupe indiquée par la route', async () => {
+    localStorage.setItem('hatcast.selectedTroupeId', 'troupe-1')
+    paramMap$.next(convertToParamMap({ troupeSlug: 'troupe-2', seasonSlug: 'season-a' }))
     seasonsApi.getSeasonBySlug.mockResolvedValueOnce({
       ok: true,
       status: 200,
       data: season('season-2', 'troupe-2'),
     })
-
     fixture.detectChanges()
 
     await vi.waitFor(() => {
@@ -318,19 +324,17 @@ describe('SeasonHome', () => {
     expect((fixture.componentInstance as unknown as { troupeId: () => string | null }).troupeId()).toBe('troupe-2')
   })
 
-  it('bascule vers une autre troupe quand elle est seule à posséder le slug', async () => {
+  it('ne recherche pas le slug dans une autre troupe sur une route qualifiée', async () => {
     localStorage.setItem('hatcast.selectedTroupeId', 'troupe-1')
-    seasonsApi.getSeasonBySlug
-      .mockResolvedValueOnce({ ok: false, status: 404 })
-      .mockResolvedValueOnce({ ok: true, status: 200, data: season('season-2', 'troupe-2') })
-
+    seasonsApi.getSeasonBySlug.mockResolvedValue({ ok: false, status: 404 })
     fixture.detectChanges()
 
     await vi.waitFor(() => {
-      expect(seasonsApi.getSeasonWorkspace).toHaveBeenCalledWith('season-2', expect.any(Object))
+      expect(router.navigate).toHaveBeenCalledWith(['/', 'troupes', 'troupe-1'], { replaceUrl: true })
     })
-    expect((fixture.componentInstance as unknown as { troupeId: () => string | null }).troupeId()).toBe('troupe-2')
-    expect(localStorage.getItem('hatcast.selectedTroupeId')).toBe('troupe-2')
+    expect(seasonsApi.getSeasonBySlug).toHaveBeenCalledOnce()
+    expect(seasonsApi.getSeasonBySlug).toHaveBeenCalledWith('troupe-1', 'season-a')
+    expect(seasonsApi.getSeasonWorkspace).not.toHaveBeenCalled()
   })
 
   it('populates participant filter options from workspace bootstrap', async () => {
@@ -384,7 +388,7 @@ describe('SeasonHome', () => {
     }
     const items = cmp.seasonAdminItems()
     expect(items.map((i) => i.label)).toEqual(['Participants', 'Organisateur·ices', 'Exporter'])
-    expect(items[0]?.routerLink).toEqual(['/saison', 'season-a', 'admin', 'participants'])
+    expect(items[0]?.routerLink).toEqual(['/saison', 'troupe-1', 'season-a', 'admin', 'participants'])
 
     const trigger = fixture.nativeElement.querySelector(
       '.scope-admin-menu__trigger',
@@ -690,7 +694,7 @@ describe('SeasonHome', () => {
 
     cmp.openEditSeason()
 
-    expect(router.navigate).toHaveBeenCalledWith(['/saison', 'nouveau-slug'], {
+    expect(router.navigate).toHaveBeenCalledWith(['/saison', 'troupe-1', 'nouveau-slug'], {
       replaceUrl: true,
       queryParams: { view: 'stats' },
     })
@@ -839,14 +843,14 @@ describe('SeasonHome', () => {
   it('ne charge pas une saison quand le slug est ambigu', async () => {
     Object.defineProperty(fixture.componentInstance, 'troupeSeasonResolver', {
       value: {
-        resolveSeasonSlug: vi.fn().mockResolvedValue({ kind: 'ambiguous', matches: [] }),
+        resolveSeasonInTroupe: vi.fn().mockResolvedValue({ kind: 'ambiguous', matches: [] }),
       },
     })
 
     await fixture.componentInstance['loadTroupeAndSeason']('troupe-a', 'season-a')
 
-    expect(router.navigate).toHaveBeenCalledWith(['/', 'troupes'], { replaceUrl: true })
-    expect(snack.open).not.toHaveBeenCalled()
+    expect(router.navigate).not.toHaveBeenCalled()
+    expect(snack.open).toHaveBeenCalledWith('Impossible de charger la saison.', 'OK', { duration: 6000 })
     expect(organizerApi.mySeasonPermissions).not.toHaveBeenCalled()
     expect(seasonsApi.getSeasonWorkspace).not.toHaveBeenCalled()
     expect(eventsApi.listEvents).not.toHaveBeenCalled()

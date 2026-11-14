@@ -45,7 +45,7 @@ describe('AdminMembres', () => {
     const snack = { open: vi.fn() }
     const queryMap = convertToParamMap(query)
     if (options.slug) {
-      paramMap$.next(convertToParamMap({ slug: options.slug }))
+      paramMap$.next(convertToParamMap({ seasonSlug: options.slug }))
     } else if (options.troupeSlug) {
       paramMap$.next(convertToParamMap({ troupeSlug: options.troupeSlug }))
     } else {
@@ -192,7 +192,7 @@ describe('AdminMembres', () => {
   it('redirige la route legacy saison vers les membres de la troupe', async () => {
     const { router } = await setup(bothPermissions(), {}, {
       slug: 'season-a',
-      routePath: 'saison/:slug/admin/membres',
+      routePath: 'saison/:seasonSlug/admin/membres',
       troupes: [troupe('t1', 'Ma Troupe')],
       getSeasonBySlug: vi.fn().mockResolvedValue({
         ok: true,
@@ -211,7 +211,7 @@ describe('AdminMembres', () => {
   it('redirige un organisateur saison legacy vers les participants', async () => {
     const { router } = await setup(bothPermissions(), {}, {
       slug: 'season-a',
-      routePath: 'saison/:slug/admin/membres',
+      routePath: 'saison/:seasonSlug/admin/membres',
       troupes: [{
         id: 't1',
         name: 'Ma Troupe',
@@ -233,7 +233,7 @@ describe('AdminMembres', () => {
     })
 
     await vi.waitFor(() => {
-      expect(router.navigate).toHaveBeenCalledWith(['/saison', 'season-a', 'admin', 'participants'], {
+      expect(router.navigate).toHaveBeenCalledWith(['/saison', 'troupe', 'season-a', 'admin', 'participants'], {
         replaceUrl: true,
       })
     })

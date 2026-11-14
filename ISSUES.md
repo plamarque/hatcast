@@ -24,6 +24,15 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 - **Expected:** Attribute a pool effect to the other candidates and a personal factor to the target only when applicable.
 - **Context:** Identified by code analysis during story 19.23 review; not independently reproduced in production.
 
+### BUG-121 — Agenda session expiry triggers duplicate login feedback
+- **ID**: BUG-121
+- **Status**: Open (2026-11-14)
+- **Severity**: Low
+- **Affected area**: V2 member agenda bootstrap
+- **Observed behavior**: When both the parallel session check and agenda request return 401, `UserAgenda.loadAgenda()` and `ngOnInit()` each call `redirectToLogin()`. A targeted test confirmed two snackbar calls and two navigations to login for one bootstrap.
+- **Expected behavior**: A single session expiry should lead to one login redirection and one notification.
+- **Evidence**: `apps/web/src/app/pages/user-agenda/user-agenda.ts` (`ngOnInit`, `loadAgenda`, `redirectToLogin`); `user-agenda.spec.ts` invalid-session scenario under Node 20. The API endpoint requires authentication and returns 401 to anonymous requests.
+
 ### BUG-118 — Displayed draw probability can differ from the actual draw probability
 
 - **Status:** Open. **Severity:** Medium. **Affected area:** V2 weighted draw chance display.
@@ -1184,10 +1193,12 @@ not active work; items listed in the two sections above remain actionable.
 
 ### LIMIT-007 — V2 web unit suite is red and non-deterministic
 - **ID**: LIMIT-007
-- **Status**: Open
+- **Status**: Fixed locally under Node 20 and 22 (2026-11-14)
 - **Severity**: Medium (development confidence / CI readiness)
 - **Affected area**: V2 Angular/Vitest unit suite (`apps/web`)
 - **Observed behavior**: On the same commit and dependency lock, three executions of `npm run test -w @hatcast/web -- --watch=false` failed with different aggregates: 20/89, 18/78, then 16/76 failed files/tests. Each run also reported one unhandled error.
+- **Maintenance evidence (2026-11-14)**: On Node 20 at `8ae87e8c8e6912848658865d768803b781931e83`, a baseline run had 53 failures and one unhandled error among 2,281 tests. An intermediate run after partial fixture corrections had 11 failures and one unhandled rejection.
+- **Verification (2026-11-14)**: Under Node 20.20.2, two consecutive full runs passed all 202 files and 2,281 tests without unhandled errors. Test files run in isolated Vitest contexts; stale fixtures were corrected and global storage stubs restored. A subsequent Node 22.12.0 run also passed all 202 files and 2,281 tests without unhandled errors. This is local evidence.
 - **Expected behavior**: The suite is reproducible on unchanged inputs and eventually green before it becomes a CI gate. A failure must identify either a product regression or the stale test/mock that needs updating.
 - **Evidence**: Baseline and remediation order: `_bmad-output/implementation-artifacts/deferred-work.md` (DW-120). The observed clusters include incomplete troupe/season resolver doubles, canonical-route expectations, authentication expectations after BUG-014, and member bootstrap expectations.
 - **Notes/context**: Run at `0d77badfb4b49134627c43126db9c96e5e8f76a9` with Node `v22.12.0`, npm `10.9.0`, and root `package-lock.json` SHA-256 `e29ea70abcd8d15866a29ee14c7898948153b1a1702cc9c4dc2c6024c3d5a11d`.
@@ -1466,6 +1477,6 @@ not active work; items listed in the two sections above remain actionable.
 - **Notes/context** : Investigation 2026-07-12 → [member-externe-conversion-investigation.md](_bmad-output/implementation-artifacts/investigations/member-externe-conversion-investigation.md). **Décision produit :** conversion bidirectionnelle + **mode de participation par saison** ([ADR-0022](docs/adr/0022-season-participation-mode-role-lifecycle.md)). **Livré :** story **2.26** (recette OK 2026-07-12).
 
 ### LIMIT-007 — Complément de preuve : attente de test agenda antérieure au chargement parallèle
-- **Status**: Open (2026-09-17)
+- **Status**: Resolved (2026-11-14; parallel loading confirmed, separate BUG-121 recorded)
 - **Observed behavior**: `user-agenda.spec.ts` attend zéro appel agenda en cas de session invalide, tandis que `ngOnInit` lance session, agenda et préférences dans `Promise.all`. Le test et ce bloc sont identiques au baseline `aaf7dbb4c6e2da395e9baeb4c91e2dec03b28a6c`. Vérification ciblée sous Node 26 avec `NODE_OPTIONS=--no-experimental-webstorage` : seule cette attente échoue ; le reste des tests pages passe.
-- **Scope**: Décider séparément si le bootstrap doit attendre la session ou si le test doit accepter la requête anticipée. Aucun test désactivé dans BUG-021.
+- **Resolution**: Le chargement parallèle est validé. L’API exige une session authentifiée et limite les données au principal ; le test couvre une réponse agenda 401 et la redirection. Le double feedback lorsque les deux requêtes échouent est suivi par BUG-121.

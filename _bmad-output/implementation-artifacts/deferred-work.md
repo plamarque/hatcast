@@ -46,3 +46,11 @@ status: open
 - source_spec: `spec-25-25-lire-les-anecdotes-completes-avant-de-choisir.md`
   summary: Verify screen-reader navigation of Advent radio choices and story controls.
   evidence: Unverified medium accessibility risk: controls are individually keyboard-operable, but no assistive-technology session checked their announcements inside the radiogroup.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-limit-007-angular-suite.md`
+  summary: Verify agenda visibility when a successful agenda response races a failed session check.
+  evidence: Unverified medium: control both completion orders and failed navigation to determine whether loaded data remains visible; the API requires authentication and scopes results to the principal.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-limit-007-angular-suite.md`
+  summary: Fix duplicate session-expiry feedback and navigation tracked as BUG-121.
+  evidence: Concurrent session and agenda 401 responses both call redirectToLogin; add a single-feedback regression test when fixing the pre-existing behavior.

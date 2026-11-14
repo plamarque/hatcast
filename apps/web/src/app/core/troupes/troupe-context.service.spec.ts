@@ -158,7 +158,7 @@ describe('TroupeContextService', () => {
 
     const resolved = await service().resolveTroupeBySlug('les-improbots')
 
-    expect(resolved?.slug).toBe('troupe-improbots')
+    expect(resolved?.slug).toBe('les-improbots')
     expect(resolved?.membership.baselineRole).toBe('EXTERNE')
     expect(api.resolveTroupeContextBySlug).toHaveBeenCalledWith('les-improbots')
     expect(api.getAdminTroupeBySlug).not.toHaveBeenCalled()

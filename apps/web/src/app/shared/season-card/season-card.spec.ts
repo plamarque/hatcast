@@ -18,7 +18,7 @@ describe('SeasonCard', () => {
       archived?: boolean
     } = {},
   ) {
-    const troupeContext = { selectTroupe: vi.fn() }
+    const troupeContext = { selectTroupe: vi.fn(), findTroupeBySlug: vi.fn().mockReturnValue({ id: 'troupe-id' }) }
     await TestBed.configureTestingModule({
       imports: [SeasonCard],
       providers: [
@@ -59,7 +59,7 @@ describe('SeasonCard', () => {
     expect(fixture.nativeElement.querySelector('a[mat-flat-button]')).toBeNull()
   })
 
-  it('scopes navigation to troupe when troupeId is set', async () => {
+  it('scopes navigation to troupe when troupeSlug is set', async () => {
     const { fixture, troupeContext } = await setup({
       slug: 'saison-a',
       troupeSlug: 'troupe-demo',
@@ -72,7 +72,8 @@ describe('SeasonCard', () => {
     ) as HTMLAnchorElement
     link.click()
 
-    expect(troupeContext.selectTroupe).toHaveBeenCalledWith('troupe-demo')
+    expect(troupeContext.findTroupeBySlug).toHaveBeenCalledWith('troupe-demo')
+    expect(troupeContext.selectTroupe).toHaveBeenCalledWith('troupe-id')
     expect(navigate).toHaveBeenCalledWith(['/saison', 'troupe-demo', 'saison-a'])
   })
 
