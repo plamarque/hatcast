@@ -61,7 +61,7 @@ The user approved parallel agenda loading after verification of API authenticati
 - **false:** The qualified resolver does not return ambiguity, but its consumer defensively handles the declared union. Legacy ambiguity remains covered in `troupe-season-resolver.service.spec.ts` through `resolveSeasonSlug`.
 - **maybe-false — deferred (unverified medium):** Agenda success preceding a failed session is not covered for both completion orders; API authentication is established, but a controlled asynchronous test is needed to establish whether data can remain visible after failed navigation.
 - **low — deferred:** Duplicate 401 notifications and navigation are pre-existing, confirmed, and tracked as BUG-121; a future fix should assert single feedback.
-- **medium — patched:** Node 22 was part of historical evidence while green verification used Node 20. LIMIT-007 now explicitly limits the local result to Node 20 and marks Node 22 unverified.
+- **medium — patched:** Node 22 was part of historical evidence while green verification used Node 20. LIMIT-007 was initially limited to Node 20; a subsequent Node 22.12.0 run also passed.
 
 Edge-case and verification-gap review layers reported no findings.
 
@@ -77,6 +77,7 @@ Edge-case and verification-gap review layers reported no findings.
 ### Results (2026-11-14)
 
 - Node 20.20.2: two consecutive full runs passed 202 files and 2,281 tests, with no unhandled errors (36.70 s and 36.45 s). After review fixes, two more full runs passed the same counts (37.20 s and 36.65 s).
+- Node 22.12.0: one full run passed 202 files and 2,281 tests without unhandled errors (38.51 s).
 - Targeted checks: agenda 28/28, admin membres 9/9, season home 26/26.
 - Vitest file isolation prevents incompatible Firebase module mocks from leaking across suites; storage stubs are restored after each affected test.
 - Agenda API security checked in SecurityConfig, controller and user-scoped read-only service; the existing integration test asserts anonymous requests return 401. The targeted Gradle run could not start because the sandbox denied its wrapper lock under the user Gradle cache.

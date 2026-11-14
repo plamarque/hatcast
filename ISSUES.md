@@ -1179,12 +1179,12 @@ not active work; items listed in the two sections above remain actionable.
 
 ### LIMIT-007 — V2 web unit suite is red and non-deterministic
 - **ID**: LIMIT-007
-- **Status**: Fixed locally under Node 20 (2026-11-14); Node 22 remains unverified
+- **Status**: Fixed locally under Node 20 and 22 (2026-11-14)
 - **Severity**: Medium (development confidence / CI readiness)
 - **Affected area**: V2 Angular/Vitest unit suite (`apps/web`)
 - **Observed behavior**: On the same commit and dependency lock, three executions of `npm run test -w @hatcast/web -- --watch=false` failed with different aggregates: 20/89, 18/78, then 16/76 failed files/tests. Each run also reported one unhandled error.
 - **Maintenance evidence (2026-11-14)**: On Node 20 at `8ae87e8c8e6912848658865d768803b781931e83`, a baseline run had 53 failures and one unhandled error among 2,281 tests. An intermediate run after partial fixture corrections had 11 failures and one unhandled rejection.
-- **Verification (2026-11-14)**: Under Node 20.20.2, two consecutive full runs passed all 202 files and 2,281 tests without unhandled errors. Test files run in isolated Vitest contexts; stale fixtures were corrected and global storage stubs restored. This is local Node 20 evidence only; Node 22 has not been verified after the changes.
+- **Verification (2026-11-14)**: Under Node 20.20.2, two consecutive full runs passed all 202 files and 2,281 tests without unhandled errors. Test files run in isolated Vitest contexts; stale fixtures were corrected and global storage stubs restored. A subsequent Node 22.12.0 run also passed all 202 files and 2,281 tests without unhandled errors. This is local evidence.
 - **Expected behavior**: The suite is reproducible on unchanged inputs and eventually green before it becomes a CI gate. A failure must identify either a product regression or the stale test/mock that needs updating.
 - **Evidence**: Baseline and remediation order: `_bmad-output/implementation-artifacts/deferred-work.md` (DW-120). The observed clusters include incomplete troupe/season resolver doubles, canonical-route expectations, authentication expectations after BUG-014, and member bootstrap expectations.
 - **Notes/context**: Run at `0d77badfb4b49134627c43126db9c96e5e8f76a9` with Node `v22.12.0`, npm `10.9.0`, and root `package-lock.json` SHA-256 `e29ea70abcd8d15866a29ee14c7898948153b1a1702cc9c4dc2c6024c3d5a11d`.
