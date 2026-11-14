@@ -67,7 +67,7 @@ describe('ResetPassword', () => {
         },
         {
           provide: AuthApiService,
-          useValue: { signInWithIdentityPlatformIdToken: idpMock },
+          useValue: { signInWithIdentityPlatformIdToken: idpMock, sessionUser: () => null },
         },
         { provide: MatSnackBar, useValue: { open: snackOpen } },
       ],
@@ -103,7 +103,7 @@ describe('ResetPassword', () => {
           useValue: { snapshot: { queryParamMap: convertToParamMap({ oobCode: 'x' }) } },
         },
         { provide: Router, useValue: { navigate: navigate } },
-        { provide: AuthApiService, useValue: { signInWithIdentityPlatformIdToken: vi.fn() } },
+        { provide: AuthApiService, useValue: { signInWithIdentityPlatformIdToken: vi.fn(), sessionUser: () => null } },
         { provide: MatSnackBar, useValue: { open: snackOpen } },
       ],
     }).compileComponents()
@@ -171,7 +171,7 @@ describe('ResetPassword', () => {
 
     expect(confirm).toHaveBeenCalledWith(mockAuth, 'oob', 'longenough')
     expect(signIn).toHaveBeenCalled()
-    expect(idpMock).toHaveBeenCalledWith('jwt-token')
+    expect(idpMock).toHaveBeenCalledWith('jwt-token', true)
     expect(navigate).toHaveBeenCalledWith(['/agenda'], { replaceUrl: true })
   })
 

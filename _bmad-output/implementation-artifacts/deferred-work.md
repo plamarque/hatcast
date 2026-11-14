@@ -54,3 +54,11 @@ status: open
 - source_spec: `spec-19-23-expliquer-les-variations-de-chances-dues-au-groupe.md`
   summary: Align retrospective reference and ranking with historical draw context.
   evidence: The calculator uses the current candidate pool for reference and peers while the target chance may come from a stored historical snapshot; participant counts or formulas can differ.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-limit-007-angular-suite.md`
+  summary: Verify agenda visibility when a successful agenda response races a failed session check.
+  evidence: Unverified medium: control both completion orders and failed navigation to determine whether loaded data remains visible; the API requires authentication and scopes results to the principal.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-limit-007-angular-suite.md`
+  summary: Fix duplicate session-expiry feedback and navigation tracked as BUG-121.
+  evidence: Concurrent session and agenda 401 responses both call redirectToLogin; add a single-feedback regression test when fixing the pre-existing behavior.

@@ -228,7 +228,7 @@ describe('AdminEventParticipants', () => {
     })
 
     await vi.waitFor(() => {
-      expect(router.navigate).toHaveBeenCalledWith(['/saison', 'season-a', 'event', 'show-1'], {
+      expect(router.navigate).toHaveBeenCalledWith(['/saison', 'troupe-a', 'season-a', 'event', 'show-1'], {
         replaceUrl: true,
       })
     })

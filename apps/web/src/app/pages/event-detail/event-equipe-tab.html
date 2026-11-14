@@ -134,7 +134,7 @@
           matTooltipHideDelay="1500"
           matTooltipClass="event-equipe-tab__consecutive-warning-tooltip"
           (click)="onConsecutiveWarningClick($event, consecutiveWarningTooltip)"
-          [attr.aria-label]="tooltip"
+          [attr.aria-label]="consecutiveShowWarningShortLabel + ' : ' + tooltip"
         >
           <mat-icon aria-hidden="true">warning_amber</mat-icon>
           <span>{{ consecutiveShowWarningShortLabel }}</span>

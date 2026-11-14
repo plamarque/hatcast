@@ -43,6 +43,12 @@ export default defineConfig({
   },
   projects: [
     {
+      name: 'chromium-6-25',
+      testMatch: /story-6-25\.spec\.ts/,
+      use: { ...devices['Pixel 5'], storageState: 'e2e/.auth/admin.json' },
+      dependencies: ['setup-admin', 'setup-member'],
+    },
+    {
       name: 'chromium-5-10-member',
       testMatch: /story-5-10-member\.spec\.ts/,
       use: { ...devices['Pixel 5'], storageState: 'e2e/.auth/member.json' },

@@ -87,6 +87,7 @@ describe('normalizeShareRecipientChannelStatus', () => {
       eligible: true,
       notified: true,
       lastNotifiedAt: '2026-06-02T14:30:00Z',
+      unavailableReason: null,
     })
   })
 })

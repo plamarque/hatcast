@@ -15,6 +15,7 @@ export interface ConsecutiveShowWarning {
   previousEventId: string
   previousEventTitle: string
   previousEventStartsAt: string
+  events?: { eventId: string; title: string; startsAt: string; category: string; scopes: ('global' | 'category')[] }[]
 }
 
 export interface MultiRoleOnEventWarning {

@@ -4,10 +4,19 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import java.time.Instant
 import java.util.UUID
 
+data class ConsecutiveShowWarningEventDto(
+    val eventId: UUID,
+    val title: String,
+    val startsAt: Instant,
+    val category: String,
+    val scopes: List<String>,
+)
+
 data class ConsecutiveShowWarningDto(
     val previousEventId: UUID,
     val previousEventTitle: String,
     val previousEventStartsAt: Instant,
+    val events: List<ConsecutiveShowWarningEventDto> = emptyList(),
 )
 
 data class MultiRoleOnEventWarningDto(

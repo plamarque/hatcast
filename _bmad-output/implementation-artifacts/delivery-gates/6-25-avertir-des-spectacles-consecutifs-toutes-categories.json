@@ -1,0 +1,12 @@
+{
+  "baseline_commit": "950d5660463af5af9158fe7b90c187a4f8091c02",
+  "branch": "feat/6-25-avertir-des-spectacles-consecutifs-toutes-categories",
+  "e2e_outcome": "passed",
+  "e2e_reference": "_bmad-output/implementation-artifacts/e2e-evidence/6-25-avertir-des-spectacles-consecutifs-toutes-categories.json",
+  "human_smoke_request": "permitted",
+  "readiness": "ready",
+  "request_identity": "1657b53e97cce5fba6d9355d4959094078cac9bcb802463237bab751626779ac",
+  "review_integration_approval": "external",
+  "schema": "hatcast.story-delivery-gates.v1",
+  "spec_reference": "_bmad-output/implementation-artifacts/spec-6-25-avertir-des-spectacles-consecutifs-toutes-categories.md"
+}
