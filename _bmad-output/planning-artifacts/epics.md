@@ -3944,6 +3944,14 @@ En tant que responsable du contenu Avent, je veux corriger les textes d’un qui
 
 **Material 3 et références :** appliquer FRONTEND_UI, Advent DESIGN, EXPERIENCE, AD-7 et la stratégie de tests visuels ; voir la story détaillée 25.26.
 
+### Story 25.27: Capturer les contributions Avent supplémentaires
+
+En tant que responsable du contenu Avent, je veux conserver des contributions supplémentaires dans le catalogue privé, même sans case jouable attribuée, afin de pouvoir décider plus tard de leur utilisation.
+
+**Critères :** Conserver les 24 cases existantes et permettre de préparer plusieurs contributions supplémentaires avec identité stable, portrait, propositions, récits et révélation, ainsi qu’une date souhaitée facultative. Valider et relire les contenus privés sans perte, avec protection contre les écritures concurrentes. Empêcher toute synchronisation accidentelle des contributions supplémentaires vers les bases de jeu. Aucun affichage, classement ni changement du parcours membre n’est décidé par cette story.
+
+**UI :** N/A — outils et catalogue privés uniquement.
+
 ## Final validation
 
 
