@@ -2,8 +2,8 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createGcsSource} from './advent-catalogue-gcs-source.mjs';
 const principal='synthetic@project.iam.gserviceaccount.com';
-function fixture() {
- const catalog=Buffer.from(JSON.stringify({schema_version:1,year:2026,index_base:0,quizzes:Array.from({length:24},(_,i)=>({day:i+1,character_id:`fiction-${i}`,kind:'contribution',name:'Synthetic',portrait:{type:'bucket-object',object:'portraits/fiction.png'},statements:['One','Two','Three'],false_statement_index:2,reveal:null}))}));
+function fixture(extras) {
+ const catalog=Buffer.from(JSON.stringify({schema_version:1,year:2026,index_base:0,quizzes:Array.from({length:24},(_,i)=>({day:i+1,character_id:`fiction-${i}`,kind:'contribution',name:'Synthetic',portrait:{type:'bucket-object',object:'portraits/fiction.png'},statements:['One','Two','Three'],false_statement_index:2,reveal:null})), ...(extras === undefined ? {} : {extra_contributions: extras})}));
  const image=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==','base64');
  const state={publicAccessPrevention:'enforced',uniform:true,project:'123',permissions:true,catalogueGeneration:'1',portraitGeneration:'2',changed:false};
  const bucket={getMetadata:async()=>[{name:'impro-selector-avent-content-private',projectNumber:state.project,iamConfiguration:{publicAccessPrevention:state.publicAccessPrevention,uniformBucketLevelAccess:{enabled:state.uniform}}}],iam:{testPermissions:async()=>[{'storage.objects.get':state.permissions}]},file:(name,options)=>({getMetadata:async()=>[{generation:name.startsWith('catalogue/')?state.catalogueGeneration:state.portraitGeneration,size:name.startsWith('catalogue/')?catalog.length:image.length}],download:async()=>{if(state.changed)state.catalogueGeneration='3';return [name.startsWith('catalogue/')?catalog:image]}})};
@@ -55,4 +55,10 @@ test('lost hold response cleans up only its own matching generation',async()=>{
   await assert.rejects(source.acquire({generation:'1',portraits:[]}));
   assert.equal(releases,mode==='ours'?1:0);assert.equal(meta.temporaryHold,mode!=='ours');
  }
+});
+
+test('validates extras while snapshot projects playable days only',async()=>{
+ const extra={kind:'contribution',character_id:'extra:synthetic',name:'Example',portrait:{type:'bucket-object',object:'portraits/extra.png'},statements:['A','B','C'],false_statement_index:1,reveal:null,stories:['First\n\nSecond',null,null],desired_date:'2026-12-26'};
+ const {source}=fixture([extra]);const snapshot=await source.snapshot([1]);assert.equal(snapshot.rows.length,1);assert.equal(snapshot.rows[0].character_key,'fiction-0');await assert.rejects(source.snapshot([26]));
+ const invalid=fixture([{...extra,desired_date:'2026-02-30'}]);await assert.rejects(invalid.source.snapshot([1]));
 });
