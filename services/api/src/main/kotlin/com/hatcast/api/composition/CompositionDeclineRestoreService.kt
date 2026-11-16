@@ -44,6 +44,7 @@ class CompositionDeclineRestoreService(
     private val eventPublisher: ApplicationEventPublisher,
     private val auditRecorder: AuditEventRecorder,
     private val lifecycleAuditRecorder: CompositionLifecycleAuditRecorder,
+    private val assignmentService: CompositionSlotAssignmentService,
 ) {
     @Transactional
     fun restoreDecline(
@@ -51,6 +52,7 @@ class CompositionDeclineRestoreService(
         eventId: UUID,
         declineId: UUID,
         principal: SessionUserPrincipal,
+        formulaId: UUID? = null,
     ): CompositionResponseDto {
         val event = loadAuthorizedEvent(seasonId, eventId, principal)
         requireManageComposition(eventId, seasonId, principal)
@@ -97,6 +99,10 @@ class CompositionDeclineRestoreService(
         val eligibleRow = resolveAssignee(seasonId, eventId, declineParticipantId, eligible)
         ensureEligibleForRoleAssign(eventId, decline.roleKey, emptySlotIndex, eligibleRow, eligible)
 
+        val chanceAtRestore =
+            assignmentService.getCandidates(seasonId, eventId, decline.roleKey, emptySlotIndex, formulaId, principal)
+                .candidates.firstOrNull { it.participantId == declineParticipantId }?.chancePercent
+
         val slotEntity =
             slotRepository.findByEventIdAndRoleKeyAndSlotIndex(
                 eventId,
@@ -120,6 +126,9 @@ class CompositionDeclineRestoreService(
                 "participationStatus" to SlotParticipationStatus.DECLINED.name.lowercase(),
             )
         slotEntity.setAssignee(eligibleRow)
+        slotEntity.selectionChancePercent = chanceAtRestore
+        slotEntity.selectionChanceAt = now.takeIf { chanceAtRestore != null }
+        slotEntity.selectionChanceSource = "manual"
         slotEntity.participationStatus = SlotParticipationStatus.PENDING
         slotEntity.updatedAt = now
         slotRepository.save(slotEntity)

@@ -12,7 +12,7 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ### BUG-120 — Historical chance breakdown can mix current and recorded pools
 
-- **Status:** Open; scope and remediation to investigate. **Severity:** Medium. **Affected area:** V2 historical draw chance explanations.
+- **Status:** Fix in progress locally in story 19.24. **Severity:** Medium. **Affected area:** V2 historical draw chance explanations.
 - **Observed:** Code inspection shows that a recorded target chance can be compared with reference and peer values calculated from the current pool, so the displayed base and ranking may describe different pools.
 - **Expected:** Historical explanations clearly distinguish recorded values from current estimates and do not imply an unrecoverable historical ranking.
 - **Context:** Found during story 19.23 review; production impact and UI paths have not been independently reproduced. Recorded snapshots do not contain all historical peer probabilities.

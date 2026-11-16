@@ -108,6 +108,7 @@ data class CompositionDrawResponseDto(
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class AssignSlotRequestDto(
     val participantId: UUID? = null,
+    val formulaId: UUID? = null,
 )
 
 data class CompositionCandidateDto(

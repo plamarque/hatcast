@@ -1,6 +1,18 @@
 package com.hatcast.api.composition
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.hatcast.api.draw.DrawFactorConfigEntry
+import com.hatcast.api.draw.DrawFormulaEntity
+import com.hatcast.api.draw.DrawFormulaRepository
+import com.hatcast.api.draw.DrawFormulaSeedConstants
+import com.hatcast.api.draw.DrawFormulaStatus
+import com.hatcast.api.draw.DrawPolicyEntity
+import com.hatcast.api.draw.DrawPolicyRepository
+import com.hatcast.api.draw.DrawPolicyScope
+import com.hatcast.api.draw.DrawDefaultRule
+import com.hatcast.api.draw.DrawRuleMode
+import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertEquals
 import com.hatcast.api.auth.GoogleIdTokenService
 import com.hatcast.api.auth.IdpIdTokenVerifier
 import com.hatcast.api.participant.SeasonParticipantEntity
@@ -74,6 +86,12 @@ class CompositionGapFillIntegrationTest {
 
     @Autowired
     private lateinit var declineRepository: EventCompositionDeclineRepository
+
+    @Autowired
+    private lateinit var drawFormulaRepository: DrawFormulaRepository
+
+    @Autowired
+    private lateinit var drawPolicyRepository: DrawPolicyRepository
 
     private val seedTroupeId: UUID = UUID.fromString("a0000001-0000-4000-8000-000000000001")
     private val mapper = ObjectMapper()
@@ -389,6 +407,128 @@ class CompositionGapFillIntegrationTest {
             .andExpect(jsonPath("$.declines").isEmpty)
 
         assertTrue(declineRepository.findById(decline.id).isEmpty)
+        val restored = slotRepository.findByEventIdAndRoleKeyAndSlotIndex(eventId, "player", 0)!!
+        assertTrue(restored.selectionChancePercent != null)
+        assertTrue(restored.selectionChanceAt != null)
+        assertTrue(restored.selectionChanceSource == "manual")
+
+        verify(notificationPort).requestConfirmationForAssignees(
+            eq(eventId),
+            eq(seasonId),
+            eq(listOf(declinedId)),
+            any(),
+        )
+    }
+
+    @Test
+    @Tag("FR27")
+    fun `restore decline records chance with selected custom formula`() {
+        val adminCookie = memberCookie("sub-gap-admin-custom-restore", admin = true)
+        val member = memberCookie("sub-gap-member-custom-restore")
+        val seasonId = createSeason(adminCookie)
+        val eventId = createEvent(adminCookie, seasonId, playerCount = 1)
+        setAvailability(member, seasonId, eventId, "available")
+        val declinedId = participantIdForUser(seasonId, "sub-gap-member-custom-restore")
+        val other = memberCookie("sub-gap-other-custom-restore")
+        setAvailability(other, seasonId, eventId, "available")
+        val priorEventId = createEvent(adminCookie, seasonId, playerCount = 1)
+        val now = Instant.now()
+        compositionRepository.save(EventCompositionEntity(eventId = priorEventId, validatedAt = now, createdAt = now, updatedAt = now))
+        slotRepository.save(EventCompositionSlotEntity(eventId = priorEventId, roleKey = "player", slotIndex = 0, seasonParticipantId = declinedId))
+        val standardFormula = drawFormulaRepository.save(
+            DrawFormulaEntity(
+                troupeId = seedTroupeId,
+                name = "Restore standard ${UUID.randomUUID()}",
+                status = DrawFormulaStatus.PUBLISHED,
+                factorConfig = DrawFormulaSeedConstants.SYSTEM_V1_FACTOR_CONFIG,
+            ),
+        )
+        val formula = drawFormulaRepository.save(
+            DrawFormulaEntity(
+                troupeId = seedTroupeId,
+                name = "Restore custom ${UUID.randomUUID()}",
+                status = DrawFormulaStatus.PUBLISHED,
+                factorConfig = listOf(
+                    DrawFactorConfigEntry(factorId = "equity_tag", enabled = true),
+                    DrawFactorConfigEntry(factorId = "past_participation", enabled = false),
+                ),
+            ),
+        )
+        drawPolicyRepository.save(
+            DrawPolicyEntity(
+                troupeId = seedTroupeId,
+                seasonId = seasonId,
+                seasonScopeKey = seasonId,
+                scope = DrawPolicyScope.SEASON,
+                defaultRule = DrawDefaultRule(mode = DrawRuleMode.CHOICE, allowedFormulaIds = listOf(standardFormula.id.toString(), formula.id.toString())),
+            ),
+        )
+        compositionRepository.save(
+            EventCompositionEntity(
+                eventId = eventId,
+                validatedAt = now,
+                publishedAt = null,
+                createdAt = now,
+                updatedAt = now,
+            ),
+        )
+        val decline =
+            declineRepository.save(
+                EventCompositionDeclineEntity(
+                    eventId = eventId,
+                    roleKey = "player",
+                    slotIndex = 0,
+                    seasonParticipantId = declinedId,
+                    eventParticipantId = null,
+                    declinedByUserId = userRepository.findByGoogleSub("sub-gap-member-custom-restore")!!.id,
+                    declinedAt = now,
+                    note = null,
+                ),
+            )
+
+        whenever(
+            notificationPort.requestConfirmationForAssignees(any(), any(), any(), any()),
+        ).then { }
+
+        val candidates = mockMvc.perform(
+            get("/v1/seasons/$seasonId/events/$eventId/composition/candidates")
+                .param("roleKey", "player")
+                .param("slotIndex", "0")
+                .param("formulaId", formula.id.toString())
+                .cookie(adminCookie),
+        ).andExpect(status().isOk).andReturn()
+        val standardCandidates = mockMvc.perform(
+            get("/v1/seasons/$seasonId/events/$eventId/composition/candidates")
+                .param("roleKey", "player")
+                .param("slotIndex", "0")
+                .param("formulaId", standardFormula.id.toString())
+                .cookie(adminCookie),
+        ).andExpect(status().isOk).andReturn()
+        val standardChance = mapper.readTree(standardCandidates.response.contentAsString)
+            .path("candidates").first { it.path("participantId").asText() == declinedId.toString() }
+            .path("chancePercent").asInt()
+        val expected = mapper.readTree(candidates.response.contentAsString)
+            .path("candidates").first { it.path("participantId").asText() == declinedId.toString() }
+            .path("chancePercent").asInt()
+        assertNotEquals(standardChance, expected)
+
+        mockMvc
+            .perform(
+                post(
+                    "/v1/seasons/$seasonId/events/$eventId/composition/declines/${decline.id}/restore",
+                )
+                    .cookie(adminCookie)
+                    .param("formulaId", formula.id.toString())
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.slots[0].participantId").value(declinedId.toString()))
+            .andExpect(jsonPath("$.declines").isEmpty)
+
+        assertTrue(declineRepository.findById(decline.id).isEmpty)
+        val restored = slotRepository.findByEventIdAndRoleKeyAndSlotIndex(eventId, "player", 0)!!
+        assertEquals(expected, restored.selectionChancePercent)
+        assertTrue(restored.selectionChanceAt != null)
+        assertTrue(restored.selectionChanceSource == "manual")
 
         verify(notificationPort).requestConfirmationForAssignees(
             eq(eventId),

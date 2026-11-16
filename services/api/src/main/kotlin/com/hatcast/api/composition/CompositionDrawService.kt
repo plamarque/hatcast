@@ -333,6 +333,9 @@ class CompositionDrawService(
                             slotIndex = slotIndex,
                         )
                 slotEntity.setAssignee(selectedParticipant)
+                slotEntity.selectionChancePercent = kotlin.math.round(100.0 * drawResult.selected.weight / drawResult.totalWeight).toInt()
+                slotEntity.selectionChanceAt = now.takeIf { slotEntity.selectionChancePercent != null }
+                slotEntity.selectionChanceSource = "draw".takeIf { slotEntity.selectionChancePercent != null }
                 slotEntity.participationStatus = SlotParticipationStatus.PENDING
                 slotEntity.updatedAt = now
                 slotsToPersist.add(slotEntity)

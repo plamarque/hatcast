@@ -649,6 +649,7 @@ describe('EventEquipeTab', () => {
         'player',
         0,
         'p-2',
+        null,
       )
       expect(fixture.nativeElement.textContent).toContain('Bob')
       expect(captureMutation).toHaveBeenCalledWith(expect.anything(), {
@@ -733,6 +734,7 @@ describe('EventEquipeTab', () => {
         'event-1',
         'player',
         0,
+        null,
         null,
       )
     })

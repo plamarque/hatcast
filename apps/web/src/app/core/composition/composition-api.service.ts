@@ -99,8 +99,11 @@ export interface ChanceBreakdown {
   participantId: string
   roleKey: string
   displayName: string
-  chancePercent: number
-  referencePercent: number
+  chancePercent: number | null
+  referencePercent?: number | null
+  recordedPercent?: number | null
+  recordedAt?: string | null
+  recordedSource?: 'draw' | 'manual' | 'draw_opening' | null
   candidateCount?: number | null
   poolRank?: number | null
   aheadCount?: number | null
@@ -371,6 +374,7 @@ export class CompositionApiService {
     roleKey: string,
     slotIndex: number,
     participantId: string | null,
+    formulaId?: string | null,
   ): Promise<CompositionApiResult<CompositionResponse>> {
     try {
       const res = await fetch(
@@ -382,7 +386,7 @@ export class CompositionApiService {
             ...csrfHeaders(),
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ participantId }),
+          body: JSON.stringify({ participantId, formulaId }),
         },
       )
       if (!res.ok) {
@@ -458,10 +462,12 @@ export class CompositionApiService {
     seasonId: string,
     eventId: string,
     declineId: string,
+    formulaId?: string | null,
   ): Promise<CompositionApiResult<CompositionResponse>> {
     try {
+      const query = formulaId ? `?formulaId=${encodeURIComponent(formulaId)}` : ''
       const res = await fetch(
-        `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/composition/declines/${encodeURIComponent(declineId)}/restore`,
+        `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}/composition/declines/${encodeURIComponent(declineId)}/restore${query}`,
         {
           method: 'POST',
           credentials: 'include',

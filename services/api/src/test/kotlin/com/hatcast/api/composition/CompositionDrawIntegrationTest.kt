@@ -1001,56 +1001,111 @@ class CompositionDrawIntegrationTest {
 
     @Test
     @Tag("FR19")
-    fun `past summary uses snapshot and stays stable after later validation`() {
-        val adminCookie = memberCookie("sub-draw-snapshot-stable-admin", admin = true)
-        val veteran = memberCookie("sub-draw-snapshot-stable-vet")
-        val rookie = memberCookie("sub-draw-snapshot-stable-rook")
-        val seasonId = createSeason(adminCookie)
-        val pastEventId = createEvent(adminCookie, seasonId, """{ "player": 1 }""")
-        val laterEventId = createEvent(adminCookie, seasonId, """{ "player": 1 }""")
-        setAvailability(veteran, seasonId, pastEventId, "available")
-        setAvailability(rookie, seasonId, pastEventId, "available")
-        setAvailability(veteran, seasonId, laterEventId, "available")
-        setAvailability(rookie, seasonId, laterEventId, "available")
+    fun `past event shows current estimates and a separate selection record`() {
+        val admin = memberCookie("sub-1924-admin", admin = true)
+        val first = memberCookie("sub-1924-first")
+        val second = memberCookie("sub-1924-second")
+        val seasonId = createSeason(admin)
+        val eventId = createEvent(admin, seasonId, """{ "player": 1 }""")
+        val laterId = createEvent(admin, seasonId, """{ "player": 1 }""")
+        for (cookie in listOf(first, second)) {
+            setAvailability(cookie, seasonId, eventId, "available")
+            setAvailability(cookie, seasonId, laterId, "available")
+        }
+        draw(admin, seasonId, eventId)
+        val selected = slotRepository.findByEventId(eventId).first { it.roleKey == "player" && it.hasAssignee() }
+        val selectedId = selected.assignedParticipantId()!!
+        val recorded = selected.selectionChancePercent!!
+        moveEventToPast(eventId)
 
-        draw(adminCookie, seasonId, pastEventId)
-        moveEventToPast(pastEventId)
+        assignSlot(admin, seasonId, laterId, "player", 0, selectedId)
+        validateComposition(laterId)
 
-        val veteranId = participantIdForUser(seasonId, "sub-draw-snapshot-stable-vet")
-        val summaryBefore =
-            mockMvc
-                .perform(
-                    get("/v1/seasons/$seasonId/events/$pastEventId/availability/summary?includeChances=true")
-                        .cookie(adminCookie),
-                ).andExpect(status().isOk)
-                .andExpect(jsonPath("$.chanceSource").value("snapshot"))
-                .andReturn()
-        val chanceBefore =
-            chancePercentForParticipant(
-                mapper.readTree(summaryBefore.response.contentAsString),
-                "player",
-                veteranId.toString(),
-            )
+        mockMvc.perform(
+            get("/v1/seasons/$seasonId/events/$eventId/availability/summary?includeChances=true")
+                .cookie(admin),
+        ).andExpect(status().isOk).andExpect(jsonPath("$.chanceSource").value("live"))
+        mockMvc.perform(
+            get("/v1/seasons/$seasonId/events/$eventId/composition/chance-breakdown")
+                .param("roleKey", "player")
+                .param("participantId", selectedId.toString())
+                .cookie(admin),
+        ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.recordedPercent").value(recorded))
+            .andExpect(jsonPath("$.recordedAt").exists())
+            .andExpect(jsonPath("$.recordedSource").value("draw"))
+            .andExpect(jsonPath("$.referencePercent").exists())
+            .andExpect(jsonPath("$.pool").exists())
+    }
 
-        val rookieLaterId = participantIdForUser(seasonId, "sub-draw-snapshot-stable-rook")
-        assignSlot(adminCookie, seasonId, laterEventId, "player", 0, rookieLaterId)
-        validateComposition(laterEventId)
+    @Test
+    fun `multi-place draw records each actual step probability`() {
+        val admin = memberCookie("sub-1924-steps-admin", admin = true)
+        val members = listOf("one", "two", "three").map { memberCookie("sub-1924-steps-$it") }
+        val seasonId = createSeason(admin)
+        val eventId = createEvent(admin, seasonId, """{ "player": 2 }""")
+        members.forEach { setAvailability(it, seasonId, eventId, "available") }
+        draw(admin, seasonId, eventId)
+        val slots = slotRepository.findByEventId(eventId).filter { it.roleKey == "player" }.sortedBy { it.slotIndex }
+        assertEquals(listOf(33, 50), slots.map { it.selectionChancePercent })
+        assertTrue(slots.all { it.selectionChanceSource == "draw" && it.selectionChanceAt != null })
+    }
 
-        val summaryAfter =
-            mockMvc
-                .perform(
-                    get("/v1/seasons/$seasonId/events/$pastEventId/availability/summary?includeChances=true")
-                        .cookie(adminCookie),
-                ).andExpect(status().isOk)
-                .andExpect(jsonPath("$.chanceSource").value("snapshot"))
-                .andReturn()
-        val chanceAfter =
-            chancePercentForParticipant(
-                mapper.readTree(summaryAfter.response.contentAsString),
-                "player",
-                veteranId.toString(),
-            )
-        assertEquals(chanceBefore, chanceAfter, "Past snapshot % must not drift after later validations")
+    @Test
+    fun `manual replacement and removal update selection evidence`() {
+        val admin = memberCookie("sub-1924-manual-admin", admin = true)
+        val first = memberCookie("sub-1924-manual-first")
+        val second = memberCookie("sub-1924-manual-second")
+        val seasonId = createSeason(admin)
+        val eventId = createEvent(admin, seasonId, """{ "player": 1 }""")
+        setAvailability(first, seasonId, eventId, "available")
+        setAvailability(second, seasonId, eventId, "available")
+        val firstId = participantIdForUser(seasonId, "sub-1924-manual-first")
+        val secondId = participantIdForUser(seasonId, "sub-1924-manual-second")
+        assignSlot(admin, seasonId, eventId, "player", 0, firstId)
+        val firstSlot = slotRepository.findByEventIdAndRoleKeyAndSlotIndex(eventId, "player", 0)!!
+        assertEquals("manual", firstSlot.selectionChanceSource)
+        assertEquals(50, firstSlot.selectionChancePercent)
+        assertTrue(firstSlot.selectionChanceAt != null)
+
+        assignSlot(admin, seasonId, eventId, "player", 0, secondId)
+        val replacement = slotRepository.findByEventIdAndRoleKeyAndSlotIndex(eventId, "player", 0)!!
+        assertEquals(secondId, replacement.assignedParticipantId())
+        assertEquals("manual", replacement.selectionChanceSource)
+        assertEquals(50, replacement.selectionChancePercent)
+        assertTrue(replacement.selectionChanceAt != null)
+        setAvailability(second, seasonId, eventId, "unavailable")
+        mockMvc.perform(
+            get("/v1/seasons/$seasonId/events/$eventId/composition/chance-breakdown")
+                .param("roleKey", "player")
+                .param("participantId", secondId.toString())
+                .cookie(admin),
+        ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.chancePercent").doesNotExist())
+            .andExpect(jsonPath("$.recordedPercent").value(50))
+            .andExpect(jsonPath("$.recordedAt").exists())
+
+        val updatedEvent = eventRepository.findById(eventId).orElseThrow()
+        updatedEvent.roleSlots = emptyMap()
+        eventRepository.saveAndFlush(updatedEvent)
+        mockMvc.perform(
+            get("/v1/seasons/$seasonId/events/$eventId/composition/chance-breakdown")
+                .param("roleKey", "player")
+                .param("participantId", secondId.toString())
+                .cookie(admin),
+        ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.chancePercent").doesNotExist())
+            .andExpect(jsonPath("$.recordedPercent").value(50))
+        updatedEvent.roleSlots = mapOf("player" to 1)
+        eventRepository.saveAndFlush(updatedEvent)
+
+        mockMvc.perform(put("/v1/seasons/$seasonId/events/$eventId/composition/slots/player/0")
+            .cookie(admin).contentType(MediaType.APPLICATION_JSON)
+            .content("""{"participantId":null}""").with(csrf())).andExpect(status().isOk)
+        val cleared = slotRepository.findByEventIdAndRoleKeyAndSlotIndex(eventId, "player", 0)!!
+        assertEquals(null, cleared.selectionChancePercent)
+        assertEquals(null, cleared.selectionChanceAt)
+        assertEquals(null, cleared.selectionChanceSource)
     }
 
     @Test

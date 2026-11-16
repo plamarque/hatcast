@@ -1138,6 +1138,7 @@ export class EventEquipeTab {
       seasonId,
       eventId,
       declineId,
+      this.activeDrawFormulaId(),
     )
     this.restoringDeclineId.set(null)
     if (this.event().id !== eventId) {
@@ -1653,6 +1654,7 @@ export class EventEquipeTab {
           row.roleKey,
           row.slotIndex,
           participantId,
+          this.activeDrawFormulaId(),
         )
     this.assigning.set(false)
     if (this.event().id !== eventId) {

@@ -1154,7 +1154,7 @@ class AvailabilityControllerIntegrationTest {
 
     @Test
     @Tag("FR19")
-    fun `past event without draw snapshot returns estimated chance source`() {
+    fun `past event without draw snapshot returns live chance source`() {
         val admin = memberCookie("sub-avail-chance-estimated-admin")
         val member = memberCookie("sub-avail-chance-estimated-member")
         val (seasonId, eventId) =
@@ -1195,7 +1195,7 @@ class AvailabilityControllerIntegrationTest {
                 get("/v1/seasons/$seasonId/events/$eventId/availability/summary?includeChances=true")
                     .cookie(admin),
             ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.chanceSource").value("estimated"))
+            .andExpect(jsonPath("$.chanceSource").value("live"))
             .andExpect(jsonPath("$.roles[?(@.roleKey == 'player')].candidates[0].chancePercent").exists())
     }
 

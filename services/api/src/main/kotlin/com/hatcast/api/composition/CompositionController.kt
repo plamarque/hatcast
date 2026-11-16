@@ -139,6 +139,7 @@ class CompositionController(
         @PathVariable seasonId: UUID,
         @PathVariable eventId: UUID,
         @PathVariable declineId: UUID,
+        @RequestParam(required = false) formulaId: UUID?,
         @AuthenticationPrincipal principal: SessionUserPrincipal,
     ): CompositionResponseDto =
         compositionDeclineRestoreService.restoreDecline(
@@ -146,6 +147,7 @@ class CompositionController(
             eventId,
             declineId,
             principal,
+            formulaId,
         )
 
     @PutMapping("/slots/{roleKey}/{slotIndex}")
