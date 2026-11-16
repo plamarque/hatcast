@@ -3,6 +3,22 @@
 La source canonique est le bucket privé `impro-selector-avent-content-private` : le catalogue est `catalogue/avent-2026.json` et les portraits `portraits/<nom>.png`. Les trois environnements cloud partagent ce bucket, mais leurs bases restent distinctes. Le runtime lit `advent_quizzes` et résout chaque référence PNG simple sous `portraits/` ; en offline il lit le fichier simple dans `.local/hatcast-avent-test/`. Les placeholders fictifs ne sont jamais promus. Ne jamais enregistrer de contenu réel, réponses, secrets ou images dans Git ou les journaux.
 
 
+## Contributions supplémentaires privées
+
+Le catalogue version 1 peut contenir un tableau racine facultatif `extra_contributions`. Il conserve des contributions supplémentaires sans changer les 24 entrées de `quizzes` ; il ne les rend ni jouables ni classées. Chaque entrée contient `kind: "contribution"`, `character_id` stable, `name`, un `portrait` privé `bucket-object`, trois `statements`, `false_statement_index`, `reveal` et éventuellement trois `stories` (texte non vide ou `null`). Une `desired_date` facultative, au format `2026-MM-DD`, est une intention éditoriale et non une affectation de case. Aucun champ `day` n'est permis dans cette réserve. Les identités sont uniques entre la réserve et les cases ; les doublons sont refusés.
+
+Pour capturer une contribution, confirmer le consentement et les textes, lire la génération courante dans un espace privé puis modifier l'objet entier en conservant tous ses champs, y compris `extra_contributions`. Utiliser `validateCatalogueDocument` de `scripts/v2/advent-catalogue-validation.mjs` pour valider le document complet sans sélectionner de jour. Vérifier intégralement et confidentiellement le diff, les récits, les références et les octets de tous les portraits ; créer tout portrait manquant sous un nom immuable avec `ifGenerationMatch=0`, sans écraser un objet divergent. Respecter la limite de 2 000 000 octets du lecteur GCS. Publier uniquement avec la précondition correspondant à la génération lue, relire et comparer les octets, et reprendre depuis la nouvelle génération en cas de conflit. Les anciennes versions du validateur ignorent ce champ : une réécriture doit toujours préserver l'objet entier et contrôler le diff, faute de quoi elle pourrait supprimer la réserve.
+
+Pour une capture reproductible, préparer hors Git un fichier JSON privé (mode `0600`, propriétaire opérateur) contenant une seule entrée `extra_contributions` et un PNG privé au même mode, puis définir `ADVENT_OPERATOR_PRINCIPAL` et exécuter dans un terminal privé :
+
+```sh
+node scripts/v2/advent-catalogue-extra-capture.mjs /chemin/prive/contribution.json /chemin/prive/portrait.png
+```
+
+L’outil vérifie l’identité ADC, le projet, la confidentialité du bucket et les permissions effectives, valide le document complet et tous ses portraits privés, puis prépare l’ajout sans modifier les autres entrées. Il refuse les liens symboliques finaux et les fichiers d’entrée accessibles à d’autres utilisateurs. Relire en privé la contribution et le portrait ; la confirmation lie le plan à un condensat. L’application revérifie les droits, les octets des fichiers approuvés, la génération et les octets source, crée le portrait avec une précondition d’absence ou exige son identité exacte, protège temporairement tous les portraits référencés, puis publie le catalogue sous précondition de génération et compare la relecture. Un nombre JSON non entier ou hors plage entière sûre est refusé pour éviter toute perte lors de la réécriture. Une interruption après création du portrait peut laisser un objet privé inutilisé : vérifier la cible et relancer depuis une nouvelle comparaison sans suppression. Les outils et leur validation doivent être utilisés depuis une version incluant cette procédure.
+
+Les opérations `character`, `quiz` et les sélections de jours restent limitées à 1–24 ; aucune entrée supplémentaire n'est projetée vers une base. Une capture ou une date souhaitée n'autorise ni synchronisation, ni affichage, ni changement du classement.
+
 ## Opérations indépendantes et suppression ciblée (nouveau runtime)
 
 Pour contrôler la préparation sans lire ni synchroniser de contribution, exécuter `node scripts/v2/advent-catalogue-sync.mjs check staging` (ou `production` / `development`) avec les mêmes identifiants d’opérateur et de base que pour la synchronisation. Ce contrôle vérifie les droits nécessaires et la cible ; il n’écrit ni catalogue ni quiz.
