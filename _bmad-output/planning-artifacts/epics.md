@@ -277,6 +277,26 @@ Les **participants** (membres troupe liés, participants saison/événement, y c
 
 **FRs couverts :** FR15, FR16, FR17, FR18, FR19, FR46
 
+#### Story 5.11 : Vérifier sa disponibilité avec Google Agenda
+
+En tant que **membre** qui répond à un événement,
+je veux **connecter un agenda Google et consulter mes éventuels conflits dans HatCast**,
+afin de décider de ma disponibilité et d'ajouter l'événement à mon agenda lorsque je confirme.
+
+**Acceptance Criteria**
+
+1. **Given** un membre consulte le menu d'ajout à l'agenda d'un événement, **when** il choisit Google, **then** il peut connecter un seul agenda Google avec son consentement explicite.
+2. **Given** son agenda est connecté, **when** le membre renseigne sa disponibilité pour un événement, **then** HatCast indique si le créneau est libre ou occupé, sans afficher le contenu privé de ses rendez-vous.
+3. **Given** un conflit est détecté, **when** le membre souhaite consulter son agenda, **then** un lien ouvre Google Agenda à la date de l'événement.
+4. **Given** le membre confirme sa participation, **when** l'agenda est connecté, **then** l'événement y est ajouté automatiquement ; le résultat ou un échec est communiqué clairement.
+5. **Given** une connexion refusée, expirée ou indisponible, **when** la vérification échoue, **then** l'état est explicite et la réponse HatCast reste possible sans présenter une disponibilité inconnue comme libre.
+6. **Given** un membre consulte une disponibilité, **when** un autre participant est concerné ou un organisateur agit pour lui, **then** son agenda personnel et ses données ne sont pas exposés à autrui.
+7. **Given** les écrans sont utilisés au clavier ou sur mobile, **when** le membre connecte son agenda et consulte son statut, **then** les contrôles sont accessibles et respectent les composants et tokens Material 3 de HatCast.
+
+**Périmètre initial :** un seul agenda Google par membre ; la vérification et l'ajout concernent ses propres événements. Les modalités de choix de l'agenda, de déconnexion, de prévention des doublons et le moment exact de l'ajout seront précisés dans la spécification de la story.
+
+---
+
 ### Epic 6 — Tirage, composition et cycle de vie des confirmations
 
 Les organisateurs utilisent tirage pondéré et assignation manuelle, brouillon vs composition validée, états de cycle de vie, transparence des cotes ; les **participants liés** confirment ou déclinent ; gestion des retraits et créneaux à combler.
@@ -1299,6 +1319,20 @@ afin de **décider en connaissance de cause** de maintenir ou changer ce choix.
 7. **Given** un avertissement affiché, **when** l’orga retire ou remplace le slot, **then** l’avertissement disparaît ou se met à jour.
 8. **Given** le hint UI, **when** rendu, **then** tokens Material 3 warning ; checklist [FRONTEND_UI.md](../../docs/v2/technical/FRONTEND_UI.md) ; pas de modale.
 9. **Couverture :** FR21 (UX assignation) ; complète sans implémenter **19.9** (facteur tirage). **Priorité :** P2. **Depends :** **6.5**, **17.7**. **UX :** [ux-design-composition-consecutive-show-warning.md](ux-design-composition-consecutive-show-warning.md). **SCP :** [sprint-change-proposal-2026-06-05-composition-consecutive-show-warning.md](sprint-change-proposal-2026-06-05-composition-consecutive-show-warning.md).
+
+---
+
+#### Story 6.25 : Avertir des spectacles consécutifs toutes catégories
+
+En tant qu’organisateur, je veux être averti lorsqu’une personne occupe le même rôle sur deux spectacles successifs, afin de décider librement de la composition.
+
+**Acceptance Criteria**
+
+1. Comparer chaque rôle séparément au spectacle précédent validé de la saison, toutes catégories confondues, et au précédent de la même catégorie ; tenir compte de l’ordre calendaire.
+2. Conserver le libellé « Joue deux fois de suite » ; enrichir le détail avec les contrôles applicables, les spectacles et leurs dates, sans répétition inutile.
+3. L’avertissement reste accessible aux organisateurs, non bloquant, et ne modifie ni poids ni tirage ; préserver les règles de visibilité et les comportements de retrait/remplacement.
+4. Vérifier les deux périmètres, leur coïncidence, les rôles distincts, les catégories CCAS et déplacements, et la présentation mobile. **UI :** critères Material 3 adaptés dans la story.
+5. **Source :** [Correct Course 2026-11-14](sprint-change-proposal-2026-11-14-draw-equity.md). Complète la story 6.20 historique sans en modifier le statut.
 
 ---
 
@@ -3066,6 +3100,33 @@ afin que **l’explicabilité** reste cohérente si les politiques changent plus
 
 ---
 
+#### Story 19.23 : Expliquer les variations de chances dues au groupe
+
+En tant que membre, je veux une explication exacte de mes chances afin de comprendre l’effet des critères de tirage.
+
+**Acceptance Criteria**
+
+1. Lorsqu’un facteur augmente la chance d’une personne en modifiant les poids d’autres candidats, le libellé ne prétend pas que cette personne a joué au spectacle précédent.
+2. Les formules personnalisées et les effets positifs ou négatifs restent expliqués fidèlement ; la précision du calcul demeure celle du contrat existant.
+3. Vérifier les exemples concernés et l’affichage accessible sur mobile. **UI :** critères Material 3 adaptés dans la story.
+4. **Source :** BUG-117 et [Correct Course 2026-11-14](sprint-change-proposal-2026-11-14-draw-equity.md).
+
+---
+
+#### Story 19.24 : Regrouper les historiques de tirage par troupe
+
+En tant que troupe, je veux définir les catégories qui partagent un historique de tirage afin de refléter nos règles d’équité sans modifier les catégories des spectacles.
+
+**Acceptance Criteria**
+
+1. Pour la configuration approuvée, ordinaires et Apérocs partagent un historique par rôle ; CCAS et déplacements restent dans leurs historiques respectifs.
+2. Le comportement des autres troupes et catégories reste inchangé par défaut ; statistiques, compositions et snapshots historiques sont préservés.
+3. Les poids, pourcentages, explications et tirage utilisent le même périmètre et la même formule résolue ; la formule standard est la seule à appliquer aux ordinaires et Apérocs de la troupe concernée.
+4. La représentation des groupes et la migration ou configuration sont définies avant réalisation ; toute opération sur la production nécessite une autorisation distincte. **UI :** critères Material 3 adaptés si une interface est modifiée, sinon N/A explicite.
+5. **Source :** [Correct Course 2026-11-14](sprint-change-proposal-2026-11-14-draw-equity.md).
+
+---
+
 ### Couverture FR19–FR24 / Epic 19 (contrôle croisé)
 
 | FR | Story(s) principale(s) |
@@ -3882,6 +3943,14 @@ En tant que responsable du contenu Avent, je veux corriger les textes d’un qui
 **Critères :** Patrice et Antoine disposent d’un formulaire privé pour modifier les propositions, récits facultatifs, réponse fausse et phrase de résultat d’un quiz existant. Le serveur refuse toute modification dès le début de son jour à Paris. Aucun changement de jour, personne ou portrait, ni création de quiz. La base de chaque environnement devient la référence du contenu publié ; adapter les outils et procédures de contribution pour éviter tout écrasement silencieux. Préserver les droits, secrets et règles de révélation ; vérifier la concurrence et les limites temporelles.
 
 **Material 3 et références :** appliquer FRONTEND_UI, Advent DESIGN, EXPERIENCE, AD-7 et la stratégie de tests visuels ; voir la story détaillée 25.26.
+
+### Story 25.27: Capturer les contributions Avent supplémentaires
+
+En tant que responsable du contenu Avent, je veux conserver des contributions supplémentaires dans le catalogue privé, même sans case jouable attribuée, afin de pouvoir décider plus tard de leur utilisation.
+
+**Critères :** Conserver les 24 cases existantes et permettre de préparer plusieurs contributions supplémentaires avec identité stable, portrait, propositions, récits et révélation, ainsi qu’une date souhaitée facultative. Valider et relire les contenus privés sans perte, avec protection contre les écritures concurrentes. Empêcher toute synchronisation accidentelle des contributions supplémentaires vers les bases de jeu. Aucun affichage, classement ni changement du parcours membre n’est décidé par cette story.
+
+**UI :** N/A — outils et catalogue privés uniquement.
 
 ## Final validation
 

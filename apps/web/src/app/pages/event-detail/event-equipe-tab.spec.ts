@@ -649,6 +649,7 @@ describe('EventEquipeTab', () => {
         'player',
         0,
         'p-2',
+        null,
       )
       expect(fixture.nativeElement.textContent).toContain('Bob')
       expect(captureMutation).toHaveBeenCalledWith(expect.anything(), {
@@ -733,6 +734,7 @@ describe('EventEquipeTab', () => {
         'event-1',
         'player',
         0,
+        null,
         null,
       )
     })
@@ -2876,9 +2878,9 @@ describe('EventEquipeTab', () => {
       expect(trigger.textContent).toContain('Joue deux fois de suite')
       expect(trigger.querySelector('mat-icon')?.textContent?.trim()).toBe('warning_amber')
       const ariaLabel = trigger.getAttribute('aria-label') ?? ''
-      expect(ariaLabel).toContain('Alice est dans la composition du spectacle précédent du')
-      expect(ariaLabel).toContain('« Cabaret du 12 »')
-      expect(ariaLabel).toMatch(/5 juin 2026/)
+      expect(ariaLabel).toContain('Joue deux fois de suite')
+      expect(ariaLabel).toContain('Cabaret du 12')
+      expect(ariaLabel).toContain('05/06')
       expect(trigger.getAttribute('mattooltiptouchgestures')).toBe('on')
     })
   })

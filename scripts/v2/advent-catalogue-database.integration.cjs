@@ -7,7 +7,8 @@ const os = require('node:os');
  const {insertReviewedQuizzes} = await import('./advent-catalogue-database.mjs');
  const {runOperator} = await import('./advent-catalogue-operator.mjs');
  const {deleteTestDays} = await import('./advent-catalogue-delete.mjs');
- const {applySelectedContent} = await import('./advent-catalogue-reservations.mjs');
+ const {applySelectedContent,inspectSelectedContent} = await import('./advent-catalogue-reservations.mjs');
+ const {replaceGeneric} = await import('./advent-catalogue-replace-generic.mjs');
  const {runCloudContent} = await import('./advent-catalogue-cloud-content.mjs');
  const {createLocalPortraitStore} = await import('./advent-catalogue-local-store.mjs');
  const config={host:'127.0.0.1',port:Number(process.env.ADVENT_TEST_PORT),user:'postgres',password:'fictional-test',database:'advent_catalogue_disposable'};
@@ -16,7 +17,7 @@ const os = require('node:os');
   await a.query('CREATE SCHEMA fixture'); await a.query('SET search_path TO fixture'); await b.query('SET search_path TO fixture');
   await a.query('CREATE TABLE users (id UUID PRIMARY KEY)');
   const migrations=path.resolve(__dirname,'../../services/api/src/main/resources/db/migration');
-  for (const filename of fs.readdirSync(migrations).filter(f=>/^V(?:7[0-9]|8[0-4])__.*\.sql$/.test(f)).sort()) await a.query(fs.readFileSync(path.join(migrations,filename),'utf8'));
+  for (const filename of fs.readdirSync(migrations).filter(f=>/^V(?:7[0-9]|8[0-5])__.*\.sql$/.test(f)).sort()) await a.query(fs.readFileSync(path.join(migrations,filename),'utf8'));
   await a.query("INSERT INTO users VALUES ('00000000-0000-0000-0000-000000000001')");
   const gameTables=['advent_test_clock','advent_test_clock_advances','advent_test_member_state','advent_test_answers','advent_test_attempts','advent_test_generations','advent_test_replays','advent_member_lock','advent_member_answers','advent_member_attempts','advent_member_generations','advent_member_replays','advent_member_demo_quizzes','advent_content_transition','advent_offline_content_conflicts'];
   async function snapshot() { const state={}; for(const table of gameTables) state[table]=(await a.query(`SELECT COALESCE(json_agg(t ORDER BY row_to_json(t)::text), '[]'::json) AS rows FROM ${table} t`)).rows[0].rows; return state; }
@@ -141,6 +142,40 @@ const os = require('node:os');
   cloudArgs.ask=async prompt=>{deniedPrompts++;return prompt.includes('AUTORISER PRODUCTION')?'REFUS':'APPLIQUER quiz 22'};
   await assert.rejects(runCloudContent(cloudArgs));assert.equal(deniedPrompts,2);
   await a.query('ROLLBACK');assert.deepEqual((await a.query('SELECT * FROM advent_quizzes WHERE quiz_day=22')).rows,beforeDenied);
+
+  // Generic replacement: real transaction, rollback and an uncommitted concurrent reminder.
+  const prepareGeneric=async day=>{
+   const name=`Lutin du ${day} décembre`;
+   await a.query('INSERT INTO advent_quizzes (quiz_day,display_name,portrait_ref,statement_0,statement_1,statement_2,false_choice) VALUES ($1,$2,NULL,$3,$4,$5,0)',[day,name,'Old one','Old two','Old three']);
+   await a.query('INSERT INTO advent_character_reservations (quiz_day,character_key,display_name,portrait_ref) VALUES ($1,NULL,$2,NULL)',[day,name]);
+   const row={...q(day),character_key:`fiction-${day}`,story_0:null,story_1:null,story_2:null};
+   return {row,reviewed:await inspectSelectedContent(a,[row])};
+  };
+  const success=await prepareGeneric(17);
+  await replaceGeneric(a,'development',success.row,success.reviewed);
+  const replaced=await inspectSelectedContent(a,[success.row]);
+  assert.equal(replaced.reservations[0].character_key,success.row.character_key);
+  assert.equal(replaced.quizzes[0].statement_0,success.row.statement_0);
+  assert.equal(replaced.quizzes[0].content_revision,'1');
+  const failed=await prepareGeneric(18);
+  await a.query(`CREATE FUNCTION fail_generic_update() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.quiz_day=18 THEN RAISE EXCEPTION 'synthetic'; END IF; RETURN NEW; END $$`);
+  await a.query('CREATE TRIGGER fail_generic_update BEFORE UPDATE ON advent_quizzes FOR EACH ROW EXECUTE FUNCTION fail_generic_update()');
+  await assert.rejects(replaceGeneric(a,'development',failed.row,failed.reviewed));
+  assert.deepEqual(await inspectSelectedContent(a,[failed.row]),failed.reviewed);
+  const concurrent=await prepareGeneric(19);
+  await b.query('BEGIN');
+  await b.query('INSERT INTO advent_reminder_attempts (quiz_day,user_id,attempted_at) VALUES (19,$1,now())',[user]);
+  const pending=replaceGeneric(a,'development',concurrent.row,concurrent.reviewed);
+  let waiting=false;
+  for(let i=0;i<100&&!waiting;i++) {
+   waiting=(await b.query("SELECT wait_event_type='Lock' AS waiting FROM pg_stat_activity WHERE pid=$1",[a.processID])).rows[0]?.waiting===true;
+   if(!waiting)await b.query('SELECT pg_sleep(0.02)');
+  }
+  assert.equal(waiting,true,'replacement must wait for the concurrent transaction');
+  await b.query('COMMIT');
+  await assert.rejects(pending);
+  assert.deepEqual(await inspectSelectedContent(a,[concurrent.row]),concurrent.reviewed);
+  assert.equal((await a.query('SELECT count(*)::int AS n FROM advent_reminder_attempts WHERE quiz_day=19')).rows[0].n,1);
 
   console.log('Disposable PostgreSQL migrations and catalogue synchronization and deletion checks passed');
  } finally { await a.end(); await b.end(); }

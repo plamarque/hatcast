@@ -60,6 +60,6 @@ class RoleRequestFactorTest {
     @Test
     fun `adjustment label uses role label and count`() {
         val label = defaultFactor.adjustmentLabel(context(7))
-        assertEquals("A demandé DJ 7 fois sans être tiré·e — bonus aspiration", label)
+        assertEquals("DJ demandé 7 fois sans l’obtenir", label)
     }
 }

@@ -1,5 +1,6 @@
 package com.hatcast.api.composition
 
+import com.hatcast.api.availability.draw.CategoryCompartmentHistoryScope
 import com.hatcast.api.event.SpectacleCategory
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
@@ -105,6 +106,25 @@ class EventCompositionSlotRepositoryCategoryTest {
         assertEquals(1, countFor(SpectacleCategory.PRINCIPAL))
         assertEquals(1, countFor(SpectacleCategory.DEPLACEMENTS))
         assertEquals(1, countFor("aperock"))
+    }
+
+    @Test
+    fun `reclassified future show counts as ordinary until the selection is declined`() {
+        val troupeId = seasonRepository.findById(seasonId).orElseThrow().troupe.id
+        val history = CategoryCompartmentHistoryScope(slotRepository)
+
+        eventRepository.clearCategoryForTroupe(troupeId, "aperock")
+
+        val target = eventRepository.findById(targetEventId).orElseThrow()
+        val player = participantId to "player"
+        assertEquals(2, history.pastSelectionCountByParticipantAndRole(target, SelectionHistoryMode.OPERATIONAL)[player])
+        assertEquals(null, history.pastSelectionCountByParticipantAndRole(target, SelectionHistoryMode.OPERATIONAL)[participantId to "mc"])
+
+        val assignment = slotRepository.findByEventIdAndRoleKeyAndSlotIndex(aperockEventId, "player", 0)!!
+        assignment.participationStatus = SlotParticipationStatus.DECLINED
+        slotRepository.saveAndFlush(assignment)
+
+        assertEquals(1, history.pastSelectionCountByParticipantAndRole(target, SelectionHistoryMode.OPERATIONAL)[player])
     }
 
     private fun saveEvent(

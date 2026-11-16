@@ -260,3 +260,14 @@ app-user-avatar.chance-breakdown-sheet__hero-avatar {
   justify-content: flex-end;
   padding-top: 0.25rem;
 }
+
+.chance-breakdown-sheet__saved {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 1rem;
+  background: var(--mat-sys-surface-container);
+  color: var(--mat-sys-on-surface);
+}
+.chance-breakdown-sheet__saved p {
+  margin: 0.35rem 0 0;
+}

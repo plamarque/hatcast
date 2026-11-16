@@ -14,9 +14,17 @@ fun EventCompositionSlotEntity.hasAssignee(): Boolean = assignedParticipantId() 
 fun EventCompositionSlotEntity.clearAssignee() {
     seasonParticipantId = null
     eventParticipantId = null
+    selectionChancePercent = null
+    selectionChanceAt = null
+    selectionChanceSource = null
 }
 
 fun EventCompositionSlotEntity.setAssignee(participant: CompositionEligibleParticipant) {
+    if (assignedParticipantId() != participant.participantId) {
+        selectionChancePercent = null
+        selectionChanceAt = null
+        selectionChanceSource = null
+    }
     when (participant.source) {
         CompositionParticipantSource.SEASON -> {
             seasonParticipantId = participant.participantId

@@ -23,11 +23,17 @@ describe('consecutive-show-warning', () => {
     expect(CONSECUTIVE_SHOW_WARNING_SHORT_LABEL).toBe('Joue deux fois de suite')
   })
 
-  it('builds tooltip with participant name, date and previous show title', () => {
-    const message = formatConsecutiveShowWarningTooltip(warning, 'Patrice')
-    expect(message).toBe(
-      'Patrice est dans la composition du spectacle précédent du 5 juin 2026 : « Cabaret du 12 ».',
-    )
+  it('shows the previous event as a short date and title', () => {
+    expect(formatConsecutiveShowWarningTooltip(warning, 'Patrice')).toBe('- 05/06 : Cabaret du 12')
+  })
+
+  it('lists distinct events once each, without punctuation around titles', () => {
+    const first = { eventId: 'a', title: 'Voyage', startsAt: '2026-02-01T19:00:00Z', category: 'deplacements', scopes: ['global'] as ('global' | 'category')[] }
+    const second = { eventId: 'b', title: 'Cabaret', startsAt: '2026-01-01T19:00:00Z', category: 'principal', scopes: ['category'] as ('global' | 'category')[] }
+    expect(formatConsecutiveShowWarningTooltip({ ...warning, events: [first, second] }, 'Patrice'))
+      .toBe('- 01/02 : Voyage\n- 01/01 : Cabaret')
+    expect(formatConsecutiveShowWarningTooltip({ ...warning, events: [{ ...first, scopes: ['global', 'category'] }] }, 'Patrice'))
+      .toBe('- 01/02 : Voyage')
   })
 
   it('keeps legacy inline message helper with inclusive default', () => {

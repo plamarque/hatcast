@@ -235,7 +235,7 @@ describe('TroupesList — join Démo UUID', () => {
     environment.demoTroupeId = DEMO_TROUPE_ID
     const troupeContext = { reloadAndSelect: vi.fn().mockResolvedValue(true) }
     const resolver = {
-      resolveSeasonSlug: vi.fn().mockResolvedValue({ kind: 'resolved', troupe: {}, season: {} }),
+      resolveSeasonInTroupe: vi.fn().mockResolvedValue({ kind: 'resolved', troupe: {}, season: {} }),
     }
     const api = {
       listMyTroupes: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
@@ -274,7 +274,7 @@ describe('TroupesList — join Démo UUID', () => {
 
     expect(api.joinTroupe).toHaveBeenCalledWith(DEMO_TROUPE_ID)
     expect(troupeContext.reloadAndSelect).toHaveBeenCalledWith(DEMO_TROUPE_ID)
-    expect(navigate).toHaveBeenCalledWith(['/saison', DEMO_ACTIVE_SEASON_SLUG])
+    expect(navigate).toHaveBeenCalledWith(['/saison', 'demo', DEMO_ACTIVE_SEASON_SLUG])
   })
 })
 

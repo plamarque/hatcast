@@ -30,3 +30,13 @@ class DefaultImmediatePredecessorEventResolver(
                 pageable = PageRequest.of(0, 1),
             ).firstOrNull()
 }
+
+/** Warning-only lookup; the category resolver remains the draw factor's contract. */
+@Service
+class GlobalWarningPredecessorResolver(private val eventRepository: EventRepository) {
+    fun resolve(currentEvent: EventEntity): EventEntity? =
+        eventRepository.findImmediateValidatedPredecessorAcrossCategories(
+            currentEvent.season.id, currentEvent.id, currentEvent.startsAt, currentEvent.createdAt,
+            PageRequest.of(0, 1),
+        ).firstOrNull()
+}

@@ -393,6 +393,8 @@ Live preview % in editor **deferred** (**OQ-P3**) — static helper text + link 
 
 **Draw-time snapshots today (6.14):** `event_draw_chance_snapshots` store `%` odds only — not formula id.
 
+Chance details show the current estimated percentage and its current factors. When available for the current assignment, show the separately recorded selection percentage and timestamp. Do not present current factors as an explanation of the recorded value. Legacy draw-opening snapshots are identified as draw-opening estimates; they do not establish selection-step odds. Manual assignment records its current estimate; an actual draw records the single-step probability calculated from its current weights. A replacement or removal clears the former assignment selection evidence.
+
 **Story 19.22 extension:** Snapshots will add **formula id + frozen `factorConfig` + policy context** as auditable source of truth for « which recipe was used ». Historical `%` in existing snapshots remain valid evidence; new metadata is additive.
 
 **Composition traceability (PO):** At draw, persist which **effective formula** and **policy context** (troupe/season policy ids, resolved rule) were used on the composition. Surface in the **audit journal** alongside existing composition events. **19.21** wires silent default + optional overflow change before draw; **19.22** surfaces persisted formula label after draw. Implementation split: metadata on composition + snapshots (**19.22**), journal wiring with existing audit patterns (**19.18** / **19.21**).

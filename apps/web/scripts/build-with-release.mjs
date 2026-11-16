@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs'
+import { readFileSync, writeFileSync, existsSync } from 'node:fs'
+import { randomUUID } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
@@ -18,8 +19,18 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     throw new Error('Production requires valid immutable release metadata')
   }
   const require = createRequire(import.meta.url)
+  const buildId = randomUUID()
   const ng = join(dirname(require.resolve('@angular/cli/package.json')), 'bin/ng.js')
   const result = spawnSync(process.execPath, [ng, 'build', ...process.argv.slice(2),
-    '--define', `HATCAST_RELEASE=${JSON.stringify(release)}`], { stdio: 'inherit' })
+    '--define', `HATCAST_RELEASE=${JSON.stringify(release)}`,
+    '--define', `HATCAST_BUILD_ID=${JSON.stringify(buildId)}`], { stdio: 'inherit' })
+  if (result.status === 0) {
+    const manifestPath = new URL('../dist/web/browser/ngsw.json', import.meta.url)
+    if (existsSync(manifestPath)) {
+      const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
+      manifest.appData = { ...manifest.appData, hatcastBuildId: buildId }
+      writeFileSync(manifestPath, JSON.stringify(manifest, null, 2))
+    }
+  }
   process.exit(result.status ?? 1)
 }

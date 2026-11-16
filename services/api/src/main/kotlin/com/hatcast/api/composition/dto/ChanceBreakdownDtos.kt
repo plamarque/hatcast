@@ -30,23 +30,26 @@ data class ChanceBreakdownDto(
     val participantId: UUID,
     val roleKey: String,
     val displayName: String,
-    val chancePercent: Int,
+    val chancePercent: Int?,
     /** Pure draw odds before factor modifiers (W18). */
-    val referencePercent: Int,
+    val referencePercent: Int? = null,
     /** Eligible candidates in the role pool (for reference line copy). */
-    val candidateCount: Int,
+    val candidateCount: Int? = null,
     /** 1-based rank in the pool by chance % (peers ahead + 1). */
-    val poolRank: Int,
-    val aheadCount: Int,
+    val poolRank: Int? = null,
+    val aheadCount: Int? = null,
     /** Candidates sharing the subject's chance % (including the subject). */
-    val tiedAtChanceCount: Int,
-    val adjustments: List<ChanceAdjustmentDto>,
+    val tiedAtChanceCount: Int? = null,
+    val adjustments: List<ChanceAdjustmentDto> = emptyList(),
     val requiredCount: Int? = null,
     val avatarUrl: String? = null,
     val gender: String = "non_specified",
     val pool: ChanceBreakdownPoolDto? = null,
     /** Engine / tests — not shown in MVP UI. */
     val factorBreakdown: List<ChanceFactorBreakdownDto>? = null,
+    val recordedPercent: Int? = null,
+    val recordedAt: java.time.Instant? = null,
+    val recordedSource: String? = null,
 )
 
 data class CompositionPoolPreviewSegmentDto(

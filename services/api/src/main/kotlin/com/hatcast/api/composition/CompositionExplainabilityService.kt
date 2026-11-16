@@ -24,6 +24,7 @@ import com.hatcast.api.participant.GuestInvitationAccessService
 import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.participant.SeasonParticipantService
 import com.hatcast.api.season.SeasonRepository
+import com.hatcast.api.troupe.TroupeCategoryRepository
 import com.hatcast.api.user.MemberGender
 import com.hatcast.api.user.ParticipantAvatarResolver
 import com.hatcast.api.user.ParticipantGenderResolver
@@ -55,6 +56,7 @@ class CompositionExplainabilityService(
     private val unfulfilledRoleRequestService: UnfulfilledRoleRequestService,
     private val drawWeightPipelineProvider: ObjectProvider<DrawWeightPipeline>,
     private val drawPolicyResolutionService: DrawPolicyResolutionService,
+    private val troupeCategoryRepository: TroupeCategoryRepository,
 ) {
     private fun resolveDrawPipeline(
         event: EventEntity,
@@ -79,30 +81,61 @@ class CompositionExplainabilityService(
         val event = loadAuthorizedEvent(seasonId, eventId, principal)
         requireExplainabilityAccess(event, seasonId, eventId, principal)
 
-        val normalizedSlots = RoleTemplates.normalize(event.roleSlots)
-        val requiredCount =
-            normalizedSlots[roleKey]
-                ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Rôle inconnu pour cet événement")
-        if (requiredCount <= 0) {
-            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Rôle inconnu pour cet événement")
-        }
-
-        seasonParticipantService.ensureMembershipParticipants(event.season)
-        val poolContext = buildRolePoolContext(event, seasonId, eventId, roleKey, formulaId)
-        val targetRow =
-            poolContext.pool.find { it.participantId == participantId }
-                ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Participant non éligible pour ce rôle")
-
-        val historyMode = SelectionHistoryModeResolver.forEvent(event)
-        val snapshot =
-            if (historyMode == SelectionHistoryMode.RETROSPECTIVE) {
-                drawChanceSnapshots
-                    .findByEventId(eventId)
+        val canViewAssignments =
+            CompositionVisibilityRules.canViewSlotAssignments(
+                compositionRepository.findById(eventId).orElse(null),
+                organizerAccess.canManageComposition(eventId, seasonId, principal),
+            )
+        val currentAssignment =
+            if (canViewAssignments) {
+                slotRepository.findByEventId(eventId).firstOrNull {
+                    it.roleKey == roleKey && it.assignedParticipantId() == participantId
+                }
+            } else {
+                null
+            }
+        val legacySnapshot =
+            if (currentAssignment != null && currentAssignment.selectionChanceSource == null) {
+                drawChanceSnapshots.findByEventId(eventId)
                     .firstOrNull { it.id.roleKey == roleKey && it.id.participantId == participantId }
             } else {
                 null
             }
-        val overrideChancePercent = snapshot?.chancePercent
+
+        fun recordedOnly(): ChanceBreakdownDto? {
+            if (currentAssignment == null || (currentAssignment.selectionChancePercent == null && legacySnapshot == null)) {
+                return null
+            }
+            val displayName =
+                seasonParticipantRepository.findById(participantId).orElse(null)
+                    ?.takeIf { it.season.id == seasonId }?.displayName
+                    ?: eventParticipantRepository.findById(participantId).orElse(null)
+                        ?.takeIf { it.event.id == eventId }?.displayName
+                    ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Participant introuvable")
+            return ChanceBreakdownDto(
+                participantId = participantId,
+                roleKey = roleKey,
+                displayName = displayName,
+                chancePercent = null,
+                recordedPercent = currentAssignment.selectionChancePercent ?: legacySnapshot?.chancePercent,
+                recordedAt = currentAssignment.selectionChanceAt ?: legacySnapshot?.snapshottedAt,
+                recordedSource = currentAssignment.selectionChanceSource ?: legacySnapshot?.let { "draw_opening" },
+                avatarUrl = participantAvatarResolver.resolveByParticipantIds(eventId, setOf(participantId))[participantId],
+            )
+        }
+
+        val normalizedSlots = RoleTemplates.normalize(event.roleSlots)
+        val requiredCount = normalizedSlots[roleKey]
+        if (requiredCount == null || requiredCount <= 0) {
+            return recordedOnly()
+                ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Rôle inconnu pour cet événement")
+        }
+
+        seasonParticipantService.ensureMembershipParticipants(event.season)
+        val poolContext = buildRolePoolContext(event, seasonId, eventId, roleKey, formulaId)
+        val targetRow = poolContext.pool.find { it.participantId == participantId }
+            ?: return recordedOnly()
+                ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Participant non éligible pour ce rôle")
 
         val candidates =
             poolContext.pool.map {
@@ -114,6 +147,8 @@ class CompositionExplainabilityService(
                     .resolveByParticipantIds(eventId, setOf(participantId))[participantId],
             ) ?: MemberGender.NON_SPECIFIED
         val drawPipeline = resolveDrawPipeline(event, formulaId)
+        val historyCategoryLabel =
+            troupeCategoryRepository.findByTroupe_IdAndSlug(event.season.troupe.id, poolContext.categorySlug)?.label
         val breakdown =
             ChanceBreakdownCalculator.calculate(
                 candidates = candidates,
@@ -122,7 +157,6 @@ class CompositionExplainabilityService(
                 targetParticipantId = participantId,
                 roleKey = roleKey,
                 pipeline = drawPipeline,
-                overrideChancePercent = overrideChancePercent,
                 targetParticipantGender = targetGender,
                 categorySlug = poolContext.categorySlug,
                 pastSelectionCountUnscopedByParticipant = poolContext.pastUnscopedByParticipant,
@@ -130,6 +164,7 @@ class CompositionExplainabilityService(
                 immediatePredecessorTitle = poolContext.replayPredecessorTitle,
                 immediatePredecessorStartsAt = poolContext.replayPredecessorStartsAt,
                 unfulfilledRoleRequestCountByParticipant = poolContext.unfulfilledByParticipant,
+                historyCategoryLabel = historyCategoryLabel,
             )
                 ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Breakdown indisponible")
 
@@ -140,6 +175,9 @@ class CompositionExplainabilityService(
             )
 
         return ChanceBreakdownDto(
+            recordedPercent = currentAssignment?.selectionChancePercent ?: legacySnapshot?.chancePercent,
+            recordedAt = currentAssignment?.selectionChanceAt ?: legacySnapshot?.snapshottedAt,
+            recordedSource = currentAssignment?.selectionChanceSource ?: legacySnapshot?.let { "draw_opening" },
             participantId = participantId,
             roleKey = roleKey,
             displayName = targetRow.displayName,
@@ -254,7 +292,7 @@ class CompositionExplainabilityService(
             )
         val availabilityIndex =
             availabilityRepository.findByEvent_Id(eventId).toAvailabilityIndex()
-        val historyMode = SelectionHistoryModeResolver.forEvent(event)
+        val historyMode = SelectionHistoryMode.OPERATIONAL
         val historyCounts =
             selectionHistory.pastSelectionCountByParticipantAndRole(event, historyMode)
         val pastByParticipant =

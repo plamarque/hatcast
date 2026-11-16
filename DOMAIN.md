@@ -135,7 +135,7 @@ La vue **Statistiques** (ex-Compositions / Historique stats V1) affiche des stat
 
 Dans un **compartiment** (`SpectacleCategory.slug` — `principal`, `deplacements`, ou catégorie personnalisée), le **prédécesseur immédiat** d’un événement courant est le dernier événement **strictement antérieur** (tie-break : `startsAt`, `createdAt`, `id`) de la même saison, **même compartiment**, composition **validée** (`event_compositions.validated_at IS NOT NULL`), non archivé.
 
-Pour un créneau assigné sur l’événement courant, un **avertissement non bloquant** (`consecutiveShowWarning`) s’applique lorsque le participant occupait **le même `roleKey`** sur ce prédécesseur avec `participationStatus ≠ DECLINED`. Absent si aucun prédécesseur validé, compartiment différent, ou slot prédécesseur sans assigné actif (retrait / déclinaison / désistement). Visible **organisateur uniquement** (API + onglet Équipe). Distinct du facteur tirage **19.9** (ci-dessous) : l’avertissement **informe** ; le facteur **pondère** le tirage lorsqu’il est activé dans une formule.
+Pour un créneau assigné, un **avertissement non bloquant** (`consecutiveShowWarning`) compare indépendamment le même `roleKey` au spectacle validé non archivé immédiatement précédent toutes catégories confondues et à celui de la même catégorie, dans la saison. Les affectations déclinées sont ignorées ; chaque spectacle correspondant apparaît une fois avec sa date et son titre. Visible **organisateur uniquement** (API + onglet Équipe). Distinct du facteur tirage **19.9** : l’avertissement informe et ne modifie pas les poids.
 
 ### Facteur tirage rejeu immédiat (Story 19.9)
 
@@ -174,7 +174,7 @@ Normative technical contract : [draw-formulas-policies-spec.md](docs/v2/technica
 
 **Policy vs factor:** A policy may require a formula that references a factor not yet implemented (e.g. gender parity for match events while **19.11** is parked). The catalogue entry documents product intent; the factor implementation is independent.
 
-**Immutability:** Editing a formula affects **future** draws only. Draw-time `%` snapshots (**6.14**) remain historical evidence; **19.22** will add formula id + frozen config to snapshots.
+**Selection evidence:** The current estimate and its explanation use current data. A current assignment may also show its recorded selection-time percentage and date. Manual selections record an estimate; draw selections record the chance for the actual draw step. Previous draw-opening snapshots retain their original meaning and are labelled accordingly. Editing a formula affects future draws; it does not rewrite recorded values.
 
 **Permissions:** Season draw policy edit = **`TROUPE_ADMIN` only** (**OQ-19-05**); season organizers see effective rules and choose at draw when `CHOICE` ≥2. Effective rule read + draw choice require **`canManageComposition`** on the event.
 

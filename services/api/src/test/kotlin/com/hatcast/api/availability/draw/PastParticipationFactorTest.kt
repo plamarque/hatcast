@@ -82,7 +82,7 @@ class PastParticipationFactorTest {
             defaultFactor.adjustmentLabel(
                 context(past = 2).copy(participantGender = MemberGender.MALE),
             )
-        assertEquals("Déjà Comédien 2 fois", label)
+        assertEquals("Comédien 2 fois", label)
     }
 
     @Test
@@ -91,7 +91,7 @@ class PastParticipationFactorTest {
             defaultFactor.adjustmentLabel(
                 context(past = 2).copy(participantGender = MemberGender.FEMALE),
             )
-        assertEquals("Déjà Comédienne 2 fois", label)
+        assertEquals("Comédienne 2 fois", label)
     }
 
     @Test
@@ -105,6 +105,6 @@ class PastParticipationFactorTest {
                     requiredCount = 1,
                 ),
             )
-        assertEquals("Déjà MC 1 fois", label)
+        assertEquals("MC 1 fois", label)
     }
 }
