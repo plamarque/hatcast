@@ -9,6 +9,8 @@ on:
     paths:
       - 'apps/web/**'
       - 'services/api/**'
+      - 'scripts/v2/**'
+      - '.github/workflows/deploy-v2-cloud-run.yml'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/e2e-smoke.yml'
@@ -17,6 +19,8 @@ on:
     paths:
       - 'apps/web/**'
       - 'services/api/**'
+      - 'scripts/v2/**'
+      - '.github/workflows/deploy-v2-cloud-run.yml'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/e2e-smoke.yml'
@@ -25,6 +29,19 @@ jobs:
   e2e-smoke:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: fixture-only
+          POSTGRES_DB: fixture
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d fixture"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
 
@@ -45,9 +62,23 @@ jobs:
       - name: Install monorepo dependencies
         run: npm ci
 
+      - name: Verify staging fixture and mail health configuration
+        run: node --test scripts/v2/e1-staging-reminder-fixture.test.mjs scripts/v2/staging-mail-health-config.test.mjs
+
+      - name: Verify staging participant SQL on PostgreSQL
+        env:
+          E1_TEST_PG_PORT: '5432'
+        run: node scripts/v2/e1-reminder-participant-postgres.integration.mjs
+
       - name: Install Playwright Chromium
         working-directory: apps/web
         run: npx playwright install --with-deps chromium
+
+      - name: Verify mobile hub season selection
+        working-directory: apps/web
+        env:
+          CI: 'true'
+        run: npx playwright test --config playwright.local-multiseason.config.ts --project local-mobile-multiseason
 
       - name: Run Playwright E2E suite
         working-directory: apps/web

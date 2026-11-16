@@ -434,3 +434,7 @@ Ordre recommandé **sans impacter la prod V1** (`main` / Firebase) :
 - [BRANCH_ENVIRONMENTS.md](../../shared/technical/BRANCH_ENVIRONMENTS.md) — V1 vs V2
 - [ADR-0009](../../adr/0009-neon-postgres-environments.md) — branches Neon
 - [`scripts/v2/`](../../../scripts/v2/) — scripts promote / release
+
+### Santé SMTP en staging
+
+Le workflow désactive uniquement l’indicateur de santé SMTP en staging lorsque les notifications email sont désactivées (ou non configurées). Les autres indicateurs restent actifs. Lorsque les notifications email sont activées, l’indicateur SMTP conserve son comportement Spring et un échec SMTP reste visible. La configuration de production est inchangée.

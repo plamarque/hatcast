@@ -22,6 +22,7 @@ import {
   newestPastStatisticsEvent,
   openTroupeHubSeasonStatsFromChart,
   openTroupeHubTeaserWorkspace,
+  selectTroupeHubSeason,
 } from '../helpers/troupe-hub.ui'
 
 /** Story 17.42 — hub dashboard collectif (complète E1-MEM-040 nav shell). */
@@ -38,6 +39,7 @@ test.describe('E1 — membre hub Ma troupe dashboard (mobile)', () => {
     await assertMobileViewport(page)
 
     await gotoTroupeHub(page, fx.troupeSlug)
+    await selectTroupeHubSeason(page, request, fx.seasonId)
     await expectTroupeHubDashboardSections(page)
     await expectTroupeHubMetricTiles(page)
     await expectTroupeHubLegacyChromeAbsent(page)
@@ -49,6 +51,7 @@ test.describe('E1 — membre hub Ma troupe dashboard (mobile)', () => {
     await assertMobileViewport(page)
 
     await gotoTroupeHub(page, fx.troupeSlug)
+    await selectTroupeHubSeason(page, request, fx.seasonId)
     await expectTroupeHubDashboardSections(page)
     await expectTroupeHubPersonnesStrip(page)
 
@@ -78,6 +81,7 @@ test.describe('E1 — membre hub Ma troupe dashboard (mobile)', () => {
     await assertMobileViewport(page)
 
     await gotoTroupeHub(page, fx.troupeSlug)
+    await selectTroupeHubSeason(page, request, fx.seasonId)
     await expectTroupeHubDashboardSections(page)
 
     const teaserSection = page.locator('.troupe-hub__section').filter({
@@ -104,6 +108,7 @@ test.describe('E1 — membre hub Ma troupe dashboard (mobile)', () => {
 
     await assertMobileViewport(page)
     await gotoTroupeHub(page, fx.troupeSlug)
+    await selectTroupeHubSeason(page, request, fx.seasonId)
     await expectTroupeHubDashboardSections(page)
     await expectTroupeHubMetricTiles(page)
     await expectTroupeHubSeasonChartVisible(page)
@@ -116,6 +121,7 @@ test.describe('E1 — membre hub Ma troupe dashboard (mobile)', () => {
     const fx = await resolveE1Context(request)
     await assertMobileViewport(page)
     await gotoTroupeHub(page, fx.troupeSlug)
+    await selectTroupeHubSeason(page, request, fx.seasonId)
     await expectTroupeHubDashboardSections(page)
     await openTroupeHubSeasonStatsFromChart(page, fx.troupeSlug, fx.seasonSlug)
   })
@@ -132,6 +138,7 @@ test.describe('E1 — membre hub Ma troupe dashboard (mobile)', () => {
 
     await assertMobileViewport(page)
     await gotoTroupeHub(page, fx.troupeSlug)
+    await selectTroupeHubSeason(page, request, fx.seasonId)
     await expectTroupeHubDashboardSections(page)
     await expectTroupeHubSeasonChartVisible(page)
     await clickTroupeHubSeasonChartBlock(page, pastEvent!.title)
