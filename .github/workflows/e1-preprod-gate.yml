@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   e1-preprod-gate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 35
     environment: staging
     env:
