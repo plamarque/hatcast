@@ -289,7 +289,7 @@ class AvailabilityService(
             }
 
         val requiredRoles = AvailabilityRoleRules.rolesRequiredForEvent(event.roleSlots)
-        val historyMode = SelectionHistoryModeResolver.forEvent(event)
+        val historyMode = SelectionHistoryMode.OPERATIONAL
         val snapshotByRoleAndParticipant =
             if (effectiveIncludeChances && historyMode == SelectionHistoryMode.RETROSPECTIVE) {
                 drawChanceSnapshots

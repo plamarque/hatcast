@@ -86,8 +86,19 @@ export class ChanceBreakdownSheet {
     return 'D’où vient ce % ?'
   }
 
+  protected recordedLabel(): string {
+    return this.breakdown().recordedSource === 'draw_opening'
+      ? 'Estimation enregistrée à l’ouverture du tirage'
+      : 'Estimation enregistrée lors de la sélection'
+  }
+
+  protected recordedDate(): string | null {
+    const date = this.breakdown().recordedAt
+    return date ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeStyle: 'short' }).format(new Date(date)) : null
+  }
+
   protected chanceTodayLabel(): string {
-    return this.viewingSelf() ? 'Ta chance aujourd’hui' : 'Sa chance aujourd’hui'
+    return this.viewingSelf() ? 'Ta chance estimée' : 'Sa chance estimée'
   }
 
   protected referenceLineLabel(): string {

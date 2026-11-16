@@ -174,7 +174,7 @@ Normative technical contract : [draw-formulas-policies-spec.md](docs/v2/technica
 
 **Policy vs factor:** A policy may require a formula that references a factor not yet implemented (e.g. gender parity for match events while **19.11** is parked). The catalogue entry documents product intent; the factor implementation is independent.
 
-**Immutability:** Editing a formula affects **future** draws only. Draw-time `%` snapshots (**6.14**) remain historical evidence; **19.22** will add formula id + frozen config to snapshots.
+**Selection evidence:** The current estimate and its explanation use current data. A current assignment may also show its recorded selection-time percentage and date. Manual selections record an estimate; draw selections record the chance for the actual draw step. Previous draw-opening snapshots retain their original meaning and are labelled accordingly. Editing a formula affects future draws; it does not rewrite recorded values.
 
 **Permissions:** Season draw policy edit = **`TROUPE_ADMIN` only** (**OQ-19-05**); season organizers see effective rules and choose at draw when `CHOICE` ≥2. Effective rule read + draw choice require **`canManageComposition`** on the event.
 

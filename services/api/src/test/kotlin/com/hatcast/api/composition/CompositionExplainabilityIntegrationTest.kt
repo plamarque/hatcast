@@ -249,6 +249,41 @@ class CompositionExplainabilityIntegrationTest {
     }
 
     @Test
+    fun `recorded chance does not reveal unpublished composition to a member`() {
+        val admin = memberCookie("sub-exp-private-admin", admin = true)
+        val member = memberCookie("sub-exp-private-member")
+        val seasonId = createSeason(admin)
+        val eventId = createEvent(admin, seasonId)
+        mockMvc.perform(
+            put("/v1/seasons/$seasonId/events/$eventId/availability/me")
+                .cookie(member).contentType(MediaType.APPLICATION_JSON)
+                .content("""{"status":"available","roleKeys":["player"]}""").with(csrf()),
+        ).andExpect(status().isOk)
+        seasonParticipantService.ensureMembershipParticipants(seasonRepository.findById(seasonId).orElseThrow())
+        val user = userRepository.findByGoogleSub("sub-exp-private-member")!!
+        val membership = membershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, user.id)!!
+        val participantId = seasonParticipantRepository.findBySeason_IdAndTroupeMembership_Id(seasonId, membership.id)!!.id
+        seedDraftComposition(eventId, participantId)
+        val slot = slotRepository.findByEventIdAndRoleKeyAndSlotIndex(eventId, "player", 0)!!
+        slot.selectionChancePercent = 42
+        slot.selectionChanceAt = Instant.now()
+        slot.selectionChanceSource = "manual"
+        slotRepository.saveAndFlush(slot)
+
+        val url = "/v1/seasons/$seasonId/events/$eventId/composition/chance-breakdown?roleKey=player&participantId=$participantId"
+        mockMvc.perform(get(url).cookie(member))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.chancePercent").exists())
+            .andExpect(jsonPath("$.recordedPercent").doesNotExist())
+            .andExpect(jsonPath("$.recordedAt").doesNotExist())
+            .andExpect(jsonPath("$.recordedSource").doesNotExist())
+        mockMvc.perform(get(url).cookie(admin))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.recordedPercent").value(42))
+            .andExpect(jsonPath("$.recordedSource").value("manual"))
+    }
+
+    @Test
     fun `member cannot read chance breakdown on draft event`() {
         val adminCookie = memberCookie("sub-exp-draft-admin", admin = true)
         val memberCookie = memberCookie("sub-exp-draft-member")

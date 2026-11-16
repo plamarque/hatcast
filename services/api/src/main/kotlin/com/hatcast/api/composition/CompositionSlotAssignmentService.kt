@@ -236,6 +236,13 @@ class CompositionSlotAssignmentService(
         val beforeSlot = slotRepository.findByEventIdAndRoleKeyAndSlotIndex(eventId, roleKey, slotIndex)
         val beforeSnapshot = AuditSnapshots.slotAssignment(beforeSlot)
         val formerAssigneeId = beforeSlot?.assignedParticipantId()
+        val selectionChance =
+            if (participantId != null && participantId != formerAssigneeId) {
+                getCandidates(seasonId, eventId, roleKey, slotIndex, body.formulaId, principal)
+                    .candidates.firstOrNull { it.participantId == participantId }?.chancePercent
+            } else {
+                null
+            }
 
         if (isLocked) {
             if (participantId == null) {
@@ -315,6 +322,16 @@ class CompositionSlotAssignmentService(
             compositionRow.updatedAt = now
             compositionRepository.save(compositionRow)
             recordSlotAudit(event, seasonId, eventId, principal.userId, roleKey, slotIndex, participantId, beforeSnapshot, AuditActionType.SLOT_ASSIGNED)
+        }
+
+        if (participantId != null && participantId != formerAssigneeId) {
+            val assigned = slotRepository.findByEventIdAndRoleKeyAndSlotIndex(eventId, roleKey, slotIndex)
+            if (assigned?.assignedParticipantId() == participantId) {
+                assigned.selectionChancePercent = selectionChance
+                assigned.selectionChanceAt = now
+                assigned.selectionChanceSource = "manual"
+                slotRepository.save(assigned)
+            }
         }
 
         val lifecycleTransitionContext =

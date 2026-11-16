@@ -87,6 +87,30 @@ describe('ChanceBreakdownSheet', () => {
     expect(el.querySelector('[data-testid="chance-breakdown-final"]')?.textContent).toContain('18')
   })
 
+  it('shows the current breakdown and recorded selection separately', () => {
+    fixture.componentInstance['breakdown'].set({
+      ...baseBreakdown, recordedPercent: 36, recordedAt: '2026-11-12T19:15:00Z', recordedSource: 'manual',
+    })
+    fixture.detectChanges()
+    const el = fixture.nativeElement as HTMLElement
+    expect(el.querySelector('[data-testid="chance-breakdown-waterfall"]')).toBeTruthy()
+    expect(el.querySelector('[data-testid="chance-recorded"]')?.textContent).toContain('36')
+    expect(el.querySelector('[data-testid="chance-recorded"]')?.textContent).toContain('sélection')
+    expect(el.querySelector('[data-testid="chance-recorded"]')?.textContent).toContain('novembre 2026')
+  })
+
+  it('shows saved value when the current estimate is unavailable', () => {
+    fixture.componentInstance['breakdown'].set({
+      ...baseBreakdown, chancePercent: null, recordedPercent: 36,
+      recordedAt: '2026-11-12T19:15:00Z', recordedSource: 'manual',
+    })
+    fixture.detectChanges()
+    const el = fixture.nativeElement as HTMLElement
+    expect(el.textContent).toContain('Estimation actuelle indisponible')
+    expect(el.querySelector('[data-testid="chance-breakdown-waterfall"]')).toBeNull()
+    expect(el.querySelector('[data-testid="chance-recorded"]')?.textContent).toContain('36')
+  })
+
   it('renders adjustment line for past_participation', () => {
     const el = fixture.nativeElement as HTMLElement
     expect(
@@ -279,7 +303,7 @@ describe('ChanceBreakdownSheet', () => {
     otherFixture.detectChanges()
     const el = otherFixture.nativeElement as HTMLElement
 
-    expect(el.textContent).toContain('Sa chance aujourd’hui')
+    expect(el.textContent).toContain('Sa chance estimée')
     expect(el.textContent).toContain('D’où vient ce % ?')
     expect(el.querySelector('[data-testid="chance-breakdown-rank-summary"]')?.textContent).toContain(
       'devant lui·elle',

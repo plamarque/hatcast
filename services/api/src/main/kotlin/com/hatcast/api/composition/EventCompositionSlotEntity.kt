@@ -35,6 +35,12 @@ class EventCompositionSlotEntity(
     var participationStatus: SlotParticipationStatus = SlotParticipationStatus.PENDING,
     @Column(nullable = false)
     var waived: Boolean = false,
+    @Column(name = "selection_chance_percent")
+    var selectionChancePercent: Int? = null,
+    @Column(name = "selection_chance_at")
+    var selectionChanceAt: Instant? = null,
+    @Column(name = "selection_chance_source", length = 16)
+    var selectionChanceSource: String? = null,
     @Column(name = "created_at", nullable = false)
     val createdAt: Instant = Instant.now(),
     @Column(name = "updated_at", nullable = false)
