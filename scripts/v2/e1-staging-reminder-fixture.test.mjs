@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
-import { REMINDER_EVENT_SLUG, assertReminderFixtureSnapshot, assertStagingTarget } from './e1-staging-reminder-fixture.mjs'
+import { REMINDER_EVENT_SLUG, assertReminderFixtureSnapshot, assertStagingTarget, ensureRemovedOrganizerParticipant } from './e1-staging-reminder-fixture.mjs'
 
 const valid = {
   organizerActiveMember: true,
@@ -63,5 +63,37 @@ describe('e1-staging-reminder-fixture contract', () => {
       () => assertStagingTarget({ ...safe, databaseUrl: 'postgresql://user:pass@ep-production.neon.tech/neondb' }),
       /not an approved staging Neon target/,
     )
+  })
+})
+
+
+describe('organizer participant bootstrap', () => {
+  const ids = ['season', 'user', 'membership', 'organizer@example.test']
+  function clientWith(rows) {
+    const calls = []
+    return { calls, async query(sql, params) {
+      calls.push({ sql, params })
+      return calls.length === 1 ? { rows, rowCount: rows.length } : { rows: [], rowCount: 1 }
+    } }
+  }
+  it('creates a removed participant if absent', async () => {
+    const client = clientWith([])
+    await ensureRemovedOrganizerParticipant(client, ...ids)
+    assert.match(client.calls[1].sql, /INSERT INTO season_participants/)
+    assert.match(client.calls[1].sql, /'REMOVED'.*'SEASON_ADMIN'.*'MEMBER_SYNC'/s)
+    assert.deepEqual(client.calls[1].params.slice(1), ids.slice(0, 3))
+  })
+  it('preserves the existing participant identity and removes it', async () => {
+    const client = clientWith([{ id: 'existing', user_id: 'user', troupe_membership_id: 'membership' }])
+    await ensureRemovedOrganizerParticipant(client, ...ids)
+    assert.match(client.calls[1].sql, /status = 'REMOVED'.*removal_source = 'SEASON_ADMIN'/s)
+    assert.equal(client.calls[1].params[0], 'existing')
+  })
+  it('rejects duplicate or conflicting rows without writes', async () => {
+    for (const rows of [[{ id: 'a' }, { id: 'b' }], [{ id: 'a', user_id: 'other' }]]) {
+      const client = clientWith(rows)
+      await assert.rejects(ensureRemovedOrganizerParticipant(client, ...ids), /Conflicting or duplicate/)
+      assert.equal(client.calls.length, 1)
+    }
   })
 })

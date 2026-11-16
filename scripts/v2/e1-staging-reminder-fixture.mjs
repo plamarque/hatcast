@@ -8,6 +8,7 @@
  */
 
 import { appendFileSync } from 'node:fs'
+import { randomUUID } from 'node:crypto'
 import { pathToFileURL } from 'node:url'
 import { resolve } from 'node:path'
 
@@ -96,6 +97,33 @@ export function assertReminderFixtureSnapshot(snapshot, fixtureSlug) {
   }
 }
 
+export async function ensureRemovedOrganizerParticipant(client, seasonId, userId, membershipId, email) {
+  const result = await client.query(
+    `SELECT id, user_id, troupe_membership_id FROM season_participants
+     WHERE season_id = $1::uuid AND (user_id = $2::uuid OR troupe_membership_id = $3::uuid OR normalized_email = lower($4))
+     FOR UPDATE`, [seasonId, userId, membershipId, email],
+  )
+  if (result.rowCount > 1 || result.rows.some(row =>
+    (!row.user_id && !row.troupe_membership_id) ||
+    (row.user_id && row.user_id !== userId) ||
+    (row.troupe_membership_id && row.troupe_membership_id !== membershipId))) {
+    throw new Error('Conflicting or duplicate organizer participant identity')
+  }
+  if (result.rowCount === 0) {
+    await client.query(
+      `INSERT INTO season_participants (id, season_id, display_name, normalized_email, user_id, troupe_membership_id, status, removed_at, removal_source, participation_mode, created_at, updated_at)
+       SELECT $1::uuid, $2::uuid, COALESCE(NULLIF(trim(display_name), ''), email), lower(email), $3::uuid, $4::uuid, 'REMOVED', CURRENT_TIMESTAMP, 'SEASON_ADMIN', 'MEMBER_SYNC', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+       FROM users WHERE id = $3::uuid`, [randomUUID(), seasonId, userId, membershipId],
+    )
+  } else {
+    await client.query(
+      `UPDATE season_participants SET user_id = $2::uuid, troupe_membership_id = $3::uuid,
+       status = 'REMOVED', removed_at = CURRENT_TIMESTAMP, removal_source = 'SEASON_ADMIN', updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1::uuid`, [result.rows[0].id, userId, membershipId],
+    )
+  }
+}
+
 async function bootstrap(client, options) {
   const troupeSlug = requireOption(options.troupeSlug, 'HATCAST_E2E_TROUPE_SLUG')
   const seasonSlug = requireOption(options.seasonSlug, 'HATCAST_E2E_SEASON_SLUG')
@@ -148,14 +176,7 @@ async function bootstrap(client, options) {
      ON CONFLICT (season_id, user_id) DO NOTHING`,
     [season.id, organizer.user_id],
   )
-  // Keep the linked row removed rather than deleting it: membership sync respects
-  // SEASON_ADMIN and will not silently reintroduce the organizer as a participant.
-  await client.query(
-    `UPDATE season_participants
-     SET status = 'REMOVED', removed_at = CURRENT_TIMESTAMP, removal_source = 'SEASON_ADMIN', updated_at = CURRENT_TIMESTAMP
-     WHERE season_id = $1::uuid AND (user_id = $2::uuid OR troupe_membership_id = $3::uuid)`,
-    [season.id, organizer.user_id, organizer.membership_id],
-  )
+  await ensureRemovedOrganizerParticipant(client, season.id, organizer.user_id, organizer.membership_id, organizerEmail)
 
   const recipientResult = await client.query(
     `SELECT u.id AS user_id, tm.id AS membership_id, sp.id AS participant_id

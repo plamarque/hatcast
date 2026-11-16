@@ -10,6 +10,13 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Current follow-up
 
+### BUG-123 — Staging release checks fail after data refresh
+
+- **Status:** Correction locale en cours de vérification ; validation staging à effectuer. **Severity:** High. **Affected area:** Staging E1 release gate and health reporting.
+- **Observed behavior:** Run 43962761217 attempt 2 failed the reminder organizer participant boundary and four hub assertions. The latter expected the 2025–2026 season while the hub displayed 2026–2027. Staging health returns 503 when a disabled email service's configured SMTP server rejects authentication.
+- **Expected behavior:** Release tests select their intended season and create a stable isolated reminder fixture; health reflects dependencies used by the configured service.
+- **Context:** Organizer authentication and permissions succeeded. The existing fixture does not create an absent removed participant, allowing normal membership synchronization to add one. One chance-detail test passed on retry; its cause is not established.
+
 ### BUG-122 — Playwright CI cannot install Chromium on Ubuntu 26.04
 
 - **Status:** Runner pinned locally; CI verification pending. **Severity:** High. **Affected area:** V2 release and browser CI gates.

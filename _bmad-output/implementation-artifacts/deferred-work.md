@@ -62,3 +62,6 @@ status: open
 - source_spec: `_bmad-output/implementation-artifacts/spec-limit-007-angular-suite.md`
   summary: Fix duplicate session-expiry feedback and navigation tracked as BUG-121.
   evidence: Concurrent session and agenda 401 responses both call redirectToLogin; add a single-feedback regression test when fixing the pre-existing behavior.
+- source_spec: `spec-repair-staging-e1-release-gate.md`
+  summary: Verify concurrent membership synchronization during first-time reminder fixture setup.
+  evidence: Unverified medium risk: the fixture locks the season and enforces a unique participant membership; a coordinated PostgreSQL test is needed to determine whether a concurrent sync fails safely or needs retry.

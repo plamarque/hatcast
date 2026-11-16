@@ -47,6 +47,40 @@ export async function gotoTroupeHub(page: Page, troupeSlug: string): Promise<voi
   await expect(page.locator('.troupe-hub__dashboard')).toBeVisible({ timeout: 45_000 })
 }
 
+/** Select the exact fixture season through the mobile switcher. */
+export async function selectTroupeHubSeason(page: Page, request: APIRequestContext, seasonId: string): Promise<void> {
+  const response = await request.get(`/v1/seasons/${encodeURIComponent(seasonId)}`)
+  if (!response.ok()) throw new Error(`Fixture season ${seasonId} inaccessible (${response.status()})`)
+  const season = await response.json() as { id: string; title: string; troupeId: string }
+  if (season.id !== seasonId || !season.title || !season.troupeId) throw new Error(`Invalid fixture season ${seasonId}`)
+  // The switcher exposes titles, not IDs. Resolve the title against the full
+  // troupe list before using it, including when it is already displayed.
+  const matches: Array<{ id: string; title: string }> = []
+  for (let pageNumber = 0, pages = 1; pageNumber < pages; pageNumber++) {
+    const list = await request.get(`/v1/troupes/${encodeURIComponent(season.troupeId)}/seasons?page=${pageNumber}&size=100`)
+    if (!list.ok()) throw new Error(`Fixture season list inaccessible (${list.status()})`)
+    const result = await list.json() as { content: Array<{ id: string; title: string }>; totalPages: number }
+    if (!Array.isArray(result.content) || !Number.isInteger(result.totalPages) || result.totalPages < 1 || result.totalPages > 100) {
+      throw new Error('Invalid fixture season list')
+    }
+    matches.push(...result.content.filter(item => item.title.trim() === season.title.trim()))
+    pages = result.totalPages
+  }
+  if (matches.length !== 1 || matches[0].id !== seasonId) {
+    throw new Error(`Fixture season title is missing or ambiguous: ${season.title}`)
+  }
+  const heading = page.locator('#troupe-season-dashboard-heading')
+  await expect(heading).toBeVisible({ timeout: 45_000 })
+  if ((await heading.textContent())?.trim() !== season.title) {
+    await page.getByRole('button', { name: 'Changer de saison' }).click()
+    const sheet = page.locator('app-troupe-hub-season-switcher-sheet')
+    await expect(sheet).toBeVisible()
+    await sheet.getByRole('button', { name: season.title, exact: true }).click()
+  }
+  await expect(heading).toHaveText(season.title, { timeout: 45_000 })
+  await expectTroupeHubDashboardSections(page)
+}
+
 /** MT-AC12 / CAP-3 — hero admin trigger « Gérer la troupe » (orga). */
 export async function expectTroupeHubLabeledAdminTrigger(
   page: Page,
