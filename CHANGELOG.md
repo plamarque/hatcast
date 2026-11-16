@@ -1,5 +1,55 @@
 # Changelog
 
+## [2.8.2] - 2026-11-17
+
+### ✨ New Features
+- feat(story): merge 19-24-regrouper-les-historiques-de-tirage-par-troupe
+- feat(draw): Record selection chance
+- feat(story): merge 25-27-capturer-les-contributions-avent-supplementaires
+- feat(avent): Capture extra contributions
+- feat(composition): Integrate warning
+- feat(composition): Warn across categories
+- feat(avent): Replace generic development quiz
+
+### 🐛 Bug Fixes
+- fix(ci): Repair staging release checks
+- fix(ci): Pin Playwright runner to Ubuntu 24.04
+- fix(draw): Integrate story 19.23
+- fix(draw): Clarify chance labels
+- fix(web): Restore unit suite reliability
+- fix(draw): Explain replay group effects
+- fix(pwa): Verify updates after reload
+- fix(avent): Highlight character names
+
+### 📝 Other Changes
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- chore(v2): promote v2 to staging-v2
+- chore(v2): Prepare 2.8.2 release notes
+- chore(draw): Reconcile story tracker
+- chore(avent): Close story 25.27
+- chore(bmad): Sync sprint status for 25-27-capturer-les-contributions-avent-supplementaires
+- docs(avent): Plan extra contributions
+- chore(draw): Merge local v2 into story 19.24
+- chore(draw): Merge v2 into story 19.23
+- merge: Integrate Angular suite maintenance
+- docs(draw): Record chance explanation bugs
+- docs(web): Record Node 22 validation
+- docs(composition): Record epic context
+- chore(bmad): Sync sprint status for 19-24-regrouper-les-historiques-de-tirage-par-troupe
+- chore(bmad): Sync sprint status for 6-25-avertir-des-spectacles-consecutifs-toutes-categories
+- chore(bmad): Sync sprint status for 19-23-expliquer-les-variations-de-chances-dues-au-groupe
+- docs(draw): Plan equity follow-up stories
+- docs(draw): Prepare story handoff
+- docs(draw): Record equity change proposal
+- docs(pwa): Record phone validation
+- docs(avent): Record quiz replacement spec
+- docs(bmad): Plan Google Calendar integration
+- docs: Record release check retries
+- chore(v2): sync release v2.8.1-rc.1 artifacts to v2
+
+---
+
 ## [2.8.1] - 2026-11-08
 
 ### ✨ New Features
