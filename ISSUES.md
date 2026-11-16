@@ -10,6 +10,13 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Current follow-up
 
+### BUG-122 — Playwright CI cannot install Chromium on Ubuntu 26.04
+
+- **Status:** Runner pinned locally; CI verification pending. **Severity:** High. **Affected area:** V2 release and browser CI gates.
+- **Observed behavior:** CI browser installation failed before tests on Ubuntu 26.04; release run 43961109861 failed at both Chromium installation steps.
+- **Expected behavior:** Browser checks install Chromium and execute on a compatible runner.
+- **Context:** An earlier run reported Playwright 1.60 does not support Ubuntu 26.04. Four Chromium jobs are pinned to Ubuntu 24.04 pending validation.
+
 ### BUG-120 — Historical chance breakdown can mix current and recorded pools
 
 - **Status:** Fix in progress locally in story 19.24. **Severity:** Medium. **Affected area:** V2 historical draw chance explanations.
