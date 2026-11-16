@@ -1,5 +1,15 @@
 [
   {
+    "version": "2.8.2",
+    "date": "2026-11-17",
+    "changes": [
+      "✨ Tirage — consulte une estimation actualisée de tes chances et, lorsqu’elle est disponible, celle enregistrée lors de ta sélection.",
+      "🔧 Tirage — comprends mieux les facteurs qui font varier tes chances.",
+      "🔧 Composition — repère les spectacles consécutifs, même lorsqu’ils appartiennent à des catégories différentes.",
+      "🐛 Mise à jour — l’application vérifie mieux que la nouvelle version est bien chargée."
+    ]
+  },
+  {
     "version": "2.8.1",
     "date": "2026-11-08",
     "changes": [
