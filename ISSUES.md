@@ -10,6 +10,13 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Current follow-up
 
+### BUG-124 — Event tab changes counted as notification link opens
+
+- **Status:** Fixed locally; production data verification pending. **Severity:** Medium. **Affected area:** V2 PostHog `notification_link_opened` (FR47) on the event detail page.
+- **Observed behavior:** A tab change on the event detail page writes `?tab=dispos|equipe` into the URL, and the page captured `notification_link_opened` for each change. A silent event reload also captured the tab of the current URL. Organizer tab changes produced most of the recorded opens, so the opens no longer match notification arrivals and the open-to-submission ratio looked broken.
+- **Expected behavior:** The event is captured once per event page entry, from the URL that opened the page. In-app tab changes and silent reloads are not captured.
+- **Context:** A notification click, an email link, or a shared link loads a full page, so the entry URL keeps these arrivals. A bookmark or a full reload of a tab URL still counts, as the deploy guide states.
+
 ### BUG-123 — Staging release checks fail after data refresh
 
 - **Status:** Correction locale en cours de vérification ; validation staging à effectuer. **Severity:** High. **Affected area:** Staging E1 release gate and health reporting.

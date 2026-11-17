@@ -17,6 +17,7 @@ import {
 import { ProductAnalyticsService } from '../../core/analytics/product-analytics.service'
 import { resolveActorScope } from '../../core/analytics/organizer-analytics'
 import { resolveNotificationLinkTab } from '../../core/analytics/notification-link-tab'
+import type { Fr47NotificationLinkTab } from '../../core/analytics/fr47-event-names'
 import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
 import { MemberShellBootstrapService } from '../../core/member-shell/member-shell-bootstrap.service'
 import {
@@ -127,7 +128,8 @@ export class EventDetail implements OnDestroy, OnInit {
   private compositionLoadInFlight = false
   private tabBootstrapInFlight: { tab: EventPageTab } | null = null
   private infosBootstrapInFlight: object | null = null
-  private lastNotificationLinkCaptureKey = ''
+  /** Link tab of the URL that opened this event; in-app tab changes never set it. */
+  private pendingNotificationLinkTab: Fr47NotificationLinkTab | null = null
   private tabBootstrapLoaded = signal<Record<EventPageTab, boolean>>({
     infos: false,
     dispos: false,
@@ -376,7 +378,6 @@ export class EventDetail implements OnDestroy, OnInit {
     this.activeTab.set(tab)
     if (tab !== 'equipe') this.equipeStatus.set(null)
     this.showConfirmPending.set(params.get('showConfirm') === 'true')
-    this.maybeCaptureNotificationLinkOpened(params)
 
     const tabParam = params.get('tab')
     if (tabParam && (!isEventDetailTabParamKnown(tabParam) || ['infos', 'info'].includes(tabParam.toLowerCase()))) {
@@ -688,22 +689,15 @@ export class EventDetail implements OnDestroy, OnInit {
     }
   }
 
-  private maybeCaptureNotificationLinkOpened(params: ParamMap): void {
-    const linkTab = resolveNotificationLinkTab(params)
-    if (!linkTab) {
-      return
-    }
+  private maybeCaptureNotificationLinkOpened(): void {
+    const linkTab = this.pendingNotificationLinkTab
     const ev = this.event()
     const seasonId = this.seasonId()
     const troupeId = this.troupeId()
-    if (!ev || !seasonId || !troupeId) {
+    if (!linkTab || !ev || !seasonId || !troupeId) {
       return
     }
-    const captureKey = `${ev.id}:${linkTab}`
-    if (this.lastNotificationLinkCaptureKey === captureKey) {
-      return
-    }
-    this.lastNotificationLinkCaptureKey = captureKey
+    this.pendingNotificationLinkTab = null
     this.analytics.captureNotificationLinkOpened(
       this.analyticsContext(ev.id, seasonId, troupeId),
       { link_tab: linkTab },
@@ -780,7 +774,7 @@ export class EventDetail implements OnDestroy, OnInit {
       this.tabBootstrapLoaded.set({ infos: false, dispos: false, equipe: false })
       this.tabBootstrapInFlight = null
       this.resetResolvedContext()
-      this.lastNotificationLinkCaptureKey = ''
+      this.pendingNotificationLinkTab = resolveNotificationLinkTab(this.route.snapshot.queryParamMap)
     }
     if (!troupeSlug || !seasonSlug || !routeSegment) {
       this.loading.set(false)
@@ -853,7 +847,7 @@ export class EventDetail implements OnDestroy, OnInit {
       })
       return
     }
-    this.maybeCaptureNotificationLinkOpened(this.route.snapshot.queryParamMap)
+    this.maybeCaptureNotificationLinkOpened()
     this.clampActiveTab()
     this.ensureTabBootstrapLoaded()
   }
