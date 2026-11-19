@@ -17,6 +17,13 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 - **Expected behavior:** Release tests select their intended season and create a stable isolated reminder fixture; health reflects dependencies used by the configured service.
 - **Context:** Organizer authentication and permissions succeeded. The existing fixture does not create an absent removed participant, allowing normal membership synchronization to add one. One chance-detail test passed on retry; its cause is not established.
 
+### BUG-125 — Advent bonus review exposed journey and catalogue inconsistencies
+
+- **Status:** Fixed locally in story 25.28; human acceptance completed, deployment pending. **Severity:** High. **Affected area:** Advent bonus results, replay and private catalogue synchronization.
+- **Observed behavior:** During review of the initial local implementation, a late bonus offer promised points; a result acknowledgment could race the next reveal; reconciling an uncertain daily answer could omit the bonus offer; replaying the daily answer could leave an inaccessible bonus answer; and ordinary catalogue synchronization did not check character identities already assigned to bonuses.
+- **Expected behavior:** Late play explains that it earns no points; results advance in order; the bonus remains recoverable; replay preserves a coherent daily-before-bonus state; and character identity conflicts are rejected in both synchronization directions.
+- **Context:** These findings concern unreleased work, not an observed production incident. The local corrections have targeted UI, game, security and catalogue tests; Patrice accepted the recorded journey on 19 November 2026.
+
 ### BUG-122 — Playwright CI cannot install Chromium on Ubuntu 26.04
 
 - **Status:** Runner pinned locally; CI verification pending. **Severity:** High. **Affected area:** V2 release and browser CI gates.

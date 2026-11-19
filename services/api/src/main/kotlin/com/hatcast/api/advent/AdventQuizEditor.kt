@@ -26,9 +26,9 @@ class AdventQuizEditor(private val jdbc: JdbcTemplate, private val realClock: Ad
     }
 
     @Transactional
-    fun editableDays(): List<Int> {
+    fun editableDays(bonus: Boolean = false): List<Int> {
         jdbc.queryForObject("SELECT id FROM advent_member_lock WHERE id = 1 FOR UPDATE", Int::class.java)
-        val days = jdbc.query("SELECT quiz_day FROM advent_quizzes ORDER BY quiz_day") { rs, _ -> rs.getInt(1) }
+        val days = jdbc.query("SELECT quiz_day FROM ${if (bonus) "advent_bonus_quizzes" else "advent_quizzes"} ORDER BY quiz_day") { rs, _ -> rs.getInt(1) }
         val now = realClock.instant()
         return days.filter { now.isBefore(LocalDate.of(2026, 12, it).atStartOfDay(paris).toInstant()) }
     }
@@ -39,10 +39,10 @@ class AdventQuizEditor(private val jdbc: JdbcTemplate, private val realClock: Ad
         return Duration.between(now, LocalDate.of(2026, 12, first).atStartOfDay(paris).toInstant()).toMillis().coerceIn(1L, 21_600_000L)
     }
 
-    private fun lock(day: Int): AdventQuizEditView {
+    private fun lock(day: Int, bonus: Boolean): AdventQuizEditView {
         if (day !in 1..24) throw ResponseStatusException(HttpStatus.NOT_FOUND)
         jdbc.queryForObject("SELECT id FROM advent_member_lock WHERE id = 1 FOR UPDATE", Int::class.java)
-        val view = jdbc.query("SELECT display_name, statement_0, statement_1, statement_2, story_0, story_1, story_2, false_choice, explanation, content_revision FROM advent_quizzes WHERE quiz_day = ? FOR UPDATE", { rs, _ ->
+        val view = jdbc.query("SELECT display_name, statement_0, statement_1, statement_2, story_0, story_1, story_2, false_choice, explanation, content_revision FROM ${if (bonus) "advent_bonus_quizzes" else "advent_quizzes"} WHERE quiz_day = ? FOR UPDATE", { rs, _ ->
             val content = AdventQuizEditContent(listOf(rs.getString(2), rs.getString(3), rs.getString(4)), listOf(rs.getString(5), rs.getString(6), rs.getString(7)), rs.getInt(8), rs.getString(9))
             AdventQuizEditView(day, rs.getString(1), version(content, rs.getLong(10)), content)
         }, day).singleOrNull() ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
@@ -54,11 +54,11 @@ class AdventQuizEditor(private val jdbc: JdbcTemplate, private val realClock: Ad
         .digest(mapper.writeValueAsBytes(content)).joinToString("") { "%02x".format(it) }
 
     @Transactional
-    fun read(day: Int): AdventQuizEditView = lock(day)
+    fun read(day: Int, bonus: Boolean = false): AdventQuizEditView = lock(day, bonus)
 
     @Transactional
-    fun save(day: Int, request: AdventQuizEditRequest): AdventQuizEditView {
-        val current = lock(day)
+    fun save(day: Int, request: AdventQuizEditRequest, bonus: Boolean = false): AdventQuizEditView {
+        val current = lock(day, bonus)
         if (current.version != request.version) throw ResponseStatusException(HttpStatus.CONFLICT)
         val content = request.content
         if (content.statements.size != 3 || content.statements.any { it.isBlank() || it.length > 5000 } ||
@@ -67,7 +67,7 @@ class AdventQuizEditor(private val jdbc: JdbcTemplate, private val realClock: Ad
             throw ResponseStatusException(HttpStatus.BAD_REQUEST)
         requireFuture(day)
         val deadline = Timestamp.from(LocalDate.of(2026, 12, day).atStartOfDay(paris).toInstant())
-        val updated = jdbc.update("UPDATE advent_quizzes SET statement_0 = ?, statement_1 = ?, statement_2 = ?, story_0 = ?, story_1 = ?, story_2 = ?, false_choice = ?, explanation = ?, content_revision = content_revision + 1 WHERE quiz_day = ? AND ${databaseClock.expression} < ? AND ? < ?",
+        val updated = jdbc.update("UPDATE ${if (bonus) "advent_bonus_quizzes" else "advent_quizzes"} SET statement_0 = ?, statement_1 = ?, statement_2 = ?, story_0 = ?, story_1 = ?, story_2 = ?, false_choice = ?, explanation = ?, content_revision = content_revision + 1 WHERE quiz_day = ? AND ${databaseClock.expression} < ? AND ? < ?",
             content.statements[0], content.statements[1], content.statements[2], content.stories[0], content.stories[1], content.stories[2], content.falseChoice, content.explanation, day,
             deadline, Timestamp.from(realClock.instant()), deadline)
         if (updated != 1) throw ResponseStatusException(HttpStatus.GONE)

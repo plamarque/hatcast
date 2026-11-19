@@ -48,6 +48,15 @@ function validateCatalogueInternal(root, selectedDays, documentOnly = false) {
     }
     identities.add(q.character_id);
   }
+  if (root.bonus_assignments !== undefined && !Array.isArray(root.bonus_assignments)) fail();
+  const bonusDays = new Set();
+  const bonusCharacters = new Set();
+  for (const assignment of root.bonus_assignments ?? []) {
+    if (!assignment || !integerIn(assignment.day, 1, 24) || bonusDays.has(assignment.day) ||
+        typeof assignment.character_id !== 'string' || bonusCharacters.has(assignment.character_id) ||
+        !(root.extra_contributions ?? []).some(q => q.character_id === assignment.character_id)) fail();
+    bonusDays.add(assignment.day); bonusCharacters.add(assignment.character_id);
+  }
   return selectedDays.map(day => {
     const q = root.quizzes.find(item => item.day === day);
     if (!q || q.kind !== 'contribution' || q.portrait.type !== 'bucket-object') fail();
@@ -61,3 +70,17 @@ function validateCatalogueInternal(root, selectedDays, documentOnly = false) {
 
 export function validateCatalogue(root, selectedDays) { return validateCatalogueInternal(root, selectedDays); }
 export function validateCatalogueDocument(root) { validateCatalogueInternal(root, [], true); }
+
+// Explicit assignments reference the private reserve; selecting a day never changes its daily quiz.
+export function validateBonusSelection(root, selectedDays) {
+  validateCatalogueDocument(root);
+  if (!Array.isArray(selectedDays) || !selectedDays.length || new Set(selectedDays).size !== selectedDays.length || selectedDays.some(day => !integerIn(day, 1, 24))) throw new CatalogueValidationError();
+  return selectedDays.map(day => {
+    const assignment = (root.bonus_assignments ?? []).find(item => item.day === day);
+    const q = (root.extra_contributions ?? []).find(item => item.character_id === assignment?.character_id);
+    if (!q) throw new CatalogueValidationError();
+    return { quiz_day: day, character_key: q.character_id, display_name: q.name,
+      portrait_ref: q.portrait.object.slice('portraits/'.length), statement_0: q.statements[0], statement_1: q.statements[1], statement_2: q.statements[2],
+      false_choice: q.false_statement_index, explanation: q.reveal, story_0: q.stories?.[0] ?? null, story_1: q.stories?.[1] ?? null, story_2: q.stories?.[2] ?? null };
+  });
+}

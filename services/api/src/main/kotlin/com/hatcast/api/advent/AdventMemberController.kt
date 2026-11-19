@@ -74,22 +74,22 @@ class AdventMemberController(
     }
 
     @GetMapping("/editor/days")
-    fun editableQuizDays(@AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): Map<String, Any> {
+    fun editableQuizDays(@AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest, @RequestParam(defaultValue = "false") bonus: Boolean = false): Map<String, Any> {
         requireEditor(principal, request)
-        val days = editor.editableDays()
+        val days = editor.editableDays(bonus)
         return mapOf("days" to days, "refreshAfterMs" to editor.refreshDelayMillis(days))
     }
 
     @GetMapping("/editor/{day}")
-    fun editQuiz(@PathVariable day: Int, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AdventQuizEditView {
+    fun editQuiz(@PathVariable day: Int, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest, @RequestParam(defaultValue = "false") bonus: Boolean = false): AdventQuizEditView {
         requireEditor(principal, request)
-        return editor.read(day)
+        return editor.read(day, bonus)
     }
 
     @PutMapping("/editor/{day}")
-    fun saveQuiz(@PathVariable day: Int, @RequestBody body: AdventQuizEditRequest, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AdventQuizEditView {
+    fun saveQuiz(@PathVariable day: Int, @RequestBody body: AdventQuizEditRequest, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest, @RequestParam(defaultValue = "false") bonus: Boolean = false): AdventQuizEditView {
         requireEditor(principal, request)
-        return editor.save(day, body)
+        return editor.save(day, body, bonus)
     }
 
     private fun activeMode(principal: SessionUserPrincipal, request: HttpServletRequest): Boolean {
@@ -235,13 +235,13 @@ class AdventMemberController(
     }
 
     @PostMapping("/doors/{day}/answer/replay")
-    fun replay(@PathVariable day: Int, @RequestBody body: ReplayAnswer, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AnswerState {
+    fun replay(@PathVariable day: Int, @RequestBody body: ReplayAnswer, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest, @RequestParam(defaultValue = "false") bonus: Boolean = false): AnswerState {
         authorize(principal)
         val isPreview = preview(principal, request)
         if (isPreview && body.close) throw ResponseStatusException(HttpStatus.NOT_FOUND)
         val implicitFuture = !isPreview && canControl(principal, request) && !body.close && day in 1..24 && LocalDate.of(2026, 12, day).isAfter(game.today(sessionFor(principal, request), simulated(principal, request)))
         val session = if (isPreview || implicitFuture) sessionFor(principal, request) else requireControl(principal, request)
-        return game.replay(principal.userId, day, body.replayToken ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), session, simulated(principal, request), body.close, isPreview, canControl(principal, request))
+        return game.replay(principal.userId, day, body.replayToken ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), session, simulated(principal, request), body.close, isPreview, canControl(principal, request), bonus)
     }
 
     @GetMapping("/clock")
@@ -251,35 +251,36 @@ class AdventMemberController(
     }
 
     @GetMapping("/doors/{day}")
-    fun door(@PathVariable day: Int, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): FictionalQuiz {
+    fun door(@PathVariable day: Int, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest, @RequestParam(defaultValue = "false") bonus: Boolean = false): FictionalQuiz {
         authorize(principal)
-        val quiz = game.quiz(day, sessionFor(principal, request), simulated(principal, request), preview = preview(principal, request), testFuture = canControl(principal, request)) ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        val quiz = (if (bonus) game.quiz(day, sessionFor(principal, request), simulated(principal, request), preview = preview(principal, request), testFuture = canControl(principal, request), bonus = true, user = principal.userId)
+            else game.quiz(day, sessionFor(principal, request), simulated(principal, request), preview = preview(principal, request), testFuture = canControl(principal, request))) ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
         val (image, generic) = image(quiz.portraitRef)
         return FictionalQuiz(day, quiz.name, image, quiz.statements, generic, quiz.stories)
     }
 
     @GetMapping("/doors/{day}/answer")
-    fun state(@PathVariable day: Int, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AnswerState {
+    fun state(@PathVariable day: Int, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest, @RequestParam(defaultValue = "false") bonus: Boolean = false): AnswerState {
         authorize(principal)
-        return game.state(principal.userId, day, activeMode(principal, request), sessionFor(principal, request), simulated(principal, request), preview = preview(principal, request), testFuture = canControl(principal, request))
+        return game.state(principal.userId, day, activeMode(principal, request), sessionFor(principal, request), simulated(principal, request), preview = preview(principal, request), testFuture = canControl(principal, request), bonus = bonus)
     }
 
     @PostMapping("/doors/{day}/answer")
-    fun confirm(@PathVariable day: Int, @RequestBody body: MemberAnswer, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AnswerState {
+    fun confirm(@PathVariable day: Int, @RequestBody body: MemberAnswer, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest, @RequestParam(defaultValue = "false") bonus: Boolean = false): AnswerState {
         authorize(principal)
-        return game.confirm(principal.userId, day, body.choice ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), body.attemptId ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), activeMode(principal, request), sessionFor(principal, request), simulated(principal, request), preview = preview(principal, request), testFuture = canControl(principal, request))
+        return game.confirm(principal.userId, day, body.choice ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), body.attemptId ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), activeMode(principal, request), sessionFor(principal, request), simulated(principal, request), preview = preview(principal, request), testFuture = canControl(principal, request), bonus = bonus)
     }
 
     @PostMapping("/doors/{day}/answer/reconcile")
-    fun reconcile(@PathVariable day: Int, @RequestBody(required = false) body: LateAccess?, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AnswerState {
+    fun reconcile(@PathVariable day: Int, @RequestBody(required = false) body: LateAccess?, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest, @RequestParam(defaultValue = "false") bonus: Boolean = false): AnswerState {
         authorize(principal)
-        return game.reconcile(principal.userId, day, activeMode(principal, request), sessionFor(principal, request), simulated(principal, request), preview = preview(principal, request), testFuture = canControl(principal, request), lateAccess = body?.late == true)
+        return game.reconcile(principal.userId, day, activeMode(principal, request), sessionFor(principal, request), simulated(principal, request), preview = preview(principal, request), testFuture = canControl(principal, request), lateAccess = body?.late == true, bonus = bonus)
     }
 
     @PostMapping("/doors/{day}/answer/reserve")
-    fun reserve(@PathVariable day: Int, @RequestBody body: AnswerAttempt, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AnswerState {
+    fun reserve(@PathVariable day: Int, @RequestBody body: AnswerAttempt, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest, @RequestParam(defaultValue = "false") bonus: Boolean = false): AnswerState {
         authorize(principal)
-        return game.reserve(principal.userId, day, body.attemptId ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), body.generation ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), activeMode(principal, request), sessionFor(principal, request), simulated(principal, request), preview = preview(principal, request), testFuture = canControl(principal, request))
+        return game.reserve(principal.userId, day, body.attemptId ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), body.generation ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), activeMode(principal, request), sessionFor(principal, request), simulated(principal, request), preview = preview(principal, request), testFuture = canControl(principal, request), bonus = bonus)
     }
 
     @GetMapping("/results/latest-unseen")
@@ -289,15 +290,15 @@ class AdventMemberController(
     }
 
     @GetMapping("/doors/{day}/result")
-    fun result(@PathVariable day: Int, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AdventResult {
+    fun result(@PathVariable day: Int, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest, @RequestParam(defaultValue = "false") bonus: Boolean = false): AdventResult {
         authorize(principal)
-        return game.result(principal.userId, day, sessionFor(principal, request), simulated(principal, request), preview = preview(principal, request), testFuture = canControl(principal, request)) ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        return game.result(principal.userId, day, sessionFor(principal, request), simulated(principal, request), preview = preview(principal, request), testFuture = canControl(principal, request), bonus = bonus) ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
     }
 
     @PostMapping("/doors/{day}/result/acknowledge")
-    fun acknowledge(@PathVariable day: Int, @RequestBody body: AcknowledgeResult, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest) {
+    fun acknowledge(@PathVariable day: Int, @RequestBody body: AcknowledgeResult, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest, @RequestParam(defaultValue = "false") bonus: Boolean = false) {
         authorize(principal)
-        game.acknowledge(principal.userId, day, body.answerId ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), sessionFor(principal, request), simulated(principal, request), preview = preview(principal, request), testFuture = canControl(principal, request))
+        game.acknowledge(principal.userId, day, body.answerId ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST), sessionFor(principal, request), simulated(principal, request), preview = preview(principal, request), testFuture = canControl(principal, request), bonus = bonus)
     }
 
     @GetMapping("/calendar")
@@ -307,9 +308,9 @@ class AdventMemberController(
     }
 
     @GetMapping("/doors/{day}/history")
-    fun history(@PathVariable day: Int, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest): AdventHistoryResponse {
+    fun history(@PathVariable day: Int, @AuthenticationPrincipal principal: SessionUserPrincipal, request: HttpServletRequest, @RequestParam(defaultValue = "false") bonus: Boolean = false): AdventHistoryResponse {
         authorize(principal)
-        val read = game.history(principal.userId, day, sessionFor(principal, request), simulated(principal, request), preview = preview(principal, request), testFuture = canControl(principal, request))
+        val read = game.history(principal.userId, day, sessionFor(principal, request), simulated(principal, request), preview = preview(principal, request), testFuture = canControl(principal, request), bonus = bonus)
         if (read.priorityResult != null) return AdventHistoryResponse(priorityResult = read.priorityResult)
         val history = read.history ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
         val quiz = history.quiz

@@ -32,6 +32,13 @@ class AdventOfflineFixtures(
               AND NOT EXISTS (SELECT 1 FROM advent_test_answers WHERE quiz_day = 1)
               AND NOT EXISTS (SELECT 1 FROM advent_member_answers WHERE quiz_day = 1)""",
             "Lutin fictif 1", "A inventé une histoire pour la fête.", "A décoré un sapin imaginaire.", "A voyagé sur une étoile en papier.")
+        // Isolated fictional bonus makes the surprise journey reviewable without real content.
+        jdbc.update("""INSERT INTO advent_bonus_quizzes (quiz_day, character_key, display_name, statement_0, statement_1, statement_2, false_choice)
+            SELECT 1, 'offline:bonus-demo', 'Lutin bonus fictif', 'A fabriqué une étoile.', 'A visité la lune.', 'A décoré une forêt.', 1
+            WHERE EXISTS (SELECT 1 FROM advent_quizzes WHERE quiz_day = 1 AND display_name = 'Lutin fictif 1' AND portrait_ref IS NULL)
+              AND NOT EXISTS (SELECT 1 FROM advent_bonus_quizzes WHERE quiz_day = 1)
+              AND NOT EXISTS (SELECT 1 FROM advent_bonus_answers WHERE quiz_day = 1)
+              AND NOT EXISTS (SELECT 1 FROM advent_local_deleted_days WHERE quiz_day = 1)""")
         for ((index, quiz) in fictionalQuizzes.withIndex()) {
             val day = index + 2
             // Never pair a new fictional quiz with a preexisting answer for that day.

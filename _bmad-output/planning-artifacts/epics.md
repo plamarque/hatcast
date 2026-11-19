@@ -3952,6 +3952,15 @@ En tant que responsable du contenu Avent, je veux conserver des contributions su
 
 **UI :** N/A — outils et catalogue privés uniquement.
 
+
+### Story 25.28: Quiz bonus Avent
+
+En tant que membre, je veux découvrir certains jours un quiz bonus après le quiz habituel, afin de jouer une anecdote supplémentaire et gagner des points.
+
+**Critères :** Au plus un bonus par jour, affecté à partir de la réserve privée lors de la préparation du déploiement. Après la réponse au quiz habituel, proposer une surprise avec « Jouer », puis le quiz bonus et l'accusé habituel. Le bonus peut être repris avant minuit sur un autre appareil ; après son jour, il reste jouable sans points ni effet sur la série. Appliquer à chaque quiz le barème existant, y compris un point de participation et la série dans l'ordre quiz habituel puis bonus. Révéler les résultats à partir du lendemain, dans cet ordre, en préservant les règles de confidentialité et de reprise. Si le bonus a été laissé sans réponse, révéler le quiz habituel avant de proposer le bonus tardif. Le calendrier conserve un cadeau par jour, coloré selon le quiz habituel, et donne accès aux deux quiz et résultats. Préserver les données existantes lors de l'évolution du modèle, vérifier les frontières Paris, la concurrence, les modes test et les cibles de synchronisation. Voir la proposition approuvée `sprint-change-proposal-2026-11-18-avent-bonus-quiz.md`.
+
+**Material 3 et références :** appliquer FRONTEND_UI, Advent DESIGN, EXPERIENCE et AD-7 ; concevoir et vérifier visuellement l'écran surprise, l'accessibilité et l'absence d'effet sur HatCast.
+
 ## Final validation
 
 

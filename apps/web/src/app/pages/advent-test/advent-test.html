@@ -82,7 +82,7 @@
         <button mat-flat-button type="button" (click)="resetGame()" [disabled]="loading()">Réinitialiser</button>
       </section>
     }
-    @if (error() && (quiz() || result() || history() || rankingOpen())) { <p class="advent__feedback" role="alert">{{ sessionChanged() ? 'La partie de test a été réinitialisée. Recharge l’aperçu.' : rankingOpen() ? 'Impossible de charger le calendrier. Réessaie.' : memberMode ? 'Impossible de mettre à jour le quiz. Réessaie.' : 'Impossible de mettre à jour la partie de test. Réessaie.' }}</p> }
+    @if (error() && (quiz() || result() || history() || rankingOpen())) { <p class="advent__feedback" role="alert">{{ replayBlocked() ? 'Efface d’abord ta réponse au quiz bonus pour rejouer le quiz quotidien.' : sessionChanged() ? 'La partie de test a été réinitialisée. Recharge l’aperçu.' : rankingOpen() ? 'Impossible de charger le calendrier. Réessaie.' : memberMode ? 'Impossible de mettre à jour le quiz. Réessaie.' : 'Impossible de mettre à jour la partie de test. Réessaie.' }}</p> }
     @if (rankingError()) { <p role="alert">{{ sessionChanged() ? 'La partie de test a été réinitialisée. Recharge l’aperçu.' : 'Impossible de charger le classement. Réessaie.' }}</p> @if (sessionChanged()) { <button mat-stroked-button type="button" (click)="start()">Recharger l’aperçu</button> } }
     @if (replayReloading()) {
       <p role="status">Chargement du quiz…</p>
@@ -103,6 +103,17 @@
           <button class="advent__welcome-primary" mat-flat-button type="button" (click)="discoverCalendar()" [disabled]="closingExperience() || loading() || sessionChanged()">Commencer à jouer</button>
           <button class="advent__welcome-return" mat-stroked-button type="button" (click)="closeExperience()" [disabled]="closingExperience() || loading() || submitting() || pendingMutations() > 0 || closingDay() !== null">← &nbsp;Revenir à HatCast</button>
         </div>
+      </section>
+    } @else if (bonusOffer()) {
+      <section class="advent__recorded advent__bonus-offer" aria-labelledby="bonus-title">
+        <h1 id="bonus-title" tabindex="-1">Surprise !</h1>
+        <p class="advent__bonus-invitation">Un quiz bonus t’attend !</p>
+        <button class="advent__bonus-gift" type="button" (click)="playBonus()" [disabled]="loading() || submitting()" aria-label="Ouvrir le cadeau et jouer au quiz bonus">
+          <span class="advent__bonus-sparkle advent__bonus-sparkle--one" aria-hidden="true">✦</span>
+          <img src="/advent/gifts/gift-closed-v1.png" alt="">
+          <span class="advent__bonus-sparkle advent__bonus-sparkle--two" aria-hidden="true">✦</span>
+        </button>
+        <p class="advent__bonus-hint">{{ selectedDayIsPast() ? 'À jouer pour le plaisir, sans points' : 'Touche le cadeau !' }}</p>
       </section>
     } @else if (history(); as past) {
       <section class="advent__quiz" aria-labelledby="history-title">
@@ -129,6 +140,7 @@
               <span class="advent__gift-box" aria-hidden="true"><img class="advent__gift-art" [src]="day.state === 'played' ? '/advent/gifts/gift-open-v2.png' : '/advent/gifts/gift-closed-v1.png'" alt="" (error)="$any($event.target).hidden = true" (load)="$any($event.target).hidden = false"><span class="advent__gift-lid"><span class="advent__gift-snow"></span></span><span class="advent__gift-body"></span></span>
               <span class="advent__gift-caption" aria-hidden="true"><strong>{{ day.day }}</strong></span>
             </button>
+            @if (day.bonusState) { <button mat-button type="button" class="advent__bonus-calendar" (click)="openCalendarBonus(day)" [attr.aria-label]="'Quiz bonus du ' + day.day + ' décembre'">Bonus</button> }
             </div>
           }
         </div>
@@ -222,6 +234,7 @@
             </section>
           }
           <ng-container [ngTemplateOutlet]="reminderControl" />
+          @if (historicalResult() && (reveal.bonusAvailable || reveal.bonusUnseen)) { <button mat-flat-button type="button" (click)="continueAfterResult()" [disabled]="loading()">Continuer <mat-icon iconPositionEnd aria-hidden="true">arrow_forward</mat-icon></button> }
           @if (historicalResult()) { <button mat-flat-button type="button" (click)="navigateRanking()" [disabled]="loading()">Voir le classement <mat-icon iconPositionEnd aria-hidden="true">arrow_forward</mat-icon></button> }
           @else { <button mat-flat-button type="button" (click)="continueAfterResult()" [disabled]="loading()">Continuer <mat-icon iconPositionEnd aria-hidden="true">arrow_forward</mat-icon></button> }
         </section>

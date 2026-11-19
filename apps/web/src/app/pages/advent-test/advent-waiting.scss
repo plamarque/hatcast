@@ -6,3 +6,25 @@
 .advent__waiting-clock { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(.35rem, 2vw, .75rem); max-width: 19rem; margin: 1rem auto 0; font-variant-numeric: tabular-nums; }
 .advent__waiting-unit { display: grid; justify-items: stretch; gap: .35rem; min-width: 0; font-size: clamp(.75rem, 3.5vw, 1rem); overflow-wrap: anywhere; }
 .advent__waiting-number { display: grid; place-items: center; min-height: 3.4rem; padding: .35rem .1rem; border-radius: .65rem; background: #fff; color: #173b70; font-size: clamp(1.5rem, 7vw, 2.25rem); line-height: 1; box-shadow: 0 2px 8px #061b3f55; }
+
+ .advent__bonus-offer {
+  text-align: center;
+  h1 { margin: 1rem 0 .4rem; animation: advent-bonus-bounce 500ms ease-out both; }
+  .advent__bonus-invitation { margin: 0; font-size: 1.15rem; }
+  .advent__bonus-hint { margin: .5rem 0 0; font-weight: 700; }
+  .advent__bonus-gift {
+    position: relative; display: block; width: min(78vw, 19rem); min-width: 44px; min-height: 44px;
+    padding: 1rem; margin: 1rem auto 0; border: 0; border-radius: 2rem; background: transparent;
+    cursor: pointer; filter: drop-shadow(0 0 1rem #e8b84577);
+    img { display: block; width: 100%; height: auto; animation: advent-gift-glow 2.4s ease-in-out infinite; }
+    &:focus-visible { outline: 3px solid var(--hatcast-avent-red); outline-offset: 4px; }
+    &:disabled { opacity: .6; cursor: wait; }
+  }
+  .advent__bonus-sparkle { position: absolute; z-index: 1; color: #a46a00; font-size: 2.5rem; animation: advent-sparkle 1.8s ease-in-out infinite; }
+  .advent__bonus-sparkle--one { top: 4%; left: 1%; }
+  .advent__bonus-sparkle--two { right: 0; top: 34%; animation-delay: .9s; }
+}
+@keyframes advent-bonus-bounce { 0% { transform: translateY(-.5rem); opacity: 0; } 65% { transform: translateY(.15rem); } 100% { transform: translateY(0); opacity: 1; } }
+@keyframes advent-gift-glow { 50% { filter: drop-shadow(0 0 .75rem #e8b845); transform: scale(1.025); } }
+@keyframes advent-sparkle { 0%, 100% { opacity: .4; transform: scale(.75); } 50% { opacity: 1; transform: scale(1.15); } }
+@media (prefers-reduced-motion: reduce) { .advent__bonus-offer h1, .advent__bonus-offer .advent__bonus-gift img, .advent__bonus-offer .advent__bonus-sparkle { animation: none; } }

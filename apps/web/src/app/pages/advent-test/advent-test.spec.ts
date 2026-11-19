@@ -37,6 +37,98 @@ describe('AdventTest', () => {
     await fixture.whenStable()
     fixture.detectChanges()
   }
+  it('offers the bonus after a recorded daily answer and loads its own quiz', async () => {
+    const component = fixture.componentInstance
+    component.welcome.set(false); component.calendarOpen.set(false); component.loading.set(false)
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url=String(input)
+      if (url.includes('?bonus=true') && url.includes('/answer/reconcile')) return Response.json({status:'available',generation:'bonus-generation'})
+      if (url.includes('?bonus=true') && url.includes('/answer')) return Response.json({status:'available'})
+      if (url.includes('?bonus=true')) return Response.json({day:1,name:'Bonus fictif',portrait:'',statements:['A','B','C']})
+      if (url.endsWith('/answer')) return Response.json({status:'recorded',replayToken:'daily',bonusAvailable:true})
+      if (url.endsWith('/result')) return new Response('',{status:404})
+      return Response.json({day:1,name:'Lutin',portrait:'',statements:['A','B','C']})
+    })
+    await component.selectDay(1)
+    expect(component.bonusOffer()).toBe(true)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('Surprise !')
+    await component.playBonus()
+    expect(component.quiz()?.name).toBe('Bonus fictif')
+    expect(component.answerState()).toBe('available')
+    expect(vi.mocked(window.fetch).mock.calls.some(([url]) => String(url).includes('/doors/1?bonus=true'))).toBe(true)
+  })
+  it('shows the 24 December bonus before the Christmas summary', async () => {
+    const component=fixture.componentInstance
+    component.welcome.set(false);component.loading.set(false);component.testMode.set(false)
+    const daily={answerId:'daily',day:24,selectedChoice:0,falseChoice:0,correct:true,responsePoints:10,participationPoints:1,bonusPoints:0,totalPoints:22,seen:true,bonusUnseen:true}
+    const bonus={...daily,answerId:'bonus',bonus:true,bonusUnseen:false,seen:false}
+    component.result.set(daily)
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url=String(input)
+      if(url.endsWith('/clock'))return Response.json({date:'2026-12-25'})
+      if(url.endsWith('/results/latest-unseen'))return Response.json({result:bonus})
+      if(url.endsWith('/doors/24?bonus=true'))return Response.json({day:24,name:'Bonus fictif',portrait:'/elf',statements:['A','B','C']})
+      if(url.endsWith('/answer?bonus=true'))return Response.json({status:'recorded'})
+      if(url.endsWith('/result?bonus=true'))return Response.json(bonus)
+      return Response.json({})
+    })
+    await component.continueAfterResult()
+    expect(component.result()?.answerId).toBe('bonus')
+    expect(component.resultContent()?.name).toBe('Bonus fictif')
+    expect(component.christmasScore()).toBeNull()
+  })
+  it('waits for a successful displayed-result acknowledgment before continuing', async () => {
+    const component=fixture.componentInstance
+    component.loading.set(false);component.testMode.set(false)
+    const result={answerId:'daily',day:1,selectedChoice:0,falseChoice:0,correct:true,responsePoints:10,participationPoints:1,bonusPoints:0,totalPoints:11,seen:false,bonusUnseen:true}
+    component.result.set(result)
+    const internals=component as unknown as { resultAckId:string; resultDisplayed:boolean; resultAcknowledged:boolean }
+    internals.resultAckId='daily';internals.resultDisplayed=true;internals.resultAcknowledged=false
+    const bonus={...result,answerId:'bonus',bonus:true,bonusUnseen:false}
+    let finish!: (response:Response)=>void; let latestReads=0
+    vi.mocked(fetch).mockImplementation(async input => {
+      if(String(input).includes('/acknowledge'))return new Promise<Response>(resolve=>{finish=resolve})
+      if(String(input).endsWith('/clock'))return Response.json({date:'2026-12-02'})
+      if(String(input).endsWith('/results/latest-unseen')){latestReads++;return Response.json({result:bonus})}
+      if(String(input).endsWith('/doors/1?bonus=true'))return Response.json({day:1,name:'Bonus',portrait:'/elf',statements:['A','B','C']})
+      if(String(input).endsWith('/answer?bonus=true'))return Response.json({status:'recorded'})
+      if(String(input).endsWith('/result?bonus=true'))return Response.json(bonus)
+      return Response.json({})
+    })
+    const first=component.continueAfterResult()
+    await vi.waitFor(()=>expect(finish).toBeDefined())
+    expect(component.result()?.answerId).toBe('daily');expect(component.bonusOffer()).toBe(false);expect(latestReads).toBe(0)
+    finish(new Response('',{status:503}));await first
+    expect(component.result()?.answerId).toBe('daily');expect(component.error()).toBe(true)
+    vi.mocked(fetch).mockImplementation(async input=>{const url=String(input);if(url.includes('/acknowledge'))return new Response('',{status:200});if(url.endsWith('/clock'))return Response.json({date:'2026-12-02'});if(url.endsWith('/results/latest-unseen')){latestReads++;return Response.json({result:bonus})}if(url.endsWith('/doors/1?bonus=true'))return Response.json({day:1,name:'Bonus',portrait:'/elf',statements:['A','B','C']});if(url.endsWith('/answer?bonus=true'))return Response.json({status:'recorded'});if(url.endsWith('/result?bonus=true'))return Response.json(bonus);return Response.json({})})
+    await component.continueAfterResult()
+    expect(latestReads).toBe(1);expect(component.result()?.answerId).toBe('bonus')
+  })
+  it('offers the bonus after an uncertain daily submission is reconciled', async () => {
+    const component=fixture.componentInstance
+    component.loading.set(false);component.answerState.set('uncertain');component.selectedBonus.set(false)
+    vi.mocked(fetch).mockResolvedValue(Response.json({status:'recorded',replayToken:'daily',bonusAvailable:true}))
+    await component.reconcile()
+    expect(component.answerState()).toBe('recorded');expect(component.bonusOffer()).toBe(true)
+  })
+  it('describes a late bonus as play without points', () => {
+    const component=fixture.componentInstance
+    component.welcome.set(false);component.clockDate.set('2026-12-02');component.selectedDay.set(1);component.bonusOffer.set(true)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.advent__bonus-offer').textContent).toContain('sans points')
+    expect(fixture.nativeElement.querySelector('.advent__bonus-offer').textContent).not.toContain('gagner des points')
+  })
+  it('explains why a daily replay is blocked while its bonus answer exists', async () => {
+    const component=fixture.componentInstance
+    component.loading.set(false);component.welcome.set(false);component.answerState.set('recorded')
+    component.quiz.set({day:1,name:'Fictif',portrait:'',statements:['A','B','C'],genericElf:true})
+    ;(component as unknown as {replayToken:string}).replayToken='daily-token'
+    vi.mocked(fetch).mockResolvedValue(new Response('',{status:423}))
+    await component.replay();fixture.detectChanges()
+    expect(component.replayBlocked()).toBe(true);expect(component.sessionChanged()).toBe(false)
+    expect(fixture.nativeElement.textContent).toContain('Efface d’abord ta réponse au quiz bonus')
+  })
   it('retries a failed private day list without showing stale controls', async () => {
     vi.useFakeTimers()
     const component = fixture.componentInstance
@@ -821,6 +913,22 @@ describe('AdventTest', () => {
     expect(component.productionPreview()).toBe(false)
     expect(component.calendarDays()).toEqual([])
     expect(component.result()).toBeNull()
+  })
+  it('opens the waiting state for an already answered bonus from the calendar', async () => {
+    const component=fixture.componentInstance
+    component.testMode.set(false);component.clockDate.set('2026-12-01');component.calendarOpen.set(true)
+    vi.mocked(window.fetch).mockImplementation(async input => {
+      const url=String(input)
+      if (url.endsWith('/clock')) return Response.json({date:'2026-12-01',effectiveInstant:'2026-12-01T22:00:00Z',nextMidnight:'2026-12-01T23:00:00Z',simulated:false})
+      if (url.endsWith('/answer?bonus=true')) return Response.json({status:'recorded',late:false})
+      if (url.endsWith('/result?bonus=true')) return new Response('',{status:404})
+      if (url.endsWith('/doors/1?bonus=true')) return Response.json({day:1,name:'Bonus fictif',portrait:'/elf',statements:[],genericElf:true})
+      throw new Error(url)
+    })
+    await component.openCalendarBonus({day:1,state:'played',outcome:'pending',bonusState:'recorded'});fixture.detectChanges()
+    expect(component.waiting()).toBe(true);expect(component.bonusOffer()).toBe(false)
+    expect(fixture.nativeElement.textContent).toContain('Reviens demain !')
+    component.ngOnDestroy()
   })
   it('shows a server-timed waiting scene only when revisiting a pending calendar answer', async () => {
     const component = fixture.componentInstance

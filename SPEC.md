@@ -559,3 +559,7 @@ Un quiz peut associer aux trois choix ordonnés des récits complets facultatifs
 ### Modification privée des quiz Avent
 
 Patrice et Antoine, membres actifs avec adresse vérifiée, peuvent modifier les trois affirmations ordonnées, leurs récits facultatifs, le choix faux et l’explication d’un quiz existant jusqu’au début de son jour réel à Paris. L’enregistrement est atomique et refuse une version périmée ; il ne modifie ni identité, portrait, réponses ni scores. La base de chaque environnement fait autorité pour le contenu servi. Le catalogue reste une source de préparation privée et peut diverger après une modification : comparer et réconcilier explicitement chaque cible avant de remplacer son contenu, sans publier ni synchroniser une cible non autorisée.
+
+### Quiz bonus Avent
+
+Après la réponse au quiz quotidien, une surprise propose de jouer le quiz bonus lorsqu’un opérateur en a affecté un à ce jour. Un bonus non répondu reste reprenable sur un autre appareil ; après minuit à Paris il peut être joué une fois pour le plaisir, sans points ni effet sur la série. Le lendemain, les résultats enregistrés sont présentés d’abord pour le quiz quotidien puis pour le bonus, chacun avec ses propres anecdotes et points ; si le bonus a été laissé de côté, le résultat quotidien précède sa proposition tardive. Le calendrier conserve un cadeau par jour, coloré selon le quiz quotidien, et permet d’accéder aux deux quiz et résultats. La confidentialité des réponses et points en attente demeure inchangée.
