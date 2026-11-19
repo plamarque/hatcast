@@ -19,6 +19,8 @@ export async function applySelectedContent(client, rows, operation, reviewed) {
   await client.query('LOCK TABLE advent_character_reservations, advent_quizzes IN SHARE ROW EXCLUSIVE MODE');
   if(reviewed && JSON.stringify(await inspectSelectedContent(client,rows))!==JSON.stringify(reviewed))throw Error();
   for(const row of rows) {
+   const bonus=await client.query('SELECT character_key FROM advent_bonus_quizzes WHERE character_key=$1',[row.character_key]);
+   if(bonus.rows.length)throw Error();
    const same=await client.query('SELECT quiz_day,character_key,display_name,portrait_ref FROM advent_character_reservations WHERE quiz_day=$1 OR character_key=$2',[row.quiz_day,row.character_key]);
    if(same.rows.some(r=>r.quiz_day!==row.quiz_day || (r.character_key!==null && r.character_key!==row.character_key)))throw Error();
    const previous=same.rows[0];

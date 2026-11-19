@@ -13,7 +13,7 @@ test('production comparison needs only read access before confirmation',async()=
 test('quiz plan describes ordered story operations before confirmation without content',async()=>{
  const messages=[], old={quiz_day:1,statement_0:'a',statement_1:'b',statement_2:'c',false_choice:0,explanation:null,story_0:'PRIVATE-OLD',story_1:'PRIVATE-OLD2',story_2:null};
  const row={...old,character_key:'fiction',story_0:null,story_1:'PRIVATE-NEW',story_2:'PRIVATE-ADDED'};
- const db={query:async sql=>({rows:sql.includes('advent_character_reservations')?[{quiz_day:1,character_key:'fiction'}]:[old]})};
+ const db={query:async sql=>({rows:sql.includes('advent_bonus_quizzes')?[]:sql.includes('advent_character_reservations')?[{quiz_day:1,character_key:'fiction'}]:[old]})};
  const source={verify:async()=>{},snapshot:async()=>({generation:'1',rows:[row],portraits:[]})};
  await assert.rejects(runCloudContent({source,store:{verify:async()=>{}},db,days:[1],operation:'quiz',environment:'development',write:s=>messages.push(s),ask:async()=>{
   assert.deepEqual(messages.slice(1),['Jour 1 : récit choix 1 : suppression','Jour 1 : récit choix 2 : modification','Jour 1 : récit choix 3 : ajout']);return 'REFUS';
@@ -25,7 +25,7 @@ test('quiz plan describes ordered story operations before confirmation without c
 test('divergent quiz requires a separate day-specific replacement confirmation',async()=>{
  const old={quiz_day:1,statement_0:'old',statement_1:'b',statement_2:'c',false_choice:0,explanation:null,story_0:null,story_1:null,story_2:null};
  const row={...old,character_key:'fiction',statement_0:'new'};const prompts=[];
- const db={query:async sql=>({rows:sql.includes('advent_character_reservations')?[{quiz_day:1,character_key:'fiction'}]:[old]})};
+ const db={query:async sql=>({rows:sql.includes('advent_bonus_quizzes')?[]:sql.includes('advent_character_reservations')?[{quiz_day:1,character_key:'fiction'}]:[old]})};
  const source={verify:async()=>{},snapshot:async()=>({generation:'1',rows:[row],portraits:[]})};
  await assert.rejects(runCloudContent({source,store:{verify:async()=>{}},db,days:[1],operation:'quiz',environment:'development',write:()=>{},ask:async prompt=>{prompts.push(prompt);return 'APPLIQUER quiz 1'}}));
  assert.equal(prompts.length,1);assert.match(prompts[0],/REMPLACER 1/);
@@ -67,3 +67,18 @@ test('generic replacement validates and holds the portrait with the catalogue',a
  assert.deepEqual(operations,['character','character','character']);
  assert.equal(held,snapshot);assert.equal(held.portraits[0].generation,'8');assert.equal(released,true);
 });
+
+test('ordinary sync refuses an identity already used by a bonus',async()=>{
+ const row={quiz_day:2,character_key:'bonus-id',statement_0:'a',statement_1:'b',statement_2:'c',false_choice:0};let asked=false
+ const db={query:async sql=>({rows:sql.includes('advent_bonus_quizzes')?[{character_key:'bonus-id'}]:[]})}
+ const source={verify:async()=>{},snapshot:async()=>({generation:'1',rows:[row],portraits:[]})}
+ await assert.rejects(runCloudContent({source,store:{verify:async()=>{}},db,days:[2],operation:'character',environment:'development',write:()=>{},ask:async()=>{asked=true}}))
+ assert.equal(asked,false)
+})
+
+test('transaction rechecks bonus identities before ordinary writes',async()=>{
+ const {applySelectedContent}=await import('./advent-catalogue-reservations.mjs');const calls=[]
+ const db={query:async sql=>{calls.push(sql);if(sql.includes('advent_bonus_quizzes'))return {rows:[{character_key:'bonus-id'}]};return {rows:[],rowCount:1}}}
+ await assert.rejects(applySelectedContent(db,[{quiz_day:2,character_key:'bonus-id'}],'character'))
+ assert(calls.includes('ROLLBACK'));assert.equal(calls.some(sql=>sql.startsWith('INSERT')),false)
+})

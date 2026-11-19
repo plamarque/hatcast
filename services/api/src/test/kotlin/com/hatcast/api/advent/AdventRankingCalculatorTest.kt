@@ -117,4 +117,15 @@ class AdventRankingCalculatorTest {
         assertEquals(if (three < four) "elodie" else "ELODIE", entries.first().name)
         assertEquals(AdventTieReason.ID, entries.first().tieReason)
     }
+    @Test
+    fun `daily answer precedes bonus even when input arrives reversed`() {
+        val reveal = Instant.parse("2026-12-10T23:00:00Z")
+        val rows = listOf(
+            RankingAnswer(one, 3, false, reveal, bonus = true),
+            RankingAnswer(one, 1, true, reveal),
+            RankingAnswer(one, 2, true, reveal),
+            RankingAnswer(one, 3, true, reveal),
+        )
+        assertEquals(36, AdventRankingCalculator.calculate(one, members, rows, null, setOf(excluded)).score)
+    }
 }

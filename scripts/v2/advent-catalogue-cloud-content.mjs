@@ -18,6 +18,8 @@ export async function runCloudContent({source,store,db,days,operation,environmen
         const phrase=`J AI VERIFIE LE QUIZ FICTIF ${day}`;
         if(await ask(`Après examen privé et vérification de son origine fictive et de ses éventuelles modifications, saisir ${phrase} : `)!==phrase)refuse();
       }
+      const bonusConflicts=await db.query('SELECT character_key FROM advent_bonus_quizzes WHERE character_key=ANY($1::text[])',[snapshot.rows.map(row=>row.character_key)]);
+      if(bonusConflicts.rows.length)refuse();
       const replacements=[];
       for(const row of replacing?[]:snapshot.rows){
         const existing=reviewed.reservations.find(r=>r.quiz_day===row.quiz_day);

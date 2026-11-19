@@ -113,3 +113,12 @@ La scène conserve le Père Noël et le cadeau La Malice. Le podium affiche jusq
 Sélectionner une proposition ouvre automatiquement son récit lorsqu’il existe ; la commande de lecture reste utilisable indépendamment de la sélection.
 
 Dans le quiz jouable, présenter chaque récit disponible sous son choix, avec une commande indépendante de la sélection. Après la carte de résultat et son explication éventuelle, présenter aussi les récits disponibles dans des panneaux repliés, chacun identifié par son choix. Préserver les paragraphes, le défilement et la lisibilité à petite largeur et avec texte agrandi ; conserver les contrôles accessibles dans le thème isolé Avent. Sans récit, ne pas afficher la section.
+
+
+### Quiz bonus Avent
+
+La surprise bonus présente « Surprise ! », une courte invitation et un grand cadeau scintillant à toucher pour ouvrir le quiz. Le cadeau reste utilisable au clavier et sur mobile ; les animations sont désactivées si les mouvements réduits sont demandés.
+
+### Bonus surprise — 18 November 2026
+
+The bonus offer uses a large sparkling, directly actionable gift with a short invitation. The gift is a labelled button with visible keyboard focus; motion stops when reduced motion is requested. Late play remains visibly identified as earning no points. This Advent-only treatment does not alter the global HatCast theme.
