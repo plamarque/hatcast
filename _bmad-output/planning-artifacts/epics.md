@@ -3127,6 +3127,19 @@ En tant que troupe, je veux définir les catégories qui partagent un historique
 
 ---
 
+#### Story 19.25 : Masquer les chances après sélection
+
+En tant que membre, je veux voir les chances lorsqu'elles sont utiles avant une sélection, afin de ne pas confondre une estimation avec un résultat déjà connu.
+
+**Acceptance Criteria**
+
+1. Pour une personne déjà sélectionnée à un rôle, aucun pourcentage ni détail de chances ne sont proposés pour ce rôle dans Équipe et Dispos, quel que soit le mode de sélection.
+2. Avant sélection, les chances et leurs explications restent accessibles selon les règles existantes, y compris pendant le tirage.
+3. Les données historiques enregistrées et les calculs restent inchangés ; la règle est évaluée pour le rôle concerné. **UI :** critères Material 3 adaptés dans la story.
+4. **Source :** décision produit du 19 novembre 2026.
+
+---
+
 ### Couverture FR19–FR24 / Epic 19 (contrôle croisé)
 
 | FR | Story(s) principale(s) |
