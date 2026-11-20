@@ -1,0 +1,12 @@
+{
+  "version": "2.8.3",
+  "date": "__BUILD_DATE__",
+  "source": "curated-release",
+  "notes": "Product release",
+  "changes": [
+    "🔧 Dispos — après publication de la compo, retrouve les chances enregistrées pour chaque rôle et leur date."
+  ],
+  "changes_en": [
+    "🔧 Availability — after the lineup is published, see the recorded chances for each role and their date."
+  ]
+}
