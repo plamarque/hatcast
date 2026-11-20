@@ -35,11 +35,12 @@ Lock V1-parity weighted draw (already delivered by Epic 6), prove it with golden
 - Story 19.22: Formula snapshot on draw
 - Story 19.23: Explain group effects on draw chances
 - Story 19.24: Group draw histories per troupe
+- Story 19.25: Hide chances after selection
 
 ## Requirements & Constraints
 
 - Organizers see eligible available candidates per role and run a weighted random draw (eligibility + troupe/event rules). Members and organizers see per-role odds and factor breakdown only on the allowed surfaces: Dispos on published events regardless of composition draft; Équipe odds for members only after publish or validate; organizers see Équipe odds in draft. Draft events, archived events, and non-draw roles show no odds.
-- Displayed % must equal the server draw pipeline (invariant “% = tirage”).
+- Displayed % must equal the server draw pipeline (invariant “% = tirage”). After composition publication, show a visible assignment’s recorded selection percentage and date in Équipe and Dispos without a chance breakdown, regardless of selection mode. Before publication and for unselected candidates preserve simulated odds and breakdowns, including during the draw. Preserve assignment visibility, historical data and calculations.
 - V1 baseline (do not invent): `malus = 1/(1+pastSelectionCount)`, `weight = malus × requiredCountForRole`, cumulative random walk; displayed % from the documented V1 expected-removal approximation (documented ±1 point golden tolerance). History counts validated, non-archived, non-declined, same season, same role key. Intra-role without replacement; cross-role exclusion; full vs partial redraw semantics unchanged from 6.4.
 - Default pipeline must stay V1: only past-participation malus active unless a formula enables more factors. New factors off → golden suite unchanged.
 - Wave D: multiple named formulas per troupe (catalogued factors + params, no free-form scripts). Policies: troupe or season; default rule + per-category rules (`MANDATORY` one formula or `CHOICE` ≥1). Season overrides troupe. Resolve from `event.category` (glossary); unknown category → default; no policy → system V1 formula. No persisted per-event policy in MVP.
@@ -64,7 +65,7 @@ Lock V1-parity weighted draw (already delivered by Epic 6), prove it with golden
 
 ## Cross-Story Dependencies
 
-- Epic 6.4 / 6.14 done; 19.1–19.3 before 19.5; 19.5–19.6 before other factors and Wave D.
+- Epic 6.4 / 6.14 are prerequisites; 19.1–19.3 before 19.5; 19.5–19.6 before other factors and Wave D.
 - 19.7 needs composition/odds gates (5.9). 19.8 after 17.7/17.9 partition. 19.10 needs 19.8 + availability role data (5.2). 19.11 needs member gender (2.12). 19.13 after 19.6 + 20.6. 19.14 after 19.6 + volunteer stats (3.6).
 - Wave D: 19.15 → 19.16 → 19.17 → 19.19a → 19.19b → 19.19c; 19.18 after 19.17 + event category (17.8); 19.20 after 19.18 + 19.19c; 19.21 after 19.18 + 6.4; 19.22 after 19.21 + 6.14.
 - Admin chrome 17.2 recommended for formula/policy screens. Consecutive-show warning (6.20) shares “previous event” definition with 19.9 but does not affect weights.

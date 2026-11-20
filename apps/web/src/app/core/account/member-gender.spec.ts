@@ -37,19 +37,19 @@ describe('drawSelectionStatusLabel', () => {
 })
 
 describe('multiPlaceChanceTooltipCopy', () => {
-  it('agrees past participle with known gender', () => {
+  it('uses a natural phrase for self and others', () => {
     expect(
       multiPlaceChanceTooltipCopy({ viewingSelf: false, gender: 'female', placesCount: 5 }),
-    ).toBe('Ce % reflète sa chance d’être prise une fois parmi les 5 places')
+    ).toBe('Sa chance d’obtenir une des 5 places.')
     expect(
       multiPlaceChanceTooltipCopy({ viewingSelf: true, gender: 'male', placesCount: 5 }),
-    ).toBe('Ce % reflète ta chance d’être pris une fois parmi les 5 places')
+    ).toBe('Ta chance d’obtenir une des 5 places.')
   })
 
-  it('avoids inclusive dot when gender is unknown', () => {
+  it('uses the same wording when gender is unknown', () => {
     expect(
       multiPlaceChanceTooltipCopy({ viewingSelf: false, gender: 'non_specified', placesCount: 5 }),
-    ).toBe('Ce % reflète sa chance d’obtenir une place au tirage parmi les 5 places')
+    ).toBe('Sa chance d’obtenir une des 5 places.')
     expect(drawPickPastParticipleLabel('non_specified')).toBeNull()
   })
 })

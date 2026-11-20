@@ -110,6 +110,12 @@ export class ChanceBreakdownSheet {
     return `Chance de base pour les ${label}`
   }
 
+  protected recordedTheoreticalPosition(): string | null {
+    const { recordedPercent, recordedTheoreticalRank: rank, recordedTheoreticalTiedCount: tied, recordedTheoreticalCandidateCount: total } = this.breakdown()
+    if (recordedPercent == null || rank == null || total == null || tied == null || rank < 1 || total < rank || tied < 1 || rank + tied - 1 > total) return null
+    return `Position parmi les chances affichées : ${this.rankOrdinal(rank)}${tied > 1 ? ` ex aequo (${tied})` : ''} sur ${total} candidat${total > 1 ? 's' : ''}`
+  }
+
   protected poolRankSummary(): string {
     const current = this.breakdown()
     const total = current.candidateCount
@@ -153,6 +159,14 @@ export class ChanceBreakdownSheet {
   protected onHintClick(event: MouseEvent, tooltip: MatTooltip): void {
     event.stopPropagation()
     tooltip.toggle()
+  }
+
+  protected recordedSelectionExplanation(): string {
+    return 'Chance calculée au moment de la sélection de cette personne.'
+  }
+
+  protected recordedSnapshotExplanation(): string {
+    return 'Chance calculée avant la sélection pour ce rôle.'
   }
 
   protected multiPlaceChanceExplanation(): string {

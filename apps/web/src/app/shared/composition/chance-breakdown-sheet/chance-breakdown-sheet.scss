@@ -117,8 +117,8 @@ app-user-avatar.chance-breakdown-sheet__hero-avatar {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.75rem;
-  height: 2.75rem;
+  width: 3rem;
+  height: 3rem;
   margin: 0;
   padding: 0;
   border: none;
@@ -271,3 +271,10 @@ app-user-avatar.chance-breakdown-sheet__hero-avatar {
 .chance-breakdown-sheet__saved p {
   margin: 0.35rem 0 0;
 }
+
+.chance-selection__date { display: flex; gap: .5rem; align-items: center; font: var(--mat-sys-body-medium); color: var(--mat-sys-on-surface-variant); }
+
+.chance-selection__description { margin: 0; font: var(--mat-sys-body-medium); color: var(--mat-sys-on-surface-variant); }
+
+.chance-breakdown-sheet__chance-value { display: flex; flex-direction: column; align-items: flex-end; gap: .2rem; }
+.chance-breakdown-sheet__chance-kind { font: var(--mat-sys-label-small); color: var(--mat-sys-on-primary-container); }

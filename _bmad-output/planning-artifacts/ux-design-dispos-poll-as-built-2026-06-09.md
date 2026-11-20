@@ -154,6 +154,10 @@ Visible si `canSwitchSubject` + `subjectProxyMode`.
 
 ---
 
+## Badges de chances — évolution 19.25
+
+Dans le pool ouvert des vues Dispos, sur mobile ≤ 480 px, les badges de candidat ont une hauteur minimale de 48 dp et au plus trois badges par rangée. Les affectations publiées visibles utilisent les couleurs sémantiques de participation ; les candidats non sélectionnés gardent leur couleur de chance. Le tri reste basé sur le pourcentage affiché. Les cases de vote et la disposition de leurs deux lignes ne changent pas.
+
 ## Checklist anti-régression (revue PR / checkpoint)
 
 ### Layout

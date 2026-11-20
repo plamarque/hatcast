@@ -568,6 +568,10 @@ components:
         chancePercent:
           type: integer
           nullable: true
+        selectionChanceAt:
+          type: string
+          format: date-time
+          nullable: true
         pastSelectionCount:
           type: integer
           nullable: true
@@ -888,6 +892,30 @@ components:
           type: string
         chancePercent:
           type: integer
+          nullable: true
+        recordedSnapshot:
+          type: boolean
+          description: The value is from the common preselection role photograph.
+        recordedSelection:
+          type: boolean
+          description: Published visible assignment; only recorded evidence and its optional position among displayed role percentages are provided.
+        recordedTheoreticalRank:
+          description: Position among the role percentages shown to this viewer; absent if any are missing.
+          type: integer
+          nullable: true
+        recordedTheoreticalTiedCount:
+          type: integer
+          nullable: true
+        recordedTheoreticalCandidateCount:
+          type: integer
+          nullable: true
+        recordedPercent:
+          type: integer
+          nullable: true
+        recordedAt:
+          type: string
+          format: date-time
+          nullable: true
         referencePercent:
           type: integer
         candidateCount:

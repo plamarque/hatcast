@@ -54,6 +54,7 @@ class CompositionSlotAssignmentService(
     private val troupeAccess: TroupeAccessService,
     private val selectionHistory: CompositionSelectionHistoryService,
     private val compositionService: CompositionService,
+    private val roleChanceBaselines: RoleChanceBaselineCaptureService,
     private val eventPublisher: ApplicationEventPublisher,
     private val auditRecorder: AuditEventRecorder,
     private val lifecycleAuditRecorder: CompositionLifecycleAuditRecorder,
@@ -236,13 +237,19 @@ class CompositionSlotAssignmentService(
         val beforeSlot = slotRepository.findByEventIdAndRoleKeyAndSlotIndex(eventId, roleKey, slotIndex)
         val beforeSnapshot = AuditSnapshots.slotAssignment(beforeSlot)
         val formerAssigneeId = beforeSlot?.assignedParticipantId()
-        val selectionChance =
-            if (participantId != null && participantId != formerAssigneeId) {
-                getCandidates(seasonId, eventId, roleKey, slotIndex, body.formulaId, principal)
-                    .candidates.firstOrNull { it.participantId == participantId }?.chancePercent
-            } else {
-                null
-            }
+        val candidatesAtSelection = if (participantId != null && participantId != formerAssigneeId) {
+            getCandidates(seasonId, eventId, roleKey, slotIndex, body.formulaId, principal).candidates
+        } else {
+            null
+        }
+        // Use the exact list and values shown by the slot picker, including its
+        // same-role exclusion and its deliberate multi-role warnings.
+        val preparedBaselines = candidatesAtSelection?.takeIf { it.isNotEmpty() }?.let { candidates ->
+            RoleChanceBaselineCaptureService.Prepared(
+                mapOf(roleKey to candidates.map { it.participantId to it.chancePercent }), now,
+            )
+        }
+        val selectionChance = candidatesAtSelection?.firstOrNull { it.participantId == participantId }?.chancePercent
 
         if (isLocked) {
             if (participantId == null) {
@@ -331,6 +338,7 @@ class CompositionSlotAssignmentService(
                 assigned.selectionChanceAt = now
                 assigned.selectionChanceSource = "manual"
                 slotRepository.save(assigned)
+                roleChanceBaselines.persist(eventId, preparedBaselines, setOf(roleKey), composition == null)
             }
         }
 

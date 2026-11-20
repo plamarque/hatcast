@@ -547,6 +547,24 @@ describe('EventEquipeTab', () => {
     expect(fixture.nativeElement.querySelector('.event-equipe-tab__publish')).not.toBeNull()
   })
 
+  it('opens the selection sheet from the recorded chance after publication', async () => {
+    getComposition.mockResolvedValue({ ok: true, data: {
+      publishedAt: null, validatedAt: '2026-01-02T12:00:00Z', visibility: 'validated',
+      slots: [{ roleKey: 'player', slotIndex: 0, participantId: 'p-1', participantDisplayName: 'Alice', participationStatus: 'pending', chancePercent: 37, selectionChanceAt: '2026-01-02T12:00:00Z' }],
+    } })
+    const open = vi.spyOn(TestBed.inject(ChanceBreakdownService), 'open').mockResolvedValue()
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.querySelector('[data-testid="recorded-selection-chance"]')?.textContent).toContain('37')
+    })
+    expect(fixture.nativeElement.textContent).not.toContain('02/01/2026')
+    expect(fixture.nativeElement.querySelector('[data-testid="recorded-selection-chance"]').classList.contains('event-equipe-tab__chance-trigger')).toBe(true)
+    expect(fixture.nativeElement.querySelector('[data-testid="chance-breakdown-trigger"]')).toBeNull()
+    fixture.nativeElement.querySelector('[data-testid="recorded-selection-chance"]').click()
+    expect(open).toHaveBeenCalledWith(expect.objectContaining({ participantId: 'p-1', roleKey: 'player' }))
+  })
+
   it('shows Tirer au sort and dashed placeholders for organizer with empty composition', async () => {
     fixture.componentRef.setInput('canManageComposition', true)
     fixture.detectChanges()
@@ -1090,6 +1108,37 @@ describe('EventEquipeTab', () => {
     expect(dialogOpen).toHaveBeenCalled()
     const [, config] = dialogOpen.mock.calls.at(-1) ?? []
     expect((config as { data?: { intent?: string } }).data?.intent).toBe('draw')
+  })
+
+  it('reports failure to reload recorded chances after a composition mutation', async () => {
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    getComposition.mockResolvedValueOnce({ ok: false, status: 503 })
+    const updated = { publishedAt: '2026-01-01T00:00:00Z', validatedAt: null, visibility: 'organizerDraft', slots: [] }
+    ;(fixture.componentInstance as any).applyCompositionUpdate(updated)
+    await vi.waitFor(() => expect(snackOpen).toHaveBeenCalledWith(
+      'Les chances enregistrées ne sont pas disponibles. Actualise la page.', 'OK', { duration: 6000 },
+    ))
+  })
+
+  it('reloads recorded chances after a lightweight validation response', async () => {
+    const slot = { roleKey: 'player', slotIndex: 0, participantId: 'p-1', participantDisplayName: 'Alice', participationStatus: 'pending' }
+    const draft = { publishedAt: null, validatedAt: null, visibility: 'organizerDraft', slots: [slot] }
+    const validated = { ...draft, validatedAt: '2026-01-02T00:00:00Z', visibility: 'validated' }
+    getComposition.mockResolvedValueOnce({ ok: true, data: draft }).mockResolvedValueOnce({
+      ok: true, data: { ...validated, slots: [{ ...slot, chancePercent: 37, selectionChanceAt: '2026-01-02T12:00:00Z' }] },
+    })
+    validateComposition.mockResolvedValue({ ok: true, data: validated })
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+    await vi.waitFor(() => expect(fixture.nativeElement.querySelector('.event-equipe-tab__publish')).toBeTruthy())
+    fixture.nativeElement.querySelector('.event-equipe-tab__publish').click()
+    await vi.waitFor(() => {
+      fixture.detectChanges()
+      expect(fixture.nativeElement.querySelector('[data-testid="recorded-selection-chance"]')?.textContent).toContain('37')
+    })
+    expect(getComposition).toHaveBeenCalledTimes(2)
   })
 
   it('publishes then opens the announcement dialog after successful validation', async () => {

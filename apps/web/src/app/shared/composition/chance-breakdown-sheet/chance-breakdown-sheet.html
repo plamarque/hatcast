@@ -1,63 +1,59 @@
 <div
   class="chance-breakdown-sheet"
   role="dialog"
-  aria-labelledby="chance-breakdown-title"
+  [attr.aria-labelledby]="(breakdown().recordedSelection || breakdown().recordedSnapshot) ? null : 'chance-breakdown-title'"
+  [attr.aria-label]="breakdown().recordedSelection ? 'Fiche de sélection de ' + breakdown().displayName : breakdown().recordedSnapshot ? 'Capture des chances de ' + breakdown().displayName : null"
   data-testid="chance-breakdown-sheet"
 >
-  @if (data.stepBanner) {
+  @let displayedPercent = (breakdown().recordedSelection || breakdown().recordedSnapshot) ? breakdown().recordedPercent : breakdown().chancePercent;
+  @if (!(breakdown().recordedSelection || breakdown().recordedSnapshot) && data.stepBanner) {
     <p class="chance-breakdown-sheet__step-banner" role="status">{{ data.stepBanner }}</p>
   }
-
-  <header class="chance-breakdown-sheet__header">
+  <header class="chance-breakdown-sheet__header" [attr.data-testid]="breakdown().recordedSelection ? 'selection-card' : null">
     <div class="chance-breakdown-sheet__role-context">
       <p class="chance-breakdown-sheet__role" id="chance-breakdown-title">{{ data.roleHeaderLabel }}</p>
-      @if (showMultiPlaceHint()) {
+      @if (!(breakdown().recordedSelection || breakdown().recordedSnapshot) && showMultiPlaceHint()) {
         <p class="chance-breakdown-sheet__role-places">{{ multiPlacePlacesLabel() }}</p>
       }
     </div>
     <div class="chance-breakdown-sheet__person-chance">
       <div class="chance-breakdown-sheet__hero-person">
-        <app-user-avatar
-          class="chance-breakdown-sheet__hero-avatar"
-          [displayName]="breakdown().displayName"
-          [avatarUrl]="breakdown().avatarUrl ?? null"
-          [gender]="breakdown().gender ?? null"
-          [size]="44"
-        />
+        <app-user-avatar class="chance-breakdown-sheet__hero-avatar" [displayName]="breakdown().displayName" [avatarUrl]="breakdown().avatarUrl ?? null" [gender]="breakdown().gender ?? null" [size]="44" />
         <span class="chance-breakdown-sheet__name">{{ breakdown().displayName }}</span>
       </div>
       <div class="chance-breakdown-sheet__chance-group">
-        @if (breakdown().chancePercent != null) {
-        <p
-          class="chance-breakdown-sheet__hero-chance"
-          [class]="chanceColorClass(breakdown().chancePercent ?? 0)"
-          data-testid="chance-breakdown-final"
-        >
-          {{ breakdown().chancePercent }}&nbsp;%
-        </p>
-        } @else {
+        @if (displayedPercent != null) {
+          <div class="chance-breakdown-sheet__chance-value">
+            <p class="chance-breakdown-sheet__hero-chance" [class]="chanceColorClass(displayedPercent)"
+              [attr.data-testid]="breakdown().recordedSelection ? null : 'chance-breakdown-final'"
+              [attr.aria-label]="(breakdown().recordedSelection || breakdown().recordedSnapshot) ? 'Chance enregistrée : ' + displayedPercent + ' pour cent' : null">{{ displayedPercent }}&nbsp;%</p>
+            <span class="chance-breakdown-sheet__chance-kind">{{ breakdown().recordedSelection ? 'effectif' : breakdown().recordedSnapshot ? 'capture' : 'estimé' }}</span>
+          </div>
+        } @else if (!(breakdown().recordedSelection || breakdown().recordedSnapshot)) {
           <p>Estimation actuelle indisponible</p>
         }
-        @if (breakdown().chancePercent != null && showMultiPlaceHint()) {
-          <button
-            type="button"
-            class="chance-breakdown-sheet__hero-hint"
-            #multiPlaceHintTooltip="matTooltip"
-            [matTooltip]="multiPlaceChanceExplanation()"
-            matTooltipPosition="below"
-            matTooltipTouchGestures="on"
-            matTooltipShowDelay="0"
-            matTooltipHideDelay="1500"
-            (click)="onHintClick($event, multiPlaceHintTooltip)"
-            [attr.aria-label]="multiPlaceChanceExplanation()"
-          >
-            <mat-icon aria-hidden="true">info_outline</mat-icon>
-          </button>
+        @if (displayedPercent != null && (breakdown().recordedSelection || breakdown().recordedSnapshot || showMultiPlaceHint())) {
+          @let hint = breakdown().recordedSelection ? recordedSelectionExplanation() : breakdown().recordedSnapshot ? recordedSnapshotExplanation() : multiPlaceChanceExplanation();
+          <button type="button" class="chance-breakdown-sheet__hero-hint" #chanceHintTooltip="matTooltip"
+            [matTooltip]="hint" matTooltipPosition="below" matTooltipTouchGestures="on"
+            matTooltipShowDelay="0" matTooltipHideDelay="1500" (click)="onHintClick($event, chanceHintTooltip)"
+            [attr.aria-label]="hint"><mat-icon aria-hidden="true">info_outline</mat-icon></button>
         }
       </div>
     </div>
   </header>
-
+  @if (breakdown().recordedSelection || breakdown().recordedSnapshot) {
+    <section aria-labelledby="selection-explanation-title">
+      <h3 class="chance-breakdown-sheet__section-title" id="selection-explanation-title">D’où vient ce % ?</h3>
+      <ol class="chance-breakdown-sheet__waterfall-list">
+        <li class="chance-breakdown-sheet__waterfall-row chance-selection__date">
+          <mat-icon aria-hidden="true">schedule</mat-icon>
+          <span>@if (recordedDate(); as date) { {{ breakdown().recordedSnapshot ? 'Capture du' : 'Enregistré le' }} {{ date }} } @else { Date d’enregistrement indisponible }</span>
+        </li>
+      </ol>
+    </section>
+    @if (displayedPercent == null) { <p class="chance-selection__description">Chance enregistrée indisponible</p> }
+  } @else {
   @if (breakdown().chancePercent != null) {
     <p class="chance-breakdown-sheet__pool-summary" data-testid="chance-breakdown-rank-summary">
       {{ poolRankSummary() }}
@@ -118,6 +114,7 @@
     </section>
   }
 
+  }
   <div class="chance-breakdown-sheet__actions">
     <button type="button" mat-button (click)="close()">Fermer</button>
   </div>

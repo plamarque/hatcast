@@ -1,6 +1,10 @@
 package com.hatcast.api.composition
 
 object CompositionVisibilityRules {
+    /** The Équipe “Publier” action validates directly; legacy sharing sets publishedAt. */
+    fun hasPublishedSelection(composition: EventCompositionEntity?): Boolean =
+        composition?.publishedAt != null || composition?.validatedAt != null
+
     fun canViewSlotAssignments(
         composition: EventCompositionEntity?,
         canManageComposition: Boolean,
