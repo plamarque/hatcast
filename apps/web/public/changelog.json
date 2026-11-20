@@ -1,5 +1,12 @@
 [
   {
+    "version": "2.8.3",
+    "date": "2026-11-21",
+    "changes": [
+      "🔧 Dispos — après publication de la compo, retrouve les chances enregistrées pour chaque rôle et leur date."
+    ]
+  },
+  {
     "version": "2.8.2",
     "date": "2026-11-17",
     "changes": [

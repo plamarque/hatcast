@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.8.3] - 2026-11-21
+
+### ✨ New Features
+- feat(composition): Integrate chance captures
+- feat(composition): Record role chance captures
+- feat(avent): Integrate bonus quizzes
+- feat(avent): Add bonus quizzes
+
+### 📝 Other Changes
+- chore(v2): promote v2 to staging-v2
+- chore(v2): Add 2.8.3 release notes
+- docs: Record notification metrics issue
+- docs: Plan hiding chances after selection
+- docs(avent): Record bonus quiz proposal
+- chore(v2): sync release v2.8.2-rc.1 artifacts to v2
+
+---
+
 ## [2.8.2] - 2026-11-17
 
 ### ✨ New Features
