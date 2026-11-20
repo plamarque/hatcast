@@ -15,12 +15,12 @@
           <mat-panel-title class="availability-tous__role-title">
             <span aria-hidden="true">{{ roleEmoji(role.roleKey) }}</span>
             {{ roleLabel(role.roleKey) }}
-            ({{ role.candidates.length }}/{{ role.requiredCount }})
+            ({{ candidateCount(role.candidates) }}/{{ role.requiredCount }})
             @if (role.hasPartialEstimatedChances) {
               <mat-icon
                 class="availability-tous__partial-warning"
                 [matTooltip]="partialRoleTooltip"
-                aria-label="Pourcentages partiellement estimés pour ce rôle"
+                [attr.aria-label]="partialRoleTooltip"
               >
                 warning
               </mat-icon>
@@ -34,9 +34,20 @@
           <div class="availability-tous__pool-loading" role="status">
             <mat-spinner diameter="28" />
           </div>
+        } @else if (explainabilityEnabled() && (chanceSource() === 'baseline' || role.candidates.some(hasPublishedAssignment))) {
+          @if (chanceSource() === 'baseline') {
+            <p>@if (role.chanceSnapshotAt) { Capture des chances du {{ role.chanceSnapshotAt | date:'dd/MM/yyyy HH:mm' }} } @else { Capture des chances indisponible. }</p>
+            @if (role.chanceSnapshotAt && role.candidates.some(hasMissingChance)) { <p>La capture ne couvre pas tous les candidats affichés.</p> }
+          }
+          <app-availability-recorded-candidates
+            [candidates]="role.candidates"
+            [interactive]="poolInteractive()"
+            (segmentTap)="onPoolSegmentTap($event, role.roleKey)"
+          />
         } @else if (explainabilityEnabled() && roleHasChancePool(role)) {
           <div class="availability-tous__pool" data-testid="availability-tous-pool">
             <app-composition-pool-preview
+          [dispos]="true"
               [pool]="poolSegments(role.candidates)"
               [interactive]="poolInteractive()"
               (segmentTap)="onPoolSegmentTap($event, role.roleKey)"

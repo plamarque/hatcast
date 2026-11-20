@@ -434,8 +434,13 @@ class CompositionService(
                         participantGender =
                             assignedId?.let { gendersByParticipantId[it] },
                         participationStatus = slot.participationStatus.name.lowercase(),
-                        chancePercent = odds?.first,
-                        pastSelectionCount = odds?.second,
+                        chancePercent = if (CompositionVisibilityRules.hasPublishedSelection(composition) && assignedId != null) {
+                            if (showExplainability && includeSlotExplainability) slot.selectionChancePercent else null
+                        } else {
+                            odds?.first
+                        },
+                        selectionChanceAt = if (CompositionVisibilityRules.hasPublishedSelection(composition) && assignedId != null && showExplainability && includeSlotExplainability) slot.selectionChanceAt else null,
+                        pastSelectionCount = if (CompositionVisibilityRules.hasPublishedSelection(composition) && assignedId != null) null else odds?.second,
                         consecutiveShowWarning =
                             consecutiveWarningsBySlot[slot.roleKey to slot.slotIndex],
                         multiRoleOnEventWarning =

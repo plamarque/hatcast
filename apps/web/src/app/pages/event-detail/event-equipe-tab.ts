@@ -1424,7 +1424,7 @@ export class EventEquipeTab {
   protected async openSlotChanceBreakdown(event: Event, row: SlotRow): Promise<void> {
     event.stopPropagation()
     const slot = row.slot
-    if (!slot?.participantId || slot.chancePercent == null || !this.canShowChanceBreakdown()) {
+    if (!slot?.participantId || (!this.hasPublishedSelection() && slot.chancePercent == null) || !this.canShowChanceBreakdown()) {
       return
     }
     await this.chanceBreakdown.open({
@@ -1439,11 +1439,15 @@ export class EventEquipeTab {
     })
   }
 
+  protected hasPublishedSelection(): boolean {
+    return !!(this.composition()?.publishedAt || this.composition()?.validatedAt)
+  }
+
   protected showSlotTrailing(row: SlotRow): boolean {
     return (
       this.canShowChanceBreakdown() &&
-      row.slot?.chancePercent != null &&
-      !!row.slot?.participantId
+      !!row.slot?.participantId &&
+      (row.slot?.chancePercent != null || this.hasPublishedSelection())
     )
   }
 
@@ -1793,7 +1797,7 @@ export class EventEquipeTab {
             return
           }
           if (refreshed.ok && refreshed.data) {
-            this.applyCompositionUpdate(refreshed.data)
+            this.applyCompositionUpdate(refreshed.data, false)
             if (refreshed.data.validatedAt == null && refreshed.data.visibility !== 'none') {
               this.snack.open('Composition déjà déverrouillée.', 'OK', { duration: 4000 })
               return
@@ -1812,11 +1816,29 @@ export class EventEquipeTab {
     }
   }
 
-  private applyCompositionUpdate(next: CompositionResponse): void {
+  private async refreshRecordedChances(seasonId: string, eventId: string, current: CompositionResponse): Promise<void> {
+    if (!current.publishedAt && !current.validatedAt) return
+    try {
+      const refreshed = await this.compositionApi.getComposition(seasonId, eventId)
+      if (this.destroyRef.destroyed || this.seasonId() !== seasonId || this.event().id !== eventId || this.composition() !== current) return
+      if (refreshed.ok && refreshed.data &&
+          refreshed.data.publishedAt === current.publishedAt &&
+          refreshed.data.validatedAt === current.validatedAt) {
+        this.composition.set(refreshed.data)
+        return
+      }
+    } catch {
+      if (this.destroyRef.destroyed || this.seasonId() !== seasonId || this.event().id !== eventId || this.composition() !== current) return
+    }
+    this.snack.open('Les chances enregistrées ne sont pas disponibles. Actualise la page.', 'OK', { duration: 6000 })
+  }
+
+  private applyCompositionUpdate(next: CompositionResponse, refreshChances = true): void {
     const prev = this.composition()
     const roleSlots = normalizeRoleSlots(this.event().roleSlots)
     const prevLifecycle = computeRawCompositionLifecycle(prev, roleSlots)
     this.composition.set(next)
+    if (refreshChances && (next.publishedAt || next.validatedAt)) void this.refreshRecordedChances(this.seasonId(), this.event().id, next)
     this.compositionPublished.emit(next)
     const nextLifecycle = computeRawCompositionLifecycle(next, roleSlots)
     if (nextLifecycle === 'complete' && prevLifecycle !== 'complete') {

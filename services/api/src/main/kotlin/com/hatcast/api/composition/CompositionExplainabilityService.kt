@@ -2,6 +2,7 @@ package com.hatcast.api.composition
 
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.availability.AvailabilityChanceCalculator
+import com.hatcast.api.availability.AvailabilityService
 import com.hatcast.api.availability.DisposExplainabilityAccess
 import com.hatcast.api.availability.EventAvailabilityRepository
 import com.hatcast.api.availability.draw.ChanceBreakdownCalculator
@@ -46,6 +47,7 @@ class CompositionExplainabilityService(
     private val eventParticipantRepository: EventParticipantRepository,
     private val eventParticipantExclusionRepository: EventParticipantExclusionRepository,
     private val availabilityRepository: EventAvailabilityRepository,
+    private val availabilityService: AvailabilityService,
     private val selectionHistory: CompositionSelectionHistoryService,
     private val organizerAccess: OrganizerAccessRules,
     private val guestInvitationAccess: GuestInvitationAccessService,
@@ -81,9 +83,10 @@ class CompositionExplainabilityService(
         val event = loadAuthorizedEvent(seasonId, eventId, principal)
         requireExplainabilityAccess(event, seasonId, eventId, principal)
 
+        val composition = compositionRepository.findById(eventId).orElse(null)
         val canViewAssignments =
             CompositionVisibilityRules.canViewSlotAssignments(
-                compositionRepository.findById(eventId).orElse(null),
+                composition,
                 organizerAccess.canManageComposition(eventId, seasonId, principal),
             )
         val currentAssignment =
@@ -94,6 +97,42 @@ class CompositionExplainabilityService(
             } else {
                 null
             }
+        if (currentAssignment != null && currentAssignment.isRequiredBy(RoleTemplates.normalize(event.roleSlots)) &&
+            CompositionVisibilityRules.hasPublishedSelection(composition)
+        ) {
+            val displayName =
+                seasonParticipantRepository.findById(participantId).orElse(null)
+                    ?.takeIf { it.season.id == seasonId }?.displayName
+                    ?: eventParticipantRepository.findById(participantId).orElse(null)
+                        ?.takeIf { it.event.id == eventId }?.displayName
+                    ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Participant introuvable")
+            return ChanceBreakdownDto(
+                participantId = participantId,
+                roleKey = roleKey,
+                displayName = displayName,
+                chancePercent = null,
+                recordedSelection = true,
+                recordedPercent = currentAssignment.selectionChancePercent,
+                recordedAt = currentAssignment.selectionChanceAt,
+                avatarUrl = participantAvatarResolver.resolveByParticipantIds(eventId, setOf(participantId))[participantId],
+                gender = participantGenderResolver.resolveByParticipantIds(eventId, setOf(participantId))[participantId] ?: "non_specified",
+            )
+        }
+        if (canViewAssignments && CompositionVisibilityRules.hasPublishedSelection(composition)) {
+            val summary = availabilityService.getSummary(seasonId, eventId, principal, includeChances = true, formulaId = formulaId)
+            if (summary.chanceSource == "baseline") {
+                val role = summary.roles.firstOrNull { it.roleKey == roleKey }
+                val candidate = role?.candidates?.firstOrNull { it.participantId == participantId }
+                    ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Participant non éligible pour ce rôle")
+                return ChanceBreakdownDto(
+                    participantId = participantId, roleKey = roleKey, displayName = candidate.displayName,
+                    chancePercent = null, recordedSnapshot = true, recordedPercent = candidate.chancePercent,
+                    recordedAt = role.chanceSnapshotAt, avatarUrl = candidate.avatarUrl, gender = candidate.gender,
+                )
+            }
+            // Never fall through to the live simulation for a visible publication.
+            throw ResponseStatusException(HttpStatus.FORBIDDEN, "Accès refusé")
+        }
         val legacySnapshot =
             if (currentAssignment != null && currentAssignment.selectionChanceSource == null) {
                 drawChanceSnapshots.findByEventId(eventId)
@@ -221,6 +260,12 @@ class CompositionExplainabilityService(
                 ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Rôle inconnu pour cet événement")
         if (requiredCount <= 0) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Rôle inconnu pour cet événement")
+        }
+        val composition = compositionRepository.findById(eventId).orElse(null)
+        if (CompositionVisibilityRules.hasPublishedSelection(composition) &&
+            !CompositionGapFillRules.hasEmptySlotForRole(roleKey, normalizedSlots, slotRepository.findByEventId(eventId))
+        ) {
+            throw ResponseStatusException(HttpStatus.CONFLICT, "Aucune place vacante pour ce rôle")
         }
 
         seasonParticipantService.ensureMembershipParticipants(event.season)

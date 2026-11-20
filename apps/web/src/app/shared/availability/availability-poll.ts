@@ -225,13 +225,13 @@ export class AvailabilityPoll {
   protected roleFillPercent(roleKey: string): number {
     const role = this.summary().roles.find((r) => r.roleKey === roleKey)
     if (!role) return 0
-    return roleGaugeFillPercent(role.candidates.length, role.requiredCount)
+    return roleGaugeFillPercent(role.candidates.filter((candidate) => candidate.isCandidate !== false).length, role.requiredCount)
   }
 
   protected roleCounterText(roleKey: string): string {
     const role = this.summary().roles.find((r) => r.roleKey === roleKey)
     if (!role) return '0/0'
-    return `${role.candidates.length}/${role.requiredCount}`
+    return `${role.candidates.filter((candidate) => candidate.isCandidate !== false).length}/${role.requiredCount}`
   }
 
   protected roleAvatars(roleKey: string): SummaryRoleCandidate[] {
@@ -301,7 +301,9 @@ export class AvailabilityPoll {
   }
 
   protected poolInteractive(roleKey: string): boolean {
-    return this.explainabilityEnabled() && this.roleHasChancePool(roleKey)
+    return this.explainabilityEnabled() && this.roleAvatars(roleKey).some(
+      (candidate) => candidate.publishedAssignment || candidate.chancePercent != null,
+    )
   }
 
   private candidatesToPoolSegments(
@@ -374,13 +376,13 @@ export class AvailabilityPoll {
   }
 
   protected async onPoolSegmentTap(
-    event: { participantId: string; chancePercent: number },
+    event: { participantId: string; chancePercent: number | null },
     roleKey: string,
   ): Promise<void> {
     const candidate = this.summary()
       .roles.find((role) => role.roleKey === roleKey)
       ?.candidates.find((row) => row.participantId === event.participantId)
-    if (!candidate || candidate.chancePercent == null) {
+    if (!candidate || (!candidate.publishedAssignment && candidate.chancePercent == null)) {
       return
     }
     await this.chanceBreakdown.open({

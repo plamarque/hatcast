@@ -290,8 +290,25 @@ components:
           default: non_specified
         chancePercent:
           type: integer
+          nullable: true
           minimum: 0
           maximum: 100
+        isCandidate:
+          type: boolean
+          description: Whether the person is currently in the calculation pool for this role.
+        publishedAssignment:
+          type: boolean
+          description: Assignment is published and visible to the viewer.
+        participationStatus:
+          type: string
+          nullable: true
+          enum: [pending, confirmed, declined]
+          description: Participation status of a published visible assignment, when chance access is allowed.
+        selectionChanceAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date of the recorded selection chance, when available.
 
     SummaryRole:
       type: object
@@ -305,6 +322,11 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SummaryRoleCandidate'
+        chanceSnapshotAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date of the common preselection role photograph, if reliably captured.
         hasPartialEstimatedChances:
           type: boolean
           description: >
@@ -332,7 +354,7 @@ components:
             $ref: '#/components/schemas/SummaryRole'
         chanceSource:
           type: string
-          enum: [live, snapshot, estimated]
+          enum: [live, snapshot, estimated, baseline]
           nullable: true
           description: >
             Source des pourcentages lorsque includeChances=true :

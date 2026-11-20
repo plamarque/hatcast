@@ -37,6 +37,10 @@ export interface SummaryRoleCandidate {
   avatarUrl?: string | null
   gender?: MemberGender
   chancePercent?: number | null
+  isCandidate?: boolean
+  publishedAssignment?: boolean
+  participationStatus?: 'confirmed' | 'pending' | 'declined' | null
+  selectionChanceAt?: string | null
 }
 
 export interface SummaryRole {
@@ -45,9 +49,10 @@ export interface SummaryRole {
   candidates: SummaryRoleCandidate[]
   /** Some candidate % use retrospective recalc instead of draw snapshot. */
   hasPartialEstimatedChances?: boolean
+  chanceSnapshotAt?: string | null
 }
 
-export type ChanceSource = 'live' | 'snapshot' | 'estimated'
+export type ChanceSource = 'live' | 'snapshot' | 'estimated' | 'baseline'
 
 export interface EventAvailabilitySummary {
   eventId: string
