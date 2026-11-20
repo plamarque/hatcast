@@ -16,6 +16,11 @@ import com.hatcast.api.availability.draw.DrawWeightPipeline
 import com.hatcast.api.draw.DrawPolicyResolutionService
 import com.hatcast.api.participant.ParticipantRowPresentation
 import com.hatcast.api.composition.CompositionDrawChanceSnapshotService
+import com.hatcast.api.composition.CompositionVisibilityRules
+import com.hatcast.api.composition.RoleChanceBaselineRepository
+import com.hatcast.api.composition.RoleChanceBaselineEntryRepository
+import com.hatcast.api.composition.assignedParticipantId
+import com.hatcast.api.composition.isRequiredBy
 import com.hatcast.api.composition.CompositionParticipantPool
 import com.hatcast.api.composition.CompositionSelectionHistoryService
 import com.hatcast.api.composition.DrawImmediateReplaySupport
@@ -72,6 +77,8 @@ class AvailabilityService(
     private val drawChanceSnapshots: CompositionDrawChanceSnapshotService,
     private val compositionRepository: EventCompositionRepository,
     private val compositionSlotRepository: EventCompositionSlotRepository,
+    private val roleChanceBaselineRepository: RoleChanceBaselineRepository,
+    private val roleChanceBaselineEntryRepository: RoleChanceBaselineEntryRepository,
     private val auditRecorder: AuditEventRecorder,
     private val draftVisibility: EventDraftVisibility,
     private val eventPublisher: ApplicationEventPublisher,
@@ -239,8 +246,13 @@ class AvailabilityService(
         val effectiveIncludeChances =
             includeChances &&
                 resolveExplainabilityForSummary(event, principal)
+        val composition = compositionRepository.findById(event.id).orElse(null)
+        val canManageComposition = organizerAccess.canManageComposition(event.id, event.season, principal)
+        val visiblePublishedBaseline = effectiveIncludeChances &&
+            CompositionVisibilityRules.hasPublishedSelection(composition) &&
+            CompositionVisibilityRules.canViewSlotAssignments(composition, canManageComposition)
         val operationalPipeline =
-            if (effectiveIncludeChances) {
+            if (effectiveIncludeChances && !visiblePublishedBaseline) {
                 resolveOperationalDrawPipeline(event, formulaId)
             } else {
                 null
@@ -251,7 +263,7 @@ class AvailabilityService(
                 .findByEvent_IdWithAssociations(event.id)
                 .toAvailabilityIndex()
         val compositionEligible =
-            if (effectiveIncludeChances) {
+            if (effectiveIncludeChances && !visiblePublishedBaseline) {
                 CompositionParticipantPool.loadEligibleParticipants(
                     seasonId,
                     event.id,
@@ -288,6 +300,28 @@ class AvailabilityService(
                 )
             }
 
+        val publishedAssignments =
+            if (visiblePublishedBaseline) {
+                compositionSlotRepository.findByEventId(event.id)
+                    .filter { it.isRequiredBy(RoleTemplates.normalize(event.roleSlots)) }
+                    .mapNotNull { slot -> slot.assignedParticipantId()?.let { (slot.roleKey to it) to slot } }
+                    .toMap()
+            } else {
+                emptyMap()
+            }
+        val baselineByRole = if (visiblePublishedBaseline) roleChanceBaselineRepository.findByIdEventId(event.id).associateBy { it.id.roleKey } else emptyMap()
+        val baselineByRoleAndParticipant = if (visiblePublishedBaseline) roleChanceBaselineEntryRepository.findByIdEventId(event.id).associateBy { it.id.roleKey to it.id.participantId } else emptyMap()
+        val displayedHistoricalIds = publishedAssignments.keys.map { it.second }.toSet() + baselineByRoleAndParticipant.keys.map { it.second }
+        val missingAssigneeIds = displayedHistoricalIds - participants.map { it.participantId }.toSet()
+        val missingSeasonRows = seasonParticipantRepository.findAllByIdWithUserAssociations(missingAssigneeIds)
+            .filter { it.season.id == seasonId }.map { toEligibleRow(it) }
+        val missingEventIds = missingAssigneeIds - missingSeasonRows.map { it.participantId }.toSet()
+        val missingEventRows = eventParticipantRepository.findAllByIdWithUser(missingEventIds)
+            .filter { it.event.id == event.id }.map { toEligibleRow(it) }
+        val extraAssignedParticipants = (missingSeasonRows + missingEventRows).map { row ->
+            SummaryParticipantDto(participantId = row.participantId, displayName = row.displayName,
+                avatarUrl = row.avatarUrl, gender = row.gender, status = AvailabilityStatusMapper.UNKNOWN)
+        }
         val requiredRoles = AvailabilityRoleRules.rolesRequiredForEvent(event.roleSlots)
         val historyMode = SelectionHistoryMode.OPERATIONAL
         val snapshotByRoleAndParticipant =
@@ -301,7 +335,7 @@ class AvailabilityService(
         val hasSnapshots = snapshotByRoleAndParticipant.isNotEmpty()
         // Retrospective fallback: candidates without a snapshot row are recalculated live.
         val historyCounts =
-            if (effectiveIncludeChances) {
+            if (effectiveIncludeChances && !visiblePublishedBaseline) {
                 selectionHistory.pastSelectionCountByParticipantAndRole(event, historyMode)
             } else {
                 emptyMap()
@@ -317,6 +351,11 @@ class AvailabilityService(
                             roleKey,
                         )
                     }
+                // A visible assignee can have changed availability after selection. Keep the
+                // scoring pool intact while still presenting their recorded assignment.
+                val displayCandidates = roleCandidates + (participants + extraAssignedParticipants).filter { participant ->
+                    participant !in roleCandidates && (publishedAssignments.containsKey(roleKey to participant.participantId) || baselineByRoleAndParticipant.containsKey(roleKey to participant.participantId))
+                }
                 var roleUsedEstimatedFallback = false
                 val candidates =
                     if (effectiveIncludeChances) {
@@ -329,9 +368,8 @@ class AvailabilityService(
                                     snapshotByRoleAndParticipant[roleKey to it.participantId] == null
                                 }
                         val needsScoring =
-                            historyMode == SelectionHistoryMode.OPERATIONAL ||
-                                !hasSnapshots ||
-                                roleHasMissingSnapshot
+                            !visiblePublishedBaseline && (historyMode == SelectionHistoryMode.OPERATIONAL ||
+                                !hasSnapshots || roleHasMissingSnapshot)
                         val scoredByParticipant =
                             if (needsScoring) {
                                 val pastByParticipant =
@@ -382,10 +420,13 @@ class AvailabilityService(
                             } else {
                                 emptyMap()
                             }
-                        roleCandidates.map { row ->
+                        displayCandidates.map { row ->
                             val snapshot = snapshotByRoleAndParticipant[roleKey to row.participantId]
+                            val assignment = publishedAssignments[roleKey to row.participantId]
                             val chancePercent =
-                                if (snapshot != null) {
+                                if (visiblePublishedBaseline) {
+                                    baselineByRoleAndParticipant[roleKey to row.participantId]?.chancePercent
+                                } else if (snapshot != null) {
                                     snapshot.chancePercent
                                 } else {
                                     if (historyMode == SelectionHistoryMode.RETROSPECTIVE && hasSnapshots) {
@@ -399,16 +440,21 @@ class AvailabilityService(
                                 avatarUrl = row.avatarUrl,
                                 gender = row.gender,
                                 chancePercent = chancePercent,
+                                isCandidate = row in roleCandidates,
+                                publishedAssignment = assignment != null,
+                                participationStatus = assignment?.participationStatus?.name?.lowercase(),
+                                selectionChanceAt = assignment?.selectionChanceAt,
                             )
                         }
                     } else {
-                        roleCandidates.map { row ->
+                        displayCandidates.map { row ->
                             SummaryRoleCandidateDto(
                                 participantId = row.participantId,
                                 displayName = row.displayName,
                                 avatarUrl = row.avatarUrl,
                                 gender = row.gender,
                                 chancePercent = null,
+                                publishedAssignment = publishedAssignments.containsKey(roleKey to row.participantId),
                             )
                         }
                     }
@@ -417,11 +463,14 @@ class AvailabilityService(
                     requiredCount = requiredCount,
                     candidates = candidates,
                     hasPartialEstimatedChances = roleUsedEstimatedFallback,
+                    chanceSnapshotAt = baselineByRole[roleKey]?.capturedAt,
                 )
             }
         val chanceSource =
             if (!effectiveIncludeChances) {
                 null
+            } else if (visiblePublishedBaseline) {
+                "baseline"
             } else if (historyMode == SelectionHistoryMode.OPERATIONAL) {
                 "live"
             } else if (hasSnapshots) {

@@ -47,6 +47,11 @@ data class ChanceBreakdownDto(
     val pool: ChanceBreakdownPoolDto? = null,
     /** Engine / tests — not shown in MVP UI. */
     val factorBreakdown: List<ChanceFactorBreakdownDto>? = null,
+    val recordedSelection: Boolean = false,
+    val recordedSnapshot: Boolean = false,
+    val recordedTheoreticalRank: Int? = null,
+    val recordedTheoreticalTiedCount: Int? = null,
+    val recordedTheoreticalCandidateCount: Int? = null,
     val recordedPercent: Int? = null,
     val recordedAt: java.time.Instant? = null,
     val recordedSource: String? = null,

@@ -42,13 +42,13 @@ class AdventMemberGame(private val jdbc: JdbcTemplate, private val clock: Advent
         return enabled
     }
 
-    private fun memberQuiz(day: Int): AdventQuiz? {
+    private fun memberQuiz(day: Int, bonus: Boolean = false): AdventQuiz? {
         if ("offline" in environment.activeProfiles) {
             if (!clock.isOfflineDatabase() || environment.activeProfiles.any { it != "offline" && it != "dev" }) throw ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE)
             if (jdbc.queryForObject("SELECT COUNT(*) FROM advent_offline_content_conflicts WHERE quiz_day = ?", Int::class.java, day) != 0)
                 throw ResponseStatusException(HttpStatus.LOCKED, "Offline content requires reconciliation")
         }
-        return quizzes.quiz(day)
+        return quizzes.quiz(day, bonus)
     }
 
     private fun now(expected: UUID? = null, simulated: LocalDate? = null, preview: Boolean = false): Instant {
@@ -137,7 +137,7 @@ class AdventMemberGame(private val jdbc: JdbcTemplate, private val clock: Advent
         if (today != confirmedDate || !openingReplayPreparation(today).eligible) throw ResponseStatusException(HttpStatus.CONFLICT)
         val day = today.dayOfMonth
         // Invalidate in-flight attempts as well as the recorded answer for this member and day.
-        listOf("advent_member_attempts", "advent_member_generations", "advent_member_replays", "advent_member_answers").forEach {
+        listOf("advent_bonus_attempts", "advent_bonus_generations", "advent_bonus_replays", "advent_bonus_answers", "advent_member_attempts", "advent_member_generations", "advent_member_replays", "advent_member_answers").forEach {
             jdbc.update("DELETE FROM $it WHERE user_id = ? AND quiz_day = ?", user, day)
         }
         jdbc.update("DELETE FROM advent_member_dismissals WHERE user_id = ? AND dismissed_on = ?", user, today)
@@ -156,141 +156,156 @@ class AdventMemberGame(private val jdbc: JdbcTemplate, private val clock: Advent
     fun today(expected: UUID? = null, simulated: LocalDate? = null): LocalDate = date(now(expected, simulated))
 
     @Transactional
-    fun quiz(day: Int, expected: UUID? = null, simulated: LocalDate? = null, preview: Boolean = false, testFuture: Boolean = false): AdventQuiz? {
+    fun quiz(day: Int, expected: UUID? = null, simulated: LocalDate? = null, preview: Boolean = false, testFuture: Boolean = false, bonus: Boolean = false, user: UUID? = null): AdventQuiz? {
         checkDay(day)
         val today = date(now(expected, simulated, preview))
         if (!preview && !testFuture && LocalDate.of(2026, 12, day).isAfter(today)) throw ResponseStatusException(HttpStatus.NOT_FOUND)
-        return memberQuiz(day)?.copy(stories = quizzes.revealedStories(day))
+        if (bonus && (user == null || jdbc.queryForObject("SELECT COUNT(*) FROM advent_member_answers WHERE user_id = ? AND quiz_day = ?", Int::class.java, user, day) == 0)) throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        return memberQuiz(day, bonus)?.copy(stories = quizzes.revealedStories(day, bonus))
     }
 
     @Transactional
-    fun state(user: UUID, day: Int, operator: Boolean = false, expected: UUID? = null, simulated: LocalDate? = null, preview: Boolean = false, testFuture: Boolean = false): AnswerState {
+    fun state(user: UUID, day: Int, operator: Boolean = false, expected: UUID? = null, simulated: LocalDate? = null, preview: Boolean = false, testFuture: Boolean = false, bonus: Boolean = false): AnswerState {
         checkDay(day)
         val time = now(expected, simulated, preview)
-        return stateFor(user, day, time, operator, preview || (testFuture && LocalDate.of(2026, 12, day).isAfter(date(time))))
+        return stateFor(user, day, time, operator, preview || (testFuture && LocalDate.of(2026, 12, day).isAfter(date(time))), bonus)
     }
 
-    private fun stateFor(user: UUID, day: Int, time: Instant, operator: Boolean, preview: Boolean = false): AnswerState {
-        val state = stateAt(user, day, time, preview)
+    private fun stateFor(user: UUID, day: Int, time: Instant, operator: Boolean, preview: Boolean = false, bonus: Boolean = false): AnswerState {
+        val state = stateAt(user, day, time, preview, bonus)
         if (state.status != "recorded") return state
-        return jdbc.query("SELECT answer_id, late FROM advent_member_answers WHERE user_id = ? AND quiz_day = ?", { rs, _ ->
-            AnswerState("recorded", replayToken = if (operator || preview) UUID.fromString(rs.getString(1)) else null, late = rs.getBoolean(2))
+        return jdbc.query("SELECT answer_id, late FROM ${if (bonus) "advent_bonus_answers" else "advent_member_answers"} WHERE user_id = ? AND quiz_day = ?", { rs, _ ->
+            AnswerState("recorded", replayToken = if (operator || preview) UUID.fromString(rs.getString(1)) else null, late = rs.getBoolean(2), bonusAvailable = !bonus && bonusAvailable(user, day))
         }, user, day).single()
     }
 
-    private fun stateAt(user: UUID, day: Int, time: Instant, preview: Boolean = false): AnswerState {
+    private fun bonusAvailable(user: UUID, day: Int): Boolean =
+        memberQuiz(day, true) != null && jdbc.queryForObject("SELECT COUNT(*) FROM advent_bonus_answers WHERE user_id = ? AND quiz_day = ?", Int::class.java, user, day) == 0
+
+    private fun stateAt(user: UUID, day: Int, time: Instant, preview: Boolean = false, bonus: Boolean = false): AnswerState {
         val target = LocalDate.of(2026, 12, day)
         if (!preview && target.isAfter(date(time))) throw ResponseStatusException(HttpStatus.NOT_FOUND)
-        if (memberQuiz(day) == null) return AnswerState("unavailable")
-        val exists = jdbc.queryForObject("SELECT COUNT(*) FROM advent_member_answers WHERE user_id = ? AND quiz_day = ?", Int::class.java, user, day) != 0
+        if (bonus && jdbc.queryForObject("SELECT COUNT(*) FROM advent_member_answers WHERE user_id = ? AND quiz_day = ?", Int::class.java, user, day) == 0) return AnswerState("unavailable")
+        if (memberQuiz(day, bonus) == null) return AnswerState("unavailable")
+        val exists = jdbc.queryForObject("SELECT COUNT(*) FROM ${if (bonus) "advent_bonus_answers" else "advent_member_answers"} WHERE user_id = ? AND quiz_day = ?", Int::class.java, user, day) != 0
         return AnswerState(if (exists) "recorded" else "available")
     }
 
     @Transactional
-    fun reconcile(user: UUID, day: Int, operator: Boolean = false, expected: UUID? = null, simulated: LocalDate? = null, lateAccess: Boolean = false, preview: Boolean = false, testFuture: Boolean = false): AnswerState {
+    fun reconcile(user: UUID, day: Int, operator: Boolean = false, expected: UUID? = null, simulated: LocalDate? = null, lateAccess: Boolean = false, preview: Boolean = false, testFuture: Boolean = false, bonus: Boolean = false): AnswerState {
         checkDay(day)
         val time = now(expected, simulated, preview)
         val access = preview || (testFuture && LocalDate.of(2026, 12, day).isAfter(date(time)))
-        jdbc.update("UPDATE advent_member_attempts SET cancelled = TRUE WHERE user_id = ? AND quiz_day = ? AND cancelled = FALSE", user, day)
-        val state = stateAt(user, day, time, access)
-        if (state.status != "available") return stateFor(user, day, time, operator, access)
+        jdbc.update("UPDATE ${if (bonus) "advent_bonus_attempts" else "advent_member_attempts"} SET cancelled = TRUE WHERE user_id = ? AND quiz_day = ? AND cancelled = FALSE", user, day)
+        val state = stateAt(user, day, time, access, bonus)
+        if (state.status != "available") return stateFor(user, day, time, operator, access, bonus)
         val target = LocalDate.of(2026, 12, day)
-        val replayMode = if (operator || access) jdbc.query("SELECT late FROM advent_member_replays WHERE user_id = ? AND quiz_day = ?", { rs, _ -> rs.getBoolean(1) }, user, day).singleOrNull() else null
+        val replayMode = if (operator || access) jdbc.query("SELECT late FROM ${if (bonus) "advent_bonus_replays" else "advent_member_replays"} WHERE user_id = ? AND quiz_day = ?", { rs, _ -> rs.getBoolean(1) }, user, day).singleOrNull() else null
         val replay = replayMode != null
         val lateReplayToday = replayMode == true && target == date(time)
         if ((replayMode == true && !lateAccess && !lateReplayToday) || (lateAccess && !target.isBefore(date(time)) && !lateReplayToday) || (!lateAccess && target != date(time) && !replay && !(access && target.isAfter(date(time))))) return AnswerState("closed")
         val effectiveLate = lateAccess || lateReplayToday
         val generation = UUID.randomUUID()
-        if (jdbc.update("UPDATE advent_member_generations SET generation = ?, late = ? WHERE user_id = ? AND quiz_day = ?", generation, effectiveLate, user, day) == 0)
-            jdbc.update("INSERT INTO advent_member_generations (user_id, quiz_day, generation, late) VALUES (?, ?, ?, ?)", user, day, generation, effectiveLate)
+        if (jdbc.update("UPDATE ${if (bonus) "advent_bonus_generations" else "advent_member_generations"} SET generation = ?, late = ? WHERE user_id = ? AND quiz_day = ?", generation, effectiveLate, user, day) == 0)
+            jdbc.update("INSERT INTO ${if (bonus) "advent_bonus_generations" else "advent_member_generations"} (user_id, quiz_day, generation, late) VALUES (?, ?, ?, ?)", user, day, generation, effectiveLate)
         return AnswerState("available", generation, late = effectiveLate)
     }
 
     @Transactional
-    fun reserve(user: UUID, day: Int, id: UUID, generation: UUID, operator: Boolean = false, expected: UUID? = null, simulated: LocalDate? = null, preview: Boolean = false, testFuture: Boolean = false): AnswerState {
+    fun reserve(user: UUID, day: Int, id: UUID, generation: UUID, operator: Boolean = false, expected: UUID? = null, simulated: LocalDate? = null, preview: Boolean = false, testFuture: Boolean = false, bonus: Boolean = false): AnswerState {
         checkDay(day)
         val time = now(expected, simulated, preview)
         val access = preview || (testFuture && LocalDate.of(2026, 12, day).isAfter(date(time)))
-        val state = stateAt(user, day, time, access)
-        if (state.status != "available") return stateFor(user, day, time, operator, access)
-        val current = jdbc.query("SELECT generation, late FROM advent_member_generations WHERE user_id = ? AND quiz_day = ?", { rs, _ -> UUID.fromString(rs.getString(1)) to rs.getBoolean(2) }, user, day).singleOrNull()
+        val state = stateAt(user, day, time, access, bonus)
+        if (state.status != "available") return stateFor(user, day, time, operator, access, bonus)
+        val current = jdbc.query("SELECT generation, late FROM ${if (bonus) "advent_bonus_generations" else "advent_member_generations"} WHERE user_id = ? AND quiz_day = ?", { rs, _ -> UUID.fromString(rs.getString(1)) to rs.getBoolean(2) }, user, day).singleOrNull()
         if (current?.first != generation) return AnswerState("stale")
         val target = LocalDate.of(2026, 12, day)
-        val replayMode = if (operator || access) jdbc.query("SELECT late FROM advent_member_replays WHERE user_id = ? AND quiz_day = ?", { rs, _ -> rs.getBoolean(1) }, user, day).singleOrNull() else null
+        val replayMode = if (operator || access) jdbc.query("SELECT late FROM ${if (bonus) "advent_bonus_replays" else "advent_member_replays"} WHERE user_id = ? AND quiz_day = ?", { rs, _ -> rs.getBoolean(1) }, user, day).singleOrNull() else null
         val replay = replayMode != null
         if ((current.second && !target.isBefore(date(time)) && !(replayMode == true && target == date(time))) || (!current.second && target != date(time) && !replay && !(access && target.isAfter(date(time))))) return AnswerState("closed")
-        val prior = jdbc.query("SELECT user_id, quiz_day, cancelled FROM advent_member_attempts WHERE id = ?", { rs, _ -> Triple(UUID.fromString(rs.getString(1)), rs.getInt(2), rs.getBoolean(3)) }, id).singleOrNull()
+        val prior = jdbc.query("SELECT user_id, quiz_day, cancelled FROM ${if (bonus) "advent_bonus_attempts" else "advent_member_attempts"} WHERE id = ?", { rs, _ -> Triple(UUID.fromString(rs.getString(1)), rs.getInt(2), rs.getBoolean(3)) }, id).singleOrNull()
         if (prior != null) return if (prior.first == user && prior.second == day && !prior.third) state else AnswerState("stale")
-        jdbc.update("INSERT INTO advent_member_attempts (id, user_id, quiz_day, late) VALUES (?, ?, ?, ?)", id, user, day, current.second)
+        jdbc.update("INSERT INTO ${if (bonus) "advent_bonus_attempts" else "advent_member_attempts"} (id, user_id, quiz_day, late) VALUES (?, ?, ?, ?)", id, user, day, current.second)
         return state
     }
 
     @Transactional
-    fun confirm(user: UUID, day: Int, choice: Int, attempt: UUID, operator: Boolean = false, expected: UUID? = null, simulated: LocalDate? = null, preview: Boolean = false, testFuture: Boolean = false): AnswerState {
+    fun confirm(user: UUID, day: Int, choice: Int, attempt: UUID, operator: Boolean = false, expected: UUID? = null, simulated: LocalDate? = null, preview: Boolean = false, testFuture: Boolean = false, bonus: Boolean = false): AnswerState {
         checkDay(day)
         if (choice !in 0..2) throw ResponseStatusException(HttpStatus.BAD_REQUEST)
         val time = now(expected, simulated, preview)
         val access = preview || (testFuture && LocalDate.of(2026, 12, day).isAfter(date(time)))
-        val current = stateAt(user, day, time, access)
-        if (current.status != "available") return stateFor(user, day, time, operator, access)
-        val late = jdbc.query("SELECT late FROM advent_member_attempts WHERE id = ? AND user_id = ? AND quiz_day = ? AND cancelled = FALSE", { rs, _ -> rs.getBoolean(1) }, attempt, user, day).singleOrNull() ?: return AnswerState("stale")
+        val current = stateAt(user, day, time, access, bonus)
+        if (current.status != "available") return stateFor(user, day, time, operator, access, bonus)
+        val late = jdbc.query("SELECT late FROM ${if (bonus) "advent_bonus_attempts" else "advent_member_attempts"} WHERE id = ? AND user_id = ? AND quiz_day = ? AND cancelled = FALSE", { rs, _ -> rs.getBoolean(1) }, attempt, user, day).singleOrNull() ?: return AnswerState("stale")
         val target = LocalDate.of(2026, 12, day)
-        val replayMode = if (operator || access) jdbc.query("SELECT late FROM advent_member_replays WHERE user_id = ? AND quiz_day = ?", { rs, _ -> rs.getBoolean(1) }, user, day).singleOrNull() else null
+        val replayMode = if (operator || access) jdbc.query("SELECT late FROM ${if (bonus) "advent_bonus_replays" else "advent_member_replays"} WHERE user_id = ? AND quiz_day = ?", { rs, _ -> rs.getBoolean(1) }, user, day).singleOrNull() else null
         val replay = replayMode != null
         if ((late && !target.isBefore(date(time)) && !(replayMode == true && target == date(time))) || (!late && target != date(time) && !replay && !(access && target.isAfter(date(time))))) return AnswerState("closed")
-        jdbc.update("UPDATE advent_member_attempts SET cancelled = TRUE WHERE id = ?", attempt)
-        val quiz = memberQuiz(day) ?: return AnswerState("unavailable")
+        jdbc.update("UPDATE ${if (bonus) "advent_bonus_attempts" else "advent_member_attempts"} SET cancelled = TRUE WHERE id = ?", attempt)
+        val quiz = memberQuiz(day, bonus) ?: return AnswerState("unavailable")
         val reveal = LocalDate.of(2026, 12, day).plusDays(1).atStartOfDay(paris).toInstant()
-        jdbc.update("INSERT INTO advent_member_answers (user_id, quiz_day, answer_id, choice, correct_choice, answered_at, reveal_at, seen_at, late) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        jdbc.update("INSERT INTO ${if (bonus) "advent_bonus_answers" else "advent_member_answers"} (user_id, quiz_day, answer_id, choice, correct_choice, answered_at, reveal_at, seen_at, late) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             user, day, UUID.randomUUID(), choice, quiz.falseChoice, Timestamp.from(clock.instant()), Timestamp.from(reveal), if (late && !time.isBefore(reveal)) Timestamp.from(clock.instant()) else null, late)
-        jdbc.update("DELETE FROM advent_member_replays WHERE user_id = ? AND quiz_day = ?", user, day)
-        return stateFor(user, day, time, operator, access)
+        jdbc.update("DELETE FROM ${if (bonus) "advent_bonus_replays" else "advent_member_replays"} WHERE user_id = ? AND quiz_day = ?", user, day)
+        return stateFor(user, day, time, operator, access, bonus)
     }
 
-    @Transactional
-    fun latestUnseen(user: UUID, expected: UUID? = null, simulated: LocalDate? = null, preview: Boolean = false): AdventResult? {
-        val time = now(expected, simulated, preview)
-        val day = jdbc.query("SELECT quiz_day FROM advent_member_answers WHERE user_id = ? AND seen_at IS NULL AND (reveal_at <= ? OR ? = TRUE) ORDER BY quiz_day DESC", { rs, _ -> rs.getInt(1) }, user, Timestamp.from(time), preview).firstOrNull { day ->
+    private fun latestUnseenAt(user: UUID, time: Instant, preview: Boolean): AdventResult? {
+        val rows = jdbc.query("""SELECT quiz_day, is_bonus FROM (
+            SELECT quiz_day, user_id, seen_at, reveal_at, FALSE AS is_bonus FROM advent_member_answers
+            UNION ALL SELECT quiz_day, user_id, seen_at, reveal_at, TRUE AS is_bonus FROM advent_bonus_answers
+        ) combined WHERE user_id = ? AND seen_at IS NULL AND (reveal_at <= ? OR ? = TRUE)
+        ORDER BY quiz_day DESC, is_bonus ASC""", { rs, _ -> rs.getInt(1) to rs.getBoolean(2) }, user, Timestamp.from(time), preview)
+        return rows.firstNotNullOfOrNull { (day, bonus) ->
             val conflict = "offline" in environment.activeProfiles && jdbc.queryForObject("SELECT COUNT(*) FROM advent_offline_content_conflicts WHERE quiz_day = ?", Int::class.java, day) != 0
-            !conflict && memberQuiz(day) != null
-        } ?: return null
-        return resultAt(user, day, time, preview)
+            if (conflict) null else resultAt(user, day, time, preview, bonus)
+        }
     }
 
     @Transactional
-    fun result(user: UUID, day: Int, expected: UUID? = null, simulated: LocalDate? = null, preview: Boolean = false, testFuture: Boolean = false): AdventResult? {
+    fun latestUnseen(user: UUID, expected: UUID? = null, simulated: LocalDate? = null, preview: Boolean = false): AdventResult? =
+        latestUnseenAt(user, now(expected, simulated, preview), preview)
+
+    @Transactional
+    fun result(user: UUID, day: Int, expected: UUID? = null, simulated: LocalDate? = null, preview: Boolean = false, testFuture: Boolean = false, bonus: Boolean = false): AdventResult? {
         checkDay(day)
         val time = now(expected, simulated, preview)
-        return resultAt(user, day, time, preview)
+        return resultAt(user, day, time, preview, bonus)
     }
 
-    private fun resultAt(user: UUID, day: Int, time: Instant, preview: Boolean = false): AdventResult? {
-        val quiz = memberQuiz(day) ?: return null
+    private fun resultAt(user: UUID, day: Int, time: Instant, preview: Boolean = false, bonus: Boolean = false): AdventResult? {
+        val quiz = memberQuiz(day, bonus) ?: return null
         val conflictFilter = if ("offline" in environment.activeProfiles) " AND quiz_day NOT IN (SELECT quiz_day FROM advent_offline_content_conflicts)" else ""
-        val rows = jdbc.query("SELECT quiz_day, answer_id, choice, correct_choice, seen_at, late FROM advent_member_answers WHERE user_id = ? AND (reveal_at <= ? OR ? = TRUE)$conflictFilter ORDER BY quiz_day", { rs, _ ->
-            MemberResultRow(rs.getInt(1), rs.getString(2), rs.getInt(3), rs.getInt(4), rs.getTimestamp(5) != null, rs.getBoolean(6))
+        val rows = jdbc.query("""SELECT quiz_day, answer_id, choice, correct_choice, seen_at, late, is_bonus FROM (
+            SELECT quiz_day, answer_id, choice, correct_choice, seen_at, late, reveal_at, user_id, FALSE AS is_bonus FROM advent_member_answers
+            UNION ALL
+            SELECT quiz_day, answer_id, choice, correct_choice, seen_at, late, reveal_at, user_id, TRUE AS is_bonus FROM advent_bonus_answers
+        ) combined WHERE user_id = ? AND (reveal_at <= ? OR ? = TRUE)$conflictFilter ORDER BY quiz_day, is_bonus""", { rs, _ ->
+            MemberResultRow(rs.getInt(1), rs.getString(2), rs.getInt(3), rs.getInt(4), rs.getTimestamp(5) != null, rs.getBoolean(6), rs.getBoolean(7))
         }, user, Timestamp.from(time), preview)
-        val row = rows.firstOrNull { it.day == day } ?: return null
+        val row = rows.firstOrNull { it.day == day && it.bonus == bonus } ?: return null
         var streak = 0
-        var bonus = 0
+        var streakBonus = 0
         var total = 0
         for (r in rows) {
             if (r.late) continue
             streak = if (r.choice == r.correctChoice) streak + 1 else 0
             val currentBonus = if (streak > 0 && streak % 3 == 0) 2 else 0
             total += 1 + (if (r.choice == r.correctChoice) 10 else 0) + currentBonus
-            if (r.day == day) bonus = currentBonus
+            if (r.day == day && r.bonus == bonus) streakBonus = currentBonus
         }
         return AdventResult(row.answerId, day, row.choice, row.correctChoice, row.choice == row.correctChoice,
-            if (!row.late && row.choice == row.correctChoice) 10 else 0, if (row.late) 0 else 1, if (row.late) 0 else bonus, total, row.seen, quiz.explanation, row.late, quizzes.revealedStories(day))
+            if (!row.late && row.choice == row.correctChoice) 10 else 0, if (row.late) 0 else 1, if (row.late) 0 else streakBonus, total, row.seen, quiz.explanation, row.late, quizzes.revealedStories(day, bonus), bonus, !bonus && bonusAvailable(user, day), !bonus && rows.any { it.day == day && it.bonus && !it.seen })
     }
 
     @Transactional
-    fun acknowledge(user: UUID, day: Int, answerId: UUID, expected: UUID? = null, simulated: LocalDate? = null, preview: Boolean = false, testFuture: Boolean = false) {
+    fun acknowledge(user: UUID, day: Int, answerId: UUID, expected: UUID? = null, simulated: LocalDate? = null, preview: Boolean = false, testFuture: Boolean = false, bonus: Boolean = false) {
         checkDay(day)
         val time = now(expected, simulated, preview)
         val access = preview
-        if (jdbc.update("UPDATE advent_member_answers SET seen_at = COALESCE(seen_at, ?) WHERE user_id = ? AND quiz_day = ? AND answer_id = ? AND (reveal_at <= ? OR ? = TRUE)", Timestamp.from(clock.instant()), user, day, answerId, Timestamp.from(time), access) == 0)
+        if (jdbc.update("UPDATE ${if (bonus) "advent_bonus_answers" else "advent_member_answers"} SET seen_at = COALESCE(seen_at, ?) WHERE user_id = ? AND quiz_day = ? AND answer_id = ? AND (reveal_at <= ? OR ? = TRUE)", Timestamp.from(clock.instant()), user, day, answerId, Timestamp.from(time), access) == 0)
             throw ResponseStatusException(HttpStatus.NOT_FOUND)
     }
 
@@ -299,11 +314,11 @@ class AdventMemberGame(private val jdbc: JdbcTemplate, private val clock: Advent
         val time = now(expected, simulated, preview)
         if ("offline" in environment.activeProfiles && jdbc.queryForObject("SELECT COUNT(*) FROM advent_offline_content_conflicts", Int::class.java) != 0)
             throw ResponseStatusException(HttpStatus.LOCKED, "Offline content requires reconciliation")
-        val unseenDay = jdbc.query("SELECT quiz_day FROM advent_member_answers WHERE user_id = ? AND seen_at IS NULL AND (reveal_at <= ? OR ? = TRUE) ORDER BY quiz_day DESC", { rs, _ -> rs.getInt(1) }, user, Timestamp.from(time), preview).firstOrNull { memberQuiz(it) != null }
-        if (unseenDay != null) return AdventRankingResponse(priorityResult = resultAt(user, unseenDay, time, preview))
+        val unseen = latestUnseenAt(user, time, preview)
+        if (unseen != null) return AdventRankingResponse(priorityResult = unseen)
         if (excludedIds.size != 2 || excludedIds.any { id -> jdbc.queryForObject("SELECT COUNT(*) FROM users WHERE id = ?", Int::class.java, id) != 1 }) throw ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE)
         val members = jdbc.query("SELECT m.user_id, m.display_name FROM troupe_memberships m JOIN users u ON u.id = m.user_id WHERE m.troupe_id = ? AND m.status = 'ACTIVE' AND m.baseline_role <> 'EXTERNE'", { rs, _ -> RankingMember(UUID.fromString(rs.getString(1)), rs.getString(2)) }, troupe)
-        val answers = jdbc.query("SELECT user_id, quiz_day, choice, correct_choice, reveal_at, answered_at FROM advent_member_answers WHERE late = FALSE", { rs, _ -> RankingAnswer(UUID.fromString(rs.getString(1)), rs.getInt(2), rs.getInt(3) == rs.getInt(4), rs.getTimestamp(5).toInstant(), rs.getTimestamp(6).toInstant()) })
+        val answers = jdbc.query("SELECT user_id, quiz_day, choice, correct_choice, reveal_at, answered_at, FALSE AS is_bonus FROM advent_member_answers WHERE late = FALSE UNION ALL SELECT user_id, quiz_day, choice, correct_choice, reveal_at, answered_at, TRUE AS is_bonus FROM advent_bonus_answers WHERE late = FALSE", { rs, _ -> RankingAnswer(UUID.fromString(rs.getString(1)), rs.getInt(2), rs.getInt(3) == rs.getInt(4), rs.getTimestamp(5).toInstant(), rs.getTimestamp(6).toInstant(), rs.getBoolean(7)) })
         return AdventRankingResponse(ranking = AdventRankingCalculator.calculate(user, members, answers, if (operator) null else time, excludedIds, AdventParisTime.isFinal(time)))
     }
     /** Calendar exposes state only, never unpublished content or scoring information. */
@@ -314,11 +329,8 @@ class AdventMemberGame(private val jdbc: JdbcTemplate, private val clock: Advent
 
     private fun calendarAt(user: UUID, time: Instant, initialDiscovery: Boolean, preview: Boolean = false, testFuture: Boolean = false): AdventCalendarResponse {
         val today = date(time)
-        val unseen = jdbc.query("SELECT quiz_day FROM advent_member_answers WHERE user_id = ? AND seen_at IS NULL AND (reveal_at <= ? OR ? = TRUE) ORDER BY quiz_day DESC", { rs, _ -> rs.getInt(1) }, user, Timestamp.from(time), preview).firstOrNull { day ->
-            val conflict = "offline" in environment.activeProfiles && jdbc.queryForObject("SELECT COUNT(*) FROM advent_offline_content_conflicts WHERE quiz_day = ?", Int::class.java, day) != 0
-            !conflict && memberQuiz(day) != null
-        }
-        if (unseen != null && !initialDiscovery) return AdventCalendarResponse(priorityResult = resultAt(user, unseen, time, preview))
+        val unseen = latestUnseenAt(user, time, preview)
+        if (unseen != null && !initialDiscovery) return AdventCalendarResponse(priorityResult = unseen)
         val answered = jdbc.query("SELECT quiz_day, reveal_at, choice, correct_choice FROM advent_member_answers WHERE user_id = ?", { rs, _ ->
             val outcome = if ((!preview && rs.getTimestamp(2).toInstant().isAfter(time))) "pending" else if (rs.getInt(3) == rs.getInt(4)) "correct" else "incorrect"
             rs.getInt(1) to outcome
@@ -333,24 +345,25 @@ class AdventMemberGame(private val jdbc: JdbcTemplate, private val clock: Advent
                 target == today || ((preview || testFuture) && target.isAfter(today)) -> "today"
                 else -> "past-unplayed"
             }
-            AdventCalendarDay(day, state, if (state == "played") answered[day] else null)
+            val bonusState = if (day <= 24 && state == "played" && memberQuiz(day, true) != null) {
+                if (jdbc.queryForObject("SELECT COUNT(*) FROM advent_bonus_answers WHERE user_id = ? AND quiz_day = ?", Int::class.java, user, day) != 0) "recorded" else "available"
+            } else null
+            AdventCalendarDay(day, state, if (state == "played") answered[day] else null, bonusState)
         }
         return AdventCalendarResponse(days = days)
     }
 
     /** History is available only after the civil day has ended in Paris. */
     @Transactional
-    fun history(user: UUID, day: Int, expected: UUID? = null, simulated: LocalDate? = null, preview: Boolean = false, testFuture: Boolean = false): AdventHistoryRead {
+    fun history(user: UUID, day: Int, expected: UUID? = null, simulated: LocalDate? = null, preview: Boolean = false, testFuture: Boolean = false, bonus: Boolean = false): AdventHistoryRead {
         checkDay(day)
         val time = now(expected, simulated, preview)
         if (!preview && !LocalDate.of(2026, 12, day).isBefore(date(time))) throw ResponseStatusException(HttpStatus.NOT_FOUND)
-        val unseen = jdbc.query("SELECT quiz_day FROM advent_member_answers WHERE user_id = ? AND seen_at IS NULL AND (reveal_at <= ? OR ? = TRUE) ORDER BY quiz_day DESC", { rs, _ -> rs.getInt(1) }, user, Timestamp.from(time), preview).firstOrNull { day ->
-            val conflict = "offline" in environment.activeProfiles && jdbc.queryForObject("SELECT COUNT(*) FROM advent_offline_content_conflicts WHERE quiz_day = ?", Int::class.java, day) != 0
-            !conflict && memberQuiz(day) != null
-        }
-        if (unseen != null) return AdventHistoryRead(priorityResult = resultAt(user, unseen, time, preview))
-        val quiz = memberQuiz(day) ?: return AdventHistoryRead()
-        val result = resultAt(user, day, time, preview)
+        val unseen = latestUnseenAt(user, time, preview)
+        if (unseen != null) return AdventHistoryRead(priorityResult = unseen)
+        if (bonus && stateAt(user, day, time, preview, true).status == "unavailable") return AdventHistoryRead()
+        val quiz = memberQuiz(day, bonus) ?: return AdventHistoryRead()
+        val result = resultAt(user, day, time, preview, bonus)
         return AdventHistoryRead(history = AdventHistory(quiz, result, result?.falseChoice))
     }
 
@@ -369,40 +382,39 @@ class AdventMemberGame(private val jdbc: JdbcTemplate, private val clock: Advent
     @Transactional
     fun reset(expected: UUID) {
         requireSession(expected)
-        listOf("advent_member_discovery_attempts", "advent_member_discoveries", "advent_member_dismissals", "advent_member_attempts", "advent_member_generations", "advent_member_replays", "advent_member_answers", "advent_offline_content_conflicts").forEach { jdbc.update("DELETE FROM $it") }
+        listOf("advent_bonus_attempts", "advent_bonus_generations", "advent_bonus_replays", "advent_bonus_answers", "advent_member_discovery_attempts", "advent_member_discoveries", "advent_member_dismissals", "advent_member_attempts", "advent_member_generations", "advent_member_replays", "advent_member_answers", "advent_offline_content_conflicts").forEach { jdbc.update("DELETE FROM $it") }
         jdbc.update("UPDATE advent_member_lock SET test_session_id = ? WHERE id = 1", UUID.randomUUID())
     }
 
     @Transactional
-    fun replay(user: UUID, day: Int, token: UUID, expected: UUID, simulated: LocalDate? = null, closeOnly: Boolean = false, preview: Boolean = false, testFuture: Boolean = false): AnswerState {
+    fun replay(user: UUID, day: Int, token: UUID, expected: UUID, simulated: LocalDate? = null, closeOnly: Boolean = false, preview: Boolean = false, testFuture: Boolean = false, bonus: Boolean = false): AnswerState {
         checkDay(day)
         requireSession(expected)
         val time = now(expected, simulated, preview)
         val access = preview || (testFuture && LocalDate.of(2026, 12, day).isAfter(date(time)))
         if (closeOnly) {
-            val unseen = jdbc.query("SELECT quiz_day FROM advent_member_answers WHERE user_id = ? AND seen_at IS NULL AND reveal_at <= ? ORDER BY quiz_day DESC", { rs, _ -> rs.getInt(1) }, user, Timestamp.from(time)).firstOrNull { candidate ->
-                val conflict = "offline" in environment.activeProfiles && jdbc.queryForObject("SELECT COUNT(*) FROM advent_offline_content_conflicts WHERE quiz_day = ?", Int::class.java, candidate) != 0
-                !conflict && memberQuiz(candidate) != null
-            }
-            if (unseen != null) return AnswerState("priority", priorityResult = resultAt(user, unseen, time))
+            val unseen = latestUnseenAt(user, time, false)
+            if (unseen != null) return AnswerState("priority", priorityResult = unseen)
         }
-        val current = stateFor(user, day, time, true, access)
+        val current = stateFor(user, day, time, true, access, bonus)
+        if (!bonus && current.replayToken == token && jdbc.queryForObject("SELECT COUNT(*) FROM advent_bonus_answers WHERE user_id = ? AND quiz_day = ?", Int::class.java, user, day) != 0)
+            throw ResponseStatusException(HttpStatus.LOCKED, "Replay the bonus before the daily quiz")
         if (current.replayToken != token) return if (closeOnly) AnswerState("stale") else current
-        jdbc.update("DELETE FROM advent_member_attempts WHERE user_id = ? AND quiz_day = ?", user, day)
-        jdbc.update("DELETE FROM advent_member_generations WHERE user_id = ? AND quiz_day = ?", user, day)
-        jdbc.update("DELETE FROM advent_member_answers WHERE user_id = ? AND quiz_day = ? AND answer_id = ?", user, day, token)
-        jdbc.update("DELETE FROM advent_member_replays WHERE user_id = ? AND quiz_day = ?", user, day)
+        jdbc.update("DELETE FROM ${if (bonus) "advent_bonus_attempts" else "advent_member_attempts"} WHERE user_id = ? AND quiz_day = ?", user, day)
+        jdbc.update("DELETE FROM ${if (bonus) "advent_bonus_generations" else "advent_member_generations"} WHERE user_id = ? AND quiz_day = ?", user, day)
+        jdbc.update("DELETE FROM ${if (bonus) "advent_bonus_answers" else "advent_member_answers"} WHERE user_id = ? AND quiz_day = ? AND answer_id = ?", user, day, token)
+        jdbc.update("DELETE FROM ${if (bonus) "advent_bonus_replays" else "advent_member_replays"} WHERE user_id = ? AND quiz_day = ?", user, day)
         if (closeOnly) return AnswerState("cleared")
-        jdbc.update("INSERT INTO advent_member_replays (user_id, quiz_day, late) VALUES (?, ?, ?)", user, day, current.late)
+        jdbc.update("INSERT INTO ${if (bonus) "advent_bonus_replays" else "advent_member_replays"} (user_id, quiz_day, late) VALUES (?, ?, ?)", user, day, current.late)
         return AnswerState("available")
     }
 
 }
 
-private data class MemberResultRow(val day: Int, val answerId: String, val choice: Int, val correctChoice: Int, val seen: Boolean, val late: Boolean)
+private data class MemberResultRow(val day: Int, val answerId: String, val choice: Int, val correctChoice: Int, val seen: Boolean, val late: Boolean, val bonus: Boolean)
 
 
-data class AdventCalendarDay(val day: Int, val state: String, val outcome: String? = null)
+data class AdventCalendarDay(val day: Int, val state: String, val outcome: String? = null, val bonusState: String? = null)
 data class AdventCalendarResponse(val days: List<AdventCalendarDay>? = null, val priorityResult: AdventResult? = null)
 data class AdventHistory(val quiz: AdventQuiz, val result: AdventResult?, val falseChoice: Int?)
 

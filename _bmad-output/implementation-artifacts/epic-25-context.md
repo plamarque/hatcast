@@ -4,7 +4,7 @@
 
 ## Goal
 
-Help La Malice members discover each other through 24 daily Advent quizzes, delayed personal reveals and a friendly ranking. Authorized organizers prepare and verify the experience privately while preserving the surprise and isolating testing from production.
+Help La Malice members discover each other through 24 daily Advent quizzes, optional surprise bonus quizzes, delayed personal reveals and a friendly ranking. Authorized organizers prepare and verify the experience privately while preserving the surprise and isolating testing from production.
 
 ## Stories
 
@@ -37,19 +37,21 @@ Help La Malice members discover each other through 24 daily Advent quizzes, dela
 - Story 25.24: Célébrer le podium final
 - Story 25.25: Lire les anecdotes complètes avant de choisir
 - Story 25.26: Modifier un quiz Avent avant son jour
+- Story 25.27: Capturer les contributions Avent supplémentaires
 
 ## Requirements & Constraints
 
-- Eligible active members see one daily quiz with three ordered choices and can confirm one answer. Reveal correctness, the false choice and points only at the next midnight in Paris. Optional full stories can be read with their choices before answering; the explanation and answer remain protected until reveal.
-- A correct answer earns 10 points, a timely answer earns one participation point, and each non-overlapping group of three consecutive correct answers earns two bonus points. Incorrect answers reset a streak; missed days do not. A late answer earns no points and does not affect the streak or ranking.
-- Ordinary future content is inaccessible before its day. The calendar distinguishes available, played, pending, missing and locked cases accessibly; December 25 is a celebration and final ranking, not another quiz. Unseen eligible results take priority on return.
+- Eligible active members see a daily quiz with three ordered choices and can confirm one answer. Some days additionally offer one bonus quiz, following the normal answer and a surprise acknowledgment. An interrupted bonus is resumable across devices. Reveal correctness, the false choice and points only at the next midnight in Paris. Optional full stories can be read with their choices before answering; the explanation and answer remain protected until reveal.
+- A correct answer earns 10 points, each timely quiz answer earns one participation point, and each non-overlapping group of three consecutive correct answers earns two bonus points. The daily quiz precedes its bonus in the sequence. Incorrect answers reset a streak; missed days do not. A late answer earns no points and does not affect the streak or ranking.
+- Ordinary future content is inaccessible before its day. The calendar distinguishes available, played, pending, missing and locked cases accessibly; December 25 is a celebration and final ranking, not another quiz. One gift represents each day and its color follows the normal quiz; both results are accessible within it. Unseen eligible results take priority on return, with the normal result before the bonus result.
+- A bonus is playable late once for pleasure, after the normal quiz, without points or streak effect. If the normal quiz was answered on time but the bonus skipped, reveal the normal result before offering the late bonus; the late result is immediate.
 - Patrice and Antoine have a separately authorized private preview; their personal test answers are excluded from ranking. Test controls and shared resets require verified isolation and must never become production controls.
 - Production and development data remain separate. Future content, unrevealed answers and other members’ private responses must not leak through API responses, errors, caches, assets or derived scores. Never put actual private contributions, answers or portraits in the public repository or logs.
 - New editing permits the two authorized content managers to adjust text and false-choice designation for an existing quiz only before its day starts in Paris; the database is the reference for served content after deployment. Prior catalogue-as-canonical wording and acceptance of exceptional edits during play describe earlier decisions and must be reconciled with this newer story during implementation.
 
 ## Technical Decisions
 
-- Enforce membership, identity, dates and disclosure at the server, using Paris time and independent checks of real versus simulated time. Preserve transaction safety around answers, reveals, reset and concurrent changes.
+- Enforce membership, identity, dates and disclosure at the server, using Paris time and independent checks of real versus simulated time. Persist independent quiz answers and seen states, enforce normal-before-bonus and preserve existing records. Preserve transaction safety around answers, reveals, reset and concurrent changes.
 - Quiz content is separated from game state. Synchronization and operator actions verify their explicit target and identity, protect private data and preserve answers and game state. Existing content conflicts require safe resolution rather than silent overwrite.
 - Private portraits are served through authorized paths. No public bundle or direct link should bypass the timing and identity rules. Each environment has its own database.
 - Reminder attempts use the existing scheduling and notification mechanisms; they must not reveal content or imply delivery guarantees.
@@ -58,10 +60,12 @@ Help La Malice members discover each other through 24 daily Advent quizzes, dela
 
 - Use the isolated Advent visual identity and tokens without changing HatCast’s global design system. Apply Material controls and the project’s mobile-first accessibility requirements, including keyboard focus, understandable labels, touch targets, enlarged text, reduced motion and non-color state cues.
 - Quiz choices and optional narratives remain legible without truncation. Confirmation is neutral until reveal; recover interrupted journeys and preserve the priority of eligible results. Calendar and ranking remain navigable when allowed.
+- The surprise screen is a designed variant of the confirmation with a « Jouer » action. Apply the isolated Advent art direction and validate its real rendering with Patrice; reveal each played quiz separately without exposing pending correctness or points.
 - Test and preview affordances are visible only to their authorized users and must not misrepresent the active mode or affect other members. Verify actual Advent states and style isolation on small screens and desktop.
 
 ## Cross-Story Dependencies
 
 - Quiz preparation and synchronization support the member journey; test reset preserves content and applies only to isolated game state.
+- Selected bonus contributions come from the private reserve; assignments and target-specific synchronization require explicit authorization. Preserve normal quiz content, previous answers and game state. The approved bonus change affects the existing quiz, ranking, calendar, test and catalogue journeys together.
 - Preview, direct links, test modes, reminders and calendar projections all depend on the same access and reveal boundaries. Story 25.26 must preserve these while adapting catalogue operations to prevent overwriting edits made in an environment’s database.
 - Later story 25.25 supersedes the original restriction that full narratives appear only after reveal; historical completed stories remain historical evidence rather than current behavior.

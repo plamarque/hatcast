@@ -3127,6 +3127,19 @@ En tant que troupe, je veux définir les catégories qui partagent un historique
 
 ---
 
+#### Story 19.25 : Masquer les chances après sélection
+
+En tant que membre, je veux distinguer les chances simulées des chances enregistrées lors d’une sélection publiée.
+
+**Acceptance Criteria**
+
+1. Avant publication, les chances et leurs détails restent disponibles selon les droits existants, y compris pendant le tirage.
+2. Après publication, pour une personne sélectionnée à un rôle et dont l’attribution est visible, Équipe et Dispos affichent la date et le pourcentage enregistrés lors de sa sélection, manuelle ou par tirage, lorsqu’ils existent, sans accès au détail de chances.
+3. La règle est évaluée par rôle ; les candidats non sélectionnés conservent leurs chances et détails. Les données absentes ne sont pas inventées, les calculs et les droits de visibilité restent inchangés.
+4. **Source :** précision produit du 19 novembre 2026. **UI :** critères Material 3 adaptés dans la story.
+
+---
+
 ### Couverture FR19–FR24 / Epic 19 (contrôle croisé)
 
 | FR | Story(s) principale(s) |
@@ -3951,6 +3964,15 @@ En tant que responsable du contenu Avent, je veux conserver des contributions su
 **Critères :** Conserver les 24 cases existantes et permettre de préparer plusieurs contributions supplémentaires avec identité stable, portrait, propositions, récits et révélation, ainsi qu’une date souhaitée facultative. Valider et relire les contenus privés sans perte, avec protection contre les écritures concurrentes. Empêcher toute synchronisation accidentelle des contributions supplémentaires vers les bases de jeu. Aucun affichage, classement ni changement du parcours membre n’est décidé par cette story.
 
 **UI :** N/A — outils et catalogue privés uniquement.
+
+
+### Story 25.28: Quiz bonus Avent
+
+En tant que membre, je veux découvrir certains jours un quiz bonus après le quiz habituel, afin de jouer une anecdote supplémentaire et gagner des points.
+
+**Critères :** Au plus un bonus par jour, affecté à partir de la réserve privée lors de la préparation du déploiement. Après la réponse au quiz habituel, proposer une surprise avec « Jouer », puis le quiz bonus et l'accusé habituel. Le bonus peut être repris avant minuit sur un autre appareil ; après son jour, il reste jouable sans points ni effet sur la série. Appliquer à chaque quiz le barème existant, y compris un point de participation et la série dans l'ordre quiz habituel puis bonus. Révéler les résultats à partir du lendemain, dans cet ordre, en préservant les règles de confidentialité et de reprise. Si le bonus a été laissé sans réponse, révéler le quiz habituel avant de proposer le bonus tardif. Le calendrier conserve un cadeau par jour, coloré selon le quiz habituel, et donne accès aux deux quiz et résultats. Préserver les données existantes lors de l'évolution du modèle, vérifier les frontières Paris, la concurrence, les modes test et les cibles de synchronisation. Voir la proposition approuvée `sprint-change-proposal-2026-11-18-avent-bonus-quiz.md`.
+
+**Material 3 et références :** appliquer FRONTEND_UI, Advent DESIGN, EXPERIENCE et AD-7 ; concevoir et vérifier visuellement l'écran surprise, l'accessibilité et l'absence d'effet sur HatCast.
 
 ## Final validation
 

@@ -224,3 +224,11 @@ app-user-avatar.composition-draw-animation__segment-avatar {
   font-weight: 400;
   opacity: 0.8;
 }
+
+// Dispos candidate badges: one fewer per mobile row and a 48 dp touch target.
+@media (max-width: 480px) {
+  .composition-draw-animation--dispos .composition-draw-animation__segment--flow {
+    min-height: 3rem;
+    min-width: min(100%, max(3rem, calc((100% - .4rem) / 3)));
+  }
+}

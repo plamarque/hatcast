@@ -34,6 +34,7 @@ data class CompositionSlotDto(
     val participantGender: String? = null,
     val participationStatus: String,
     val chancePercent: Int? = null,
+    val selectionChanceAt: Instant? = null,
     val pastSelectionCount: Int? = null,
     val consecutiveShowWarning: ConsecutiveShowWarningDto? = null,
     val multiRoleOnEventWarning: MultiRoleOnEventWarningDto? = null,

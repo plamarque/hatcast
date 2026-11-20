@@ -127,3 +127,40 @@ export async function applyLocalContent({source,days,operation,database,portrait
  } catch {throw Error('Synchronisation locale refusée ou interrompue');}
  finally {let failed=false;if(hold)try{await hold.release()}catch{failed=true}if(db)await db.close();if(failed)throw Error('Protection temporaire à vérifier');}
 }
+
+async function localDatabaseIdentity(database) {
+ const file=`${database}.mv.db`, stat=await fs.lstat(file);
+ if(!path.isAbsolute(database)||!stat.isFile()||stat.isSymbolicLink()||stat.uid!==process.getuid()||(stat.mode&0o077)!==0||await fs.realpath(file)!==file)fail();
+ return `${stat.dev}:${stat.ino}`;
+}
+export async function applyLocalBonus({source,days,database,portraitDir,jar,confirm,write}) {
+ let db,hold;
+ const fields=['character_key',...cols];
+ try {
+  const identity=await localDatabaseIdentity(database);
+  const store=createLocalPortraitStore(portraitDir);await store.verify();await source.verify();db=await openH2(database,jar);
+  if(await localDatabaseIdentity(database)!==identity)fail();
+  const snapshot=await source.snapshot(days,'bonus'), selected=materialize(snapshot), additions=[];
+  for(const row of selected.rows) {
+   const reply=await db.query(`BONUS_CHECK\t${row.quiz_day}`);
+   if(reply==='ABSENT'){additions.push(row);write(`Jour ${row.quiz_day} : ajout du bonus`);continue;}
+   const parts=reply.split('\t');if(parts.length!==12||parts[0]!=='ROW')fail();
+   const old=parts.slice(1).map(decode);
+   if(!fields.every((key,i)=>String(row[key]??'')===String(old[i]??'')))fail();
+   write(`Jour ${row.quiz_day} : inchangé`);
+  }
+  const portraits=await store.inspect(selected.portraits);if(portraits.some(p=>p.status==='divergence'))fail();
+  const phrase=`APPLIQUER bonus ${[...days].sort((a,b)=>a-b).join(',')}`;
+  if(await confirm(phrase)!==phrase)return 'cancelled';
+  await source.verify(true);if(materialize(await source.snapshot(days,'bonus')).fingerprint!==selected.fingerprint)fail();
+  hold=await source.acquire(snapshot);await hold.verify();
+  await store.stagePortraits(selected.portraits,portraits);
+  if((await store.inspect(selected.portraits)).some(p=>p.status!=='unchanged'))fail();
+  if(materialize(await source.snapshot(days,'bonus')).fingerprint!==selected.fingerprint)fail();
+  for(const row of additions)if(await db.query(['BONUS_ADD',row.quiz_day,...fields.map(field=>encode(row[field]))].join('\t'))!=='OK')fail();
+  await hold.verify();await store.verify();if(await localDatabaseIdentity(database)!==identity)fail();
+  if(await db.query('COMMIT')!=='COMMITTED')fail();
+  write('Affectations bonus locales vérifiées.');return 'applied';
+ } catch {throw Error('Synchronisation locale refusée ou interrompue');}
+ finally {let failed=false;if(hold)try{await hold.release()}catch{failed=true}if(db)await db.close();if(failed)throw Error('Protection temporaire à vérifier');}
+}

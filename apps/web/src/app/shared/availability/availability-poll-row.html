@@ -81,8 +81,19 @@
         <div class="poll-row__pool-loading" role="status">
           <mat-spinner diameter="28" />
         </div>
+      } @else if (showRecorded() && (showSnapshot() || avatars().some(hasPublishedAssignment))) {
+        @if (showSnapshot()) {
+          <p>@if (snapshotAt()) { Capture des chances du {{ snapshotAt() | date:'dd/MM/yyyy HH:mm' }} } @else { Capture des chances indisponible. }</p>
+          @if (snapshotAt() && avatars().some(hasMissingChance)) { <p>La capture ne couvre pas tous les candidats affichés.</p> }
+        }
+        <app-availability-recorded-candidates
+          [candidates]="avatars()"
+          [interactive]="poolInteractive()"
+          (segmentTap)="poolSegmentTap.emit($event)"
+        />
       } @else if (poolShowChancePreview() && poolSegments().length > 0) {
         <app-composition-pool-preview
+          [dispos]="true"
           class="poll-row__pool-preview"
           [pool]="poolSegments()"
           [interactive]="poolInteractive()"

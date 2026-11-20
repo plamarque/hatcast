@@ -56,6 +56,7 @@ class CompositionDrawService(
     private val compositionService: CompositionService,
     private val eventPublisher: ApplicationEventPublisher,
     private val drawChanceSnapshots: CompositionDrawChanceSnapshotService,
+    private val roleChanceBaselines: RoleChanceBaselineCaptureService,
     private val auditRecorder: AuditEventRecorder,
     private val lifecycleAuditRecorder: CompositionLifecycleAuditRecorder,
     private val participantGenderResolver: ParticipantGenderResolver,
@@ -164,6 +165,7 @@ class CompositionDrawService(
         val snapshotAccumulator = linkedMapOf<Pair<String, UUID>, DrawChanceSnapshotInput>()
         // Roles whose existing snapshot rows are safe to replace (fully cleared and redrawn).
         val fullyRedrawnRoleKeys = mutableSetOf<String>()
+        val recapturedRoleKeys = mutableSetOf<String>()
 
         captureOpeningDrawSnapshots(
             event = event,
@@ -291,6 +293,7 @@ class CompositionDrawService(
                         immediatePredecessorStartsAt = replayInputs.predecessorStartsAt,
                         unfulfilledRoleRequestCountByParticipant = unfulfilledCounts,
                     )
+                val baselineAt = Instant.now()
                 val drawResult = AvailabilityChanceCalculator.performWeightedDraw(weighted, random)
 
                 if (drawResult == null) {
@@ -318,6 +321,15 @@ class CompositionDrawService(
                     continue
                 }
 
+                // Freeze the exact candidate pool for the first selection of this role,
+                // after earlier roles and already-filled slots have been excluded.
+                val roleBaseline = RoleChanceBaselineCaptureService.Prepared(
+                    mapOf(roleKey to scored.map { it.participantId to it.chancePercent }),
+                    baselineAt,
+                )
+                if (recapturedRoleKeys.add(roleKey)) {
+                    roleChanceBaselines.replaceAfterDraw(eventId, roleKey, roleBaseline)
+                }
                 val selectedId = drawResult.selected.participantId
                 val selectedParticipant =
                     eligibleById[selectedId]
@@ -384,6 +396,8 @@ class CompositionDrawService(
             )
         }
 
+        // Record provenance even when the first draw produced no assignment.
+        roleChanceBaselines.persist(eventId, null, emptySet(), composition == null)
         val snapshotRows = snapshotAccumulator.values.toList()
         when (mode) {
             DrawMode.FULL ->

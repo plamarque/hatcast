@@ -31,6 +31,7 @@ export interface CompositionSlot {
   participantGender?: MemberGender | null
   participationStatus: 'pending' | 'confirmed' | 'declined'
   chancePercent?: number | null
+  selectionChanceAt?: string | null
   pastSelectionCount?: number | null
   consecutiveShowWarning?: ConsecutiveShowWarning | null
   multiRoleOnEventWarning?: MultiRoleOnEventWarning | null
@@ -101,6 +102,11 @@ export interface ChanceBreakdown {
   displayName: string
   chancePercent: number | null
   referencePercent?: number | null
+  recordedSelection?: boolean
+  recordedSnapshot?: boolean
+  recordedTheoreticalRank?: number | null
+  recordedTheoreticalTiedCount?: number | null
+  recordedTheoreticalCandidateCount?: number | null
   recordedPercent?: number | null
   recordedAt?: string | null
   recordedSource?: 'draw' | 'manual' | 'draw_opening' | null
@@ -117,6 +123,7 @@ export interface ChanceBreakdown {
 }
 
 export interface CompositionPoolPreviewSegment {
+  participationStatus?: 'confirmed' | 'pending' | 'declined' | 'selected' | null
   participantId: string
   displayName: string
   chancePercent: number

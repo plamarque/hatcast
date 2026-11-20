@@ -12,11 +12,12 @@ import {insertReviewedQuizzes} from './advent-catalogue-database.mjs';
 import {deleteTestDays} from './advent-catalogue-delete.mjs';
 import {checkReadiness} from './advent-catalogue-check.mjs';
 import {runCloudContent} from './advent-catalogue-cloud-content.mjs';
+import {runBonusContent} from './advent-catalogue-bonus.mjs';
 const require=createRequire(import.meta.url);
 const refuse=()=>{throw Error('Synchronization refused')};
 async function main() {
   // Production requires a second, plan-specific interactive authorization.
-  const operation=['character','quiz','delete','check','replace-generic'].includes(process.argv[2])?process.argv[2]:null;
+  const operation=['character','quiz','bonus','delete','check','replace-generic'].includes(process.argv[2])?process.argv[2]:null;
   const checking=operation==='check';
   const deletion=operation==='delete';
   const offset=operation?1:0;
@@ -56,7 +57,7 @@ async function main() {
     }
     if(deletion) {
       await source.verify();await store.verify(true);
-      const tables=['advent_member_attempts','advent_member_generations','advent_member_replays','advent_member_answers','advent_test_attempts','advent_test_generations','advent_test_replays','advent_test_answers','advent_offline_content_conflicts','advent_member_demo_quizzes','advent_quizzes','advent_character_reservations'];
+      const tables=['advent_bonus_attempts','advent_bonus_generations','advent_bonus_replays','advent_bonus_answers','advent_bonus_quizzes','advent_member_attempts','advent_member_generations','advent_member_replays','advent_member_answers','advent_test_attempts','advent_test_generations','advent_test_replays','advent_test_answers','advent_offline_content_conflicts','advent_member_demo_quizzes','advent_quizzes','advent_character_reservations'];
       const rights=await db.query("SELECT bool_and(has_table_privilege(name,'SELECT') AND has_table_privilege(name,'DELETE')) AS ok FROM unnest($1::text[]) AS name",[tables]);
       const state=await db.query("SELECT (has_table_privilege('advent_test_member_state','SELECT') AND has_table_privilege('advent_test_member_state','INSERT') AND has_table_privilege('advent_test_member_state','UPDATE')) AND has_table_privilege('advent_test_answers','UPDATE') AS ok");
       if(rights.rows[0]?.ok!==true || state.rows[0]?.ok!==true)refuse();
@@ -67,6 +68,7 @@ async function main() {
       console.log('Suppression ciblée terminée ; source et portraits conservés.');
       return;
     }
+    if(operation==='bonus') {await runBonusContent({source,store,db,days,environment,ask,write:line=>console.log(line)});return;}
     if(operation) {await runCloudContent({source,store,db,days,operation,environment,ask,write:line=>console.log(line),reviewPrivate: value=>writeFileSync('/dev/tty', `\nContenu existant à examiner confidentiellement :\n${JSON.stringify(value,null,2)}\n`)});return;}
     const target={sharedPortraits:true,verify:forWrite=>store.verify(forWrite),inspect:async snapshot=>({identity,rows:(await db.query('SELECT quiz_day, display_name, portrait_ref, statement_0, statement_1, statement_2, false_choice, explanation, story_0, story_1, story_2 FROM advent_quizzes WHERE quiz_day=ANY($1::int[])',[snapshot.rows.map(row=>row.quiz_day)])).rows,portraits:snapshot.portraits.map(p=>({ref:p.ref,status:'unchanged'}))}),insert:(rows,reviewed,previous)=>insertReviewedQuizzes(db,rows,reviewed,previous)};
     await runOperator(source,target,days,{environment,write:line=>console.log(line),

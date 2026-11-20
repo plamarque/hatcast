@@ -10,12 +10,26 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Current follow-up
 
+### BUG-124 — Ouvertures de liens de notification surcomptées
+
+- **Status:** Signalé ; correctif proposé dans la [PR #21](https://github.com/plamarque/hatcast/pull/21), non intégré. **Severity:** Medium. **Affected area:** V2, métrique PostHog `notification_link_opened` sur la fiche événement.
+- **Observed behavior:** Les changements d’onglet et certains rechargements silencieux peuvent déclencher cette métrique sans ouverture d’un lien de notification. Les rapports qui l’utilisent peuvent donc surestimer les ouvertures.
+- **Expected behavior:** Ne pas comptabiliser les changements d’onglet et les rechargements silencieux comme des ouvertures de lien.
+- **Limite connue:** Les URL de notification ne portent pas de marqueur de provenance ; une arrivée par favori ou lien partagé peut aussi être comptabilisée.
+
 ### BUG-123 — Staging release checks fail after data refresh
 
 - **Status:** Correction locale en cours de vérification ; validation staging à effectuer. **Severity:** High. **Affected area:** Staging E1 release gate and health reporting.
 - **Observed behavior:** Run 43962761217 attempt 2 failed the reminder organizer participant boundary and four hub assertions. The latter expected the 2025–2026 season while the hub displayed 2026–2027. Staging health returns 503 when a disabled email service's configured SMTP server rejects authentication.
 - **Expected behavior:** Release tests select their intended season and create a stable isolated reminder fixture; health reflects dependencies used by the configured service.
 - **Context:** Organizer authentication and permissions succeeded. The existing fixture does not create an absent removed participant, allowing normal membership synchronization to add one. One chance-detail test passed on retry; its cause is not established.
+
+### BUG-125 — Advent bonus review exposed journey and catalogue inconsistencies
+
+- **Status:** Fixed locally in story 25.28; human acceptance completed, deployment pending. **Severity:** High. **Affected area:** Advent bonus results, replay and private catalogue synchronization.
+- **Observed behavior:** During review of the initial local implementation, a late bonus offer promised points; a result acknowledgment could race the next reveal; reconciling an uncertain daily answer could omit the bonus offer; replaying the daily answer could leave an inaccessible bonus answer; and ordinary catalogue synchronization did not check character identities already assigned to bonuses.
+- **Expected behavior:** Late play explains that it earns no points; results advance in order; the bonus remains recoverable; replay preserves a coherent daily-before-bonus state; and character identity conflicts are rejected in both synchronization directions.
+- **Context:** These findings concern unreleased work, not an observed production incident. The local corrections have targeted UI, game, security and catalogue tests; Patrice accepted the recorded journey on 19 November 2026.
 
 ### BUG-122 — Playwright CI cannot install Chromium on Ubuntu 26.04
 

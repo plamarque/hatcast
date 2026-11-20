@@ -13,6 +13,7 @@ import { CompositionDrawAnimation } from './composition-draw-animation'
     <app-composition-draw-animation
       mode="preview"
       [embedded]="true"
+      [dispos]="dispos()"
       [showPreviewTitle]="showTitle()"
       [wrapSegments]="true"
       [previewInteractive]="interactive()"
@@ -22,6 +23,7 @@ import { CompositionDrawAnimation } from './composition-draw-animation'
   `,
 })
 export class CompositionPoolPreview {
+  readonly dispos = input(false)
   readonly pool = input.required<CompositionPoolPreviewSegment[]>()
   readonly showTitle = input(false)
   readonly interactive = input(true)

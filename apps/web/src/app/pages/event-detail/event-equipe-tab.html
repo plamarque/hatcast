@@ -231,7 +231,11 @@
             </button>
             @if (showSlotTrailing(row)) {
               <span class="event-equipe-tab__trailing">
-                @if (
+                @if (hasPublishedSelection() && row.slot?.participantId) {
+                  <button type="button" class="event-equipe-tab__chance-trigger" data-testid="recorded-selection-chance" aria-haspopup="dialog" [attr.aria-label]="'Voir la fiche de sélection de ' + row.slot?.participantDisplayName" (click)="openSlotChanceBreakdown($event, row)">
+                    @if (row.slot?.chancePercent != null) { {{ row.slot?.chancePercent }}&nbsp;% › } @else { Sélection › }
+                  </button>
+                } @else if (
                   canShowChanceBreakdown() &&
                   row.slot?.chancePercent != null &&
                   row.slot?.participantId
