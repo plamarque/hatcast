@@ -12,6 +12,7 @@ import { provideAnimationsAsync } from '@angular/platform-browser/animations/asy
 import { MAT_DATE_LOCALE, provideNativeDateAdapter } from '@angular/material/core';
 import { NgxMatTimepickerModule } from 'ngx-mat-timepicker';
 
+import { InAppHistoryService } from './core/navigation/in-app-history.service';
 import { ChunkRecoveryService } from './core/pwa/chunk-recovery.service';
 import { routes } from './app.routes';
 import { ProductAnalyticsService } from './core/analytics/product-analytics.service';
@@ -21,6 +22,9 @@ export const appConfig: ApplicationConfig = {
     provideAppInitializer(() => {
       const analytics = inject(ProductAnalyticsService);
       return analytics.bootstrap();
+    }),
+    provideAppInitializer(() => {
+      inject(InAppHistoryService);
     }),
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes, withNavigationErrorHandler((error) => {

@@ -4,6 +4,7 @@ import { provideRouter, Router } from '@angular/router'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 
+import { InAppHistoryService } from '../../core/navigation/in-app-history.service'
 import {
   rememberLastMemberEntryPath,
 } from '../../core/navigation/last-member-entry-path-storage'
@@ -14,7 +15,6 @@ describe('EventDetailHeader', () => {
   let location: Location
   let router: Router
   let backSpy: ReturnType<typeof vi.spyOn>
-  let getStateSpy: ReturnType<typeof vi.spyOn>
   let navigateByUrlSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(async () => {
@@ -27,7 +27,6 @@ describe('EventDetailHeader', () => {
     location = TestBed.inject(Location)
     router = TestBed.inject(Router)
     backSpy = vi.spyOn(location, 'back').mockImplementation(() => {})
-    getStateSpy = vi.spyOn(location, 'getState')
     navigateByUrlSpy = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true)
     localStorage.clear()
   })
@@ -58,7 +57,7 @@ describe('EventDetailHeader', () => {
   })
 
   it('calls Location.back when in-app navigation history exists', () => {
-    getStateSpy.mockReturnValue({ navigationId: 2 })
+    vi.spyOn(TestBed.inject(InAppHistoryService), 'canGoBack').mockReturnValue(true)
     fixture.componentRef.setInput('showBack', true)
     fixture.detectChanges()
 
@@ -69,7 +68,6 @@ describe('EventDetailHeader', () => {
   })
 
   it('navigates to /agenda when no in-app history and no stored entry path', () => {
-    getStateSpy.mockReturnValue({ navigationId: 1 })
     fixture.componentRef.setInput('showBack', true)
     fixture.detectChanges()
 
@@ -81,7 +79,6 @@ describe('EventDetailHeader', () => {
 
   it('navigates to last member entry path when no in-app history', () => {
     rememberLastMemberEntryPath('/accueil')
-    getStateSpy.mockReturnValue({})
     fixture.componentRef.setInput('showBack', true)
     fixture.detectChanges()
 
