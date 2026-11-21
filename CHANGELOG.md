@@ -3,6 +3,37 @@
 ## [2.8.3] - 2026-11-21
 
 ### ✨ New Features
+- feat(draw): Reconstruct role chance estimates
+
+### 🐛 Bug Fixes
+- fix(draw): Prepare staging replay safeguards
+- fix(draw): Capture every available volunteer
+- fix(availability): Show flat candidate list
+- fix(draw): Show reconstructed selection chance
+- fix(draw): Replay selection history and origins
+- fix(draw): Resolve proven activity ordering
+- fix(ci): Include bonus tables in H2 tests
+- fix(ci): Repair development deployment checks
+- fix(agenda): Merge role priority story
+- fix(agenda): Prefer draw role priority
+
+### 📝 Other Changes
+- chore(v2): promote v2 to staging-v2
+- docs(release): Refine chance display notes
+- docs(draw): Close replay implementation
+- chore(v2): Merge latest development changes
+- docs(agenda): Close role priority story
+- chore(bmad): Automate story runtime setup
+- docs(draw): Plan chance snapshot replay
+- chore(bmad): Sync sprint status for 12-8-afficher-le-role-prioritaire-en-cas-de-multi-roles
+- docs(agenda): Plan role priority fix
+- chore(v2): sync release v2.8.3-rc.1 artifacts to v2
+
+---
+
+## [2.8.3] - 2026-11-21
+
+### ✨ New Features
 - feat(composition): Integrate chance captures
 - feat(composition): Record role chance captures
 - feat(avent): Integrate bonus quizzes
