@@ -3150,6 +3150,21 @@ En tant que membre, je veux distinguer les chances simulées des chances enregis
 
 ---
 
+#### Story 19.26 : Reconstituer les photographies de chances manquantes
+
+En tant que membre, je veux retrouver des chances comparables pour les compositions déjà préparées afin de bénéficier de cette information dès l'activation de la fonctionnalité.
+
+**Acceptance Criteria**
+
+1. Examiner les données et journaux de production en lecture seule pour établir les possibilités et limites d'un replay des sélections, disponibilités, compositions et formules.
+2. Sauvegarder et vérifier la restauration de la préproduction avant de la synchroniser depuis la production ; vérifier la compatibilité des migrations et le redémarrage de l'application.
+3. Reconstituer les photographies manquantes en préproduction avec un replay chronologique fondé sur les preuves disponibles ; expliciter les hypothèses et les cas non reconstituables, conserver les véritables captures et les chances individuelles existantes.
+4. Présenter les écarts et vérifier la cohérence des résultats, la reprise après incident et l'absence de modification des compositions et de notifications. Recette humaine sur les spectacles concernés, dont Match Cambo.
+5. Toute application à la production exige une autorisation distincte. **UI :** N/A si les écrans ne changent pas ; sinon critères Material 3 adaptés dans la story.
+6. **Source :** décision produit du 21 novembre 2026 ; complément à la story 19.25. Les valeurs reconstituées et leurs limites ne doivent pas être présentées comme des preuves historiques observées.
+
+---
+
 ### Couverture FR19–FR24 / Epic 19 (contrôle croisé)
 
 | FR | Story(s) principale(s) |
