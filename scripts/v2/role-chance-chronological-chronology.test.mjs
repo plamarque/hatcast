@@ -18,8 +18,8 @@ test('season-member user mapping and event-specific guest identities remain dist
  const y=[audit('a','AVAILABILITY_CREATED',1,{}, {status:'available',roleKeys:['player']})];y[0].subject_event_participant_id='guest';assert.equal(replay(y,identities).gaps[0].issue,'user_to_participant_unresolved');
 });
 test('a later unambiguous full availability update resolves an earlier conflicting tie for future decisions',()=>{
- const x=[audit('a','EVENT_CREATED',0,{}, {roleSlots:{player:1}}),audit('a','AVAILABILITY_CREATED',1,{}, {status:'available',roleKeys:['player']},{},'u1'),audit('a','AVAILABILITY_UPDATED',1,{status:'available',roleKeys:['player']},{status:'unavailable',roleKeys:[]},{},'u1'),audit('a','AVAILABILITY_UPDATED',2,{status:'unavailable',roleKeys:[]},{status:'available',roleKeys:['player']},{},'u1'),audit('a','SLOT_ASSIGNED',3,{}, {participantId:'p1',roleKey:'player',slotIndex:0},{roleKey:'player',slotIndex:0})];assert.ok(!replay(x,ids).decisions[0].unknowns.includes('event_history_inconsistent'));
- const unresolved=x.filter(a=>a.occurred_at!=='2026-10-01T10:00:02Z');assert.ok(replay(unresolved,ids).decisions[0].unknowns.includes('event_history_inconsistent'));
+ const x=[audit('a','EVENT_CREATED',0,{}, {roleSlots:{player:1}}),audit('a','AVAILABILITY_CREATED',1,{}, {status:'available',roleKeys:['player']},{},'u1'),audit('a','AVAILABILITY_UPDATED',2,{status:'available',roleKeys:['player']},{status:'unavailable',roleKeys:[]},{},'u1'),audit('a','AVAILABILITY_UPDATED',2,{status:'available',roleKeys:['player']},{status:'available',roleKeys:['mc']},{},'u1'),audit('a','AVAILABILITY_UPDATED',3,{status:'available',roleKeys:['mc']},{status:'available',roleKeys:['player']},{},'u1'),audit('a','SLOT_ASSIGNED',4,{}, {participantId:'p1',roleKey:'player',slotIndex:0},{roleKey:'player',slotIndex:0})];assert.ok(!replay(x,ids).decisions[0].unknowns.includes('event_history_inconsistent'));
+ const unresolved=x.filter(a=>a.occurred_at!=='2026-10-01T10:00:03Z');assert.ok(replay(unresolved,ids).decisions[0].unknowns.includes('event_history_inconsistent'));
 });
 test('conflicting same-time updates to a validated historical slot mark later dependent decisions ambiguous',()=>{
  const x=[audit('a','EVENT_CREATED',0,{}, {roleSlots:{player:1}}),audit('b','EVENT_CREATED',1,{}, {roleSlots:{player:1}}),audit('a','AVAILABILITY_CREATED',2,{}, {status:'available',roleKeys:['player']},{},'u1'),audit('b','SLOT_ASSIGNED',3,{}, {participantId:'p1',roleKey:'player',slotIndex:0},{roleKey:'player',slotIndex:0}),audit('b','SLOT_ASSIGNED',3,{}, {participantId:'p2',roleKey:'player',slotIndex:0},{roleKey:'player',slotIndex:0}),audit('b','COMPOSITION_VALIDATED',4,{}, {validatedAt:'yes'}),audit('a','SLOT_ASSIGNED',5,{}, {participantId:'p1',roleKey:'player',slotIndex:0},{roleKey:'player',slotIndex:0})];assert.ok(replay(x,ids).decisions.at(-1).unknowns.includes('history_order_ambiguous'));
@@ -42,4 +42,25 @@ test('a replacement cannot inherit the former occupant’s declined status',()=>
 test('an assignment removed by a draw does not reappear in subsequent event history',()=>{
  const x=[audit('a','EVENT_CREATED',0,{}, {roleSlots:{player:1}}),audit('b','EVENT_CREATED',1,{}, {roleSlots:{player:1}}),audit('a','AVAILABILITY_CREATED',2,{}, {status:'available',roleKeys:['player']},{},'u1'),audit('b','SLOT_ASSIGNED',3,{}, {participantId:'p1',roleKey:'player',slotIndex:0,participationStatus:'confirmed'},{roleKey:'player',slotIndex:0}),audit('b','COMPOSITION_VALIDATED',4,{}, {validatedAt:'yes'}),audit('b','COMPOSITION_DRAW_COMPLETED',5,{assignmentsByRole:{player:[{slotIndex:0,participantId:'p1'}]}},{assignmentsByRole:{}}),audit('a','SLOT_ASSIGNED',6,{}, {participantId:'p1',roleKey:'player',slotIndex:0},{roleKey:'player',slotIndex:0})];
  assert.equal(replay(x,ids).decisions.at(-1).candidates[0].pastValidatedCount,0);
+});
+
+test('a derived lifecycle display audit at the draw timestamp does not invent decision ambiguity',()=>{
+ const x=[audit('a','EVENT_CREATED',0,{}, {roleSlots:{player:1}}),audit('a','AVAILABILITY_CREATED',1,{}, {status:'available',roleKeys:['player']},{},'u1'),audit('a','COMPOSITION_LIFECYCLE_CHANGED',2,{compositionLifecycle:'preparing'},{compositionLifecycle:'draftComposition'}),audit('a','COMPOSITION_DRAW_COMPLETED',2,{assignmentsByRole:{}},{assignmentsByRole:{player:[{slotIndex:0,participantId:'p1'}]}})];
+ assert.ok(!replay(x,ids).decisions[0].unknowns.includes('same_timestamp_order_unresolved'));
+});
+test('a simultaneous availability change and draw still mark the decision ambiguous',()=>{
+ const x=[audit('a','EVENT_CREATED',0,{}, {roleSlots:{player:1}}),audit('a','AVAILABILITY_CREATED',1,{}, {status:'available',roleKeys:['player']},{},'u1'),audit('a','AVAILABILITY_UPDATED',2,{status:'available',roleKeys:['player']},{status:'available',roleKeys:['mc']},{},'u1'),audit('a','COMPOSITION_DRAW_COMPLETED',2,{assignmentsByRole:{}},{assignmentsByRole:{player:[{slotIndex:0,participantId:'p1'}]}})];
+ assert.ok(replay(x,ids).decisions[0].unknowns.includes('same_timestamp_order_unresolved'));
+});
+test('reconstructs a unique creation before update even when their UUID order is reversed',()=>{
+ const x=[audit('a','EVENT_CREATED',0,{}, {roleSlots:{player:1}}),audit('a','AVAILABILITY_UPDATED',1,{status:'available',roleKeys:['mc']},{status:'available',roleKeys:['mc','player']},{},'u1'),audit('a','AVAILABILITY_CREATED',1,{}, {status:'available',roleKeys:['mc']},{},'u1'),audit('a','SLOT_ASSIGNED',2,{}, {participantId:'p1',roleKey:'player',slotIndex:0},{roleKey:'player',slotIndex:0})];
+ const result=replay(x,ids);assert.deepEqual(result.gaps,[]);assert.ok(!result.decisions[0].unknowns.includes('event_history_inconsistent'));assert.equal(result.decisions[0].candidates[0].participantId,'p1');
+});
+test('reconstructs a unique deletion before creation from the preceding known state',()=>{
+ const x=[audit('a','EVENT_CREATED',0,{}, {roleSlots:{player:1}}),audit('a','AVAILABILITY_CREATED',1,{}, {status:'available',roleKeys:['player']},{},'u1'),audit('a','AVAILABILITY_CREATED',2,{}, {status:'available',roleKeys:['player']},{},'u1'),audit('a','AVAILABILITY_DELETED',2,{status:'available',roleKeys:['player']},{},{},'u1'),audit('a','SLOT_ASSIGNED',3,{}, {participantId:'p1',roleKey:'player',slotIndex:0},{roleKey:'player',slotIndex:0})];
+ const result=replay(x,ids);assert.deepEqual(result.gaps,[]);assert.ok(!result.decisions[0].unknowns.includes('event_history_inconsistent'));assert.equal(result.decisions[0].candidates[0].participantId,'p1');
+});
+test('never invents an order for tied updates with incompatible prior states',()=>{
+ const x=[audit('a','EVENT_CREATED',0,{}, {roleSlots:{player:1}}),audit('a','AVAILABILITY_CREATED',1,{}, {status:'available',roleKeys:['player']},{},'u1'),audit('a','AVAILABILITY_UPDATED',2,{status:'available',roleKeys:['player']},{status:'available',roleKeys:['mc']},{},'u1'),audit('a','AVAILABILITY_UPDATED',2,{status:'available',roleKeys:['player']},{status:'unavailable',roleKeys:[]},{},'u1'),audit('a','SLOT_ASSIGNED',3,{}, {participantId:'p1',roleKey:'player',slotIndex:0},{roleKey:'player',slotIndex:0})];
+ assert.ok(replay(x,ids).decisions[0].unknowns.includes('event_history_inconsistent'));
 });

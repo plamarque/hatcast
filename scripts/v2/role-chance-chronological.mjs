@@ -11,11 +11,42 @@ export function replay(audits, identities) {
  const byUser = new Map(); for (const i of identities.filter(x=>x.user_id)) { const list=byUser.get(i.user_id)||[]; list.push(i); byUser.set(i.user_id,list); }
  function resolveIdentity(a) { const id=a.subject_season_participant_id||a.subject_event_participant_id; if(id){const i=byId.get(id);return i && (!i.eventId || i.eventId===a.event_id) ? i : null;} const matches=(byUser.get(a.subject_user_id)||[]).filter(i=>!i.eventId || i.eventId===a.event_id); const members=matches.filter(i=>!i.eventId); return members.length===1?members[0]:(matches.length===1?matches[0]:null); }
  const events=new Map(),results=[], gaps=[]; const get=id=>{if(!events.has(id))events.set(id,{config:{},availability:new Map(),uncertainVotes:new Set(),unresolvedIdentity:false,slots:new Map(),uncertainSlots:new Set(),uncertainLifecycle:false,validated:false});return events.get(id)};
- const atCount=new Map(),voteCounts=new Map(),slotCounts=new Map(),lifecycleCounts=new Map();for(const a of audits){atCount.set(a.occurred_at,(atCount.get(a.occurred_at)||0)+1);if(a.action_type.startsWith('AVAILABILITY_')){const i=resolveIdentity(a);const k=[a.event_id,i?.id||'unresolved',a.occurred_at].join('|');voteCounts.set(k,(voteCounts.get(k)||0)+1)}if(a.action_type==='COMPOSITION_VALIDATED'||a.action_type==='COMPOSITION_UNLOCKED'){const k=[a.event_id,a.occurred_at].join('|');lifecycleCounts.set(k,(lifecycleCounts.get(k)||0)+1)}if(a.action_type.startsWith('SLOT_')||a.action_type.startsWith('PARTICIPATION_')){const b=a.before_json||{},v=a.after_json||{},m=a.metadata_json||{},role=m.roleKey||v.roleKey||b.roleKey,idx=m.slotIndex??v.slotIndex??b.slotIndex;if(role!=null&&idx!=null){const k=[a.event_id,role,idx,a.occurred_at].join('|');slotCounts.set(k,(slotCounts.get(k)||0)+1)}}}
+ const atCount=new Map(),voteCounts=new Map(),slotCounts=new Map(),lifecycleCounts=new Map();for(const a of audits){if(a.action_type!=='COMPOSITION_LIFECYCLE_CHANGED')atCount.set(a.occurred_at,(atCount.get(a.occurred_at)||0)+1);if(a.action_type.startsWith('AVAILABILITY_')){const i=resolveIdentity(a);const k=[a.event_id,i?.id||'unresolved',a.occurred_at].join('|');voteCounts.set(k,(voteCounts.get(k)||0)+1)}if(a.action_type==='COMPOSITION_VALIDATED'||a.action_type==='COMPOSITION_UNLOCKED'){const k=[a.event_id,a.occurred_at].join('|');lifecycleCounts.set(k,(lifecycleCounts.get(k)||0)+1)}if(a.action_type.startsWith('SLOT_')||a.action_type.startsWith('PARTICIPATION_')){const b=a.before_json||{},v=a.after_json||{},m=a.metadata_json||{},role=m.roleKey||v.roleKey||b.roleKey,idx=m.slotIndex??v.slotIndex??b.slotIndex;if(role!=null&&idx!=null){const k=[a.event_id,role,idx,a.occurred_at].join('|');slotCounts.set(k,(slotCounts.get(k)||0)+1)}}}
  function applySlots(e,assignments){const previous=e.slots;const next=new Map();for(const [role,slots] of Object.entries(assignments||{}))for(const s of slots||[]){const key=role+':'+s.slotIndex,prior=previous.get(key);next.set(key,{role,participantId:s.participantId,status:prior?.participantId===s.participantId?prior.status:'UNKNOWN'});}e.slots=next;}
- for(const a of audits){const e=get(a.event_id),b=a.before_json||{},v=a.after_json||{},m=a.metadata_json||{}; const type=a.action_type;
+ // Reorder tied votes only when their before/after states establish one unique
+ // chain from the known prior state. Never infer a sequence from UUID order.
+ const resolvedVoteTies=new Set();
+ function voteState(v){if(!v)return null;if(typeof v.status!=='string'||!Array.isArray(v.roleKeys))return undefined;return JSON.stringify([v.status,[...v.roleKeys].sort()]);}
+ function uniqueVoteSequence(items,initial){
+  if(items.length>7||initial===undefined)return null;
+  const matches=[];
+  function visit(pending,state,ordered){
+   if(matches.length>1)return;
+   if(!pending.length){matches.push(ordered);return;}
+   for(let i=0;i<pending.length;i++){
+    const a=pending[i],before=voteState(a.before_json),after=voteState(a.after_json);
+    const valid=a.action_type==='AVAILABILITY_CREATED'?state===null&&after!==null&&after!==undefined:
+      a.action_type==='AVAILABILITY_UPDATED'?before!==undefined&&before!==null&&state===before&&after!==null&&after!==undefined:
+      a.action_type==='AVAILABILITY_DELETED'?before!==undefined&&before!==null&&state===before:false;
+    if(!valid)continue;
+    const next=a.action_type==='AVAILABILITY_DELETED'?null:after;
+    visit(pending.filter((_,j)=>j!==i),next,[...ordered,a]);
+   }
+  }
+  visit(items,initial,[]);return matches.length===1?matches[0]:null;
+ }
+ function* orderedAudits(){
+  for(let i=0;i<audits.length;){let end=i+1;while(end<audits.length&&audits[end].occurred_at===audits[i].occurred_at)end++;
+   const group=audits.slice(i,end),votes=new Map();
+   for(let j=0;j<group.length;j++){const a=group[j];if(!a.action_type.startsWith('AVAILABILITY_'))continue;const identity=resolveIdentity(a);if(!identity)continue;const key=[a.event_id,identity.id,a.occurred_at].join('|'),entry=votes.get(key)||{indexes:[],event:a.event_id,id:identity.id};entry.indexes.push(j);votes.set(key,entry);}
+   for(const [key,entry] of votes){if(entry.indexes.length<2)continue;const current=get(entry.event).availability.get(entry.id);const ordered=uniqueVoteSequence(entry.indexes.map(j=>group[j]),voteState(current));if(ordered){entry.indexes.forEach((j,n)=>{group[j]=ordered[n]});resolvedVoteTies.add(key)}}
+   yield* group;i=end;
+  }
+ }
+ for(const a of orderedAudits()){
+const e=get(a.event_id),b=a.before_json||{},v=a.after_json||{},m=a.metadata_json||{}; const type=a.action_type;
   if(type==='EVENT_CREATED'){e.config={...v};continue} if(type==='EVENT_UPDATED'){Object.assign(e.config,v);continue}
-  if(type.startsWith('AVAILABILITY_')){const identity=resolveIdentity(a);if(!identity){e.unresolvedIdentity=true;gaps.push({event:a.event_id,at:a.occurred_at,issue:'user_to_participant_unresolved'});continue}const prev=e.availability.get(identity.id);if(type!=='AVAILABILITY_CREATED'&&!prev)gaps.push({event:a.event_id,at:a.occurred_at,since:null,issue:'availability_prior_missing'});if(prev&&type!=='AVAILABILITY_CREATED'&&(prev.status!==b.status||JSON.stringify([...(prev.roleKeys||[])].sort())!==JSON.stringify([...(b.roleKeys||[])].sort())))gaps.push({event:a.event_id,at:a.occurred_at,since:prev.at||null,issue:'availability_before_mismatch'});const tied=(voteCounts.get([a.event_id,identity.id,a.occurred_at].join('|'))||0)>1;const afterComplete=type==='AVAILABILITY_DELETED'||(typeof v.status==='string'&&Array.isArray(v.roleKeys));if(tied||!afterComplete)e.uncertainVotes.add(identity.id);else e.uncertainVotes.delete(identity.id);if(type==='AVAILABILITY_DELETED')e.availability.delete(identity.id);else e.availability.set(identity.id,{status:v.status,roleKeys:v.roleKeys||[],at:a.occurred_at});continue}
+  if(type.startsWith('AVAILABILITY_')){const identity=resolveIdentity(a);if(!identity){e.unresolvedIdentity=true;gaps.push({event:a.event_id,at:a.occurred_at,issue:'user_to_participant_unresolved'});continue}const prev=e.availability.get(identity.id);if(type!=='AVAILABILITY_CREATED'&&!prev)gaps.push({event:a.event_id,at:a.occurred_at,since:null,issue:'availability_prior_missing'});if(prev&&type!=='AVAILABILITY_CREATED'&&(prev.status!==b.status||JSON.stringify([...(prev.roleKeys||[])].sort())!==JSON.stringify([...(b.roleKeys||[])].sort())))gaps.push({event:a.event_id,at:a.occurred_at,since:prev.at||null,issue:'availability_before_mismatch'});const voteKey=[a.event_id,identity.id,a.occurred_at].join('|');const tied=(voteCounts.get(voteKey)||0)>1&&!resolvedVoteTies.has(voteKey);const afterComplete=type==='AVAILABILITY_DELETED'||(typeof v.status==='string'&&Array.isArray(v.roleKeys));if(tied||!afterComplete)e.uncertainVotes.add(identity.id);else e.uncertainVotes.delete(identity.id);if(type==='AVAILABILITY_DELETED')e.availability.delete(identity.id);else e.availability.set(identity.id,{status:v.status,roleKeys:v.roleKeys||[],at:a.occurred_at});continue}
   if(type==='COMPOSITION_VALIDATED'||type==='COMPOSITION_UNLOCKED'){e.uncertainLifecycle=(lifecycleCounts.get([a.event_id,a.occurred_at].join('|'))||0)>1;e.validated=!!v.validatedAt;continue}
   if(type==='COMPOSITION_DRAW_COMPLETED'||type==='SLOT_ASSIGNED'){
    const roles=type==='SLOT_ASSIGNED'?[m.roleKey||v.roleKey]:ROLE_ORDER.filter(role=>{const before=(b.assignmentsByRole||{})[role]||[],after=(v.assignmentsByRole||{})[role]||[]; return after.some(x=>!before.some(y=>y.slotIndex===x.slotIndex&&y.participantId===x.participantId))});
