@@ -274,7 +274,10 @@ jobs:
           fi
           # Non-production may retain unused SMTP settings after a data/config refresh.
           # Preserve Spring's default mail health behavior when email is enabled.
-          if [[ "${TARGET_ENV}" = "staging" || "${TARGET_ENV}" = "development" ]] && [[ "$(printf '%s' "${HATCAST_NOTIFICATION_EMAIL_ENABLED}" | tr '[:upper:]' '[:lower:]')" =~ ^(false|off|no|0)?$ ]]; then
+          if [ "${TARGET_ENV}" = "staging" ] && [[ "$(printf '%s' "${HATCAST_NOTIFICATION_EMAIL_ENABLED}" | tr '[:upper:]' '[:lower:]')" =~ ^(false|off|no|0)?$ ]]; then
+            append_env MANAGEMENT_HEALTH_MAIL_ENABLED false
+          fi
+          if [ "${TARGET_ENV}" = "development" ] && [[ "$(printf '%s' "${HATCAST_NOTIFICATION_EMAIL_ENABLED}" | tr '[:upper:]' '[:lower:]')" =~ ^(false|off|no|0)?$ ]]; then
             append_env MANAGEMENT_HEALTH_MAIL_ENABLED false
           fi
           if [ -n "${HATCAST_NOTIFICATION_EMAIL_FROM}" ]; then
