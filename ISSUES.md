@@ -13,9 +13,9 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 ### BUG-127 — Advent catalogue database test misses bonus schema
 
 - **Status:** Fixed locally; CI verification pending. **Severity:** Medium. **Affected area:** Advent catalogue database integration test.
-- **Observed behavior:** The test fails when deleting test days because its disposable database applies migrations only through V85, while deletion also accesses bonus tables introduced by V87.
+- **Observed behavior:** PostgreSQL and H2 catalogue integration tests fail because their disposable databases apply migrations only through V85, while deletion and synchronization also access bonus tables introduced by V87.
 - **Expected behavior:** The fixture includes the required bonus schema and verifies that deleting one test day preserves other days.
-- **Context:** Reproduced by CI on 21 November 2026, including the pre-existing code at the parent revision. The local test now applies V87 and verifies bonus records for adjacent days.
+- **Context:** Reproduced by CI on 21 November 2026, including the pre-existing code at the parent revision. The local PostgreSQL and H2 tests now apply V87 and verify bonus records for adjacent days.
 
 ### BUG-126 — Agenda and draw history show different roles for Cambo
 
