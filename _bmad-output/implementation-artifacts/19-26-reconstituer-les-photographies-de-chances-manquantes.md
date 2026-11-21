@@ -1,15 +1,19 @@
 ---
 feature_branch: feat/19-26-reconstituer-les-photographies-de-chances-manquantes
-baseline_commit:
+baseline_commit: ba328825
 ---
 
 # Story 19.26 : Reconstituer les photographies de chances manquantes
 
-Status: backlog
+Status: done
 
 ## Story
 
 En tant que membre, je veux retrouver des chances comparables pour les compositions déjà préparées, afin de bénéficier de cette information dès l'activation de la fonctionnalité.
+
+## Clôture et suite de release
+
+Le 21 novembre 2026, Patrice valide la recette de développement et demande la clôture de l’implémentation avant la nouvelle RC. Les critères ci-dessous qui concernent la synchronisation, l’exécution ou la recette **staging restent des étapes de release non réalisées**, suivies dans [19-26-reprise-staging.md](19-26-reprise-staging.md). Leur report ne constitue pas une validation de la préproduction ni une autorisation d’écriture en production. Le dernier replay complet sur Neon development précédait la dernière modification de la référence du tirage ; cette modification a été vérifiée par tests et recette humaine du tirage, sans nouveau replay complet sur Neon.
 
 ## Acceptance Criteria
 
@@ -32,12 +36,17 @@ En tant que membre, je veux retrouver des chances comparables pour les compositi
 
 ## Tasks / Subtasks
 
-- [ ] (AC1) Examiner la couverture et la qualité des journaux, les snapshots, les formules et les dépendances chronologiques ; documenter les résultats et hypothèses.
-- [ ] (AC2) Identifier les branches et applications, sauvegarder et vérifier la capacité de retour arrière ; synchroniser staging depuis production, contrôler Flyway et redémarrer sans notification.
-- [ ] (AC3–5) Concevoir et réaliser le replay et son rapport ; préserver captures et affectations existantes, prévoir idempotence, reprise et restauration.
-- [ ] (AC4) Comparer valeurs historiques et reconstituées sans les confondre ; signaler les données non reconstituables.
-- [ ] (AC6) Exécuter les tests ciblés API/scripts, vérifier les données et les droits et organiser la recette humaine en préproduction.
-- [ ] (AC6) Mettre à jour les documents normatifs concernés ; préparer séparément toute proposition pour la production.
+- [x] (AC1) Examiner l’historique, les snapshots, les formules et les dépendances chronologiques ; documenter les hypothèses et lacunes.
+- [x] (AC3–5, périmètre développement) Réaliser le replay chronologique, préserver les captures et affectations existantes, vérifier sa reprise et son idempotence sur development.
+- [x] (AC4) Distinguer les estimations reconstituées, les valeurs observées et les origines de sélection ; signaler les données non reconstituables.
+- [x] Vérifier les changements de tirage et d’affichage en développement, puis recueillir la validation de Patrice.
+- [x] Mettre à jour les contrats, les tests et les protections de ciblage pour préparer staging.
+
+### Opérations de release en attente — non validées par cette clôture
+
+- [ ] (AC2) Vérifier la sauvegarde et la restauration staging, neutraliser les notifications et synchroniser les données selon la procédure autorisée.
+- [ ] (AC3–5) Exécuter et contrôler le replay sur staging, comparer les captures et confirmer la reprise sans effets supplémentaires.
+- [ ] (AC6) Effectuer les contrôles et la recette humaine de préproduction avant toute décision sur la production.
 
 ## Dev Notes
 
@@ -61,16 +70,21 @@ En tant que membre, je veux retrouver des chances comparables pour les compositi
 
 ### Agent Model Used
 
-À renseigner lors de la réalisation.
+Codex.
 
 ### Completion Notes List
 
-- Aucune sauvegarde, synchronisation ou migration exécutée lors de la préparation.
+- Les données de production ont été copiées en development après désactivation des notifications ; Flyway et le replay y ont été exécutés. Les tables des compositions, disponibilités et chances individuelles préexistantes ont été préservées lors de l’essai.
+- Les estimations sont identifiées comme reconstituées ; les origines observées et inférées sont distinguées. La règle complète des volontaires au tirage et le replay ont été corrigés puis validés par les tests ciblés ; Patrice a validé le comportement en développement.
+- La suite API locale a exécuté 1 414 tests sans échec (19 ignorés) ; les tests ciblés du replay et des protections de cible passent. La synchronisation, le replay et la recette staging restent à réaliser séparément avant toute décision de production.
 
 ### File List
 
-- À renseigner lors de la réalisation.
+- Replay et tests : `scripts/v2/role-chance-chronological*`, `scripts/v2/role-chance-selection-origin*`.
+- API, migrations et interface V2 : composition, disponibilités, migrations V89–V90 et composants de disponibilité.
+- Contrats et préparation de release : `SPEC.md`, `DOMAIN.md`, `ARCH.md`, `ISSUES.md`, procédure staging et protections de notifications.
 
 ### Change Log
 
 - 2026-11-21 : intention et décisions de préproduction enregistrées ; story en backlog.
+- 2026-11-21 : implémentation validée en développement et clôturée à la demande de Patrice ; migration et recette staging reportées aux opérations de release.
