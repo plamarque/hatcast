@@ -236,43 +236,41 @@ export class Signup implements AfterViewInit, OnDestroy, OnInit {
     if (this.submitting()) return
     this.emailForm.markAllAsTouched()
     if (this.emailForm.invalid) return
+    const auth = this.firebaseAuth.getAuthOrNull()
+    if (!auth) return
+
+    const { email, password, confirmPassword } = this.emailForm.getRawValue()
+    if (password !== confirmPassword) {
+      this.snack.open('Les deux mots de passe ne correspondent pas.', 'OK', { duration: 6000 })
+      return
+    }
+
     this.submitting.set(true)
     try {
-      const auth = this.firebaseAuth.getAuthOrNull()
-      if (!auth) return
-
-      const { email, password, confirmPassword } = this.emailForm.getRawValue()
-      if (password !== confirmPassword) {
-        this.snack.open('Les deux mots de passe ne correspondent pas.', 'OK', { duration: 6000 })
-        return
-      }
-
-      try {
-        const cred = await createUserWithEmailAndPassword(auth, email, password)
-        const idToken = await cred.user.getIdToken()
-        await finishIdpSignInAfterEmailAuth(
-          {
-            auth: this.auth,
-            snack: this.snack,
-            router: this.router,
-            postLoginNav: this.postLoginNav,
-            isDev: this.isDev,
-            devLog: this.devLog,
-          },
-          {
-            idToken,
-            rememberMe: SIGNUP_REMEMBER_ME,
-            enableIdpRetry: true,
-            recoveryRedirectOnPersistentFailure: true,
-            loginQueryParams: this.loginQueryParams,
-          },
-        )
-      } catch (e: unknown) {
-        const code = typeof e === 'object' && e && 'code' in e ? String((e as { code: string }).code) : ''
-        this.snack.open(userMessageForIdentityPlatformAuth(code), 'OK', { duration: 8000 })
-        if (this.isDev) {
-          this.devLog.set(code || String(e))
-        }
+      const cred = await createUserWithEmailAndPassword(auth, email, password)
+      const idToken = await cred.user.getIdToken()
+      await finishIdpSignInAfterEmailAuth(
+        {
+          auth: this.auth,
+          snack: this.snack,
+          router: this.router,
+          postLoginNav: this.postLoginNav,
+          isDev: this.isDev,
+          devLog: this.devLog,
+        },
+        {
+          idToken,
+          rememberMe: SIGNUP_REMEMBER_ME,
+          enableIdpRetry: true,
+          recoveryRedirectOnPersistentFailure: true,
+          loginQueryParams: this.loginQueryParams,
+        },
+      )
+    } catch (e: unknown) {
+      const code = typeof e === 'object' && e && 'code' in e ? String((e as { code: string }).code) : ''
+      this.snack.open(userMessageForIdentityPlatformAuth(code), 'OK', { duration: 8000 })
+      if (this.isDev) {
+        this.devLog.set(code || String(e))
       }
     } finally {
       this.submitting.set(false)
