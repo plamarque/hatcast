@@ -10,6 +10,13 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Current follow-up
 
+### BUG-128 — Event back arrow does nothing after a notification link
+
+- **Status:** Fix proposed in a draft PR, not merged. **Severity:** Low. **Affected area:** V2 event detail header (`EventDetailHeader.onBack()`).
+- **Observed behavior:** A member opens an event from a notification link (legacy `/saison/<season>/event/<slug>` URL) and taps the back arrow. No page loads. The member must leave through the bottom navigation.
+- **Expected behavior:** When the app has no earlier history entry, the back arrow opens the last member entry page, or `/agenda`.
+- **Context:** The back arrow used `navigationId > 1` as a sign of in-app history. `SaisonLegacyRedirect` navigates with `replaceUrl: true`, so `navigationId` becomes 2 but the browser gets no new history entry, and `Location.back()` has no in-app page to go to.
+
 ### BUG-126 — Agenda and draw history show different roles for Cambo
 
 - **Status:** Fixed locally in story 12.8; mobile review accepted, deployment pending. **Severity:** Medium. **Affected area:** Staging member agenda and draw chance explanations.

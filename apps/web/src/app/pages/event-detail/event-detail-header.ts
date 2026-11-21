@@ -4,6 +4,7 @@ import { Router } from '@angular/router'
 import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
 
+import { InAppHistoryService } from '../../core/navigation/in-app-history.service'
 import { getLastMemberEntryPath } from '../../core/navigation/last-member-entry-path-storage'
 import {
   ScopeAdminMenu,
@@ -19,6 +20,7 @@ import {
 export class EventDetailHeader {
   private readonly location = inject(Location)
   private readonly router = inject(Router)
+  private readonly inAppHistory = inject(InAppHistoryService)
 
   readonly showBack = input(false)
   readonly canEdit = input(false)
@@ -28,10 +30,7 @@ export class EventDetailHeader {
   protected readonly showAdminMenu = computed(() => this.adminItems().length > 0)
 
   protected onBack(): void {
-    const state = this.location.getState() as { navigationId?: number } | null
-    const hasAppHistory =
-      typeof state?.navigationId === 'number' && state.navigationId > 1
-    if (hasAppHistory) {
+    if (this.inAppHistory.canGoBack()) {
       this.location.back()
       return
     }
