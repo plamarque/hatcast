@@ -106,6 +106,9 @@ export class Signup implements AfterViewInit, OnDestroy, OnInit {
 
   protected readonly hasEmailAuth = signal(this.firebaseAuth.hasFirebaseWebConfig())
 
+  /** Bloque les soumissions répétées pendant qu’une inscription est en cours. */
+  protected readonly submitting = signal(false)
+
   ngOnInit(): void {
     this.ingestReturnUrlFromQuery()
   }
@@ -207,23 +210,30 @@ export class Signup implements AfterViewInit, OnDestroy, OnInit {
   }
 
   private async onGoogleCredential(idToken: string): Promise<void> {
-    this.devLog.set(null)
-    const r = await this.auth.signInWithGoogleIdToken(idToken, SIGNUP_REMEMBER_ME)
-    if (r.ok && r.data) {
-      setHatcastRememberMePreference(SIGNUP_REMEMBER_ME)
-      await this.maybePromptGoogleAvatarImport(r.data)
-      this.snack.open('Connexion réussie.', 'OK', { duration: 3500 })
-      await this.postLoginNav.navigateAfterSignIn(this.router)
-      return
-    }
-    const msg = userMessageForGoogleSignInFailure(r.status)
-    this.snack.open(msg, 'OK', { duration: 8000 })
-    if (this.isDev) {
-      this.devLog.set(JSON.stringify({ status: r.status, hint: 'voir logs API pour le détail' }, null, 2))
+    if (this.submitting()) return
+    this.submitting.set(true)
+    try {
+      this.devLog.set(null)
+      const r = await this.auth.signInWithGoogleIdToken(idToken, SIGNUP_REMEMBER_ME)
+      if (r.ok && r.data) {
+        setHatcastRememberMePreference(SIGNUP_REMEMBER_ME)
+        await this.maybePromptGoogleAvatarImport(r.data)
+        this.snack.open('Connexion réussie.', 'OK', { duration: 3500 })
+        await this.postLoginNav.navigateAfterSignIn(this.router)
+        return
+      }
+      const msg = userMessageForGoogleSignInFailure(r.status)
+      this.snack.open(msg, 'OK', { duration: 8000 })
+      if (this.isDev) {
+        this.devLog.set(JSON.stringify({ status: r.status, hint: 'voir logs API pour le détail' }, null, 2))
+      }
+    } finally {
+      this.submitting.set(false)
     }
   }
 
   protected async signUpWithEmail(): Promise<void> {
+    if (this.submitting()) return
     this.emailForm.markAllAsTouched()
     if (this.emailForm.invalid) return
     const auth = this.firebaseAuth.getAuthOrNull()
@@ -235,6 +245,7 @@ export class Signup implements AfterViewInit, OnDestroy, OnInit {
       return
     }
 
+    this.submitting.set(true)
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password)
       const idToken = await cred.user.getIdToken()
@@ -261,6 +272,8 @@ export class Signup implements AfterViewInit, OnDestroy, OnInit {
       if (this.isDev) {
         this.devLog.set(code || String(e))
       }
+    } finally {
+      this.submitting.set(false)
     }
   }
 

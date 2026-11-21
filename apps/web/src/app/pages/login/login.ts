@@ -121,6 +121,9 @@ export class Login implements AfterViewInit, OnDestroy, OnInit {
   /** Parité V1 : coché par défaut (session longue côté API). */
   protected readonly rememberMe = signal(true)
 
+  /** Bloque les soumissions répétées pendant qu’une connexion est en cours. */
+  protected readonly submitting = signal(false)
+
   protected readonly videoGuides = computed(() => guidesFromEnvironment(environment))
 
   protected get signupQueryParams(): { returnUrl?: string } {
@@ -229,80 +232,92 @@ export class Login implements AfterViewInit, OnDestroy, OnInit {
   }
 
   private async onGoogleCredential(idToken: string): Promise<void> {
-    this.devLog.set(null)
-    const r = await this.auth.signInWithGoogleIdToken(idToken, this.rememberMe())
-    if (r.ok && r.data) {
-      setHatcastRememberMePreference(this.rememberMe())
-      await this.maybePromptGoogleAvatarImport(r.data)
-      this.snack.open('Connexion réussie.', 'OK', { duration: 3500 })
-      await this.postLoginNav.navigateAfterSignIn(this.router)
-      return
-    }
-    const msg = userMessageForGoogleSignInFailure(r.status)
-    this.snack.open(msg, 'OK', { duration: 8000 })
-    if (this.isDev) {
-      this.devLog.set(JSON.stringify({ status: r.status, hint: 'voir logs API pour le détail' }, null, 2))
+    if (this.submitting()) return
+    this.submitting.set(true)
+    try {
+      this.devLog.set(null)
+      const r = await this.auth.signInWithGoogleIdToken(idToken, this.rememberMe())
+      if (r.ok && r.data) {
+        setHatcastRememberMePreference(this.rememberMe())
+        await this.maybePromptGoogleAvatarImport(r.data)
+        this.snack.open('Connexion réussie.', 'OK', { duration: 3500 })
+        await this.postLoginNav.navigateAfterSignIn(this.router)
+        return
+      }
+      const msg = userMessageForGoogleSignInFailure(r.status)
+      this.snack.open(msg, 'OK', { duration: 8000 })
+      if (this.isDev) {
+        this.devLog.set(JSON.stringify({ status: r.status, hint: 'voir logs API pour le détail' }, null, 2))
+      }
+    } finally {
+      this.submitting.set(false)
     }
   }
 
   protected async signInWithEmail(): Promise<void> {
+    if (this.submitting()) return
     this.emailForm.markAllAsTouched()
     if (this.emailForm.invalid) return
-    const { email, password } = this.emailForm.getRawValue()
-    if (isDevSeedImprobotsEmail(email)) {
-      const idToken = buildDevSeedIdpToken(email, password)
-      await finishIdpSignInAfterEmailAuth(
-        {
-          auth: this.auth,
-          snack: this.snack,
-          router: this.router,
-          postLoginNav: this.postLoginNav,
-          isDev: this.isDev,
-          devLog: this.devLog,
-        },
-        {
-          idToken,
-          rememberMe: this.rememberMe(),
-        },
-      )
-      return
-    }
-    const auth = this.firebaseAuth.getAuthOrNull()
-    if (!auth) {
-      this.snack.open(
-        'Connexion email indisponible (Firebase non configuré). Utilisez Google ou un compte seed @seed.improbots.test en dev.',
-        'OK',
-        { duration: 10_000 },
-      )
-      return
-    }
-    if (password.length < 8) {
-      this.snack.open('Le mot de passe doit contenir au moins 8 caractères.', 'OK', { duration: 6000 })
-      return
-    }
+    this.submitting.set(true)
     try {
-      const cred = await signInWithEmailAndPassword(auth, email, password)
-      const idToken = await cred.user.getIdToken()
-      await finishIdpSignInAfterEmailAuth(
-        {
-          auth: this.auth,
-          snack: this.snack,
-          router: this.router,
-          postLoginNav: this.postLoginNav,
-          isDev: this.isDev,
-          devLog: this.devLog,
-        },
-        {
-          idToken,
-          rememberMe: this.rememberMe(),
-        },
-      )
-    } catch (e: unknown) {
-      const code = typeof e === 'object' && e && 'code' in e ? String((e as { code: string }).code) : ''
-      this.snack.open(userMessageForIdentityPlatformAuth(code), 'OK', { duration: 8000 })
-      if (this.isDev) {
-        this.devLog.set(code || String(e))
+      const { email, password } = this.emailForm.getRawValue()
+      if (isDevSeedImprobotsEmail(email)) {
+        const idToken = buildDevSeedIdpToken(email, password)
+        await finishIdpSignInAfterEmailAuth(
+          {
+            auth: this.auth,
+            snack: this.snack,
+            router: this.router,
+            postLoginNav: this.postLoginNav,
+            isDev: this.isDev,
+            devLog: this.devLog,
+          },
+          {
+            idToken,
+            rememberMe: this.rememberMe(),
+          },
+        )
+        return
       }
+      const auth = this.firebaseAuth.getAuthOrNull()
+      if (!auth) {
+        this.snack.open(
+          'Connexion email indisponible (Firebase non configuré). Utilisez Google ou un compte seed @seed.improbots.test en dev.',
+          'OK',
+          { duration: 10_000 },
+        )
+        return
+      }
+      if (password.length < 8) {
+        this.snack.open('Le mot de passe doit contenir au moins 8 caractères.', 'OK', { duration: 6000 })
+        return
+      }
+      try {
+        const cred = await signInWithEmailAndPassword(auth, email, password)
+        const idToken = await cred.user.getIdToken()
+        await finishIdpSignInAfterEmailAuth(
+          {
+            auth: this.auth,
+            snack: this.snack,
+            router: this.router,
+            postLoginNav: this.postLoginNav,
+            isDev: this.isDev,
+            devLog: this.devLog,
+          },
+          {
+            idToken,
+            rememberMe: this.rememberMe(),
+          },
+        )
+      } catch (e: unknown) {
+        const code = typeof e === 'object' && e && 'code' in e ? String((e as { code: string }).code) : ''
+        this.snack.open(userMessageForIdentityPlatformAuth(code), 'OK', { duration: 8000 })
+        if (this.isDev) {
+          this.devLog.set(code || String(e))
+        }
+      }
+    } finally {
+      this.submitting.set(false)
     }
   }
 

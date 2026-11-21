@@ -10,6 +10,14 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Current follow-up
 
+### BUG-127 — Repeated taps on "Se connecter" replace the success message with an error
+
+- **Status:** Fixed locally; production verification pending. **Severity:** Low. **Affected area:** V2 web login and signup (`/connexion`, `/inscription`).
+- **Observed behavior:** A user taps "Se connecter" several times in a few seconds. Each tap starts its own sign-in. The first call shows "Connexion réussie." and navigates. A later concurrent call fails and its error snackbar replaces the success message. Product analytics shows rapid resubmits on a notable share of login sessions.
+- **Expected behavior:** One tap starts one sign-in. The user sees one result message.
+- **Cause:** `signInWithEmail()`, `signUpWithEmail()` and `onGoogleCredential()` had no in-flight guard, and the submit buttons stayed enabled.
+- **Fix:** A `submitting` signal on the login and signup pages ignores new submits while a call runs and disables the submit button.
+
 ### BUG-126 — Agenda and draw history show different roles for Cambo
 
 - **Status:** Fixed locally in story 12.8; mobile review accepted, deployment pending. **Severity:** Medium. **Affected area:** Staging member agenda and draw chance explanations.
