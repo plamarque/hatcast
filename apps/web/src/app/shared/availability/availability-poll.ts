@@ -289,7 +289,9 @@ export class AvailabilityPoll {
   }
 
   protected flatAvailablePoolShowNeutral(): boolean {
-    return !this.explainabilityEnabled() && this.flatAvailableAvatars().length > 0
+    // A flat availability vote has no role-specific chance pool, even when
+    // chance explainability is enabled for the event.
+    return this.flatAvailableAvatars().length > 0
   }
 
   protected unavailablePoolSegments(): CompositionPoolPreviewSegment[] {

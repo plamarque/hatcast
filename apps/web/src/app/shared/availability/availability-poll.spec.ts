@@ -129,6 +129,22 @@ async function setupPoll(options: {
 }
 
 describe('AvailabilityPoll', () => {
+  it('shows available people when the event has no role slots and explainability is enabled', async () => {
+    const { fixture, getEventAvailabilitySummary } = await setupPoll()
+    fixture.componentRef.setInput('roleSlots', {})
+    fixture.componentRef.setInput('summary', { ...mockSummary, roleSlots: {}, roles: [] })
+    fixture.detectChanges()
+    const row = fixture.nativeElement.querySelectorAll('app-availability-poll-row')[1] as HTMLElement
+    expect(row.textContent).toContain('1/2')
+    ;(row.querySelector('.poll-row__stats-trigger') as HTMLButtonElement).click()
+    fixture.detectChanges()
+    const list = row.querySelector('[role="list"]') as HTMLElement
+    expect(list).toBeTruthy()
+    expect(list.textContent).toContain('Alex')
+    expect(list.textContent).not.toContain('Patrice')
+    expect(getEventAvailabilitySummary).not.toHaveBeenCalled()
+  })
+
   it('shows recorded assignment without detail and keeps live candidates and count', async () => {
     const { fixture, getEventAvailabilitySummary, chanceBreakdownOpen } = await setupPoll()
     const updated = { ...mockSummary, roles: [{ ...mockSummary.roles[0], candidates: [

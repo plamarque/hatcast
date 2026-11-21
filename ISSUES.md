@@ -10,6 +10,13 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Current follow-up
 
+### BUG-130 — Flat availability list opens empty when chances are enabled
+
+- **Status:** Fixed locally; development verification pending. **Severity:** Medium. **Affected area:** Availability poll for events without configured role slots.
+- **Observed behavior:** On Match à Nantes, the available count is 11 but expanding the available row shows an empty panel.
+- **Expected behavior:** Expanding the row lists available people, including when chance explainability is enabled.
+- **Context:** Reproduced in development on 21 November 2026. Flat availability has no role-specific chance pool and must show the neutral participant list.
+
 ### BUG-129 — Selected member sheet hides reconstructed chance
 
 - **Status:** Fixed locally; deployment verification pending. **Severity:** Medium. **Affected area:** Published composition chance explanation.
