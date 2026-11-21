@@ -6,6 +6,16 @@ import com.hatcast.api.auth.GoogleIdTokenService
 import com.hatcast.api.auth.IdpIdTokenVerifier
 import com.hatcast.api.availability.EventAvailabilityRepository
 import com.hatcast.api.composition.dto.CompositionDrawResponseDto
+import com.hatcast.api.draw.DrawDefaultRule
+import com.hatcast.api.draw.DrawFormulaIds
+import com.hatcast.api.draw.DrawFormulaEntity
+import com.hatcast.api.draw.DrawFormulaRepository
+import com.hatcast.api.draw.DrawFormulaStatus
+import com.hatcast.api.draw.DrawFactorConfigEntry
+import com.hatcast.api.draw.DrawPolicyEntity
+import com.hatcast.api.draw.DrawPolicyRepository
+import com.hatcast.api.draw.DrawPolicyScope
+import com.hatcast.api.draw.DrawRuleMode
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.participant.SeasonParticipantRepository
 import com.hatcast.api.participant.SeasonParticipantService
@@ -16,6 +26,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
 import org.springframework.beans.factory.annotation.Autowired
@@ -72,6 +83,12 @@ class DrawOrchestrationGoldenTest {
     private lateinit var availabilityRepository: EventAvailabilityRepository
 
     @Autowired
+    private lateinit var drawFormulaRepository: DrawFormulaRepository
+
+    @Autowired
+    private lateinit var drawPolicyRepository: DrawPolicyRepository
+
+    @Autowired
     private lateinit var compositionDrawService: CompositionDrawService
 
     private val mapper = ObjectMapper()
@@ -125,12 +142,43 @@ class DrawOrchestrationGoldenTest {
         assertExpected(fixture, scenario, lastDraw)
     }
 
+    @Test
+    fun `V1 golden draw stays isolated from other published formulas`() {
+        val other = drawFormulaRepository.saveAndFlush(
+            DrawFormulaEntity(
+                troupeId = support.seedTroupeId,
+                name = "AAA competing formula",
+                status = DrawFormulaStatus.PUBLISHED,
+                factorConfig = listOf(DrawFactorConfigEntry(factorId = "past_participation", enabled = false)),
+            ),
+        )
+        try {
+            orchestrationGolden(fixtures().single { it.id == "REF-O7" })
+        } finally {
+            drawFormulaRepository.deleteById(other.id)
+        }
+    }
+
     private fun buildScenario(fixture: DrawOrchestrationFixture): DrawTestSupport.DrawScenario {
         val slug = fixture.id.lowercase().replace("-", "")
         val adminSub = "sub-orch-$slug-admin"
         val adminCookie = support.memberCookie(adminSub, admin = true)
         val adminPrincipal = support.adminPrincipal(adminSub)
         val seasonId = support.createSeason(adminCookie)
+        // The golden fixtures assume V1 even when other suites have published
+        // additional formulas for the shared seed troupe.
+        drawPolicyRepository.saveAndFlush(
+            DrawPolicyEntity(
+                troupeId = support.seedTroupeId,
+                seasonId = seasonId,
+                scope = DrawPolicyScope.SEASON,
+                seasonScopeKey = seasonId,
+                defaultRule = DrawDefaultRule(
+                    mode = DrawRuleMode.MANDATORY,
+                    mandatoryFormulaId = DrawFormulaIds.systemV1(support.seedTroupeId).toString(),
+                ),
+            ),
+        )
         val roleSlots = DrawOrchestrationFixtureLoader.parseRoleSlots(fixture.setup)
         val eventId = support.createEvent(adminCookie, seasonId, roleSlots)
         val event = eventRepository.findById(eventId).orElseThrow()

@@ -322,11 +322,13 @@ class AvailabilityService(
             .filter { it.id.roleKey in reconstructions }.associateBy { it.id.roleKey to it.id.participantId } else emptyMap()
         val displayedHistoricalIds = publishedAssignments.keys.map { it.second }.toSet() + baselineByRoleAndParticipant.keys.map { it.second } + reconstructionEntries.keys.map { it.second }
         val missingAssigneeIds = displayedHistoricalIds - participants.map { it.participantId }.toSet()
-        val missingSeasonRows = seasonParticipantRepository.findAllByIdWithUserAssociations(missingAssigneeIds)
-            .filter { it.season.id == seasonId }.map { toEligibleRow(it) }
+        val missingSeasonRows = if (missingAssigneeIds.isEmpty()) emptyList() else
+            seasonParticipantRepository.findAllByIdWithUserAssociations(missingAssigneeIds)
+                .filter { it.season.id == seasonId }.map { toEligibleRow(it) }
         val missingEventIds = missingAssigneeIds - missingSeasonRows.map { it.participantId }.toSet()
-        val missingEventRows = eventParticipantRepository.findAllByIdWithUser(missingEventIds)
-            .filter { it.event.id == event.id }.map { toEligibleRow(it) }
+        val missingEventRows = if (missingEventIds.isEmpty()) emptyList() else
+            eventParticipantRepository.findAllByIdWithUser(missingEventIds)
+                .filter { it.event.id == event.id }.map { toEligibleRow(it) }
         val extraAssignedParticipants = (missingSeasonRows + missingEventRows).map { row ->
             SummaryParticipantDto(participantId = row.participantId, displayName = row.displayName,
                 avatarUrl = row.avatarUrl, gender = row.gender, status = AvailabilityStatusMapper.UNKNOWN)

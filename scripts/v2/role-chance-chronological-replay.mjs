@@ -1,4 +1,4 @@
-/** Chronological replay, development only. Runs in one serializable transaction.
+/** Chronological replay, explicitly scoped to development or staging. Runs in one serializable transaction.
  * Estimates are separate from observations, retain assumptions and never modify
  * assignments or individual chances. No application notification code is used.
  */
@@ -6,17 +6,22 @@ import {report, ALLOWED_SEASON_ID} from './role-chance-chronological-report.mjs'
 import {inferSelectionOrigins} from './role-chance-selection-origin.mjs';
 export const DEVELOPMENT_BRANCH = 'br-wandering-fire-al69qlxl';
 export const DEVELOPMENT_HOSTS = new Set(['ep-weathered-fog-al1law06.c-3.eu-central-1.aws.neon.tech', 'ep-weathered-fog-al1law06-pooler.c-3.eu-central-1.aws.neon.tech']);
-export function targetError(branch, version) {
- if (branch !== DEVELOPMENT_BRANCH) return 'Refus : cible différente de la branche development autorisée.';
+export const STAGING_BRANCH = 'br-solitary-tree-alshbj8i';
+export const STAGING_HOSTS = new Set(['ep-plain-mode-al95cugr.c-3.eu-central-1.aws.neon.tech', 'ep-plain-mode-al95cugr-pooler.c-3.eu-central-1.aws.neon.tech']);
+const TARGETS = {development:{branch:DEVELOPMENT_BRANCH, hosts:DEVELOPMENT_HOSTS}, staging:{branch:STAGING_BRANCH, hosts:STAGING_HOSTS}};
+export function targetError(branch, version, target='development') {
+ if (!Object.hasOwn(TARGETS,target) || branch !== TARGETS[target].branch) return 'Refus : cible différente de la branche autorisée.';
  if (version !== '90') return 'Refus : migration V90 absente ou différente.';
  return null;
 }
-export function validateDevelopmentUrl(uri) {
- if (!uri) throw new Error('NEON_DEVELOPMENT_URL requis.');
- let parsed; try { parsed = new URL(uri); } catch { throw new Error('Refus : URL development invalide.'); }
- if (!['postgres:', 'postgresql:'].includes(parsed.protocol) || !DEVELOPMENT_HOSTS.has(parsed.hostname)) throw new Error('Refus : hôte différent de development autorisé.');
+export function validateReplayUrl(uri,target='development') {
+ if (!Object.hasOwn(TARGETS,target)) throw new Error('Refus : environnement non autorisé.');
+ if (!uri) throw new Error('URL Neon requise.');
+ let parsed; try { parsed = new URL(uri); } catch { throw new Error('Refus : URL Neon invalide.'); }
+ if (!['postgres:', 'postgresql:'].includes(parsed.protocol) || !TARGETS[target].hosts.has(parsed.hostname)) throw new Error('Refus : hôte différent de la cible autorisée.');
  return uri;
 }
+export function validateDevelopmentUrl(uri) { return validateReplayUrl(uri,'development'); }
 
 const asIso = value => value instanceof Date ? value.toISOString() : value;
 const asJson = value => typeof value === 'string' ? JSON.parse(value) : value;
@@ -50,12 +55,13 @@ export function mergeObservedManual(values, individual, people) {
  return [...byPerson.values()];
 }
 
-export async function runChronologicalReplay(client,seasonId) {
+export async function runChronologicalReplay(client,seasonId,target='development') {
  if (seasonId!==ALLOWED_SEASON_ID) throw new Error('Refus : seule la saison explicitement autorisée est admise.');
+ if (!Object.hasOwn(TARGETS,target)) throw new Error('Refus : environnement non autorisé.');
  await client.query('BEGIN ISOLATION LEVEL SERIALIZABLE');
  try {
   const identity=await client.query("SELECT current_setting('neon.branch_id', true) branch, (SELECT version FROM flyway_schema_history WHERE success ORDER BY installed_rank DESC LIMIT 1) version");
-  const error=targetError(identity.rows[0]?.branch,identity.rows[0]?.version);if(error)throw new Error(error);
+  const error=targetError(identity.rows[0]?.branch,identity.rows[0]?.version,target);if(error)throw new Error(error);
   const events=(await client.query(`SELECT e.id,e.title,e.season_id,c.validated_at,
        COALESCE(array_agg(DISTINCT s.role_key) FILTER (WHERE s.season_participant_id IS NOT NULL OR s.event_participant_id IS NOT NULL),ARRAY[]::varchar[]) assigned_roles
      FROM events e LEFT JOIN event_compositions c ON c.event_id=e.id LEFT JOIN event_composition_slots s ON s.event_id=e.id
@@ -92,14 +98,16 @@ export async function runChronologicalReplay(client,seasonId) {
    for(const item of values)await client.query('INSERT INTO event_role_chance_reconstruction_entries(event_id,role_key,participant_id,chance_percent) VALUES($1,$2,$3,$4)',[role.eventId,role.role,item.participantId,item.estimatedPercent]);
    results.push({...base,comparison,result:'reconstructed',estimatedEntries:values});
   }
-  await client.query('COMMIT');return {target:{environment:'development',branchId:DEVELOPMENT_BRANCH,schemaVersion:identity.rows[0].version},seasonId,selectionOrigins,assumptions:diagnostic.assumptions,gaps:diagnostic.gaps,results};
+  await client.query('COMMIT');return {target:{environment:target,branchId:TARGETS[target].branch,schemaVersion:identity.rows[0].version},seasonId,selectionOrigins,assumptions:diagnostic.assumptions,gaps:diagnostic.gaps,results};
  } catch(error){await client.query('ROLLBACK');throw error;}
 }
 
 if(process.argv[1]&&import.meta.url===new URL(process.argv[1],'file:').href){
- const seasonId=process.env.HATCAST_REPLAY_SEASON_ID,uri=process.env.NEON_DEVELOPMENT_URL;
+ const seasonId=process.env.HATCAST_REPLAY_SEASON_ID,target=process.env.HATCAST_REPLAY_TARGET||'development';
+ const uri=target==='staging'?process.env.NEON_STAGING_URL:process.env.NEON_DEVELOPMENT_URL;
  if(seasonId!==ALLOWED_SEASON_ID)throw new Error('Refus : saison non autorisée.');
- validateDevelopmentUrl(uri);
+ if(target==='staging' && process.env.HATCAST_REPLAY_STAGING_CONFIRM!==STAGING_BRANCH)throw new Error('Refus : confirmation explicite de la branche staging requise.');
+ validateReplayUrl(uri,target);
  const {default:pg}=await import('pg');const client=new pg.Client({connectionString:uri});
- try{await client.connect();console.log(JSON.stringify(await runChronologicalReplay(client,seasonId),null,2));}finally{await client.end();}
+ try{await client.connect();console.log(JSON.stringify(await runChronologicalReplay(client,seasonId,target),null,2));}finally{await client.end();}
 }

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Sourced by Cloud Run deployment, after append_env is defined.
-# Never propagate production-like push subscriptions to real devices from dev.
+# Do not send real notifications from non-production copies of member data.
 configure_notification_delivery() {
-  if [ "${TARGET_ENV}" = "development" ]; then
+  if [ "${TARGET_ENV}" = "development" ] || [ "${TARGET_ENV}" = "staging" ]; then
     append_env HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY ""
     append_env HATCAST_NOTIFICATION_EMAIL_ENABLED false
     # Keep subsequent workflow checks consistent with the actual deployment.
