@@ -1737,6 +1737,16 @@ En tant que **membre**, je veux que l’API expose mes **événements à venir**
 - **Given** `/ligue/:slug`, **when** navigué, **then** même comportement que `/saison/:slug` (alias).
 - **Couverture :** UX-DR13.
 
+#### Story 12.8 : Afficher le rôle prioritaire en cas de multi-rôles
+
+**Acceptance Criteria**
+
+- **Given** un membre affecté à plusieurs rôles sur un spectacle, **when** un seul rôle est affiché dans son agenda, **then** choisir le rôle prioritaire selon l'ordre de tirage existant ; assistant arbitre précède bénévole.
+- **Given** un seul rôle ou un rôle refusé, **when** le résumé de participation est affiché, **then** conserver les règles de visibilité et de statut existantes.
+- **Given** ce résumé partagé, **when** les autres écrans qui l'utilisent sont consultés, **then** vérifier la cohérence de leur affichage.
+- **UI :** respecter `docs/v2/technical/FRONTEND_UI.md` et vérifier le rendu mobile de l'agenda.
+- **Contexte :** BUG-126.
+
 ---
 
 ### Epic 13 — Modèle League (multi-active & roster)
