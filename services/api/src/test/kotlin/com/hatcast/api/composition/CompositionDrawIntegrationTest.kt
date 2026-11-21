@@ -1141,6 +1141,20 @@ class CompositionDrawIntegrationTest {
             .param("roleKey", "player").param("participantId", secondId.toString()).cookie(admin))
             .andExpect(status().isOk).andExpect(jsonPath("$.recordedSource").value("reconstructed"))
             .andExpect(jsonPath("$.recordedPercent").value(42))
+        val selected = slotRepository.findByEventIdAndRoleKeyAndSlotIndex(eventId, "player", 0)!!
+        val observedChance = selected.selectionChancePercent!!
+        val breakdown = "/v1/seasons/$seasonId/events/$eventId/composition/chance-breakdown"
+        mockMvc.perform(get(breakdown).param("roleKey", "player").param("participantId", firstId.toString()).cookie(admin))
+            .andExpect(status().isOk).andExpect(jsonPath("$.recordedSelection").value(true))
+            .andExpect(jsonPath("$.recordedPercent").value(observedChance))
+        selected.selectionChancePercent = null
+        selected.selectionChanceAt = null
+        slotRepository.saveAndFlush(selected)
+        mockMvc.perform(get(breakdown).param("roleKey", "player").param("participantId", firstId.toString()).cookie(admin))
+            .andExpect(status().isOk).andExpect(jsonPath("$.recordedSnapshot").value(true))
+            .andExpect(jsonPath("$.recordedSource").value("reconstructed"))
+            .andExpect(jsonPath("$.recordedPercent").value(42))
+            .andExpect(jsonPath("$.recordedAt").doesNotExist())
         roleChanceBaselines.replaceAfterDraw(eventId, "player", RoleChanceBaselineCaptureService.Prepared(mapOf("player" to listOf(firstId to 50, secondId to 50)), Instant.now()))
         role = mapper.readTree(mockMvc.perform(get(path).cookie(admin)).andExpect(status().isOk).andReturn().response.contentAsString)["roles"].first()
         assertEquals("observed", role["chanceProvenance"].asText())

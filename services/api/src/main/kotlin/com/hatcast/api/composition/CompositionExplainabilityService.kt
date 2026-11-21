@@ -100,6 +100,19 @@ class CompositionExplainabilityService(
         if (currentAssignment != null && currentAssignment.isRequiredBy(RoleTemplates.normalize(event.roleSlots)) &&
             CompositionVisibilityRules.hasPublishedSelection(composition)
         ) {
+            // Legacy selections can use a reconstructed estimate when no individual value exists.
+            if (currentAssignment.selectionChancePercent == null) {
+                val summary = availabilityService.getSummary(seasonId, eventId, principal, includeChances = true, formulaId = formulaId)
+                val role = summary.roles.firstOrNull { it.roleKey == roleKey && it.chanceProvenance == "reconstructed" }
+                val candidate = role?.candidates?.firstOrNull { it.participantId == participantId }
+                if (candidate?.chancePercent != null) {
+                    return ChanceBreakdownDto(
+                        participantId = participantId, roleKey = roleKey, displayName = candidate.displayName,
+                        chancePercent = null, recordedSnapshot = true, recordedPercent = candidate.chancePercent,
+                        recordedAt = null, recordedSource = "reconstructed", avatarUrl = candidate.avatarUrl, gender = candidate.gender,
+                    )
+                }
+            }
             val displayName =
                 seasonParticipantRepository.findById(participantId).orElse(null)
                     ?.takeIf { it.season.id == seasonId }?.displayName

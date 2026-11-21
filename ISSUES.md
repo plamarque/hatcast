@@ -10,6 +10,13 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Current follow-up
 
+### BUG-129 — Selected member sheet hides reconstructed chance
+
+- **Status:** Fixed locally; deployment verification pending. **Severity:** Medium. **Affected area:** Published composition chance explanation.
+- **Observed behavior:** The candidate list displays a reconstructed percentage, but opening a selected participant with no individual recorded chance says the chance is unavailable.
+- **Expected behavior:** When an individual recorded chance is absent, display the supported reconstruction as an estimate; a recorded individual chance retains priority.
+- **Context:** Reported on development on 21 November 2026 for Manolo, Apérock café.
+
 ### BUG-128 — Historical selection origin replay loses trace across slot changes
 
 - **Status:** Fixed locally; development replay verification pending. **Severity:** Medium. **Affected area:** Story 19.26 historical selection origin reconstruction.
