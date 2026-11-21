@@ -15,17 +15,12 @@ describe('EventDetailHeader', () => {
   let location: Location
   let router: Router
   let backSpy: ReturnType<typeof vi.spyOn>
-  let canGoBack: boolean
   let navigateByUrlSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(async () => {
-    canGoBack = false
     await TestBed.configureTestingModule({
       imports: [EventDetailHeader, NoopAnimationsModule],
-      providers: [
-        provideRouter([]),
-        { provide: InAppHistoryService, useValue: { canGoBack: () => canGoBack } },
-      ],
+      providers: [provideRouter([])],
     }).compileComponents()
 
     fixture = TestBed.createComponent(EventDetailHeader)
@@ -62,7 +57,7 @@ describe('EventDetailHeader', () => {
   })
 
   it('calls Location.back when in-app navigation history exists', () => {
-    canGoBack = true
+    vi.spyOn(TestBed.inject(InAppHistoryService), 'canGoBack').mockReturnValue(true)
     fixture.componentRef.setInput('showBack', true)
     fixture.detectChanges()
 

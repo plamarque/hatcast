@@ -34,8 +34,12 @@ describe('InAppHistoryService', () => {
     router.setUpLocationChangeListener()
   })
 
+  function nextNavigationEnd(): Promise<unknown> {
+    return firstValueFrom(router.events.pipe(filter((event) => event instanceof NavigationEnd)))
+  }
+
   async function popBack(): Promise<void> {
-    const done = firstValueFrom(router.events.pipe(filter((event) => event instanceof NavigationEnd)))
+    const done = nextNavigationEnd()
     location.back()
     await done
   }
@@ -94,5 +98,16 @@ describe('InAppHistoryService', () => {
     await popBack()
     expect(router.url).toBe('/agenda')
     expect(service.canGoBack()).toBe(false)
+  })
+
+  it('restores the depth stored in the history entry after a reload', async () => {
+    location.replaceState('/accueil', '', { navigationId: 3, inAppHistoryDepth: 1 })
+
+    const done = nextNavigationEnd()
+    router.initialNavigation()
+    await done
+
+    expect(router.url).toBe('/accueil')
+    expect(service.canGoBack()).toBe(true)
   })
 })
