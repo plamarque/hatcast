@@ -231,6 +231,45 @@ describe('Signup', () => {
     )
   })
 
+  it('ignores repeated submits while a sign-up is in flight', async () => {
+    createUserWithEmailAndPassword.mockResolvedValue({
+      user: { getIdToken: vi.fn().mockResolvedValue('fresh-id-token') },
+    })
+    let resolveIdp!: (value: { ok: boolean; status: number }) => void
+    signInWithIdentityPlatformIdTokenWithRetry.mockReturnValue(
+      new Promise((resolve) => {
+        resolveIdp = resolve
+      }),
+    )
+
+    fixture.detectChanges()
+    const component = fixture.componentInstance as Signup & {
+      signUpWithEmail: () => Promise<void>
+    }
+    component['emailForm'].setValue({
+      email: 'new@example.com',
+      password: 'password123',
+      confirmPassword: 'password123',
+    })
+
+    const first = component.signUpWithEmail()
+    const second = component.signUpWithEmail()
+    fixture.detectChanges()
+
+    const submit = fixture.nativeElement.querySelector('button[type="submit"]') as HTMLButtonElement
+    expect(submit.disabled).toBe(true)
+    await second
+    expect(createUserWithEmailAndPassword).toHaveBeenCalledTimes(1)
+
+    resolveIdp({ ok: true, status: 200 })
+    await first
+    fixture.detectChanges()
+
+    expect(signInWithIdentityPlatformIdTokenWithRetry).toHaveBeenCalledTimes(1)
+    expect(snackOpen).toHaveBeenCalledTimes(1)
+    expect(submit.disabled).toBe(false)
+  })
+
   it('does not reference deleteUser in signup.ts', () => {
     const src = readFileSync(join(process.cwd(), 'src/app/pages/signup/signup.ts'), 'utf8')
     expect(src).not.toMatch(/\bdeleteUser\b/)

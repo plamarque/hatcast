@@ -72,7 +72,13 @@
                 autocomplete="new-password"
               />
             </mat-form-field>
-            <button mat-flat-button color="primary" type="submit" class="auth__submit">
+            <button
+              mat-flat-button
+              color="primary"
+              type="submit"
+              class="auth__submit"
+              [disabled]="submitting()"
+            >
               Créer mon compte
             </button>
           </form>

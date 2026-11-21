@@ -75,7 +75,15 @@
                 <a class="login__forgot-link" routerLink="/mot-de-passe-oublie">Mot de passe oublié ?</a>
               </div>
             </div>
-            <button mat-flat-button color="primary" type="submit" class="auth__submit">Se connecter</button>
+            <button
+              mat-flat-button
+              color="primary"
+              type="submit"
+              class="auth__submit"
+              [disabled]="submitting()"
+            >
+              Se connecter
+            </button>
           </form>
 
           @if (showDevSeedHint) {
