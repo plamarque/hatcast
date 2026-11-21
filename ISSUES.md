@@ -10,6 +10,13 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Current follow-up
 
+### BUG-131 — Draw photograph omits available volunteers
+
+- **Status:** Fixed locally; development verification pending. **Severity:** Medium. **Affected area:** Role chance references after a draw and historical replay.
+- **Observed behavior:** After a draw on Match Caprani, available people disappeared from the role chance photograph when they were assigned to another role or retained in an already filled slot.
+- **Expected behavior:** Each successful draw captures a role reference for all available volunteers, including people not selected and people retained or assigned elsewhere. Actual draw-step chances remain separate and preserve eligibility exclusions.
+- **Context:** Reproduced by Patrice in development on 21 November 2026. Replay and live draw use the same full role reference rule.
+
 ### BUG-130 — Flat availability list opens empty when chances are enabled
 
 - **Status:** Fixed locally; development verification pending. **Severity:** Medium. **Affected area:** Availability poll for events without configured role slots.

@@ -1026,7 +1026,7 @@ class CompositionDrawIntegrationTest {
         val playerOnlyId = participantIdForUser(seasonId, "sub-opening-snap-p1")
         val baselineRows = roleChanceBaselineEntryRepository.findByIdEventId(eventId)
         val playerBaseline = baselineRows.filter { it.id.roleKey == "player" }
-        assertEquals(mapOf(playerOnlyId to 100), playerBaseline.associate { it.id.participantId to it.chancePercent })
+        assertEquals(mapOf(playerOnlyId to 50, mcPlayerId to 50), playerBaseline.associate { it.id.participantId to it.chancePercent })
         assertEquals(mapOf(mcPlayerId to 100), baselineRows.filter { it.id.roleKey == "mc" }.associate { it.id.participantId to it.chancePercent })
         assertEquals(50, playerSnapshot!!.chancePercent)
 
@@ -1353,6 +1353,24 @@ class CompositionDrawIntegrationTest {
     }
 
     @Test
+    fun `draw reference covers volunteers assigned to another role without changing draw eligibility`() {
+        val admin = memberCookie("sub-reference-cross-admin", admin = true)
+        val members = listOf("a", "b", "c").map { memberCookie("sub-reference-cross-$it") }
+        val seasonId = createSeason(admin)
+        val eventId = createEvent(admin, seasonId, """{ "player": 1, "dj": 1 }""")
+        members.forEach { setAvailability(it, seasonId, eventId, "available", listOf("player", "dj")) }
+        val ids = listOf("a", "b", "c").map { participantIdForUser(seasonId, "sub-reference-cross-$it") }
+        assignSlot(admin, seasonId, eventId, "dj", 0, ids[0])
+        mockMvc.perform(post("/v1/seasons/$seasonId/events/$eventId/composition/draw").cookie(admin)
+            .contentType(MediaType.APPLICATION_JSON).content("""{"mode":"fillEmpty"}""").with(csrf()))
+            .andExpect(status().isOk)
+        val entries = roleChanceBaselineEntryRepository.findByIdEventId(eventId).filter { it.id.roleKey == "player" }
+        assertEquals(ids.toSet(), entries.map { it.id.participantId }.toSet())
+        assertTrue(entries.all { it.chancePercent == 33 })
+        assertTrue(slotRepository.findByEventIdAndRoleKeyAndSlotIndex(eventId, "player", 0)!!.assignedParticipantId() != ids[0])
+    }
+
+    @Test
     fun `partial and full redraw capture their pools but unsuccessful draw keeps reference`() {
         val admin = memberCookie("sub-redraw-reference-admin", admin = true)
         val members = listOf("a", "b", "c").map { memberCookie("sub-redraw-reference-$it") }
@@ -1374,8 +1392,8 @@ class CompositionDrawIntegrationTest {
             .andExpect(status().isOk)
         val keeper = slotRepository.findByEventIdAndRoleKeyAndSlotIndex(eventId, "player", 0)!!.assignedParticipantId()!!
         val partial = roleChanceBaselineEntryRepository.findByIdEventId(eventId).associate { it.id.participantId to it.chancePercent }
-        assertEquals(1, partial.size)
-        assertFalse(partial.containsKey(keeper))
+        assertEquals(2, partial.size)
+        assertTrue(partial.containsKey(keeper))
         val removedAgain = slotRepository.findByEventIdAndRoleKeyAndSlotIndex(eventId, "player", 1)!!
         removedAgain.clearAssignee()
         slotRepository.saveAndFlush(removedAgain)
@@ -1393,7 +1411,7 @@ class CompositionDrawIntegrationTest {
     }
 
     @Test
-    fun `legacy partial draft captures only newly drawn pool after selection not publication`() {
+    fun `legacy partial draft captures all available candidates after draw`() {
         val admin = memberCookie("sub-partial-legacy-admin", admin = true)
         val members = listOf("a", "b", "c").map { memberCookie("sub-partial-legacy-$it") }
         val seasonId = createSeason(admin)
@@ -1406,7 +1424,7 @@ class CompositionDrawIntegrationTest {
         assertTrue(roleChanceBaselineRepository.findByIdEventId(eventId).isEmpty())
         draw(admin, seasonId, eventId)
         val entries = roleChanceBaselineEntryRepository.findByIdEventId(eventId)
-        assertEquals(ids.drop(1).toSet(), entries.map { it.id.participantId }.toSet())
+        assertEquals(ids.toSet(), entries.map { it.id.participantId }.toSet())
         assertEquals(ids[0], slotRepository.findByEventIdAndRoleKeyAndSlotIndex(eventId, "player", 0)!!.assignedParticipantId())
         mockMvc.perform(get("/v1/seasons/$seasonId/events/$eventId/availability/summary?includeChances=true").cookie(members[0]))
             .andExpect(status().isOk).andExpect(jsonPath("$.chanceSource").value("live"))
@@ -1414,8 +1432,7 @@ class CompositionDrawIntegrationTest {
         val result = mockMvc.perform(get("/v1/seasons/$seasonId/events/$eventId/availability/summary?includeChances=true").cookie(admin))
             .andExpect(status().isOk).andExpect(jsonPath("$.chanceSource").value("baseline")).andReturn()
         val role = mapper.readTree(result.response.contentAsString)["roles"].first { it["roleKey"].asText() == "player" }
-        assertTrue(role["candidates"].first { it["participantId"].asText() == ids[0].toString() }["chancePercent"].isNull)
-        assertTrue(role["candidates"].filter { it["participantId"].asText() != ids[0].toString() }.all { !it["chancePercent"].isNull })
+        assertTrue(role["candidates"].all { !it["chancePercent"].isNull })
     }
 
     @Test

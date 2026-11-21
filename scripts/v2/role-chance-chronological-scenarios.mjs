@@ -16,7 +16,8 @@ export function scenarios(d,a){
   const excluded=new Set(other.map(x=>x.participantId)); if(mode==='compléter les places libres')for(const x of old)excluded.add(x.participantId);
   const pool=d.candidates.filter(c=>!excluded.has(c.participantId));
   const missing=changed.filter(x=>!pool.some(c=>c.participantId===x.participantId)).map(x=>x.participantId);
-  const values=pool.length?v1Chances(pool,d.required):[];
+  // Reconstruct the complete role reference; the actual draw pool is checked separately.
+  const values=d.candidates.length?v1Chances(d.candidates,d.required):[];
   return {mode,values,issues:[...d.unknowns,...(missing.length?['selected_not_in_scenario_pool']:[])],missingSelected:missing};
  });
 }

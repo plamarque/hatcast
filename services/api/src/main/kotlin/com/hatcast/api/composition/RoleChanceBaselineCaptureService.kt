@@ -14,7 +14,7 @@ class RoleChanceBaselineCaptureService(
 ) {
     data class Prepared(val roles: Map<String, List<Pair<UUID, Int>>>, val at: Instant)
 
-    /** A successful draw starts a new, evidenced reference for its actual role pool. */
+    /** A successful draw starts a new reference for all available volunteers of its role. */
     fun replaceAfterDraw(eventId: UUID, roleKey: String, prepared: Prepared) {
         val values = requireNotNull(prepared.roles[roleKey])
         supersede(eventId, roleKey, prepared.at)
