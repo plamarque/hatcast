@@ -138,7 +138,7 @@ class EventParticipantFocusService(
         if (matching.isEmpty()) {
             return null
         }
-        for (roleKey in ROLE_DISPLAY_ORDER) {
+        for (roleKey in RoleKeys.PRIORITY_ORDER) {
             val roleSlots = matching.filter { it.roleKey == roleKey }.sortedBy { it.slotIndex }
             val confirmed = roleSlots.firstOrNull { it.participationStatus == SlotParticipationStatus.CONFIRMED }
             if (confirmed != null) {
