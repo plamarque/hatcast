@@ -12,7 +12,7 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ### BUG-126 — Agenda and draw history show different roles for Cambo
 
-- **Status:** Open; correction planned in story 12.8. **Severity:** Medium. **Affected area:** Staging member agenda and draw chance explanations.
+- **Status:** Fixed locally in story 12.8; mobile review accepted, deployment pending. **Severity:** Medium. **Affected area:** Staging member agenda and draw chance explanations.
 - **Observed behavior:** On 21 November 2026, Patrice's agenda screenshot showed only Bénévole for Match Cambo on 12 December, while the staging database contained confirmed volunteer and assistant referee assignments for the same participant in its validated composition. The assistant referee assignment contributes to the Caprani role history.
 - **Expected behavior:** The member can understand their assigned roles and the history used in their chance explanation consistently.
 - **Context:** The shared participant summary selects one role using an order that places volunteer before assistant referee. Multi-role assignments are allowed. The match is in the future.

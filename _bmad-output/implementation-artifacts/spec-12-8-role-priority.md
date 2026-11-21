@@ -2,7 +2,7 @@
 title: "Show the highest-priority assigned role"
 type: bugfix
 created: 2026-11-21
-status: in-review
+status: done
 route: oneshot
 review_loop_iteration: 0
 ---
@@ -18,7 +18,7 @@ When a member has multiple roles, show the assigned role that comes first in the
 ## Implementation Notes
 
 - Reuse `RoleKeys.PRIORITY_ORDER` for assigned slots; retain the existing decline ordering and visibility checks. The summary is shared by agenda, inbox and season lists.
-- Integration coverage: two confirmed assignments select assistant referee; 19 participation regression tests pass. Mobile visual check remains outstanding.
+- Integration coverage: two confirmed assignments select assistant referee; 19 participation regression tests pass. Mobile recording of a synthetic two-role fixture was accepted by Patrice on 2026-11-21.
 
 ## Review Triage Log
 
