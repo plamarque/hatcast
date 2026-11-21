@@ -166,7 +166,9 @@ export class ChanceBreakdownSheet {
   }
 
   protected recordedSnapshotExplanation(): string {
-    return 'Chance calculée avant la sélection pour ce rôle.'
+    return this.breakdown().recordedSource === 'reconstructed'
+      ? 'Estimation reconstituée à partir des éléments historiques disponibles ; elle peut être incertaine.'
+      : 'Chance calculée avant la sélection pour ce rôle.'
   }
 
   protected multiPlaceChanceExplanation(): string {

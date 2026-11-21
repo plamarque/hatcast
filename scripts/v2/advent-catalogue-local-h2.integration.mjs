@@ -39,10 +39,12 @@ test('local replacement requires the exact day-specific approval',async()=>{cons
 
 test('explicit H2 deletion removes a divergent day and its activity while retaining portraits',async()=>{
  const f=await setup();assert.equal(spawnSync('java',['-cp',cp,'AdventLocalH2Fixture',f.db,'conflict']).status,0);assert.equal(spawnSync('java',['-cp',cp,'AdventLocalH2Fixture',f.db,'activity']).status,0);
+ assert.equal(spawnSync('java',['-cp',cp,'AdventLocalH2Fixture',f.db,'bonus-seed']).status,0);
  const marker=path.join(f.dir,'fiction.png');await fs.writeFile(marker,'fiction');
  const options={days:[1],database:f.db,jar,write:()=>{},confirm:async()=> 'NO'};
  assert.equal(await deleteLocalDays(options),'cancelled');assert.equal(count(f.db),1);
  options.confirm=async phrase=>phrase;assert.equal(await deleteLocalDays(options),'deleted');assert.equal(count(f.db),0);assert.equal(await fs.readFile(marker,'utf8'),'fiction');
+ const bonus=spawnSync('java',['-cp',cp,'AdventLocalH2Fixture',f.db,'bonus-check'],{encoding:'utf8'});assert.equal(bonus.status,0);assert.equal(bonus.stdout,'advent_bonus_quizzes:2,advent_bonus_answers:2,advent_bonus_generations:2,advent_bonus_attempts:2,advent_bonus_replays:2,');
 });
 
 test('H2 reserves a character before its quiz and refuses a move',async()=>{

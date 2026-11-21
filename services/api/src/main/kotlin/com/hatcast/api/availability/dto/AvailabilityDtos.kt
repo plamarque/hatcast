@@ -53,6 +53,7 @@ data class SummaryRoleDto(
     /** True when at least one candidate % uses retrospective recalc instead of a draw snapshot. */
     val hasPartialEstimatedChances: Boolean = false,
     val chanceSnapshotAt: Instant? = null,
+    val chanceProvenance: String? = null,
 )
 
 data class EventAvailabilitySummaryResponse(

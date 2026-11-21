@@ -321,13 +321,35 @@ class CompositionDrawService(
                     continue
                 }
 
-                // Freeze the exact candidate pool for the first selection of this role,
-                // after earlier roles and already-filled slots have been excluded.
-                val roleBaseline = RoleChanceBaselineCaptureService.Prepared(
-                    mapOf(roleKey to scored.map { it.participantId to it.chancePercent }),
-                    baselineAt,
-                )
+                // The role reference covers every available volunteer for the role.
+                // Actual draw steps still use the excluded pool and keep their own chance.
                 if (recapturedRoleKeys.add(roleKey)) {
+                    val referencePool = CompositionParticipantPool.buildRolePool(
+                        eligible = eligible,
+                        availabilityIndex = availabilityIndex,
+                        roleKey = roleKey,
+                        excluded = emptySet(),
+                    )
+                    val referenceReplayInputs = DrawImmediateReplaySupport.replayInputsForRolePool(
+                        pipeline = drawPipeline, event = event, roleKey = roleKey, pool = referencePool,
+                        replayService = immediatePredecessorRoleReplayService,
+                    )
+                    val referenceUnfulfilled = DrawRoleRequestSupport.unfulfilledCountsForRolePool(
+                        pipeline = drawPipeline, event = event, roleKey = roleKey, pool = referencePool,
+                        roleRequestService = unfulfilledRoleRequestService,
+                    )
+                    val reference = AvailabilityChanceCalculator.scoreCandidates(
+                        referencePool.map { AvailabilityChanceCalculator.Candidate(it.participantId, it.displayName, null) },
+                        requiredCount, pastByParticipant, roleKey = roleKey, pipeline = drawPipeline,
+                        categorySlug = categorySlug,
+                        playedSameRoleOnImmediatePredecessorByParticipant = referenceReplayInputs.byParticipant,
+                        immediatePredecessorTitle = referenceReplayInputs.predecessorTitle,
+                        immediatePredecessorStartsAt = referenceReplayInputs.predecessorStartsAt,
+                        unfulfilledRoleRequestCountByParticipant = referenceUnfulfilled,
+                    )
+                    val roleBaseline = RoleChanceBaselineCaptureService.Prepared(
+                        mapOf(roleKey to reference.map { it.participantId to it.chancePercent }), baselineAt,
+                    )
                     roleChanceBaselines.replaceAfterDraw(eventId, roleKey, roleBaseline)
                 }
                 val selectedId = drawResult.selected.participantId
@@ -347,7 +369,7 @@ class CompositionDrawService(
                 slotEntity.setAssignee(selectedParticipant)
                 slotEntity.selectionChancePercent = kotlin.math.round(100.0 * drawResult.selected.weight / drawResult.totalWeight).toInt()
                 slotEntity.selectionChanceAt = now.takeIf { slotEntity.selectionChancePercent != null }
-                slotEntity.selectionChanceSource = "draw".takeIf { slotEntity.selectionChancePercent != null }
+                slotEntity.selectionChanceSource = "draw"
                 slotEntity.participationStatus = SlotParticipationStatus.PENDING
                 slotEntity.updatedAt = now
                 slotsToPersist.add(slotEntity)

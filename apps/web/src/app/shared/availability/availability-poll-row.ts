@@ -51,6 +51,7 @@ export class AvailabilityPollRow {
   readonly showRecorded = input(false)
   readonly showSnapshot = input(false)
   readonly snapshotAt = input<string | null>(null)
+  readonly chanceProvenance = input<'observed' | 'reconstructed' | null>(null)
   readonly saving = input(false)
   readonly hasCandidates = input(false)
 

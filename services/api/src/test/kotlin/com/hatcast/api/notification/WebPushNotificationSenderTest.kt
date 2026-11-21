@@ -23,6 +23,24 @@ class WebPushNotificationSenderTest {
         )
 
     @Test
+    fun `empty private key prevents ordinary and advent push delivery`() {
+        val subscriptions: UserPushSubscriptionRepository = mock()
+        val devices: AdventReminderDeviceRepository = mock()
+        val disabled = WebPushNotificationSender(WebPushProperties(vapidPublicKey = "configured", vapidPrivateKey = ""), subscriptions, devices, mock())
+        val user = UUID.randomUUID()
+        val payload = NotificationPayload(title = "Test", body = "Test", url = "/agenda")
+
+        val regular = disabled.sendPush(user, payload, NotificationIntent.MANUAL_AVAILABILITY_NUDGE, null)
+        val advent = disabled.sendAdventPush(user, payload)
+
+        assertEquals(NotificationDeliveryStatus.SKIPPED, regular.status)
+        assertEquals("missing_vapid_private_key", regular.errorMessage)
+        assertEquals(NotificationDeliveryStatus.SKIPPED, advent.status)
+        assertEquals("missing_vapid_private_key", advent.errorMessage)
+        Mockito.verifyNoInteractions(subscriptions, devices)
+    }
+
+    @Test
     fun `sendPush reads persisted subscriptions without an HTTP session`() {
         val userId = UUID.randomUUID()
         whenever(subscriptionRepository.findByUserId(userId)).thenReturn(emptyList())

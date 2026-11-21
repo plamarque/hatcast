@@ -36,8 +36,8 @@
           </div>
         } @else if (explainabilityEnabled() && (chanceSource() === 'baseline' || role.candidates.some(hasPublishedAssignment))) {
           @if (chanceSource() === 'baseline') {
-            <p>@if (role.chanceSnapshotAt) { Capture des chances du {{ role.chanceSnapshotAt | date:'dd/MM/yyyy HH:mm' }} } @else { Capture des chances indisponible. }</p>
-            @if (role.chanceSnapshotAt && role.candidates.some(hasMissingChance)) { <p>La capture ne couvre pas tous les candidats affichés.</p> }
+            <p>@if (role.chanceSnapshotAt) { @if (role.chanceProvenance === 'reconstructed') { Estimations reconstituées à partir de l’historique. } @else { Capture des chances du {{ role.chanceSnapshotAt | date:'dd/MM/yyyy HH:mm' }} } } @else { Capture des chances indisponible. }</p>
+            @if (role.chanceSnapshotAt && role.candidates.some(hasMissingChance)) { <p>@if (role.chanceProvenance === 'reconstructed') { L’estimation ne couvre pas tous les candidats affichés. } @else { La capture ne couvre pas tous les candidats affichés. }</p> }
           }
           <app-availability-recorded-candidates
             [candidates]="role.candidates"

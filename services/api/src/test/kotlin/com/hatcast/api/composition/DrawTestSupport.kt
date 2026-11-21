@@ -142,7 +142,8 @@ class DrawTestSupport(
         displayName: String = key,
     ): UUID {
         val season = seasonRepository.findById(seasonId).orElseThrow()
-        val id = DrawGoldenFixtureLoader.participantId(key)
+        // The same golden key can appear in another season in the same test database.
+        val id = UUID.nameUUIDFromBytes("$seasonId:$key".toByteArray(Charsets.UTF_8))
         return seasonParticipantRepository
             .save(
                 SeasonParticipantEntity(

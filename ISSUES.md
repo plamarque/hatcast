@@ -10,6 +10,48 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Current follow-up
 
+### BUG-131 — Draw photograph omits available volunteers
+
+- **Status:** Fixed locally; development verification pending. **Severity:** Medium. **Affected area:** Role chance references after a draw and historical replay.
+- **Observed behavior:** After a draw on Match Caprani, available people disappeared from the role chance photograph when they were assigned to another role or retained in an already filled slot.
+- **Expected behavior:** Each successful draw captures a role reference for all available volunteers, including people not selected and people retained or assigned elsewhere. Actual draw-step chances remain separate and preserve eligibility exclusions.
+- **Context:** Reproduced by Patrice in development on 21 November 2026. Replay and live draw use the same full role reference rule.
+
+### BUG-130 — Flat availability list opens empty when chances are enabled
+
+- **Status:** Fixed locally; development verification pending. **Severity:** Medium. **Affected area:** Availability poll for events without configured role slots.
+- **Observed behavior:** On Match à Nantes, the available count is 11 but expanding the available row shows an empty panel.
+- **Expected behavior:** Expanding the row lists available people, including when chance explainability is enabled.
+- **Context:** Reproduced in development on 21 November 2026. Flat availability has no role-specific chance pool and must show the neutral participant list.
+
+### BUG-129 — Selected member sheet hides reconstructed chance
+
+- **Status:** Fixed locally; deployment verification pending. **Severity:** Medium. **Affected area:** Published composition chance explanation.
+- **Observed behavior:** The candidate list displays a reconstructed percentage, but opening a selected participant with no individual recorded chance says the chance is unavailable.
+- **Expected behavior:** When an individual recorded chance is absent, display the supported reconstruction as an estimate; a recorded individual chance retains priority.
+- **Context:** Reported on development on 21 November 2026 for Manolo, Apérock café.
+
+### BUG-128 — Historical selection origin replay loses trace across slot changes
+
+- **Status:** Fixed locally; development replay verification pending. **Severity:** Medium. **Affected area:** Story 19.26 historical selection origin reconstruction.
+- **Observed behavior:** The origin replay marks six current-season selections unknown despite relevant audit history: it does not shift later slot indices after a structural deletion, and it discards a known draw origin when a subsequent draw leaves the same participant in place.
+- **Expected behavior:** Replay structural deletion with the same slot compaction as the application and preserve a known draw origin when an unchanged slot either remains assigned or is selected again by a draw. A previously manual origin may remain ambiguous after an unchanged draw.
+- **Context:** Read-only diagnostic on the development copy of production on 21 November 2026: four Cambo player slots after deletion of slot 0, and one player each for CCAS and Apérock. No database changes were made by this diagnostic.
+
+### BUG-127 — Advent catalogue database test misses bonus schema
+
+- **Status:** Fixed locally; CI verification pending. **Severity:** Medium. **Affected area:** Advent catalogue database integration test.
+- **Observed behavior:** PostgreSQL and H2 catalogue integration tests fail because their disposable databases apply migrations only through V85, while deletion and synchronization also access bonus tables introduced by V87.
+- **Expected behavior:** The fixture includes the required bonus schema and verifies that deleting one test day preserves other days.
+- **Context:** Reproduced by CI on 21 November 2026, including the pre-existing code at the parent revision. The local PostgreSQL and H2 tests now apply V87 and verify bonus records for adjacent days.
+
+### BUG-126 — Agenda and draw history show different roles for Cambo
+
+- **Status:** Fixed locally in story 12.8; mobile review accepted, deployment pending. **Severity:** Medium. **Affected area:** Staging member agenda and draw chance explanations.
+- **Observed behavior:** On 21 November 2026, Patrice's agenda screenshot showed only Bénévole for Match Cambo on 12 December, while the staging database contained confirmed volunteer and assistant referee assignments for the same participant in its validated composition. The assistant referee assignment contributes to the Caprani role history.
+- **Expected behavior:** The member can understand their assigned roles and the history used in their chance explanation consistently.
+- **Context:** The shared participant summary selects one role using an order that places volunteer before assistant referee. Multi-role assignments are allowed. The match is in the future.
+
 ### BUG-124 — Ouvertures de liens de notification surcomptées
 
 - **Status:** Signalé ; correctif proposé dans la [PR #21](https://github.com/plamarque/hatcast/pull/21), non intégré. **Severity:** Medium. **Affected area:** V2, métrique PostHog `notification_link_opened` sur la fiche événement.

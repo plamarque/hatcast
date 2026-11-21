@@ -1737,6 +1737,16 @@ En tant que **membre**, je veux que l’API expose mes **événements à venir**
 - **Given** `/ligue/:slug`, **when** navigué, **then** même comportement que `/saison/:slug` (alias).
 - **Couverture :** UX-DR13.
 
+#### Story 12.8 : Afficher le rôle prioritaire en cas de multi-rôles
+
+**Acceptance Criteria**
+
+- **Given** un membre affecté à plusieurs rôles sur un spectacle, **when** un seul rôle est affiché dans son agenda, **then** choisir le rôle prioritaire selon l'ordre de tirage existant ; assistant arbitre précède bénévole.
+- **Given** un seul rôle ou un rôle refusé, **when** le résumé de participation est affiché, **then** conserver les règles de visibilité et de statut existantes.
+- **Given** ce résumé partagé, **when** les autres écrans qui l'utilisent sont consultés, **then** vérifier la cohérence de leur affichage.
+- **UI :** respecter `docs/v2/technical/FRONTEND_UI.md` et vérifier le rendu mobile de l'agenda.
+- **Contexte :** BUG-126.
+
 ---
 
 ### Epic 13 — Modèle League (multi-active & roster)
@@ -3137,6 +3147,21 @@ En tant que membre, je veux distinguer les chances simulées des chances enregis
 2. Après publication, pour une personne sélectionnée à un rôle et dont l’attribution est visible, Équipe et Dispos affichent la date et le pourcentage enregistrés lors de sa sélection, manuelle ou par tirage, lorsqu’ils existent, sans accès au détail de chances.
 3. La règle est évaluée par rôle ; les candidats non sélectionnés conservent leurs chances et détails. Les données absentes ne sont pas inventées, les calculs et les droits de visibilité restent inchangés.
 4. **Source :** précision produit du 19 novembre 2026. **UI :** critères Material 3 adaptés dans la story.
+
+---
+
+#### Story 19.26 : Reconstituer les photographies de chances manquantes
+
+En tant que membre, je veux retrouver des chances comparables pour les compositions déjà préparées afin de bénéficier de cette information dès l'activation de la fonctionnalité.
+
+**Acceptance Criteria**
+
+1. Examiner les données et journaux de production en lecture seule pour établir les possibilités et limites d'un replay des sélections, disponibilités, compositions et formules.
+2. Sauvegarder et vérifier la restauration de la préproduction avant de la synchroniser depuis la production ; vérifier la compatibilité des migrations et le redémarrage de l'application.
+3. Reconstituer les photographies manquantes en préproduction avec un replay chronologique fondé sur les preuves disponibles ; expliciter les hypothèses et les cas non reconstituables, conserver les véritables captures et les chances individuelles existantes.
+4. Présenter les écarts et vérifier la cohérence des résultats, la reprise après incident et l'absence de modification des compositions et de notifications. Recette humaine sur les spectacles concernés, dont Match Cambo.
+5. Toute application à la production exige une autorisation distincte. **UI :** N/A si les écrans ne changent pas ; sinon critères Material 3 adaptés dans la story.
+6. **Source :** décision produit du 21 novembre 2026 ; complément à la story 19.25. Les valeurs reconstituées et leurs limites ne doivent pas être présentées comme des preuves historiques observées.
 
 ---
 
