@@ -49,6 +49,7 @@ export interface SummaryRole {
   candidates: SummaryRoleCandidate[]
   /** Some candidate % use retrospective recalc instead of draw snapshot. */
   hasPartialEstimatedChances?: boolean
+  chanceProvenance?: 'observed' | 'reconstructed' | null
   chanceSnapshotAt?: string | null
 }
 

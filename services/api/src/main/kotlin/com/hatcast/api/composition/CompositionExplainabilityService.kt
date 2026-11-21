@@ -127,7 +127,7 @@ class CompositionExplainabilityService(
                 return ChanceBreakdownDto(
                     participantId = participantId, roleKey = roleKey, displayName = candidate.displayName,
                     chancePercent = null, recordedSnapshot = true, recordedPercent = candidate.chancePercent,
-                    recordedAt = role.chanceSnapshotAt, avatarUrl = candidate.avatarUrl, gender = candidate.gender,
+                    recordedAt = role.chanceSnapshotAt, recordedSource = role.chanceProvenance, avatarUrl = candidate.avatarUrl, gender = candidate.gender,
                 )
             }
             // Never fall through to the live simulation for a visible publication.

@@ -175,6 +175,16 @@ describe('ChanceBreakdownSheet', () => {
     expect(el.querySelector('[data-testid="chance-breakdown-waterfall"]')).toBeNull()
   })
 
+  it('labels reconstructed chances and their uncertainty accessibly', () => {
+    fixture.componentInstance['breakdown'].set({ ...baseBreakdown, recordedSnapshot: true, recordedSource: 'reconstructed', recordedPercent: 42, recordedAt: '2026-11-19T23:53:00Z' })
+    fixture.detectChanges()
+    const el = fixture.nativeElement as HTMLElement
+    expect(el.querySelector('[role="dialog"]')?.getAttribute('aria-label')).toBe('Estimation reconstituée des chances de Alice')
+    expect(el.textContent).toContain('Date estimée :')
+    expect(el.textContent).toContain('elle peut être incertaine')
+    expect(el.textContent).not.toContain('Capture du')
+  })
+
   it('renders waterfall with reference and final lines', () => {
     const el = fixture.nativeElement as HTMLElement
     expect(el.querySelector('[data-testid="chance-breakdown-sheet"]')).toBeTruthy()

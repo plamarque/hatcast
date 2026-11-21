@@ -35,6 +35,7 @@ on:
       - '.github/workflows/e1-preprod-gate.yml'
       - '.github/workflows/migration-staging-gate.yml'
       - 'scripts/v2/e1-staging-migration-assert.mjs'
+      - 'scripts/v2/notification-delivery-env.sh'
 
 concurrency:
   group: deploy-v2-cloud-run-${{ github.ref }}
@@ -266,20 +267,14 @@ jobs:
           else
             echo "::warning::HATCAST_WEB_PUSH_VAPID_PUBLIC_KEY not set — push opt-in on /compte will fail until configured (see DEPLOY_V2_CLOUD_RUN.md)"
           fi
-          if [ -n "${HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY}" ]; then
-            append_env HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY "${HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY}"
-          else
-            echo "::warning::HATCAST_WEB_PUSH_VAPID_PRIVATE_KEY not set — server push send (story 8.3) disabled until configured"
-          fi
+          source scripts/v2/notification-delivery-env.sh
+          configure_notification_delivery
           if [ -n "${HATCAST_WEB_PUSH_VAPID_SUBJECT}" ]; then
             append_env HATCAST_WEB_PUSH_VAPID_SUBJECT "${HATCAST_WEB_PUSH_VAPID_SUBJECT}"
           fi
-          if [ -n "${HATCAST_NOTIFICATION_EMAIL_ENABLED}" ]; then
-            append_env HATCAST_NOTIFICATION_EMAIL_ENABLED "${HATCAST_NOTIFICATION_EMAIL_ENABLED}"
-          fi
-          # Staging may retain unused SMTP settings after a data/config refresh.
+          # Non-production may retain unused SMTP settings after a data/config refresh.
           # Preserve Spring's default mail health behavior when email is enabled.
-          if [ "${TARGET_ENV}" = "staging" ] && [[ "$(printf '%s' "${HATCAST_NOTIFICATION_EMAIL_ENABLED}" | tr '[:upper:]' '[:lower:]')" =~ ^(false|off|no|0)?$ ]]; then
+          if [[ "${TARGET_ENV}" = "staging" || "${TARGET_ENV}" = "development" ]] && [[ "$(printf '%s' "${HATCAST_NOTIFICATION_EMAIL_ENABLED}" | tr '[:upper:]' '[:lower:]')" =~ ^(false|off|no|0)?$ ]]; then
             append_env MANAGEMENT_HEALTH_MAIL_ENABLED false
           fi
           if [ -n "${HATCAST_NOTIFICATION_EMAIL_FROM}" ]; then

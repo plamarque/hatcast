@@ -109,7 +109,7 @@ export interface ChanceBreakdown {
   recordedTheoreticalCandidateCount?: number | null
   recordedPercent?: number | null
   recordedAt?: string | null
-  recordedSource?: 'draw' | 'manual' | 'draw_opening' | null
+  recordedSource?: 'draw' | 'manual' | 'draw_opening' | 'observed' | 'reconstructed' | null
   candidateCount?: number | null
   poolRank?: number | null
   aheadCount?: number | null

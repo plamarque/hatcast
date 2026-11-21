@@ -10,12 +10,14 @@ class RoleChanceBaselineCaptureService(
     private val events: ChanceBaselineEventRepository,
     private val baselines: RoleChanceBaselineRepository,
     private val entries: RoleChanceBaselineEntryRepository,
+    private val reconstructions: RoleChanceReconstructionRepository,
 ) {
     data class Prepared(val roles: Map<String, List<Pair<UUID, Int>>>, val at: Instant)
 
     /** A successful draw starts a new, evidenced reference for its actual role pool. */
     fun replaceAfterDraw(eventId: UUID, roleKey: String, prepared: Prepared) {
         val values = requireNotNull(prepared.roles[roleKey])
+        supersede(eventId, roleKey, prepared.at)
         val previous = entries.findByIdEventIdAndIdRoleKey(eventId, roleKey).associateBy { it.id.participantId }
         baselines.saveAndFlush(RoleChanceBaselineEntity(RoleChanceBaselineId(eventId, roleKey), prepared.at))
         val next = values.toMap()
@@ -24,6 +26,15 @@ class RoleChanceBaselineCaptureService(
             val entry = previous[participantId]
             if (entry != null) entry.chancePercent = percent
             else entries.save(RoleChanceBaselineEntryEntity(RoleChanceBaselineEntryId(eventId, roleKey, participantId), percent))
+        }
+    }
+
+    private fun supersede(eventId: UUID, roleKey: String, at: Instant) {
+        reconstructions.findById(RoleChanceBaselineId(eventId, roleKey)).ifPresent {
+            if (it.supersededAt == null) {
+                it.supersededAt = at
+                reconstructions.save(it)
+            }
         }
     }
 
@@ -37,6 +48,7 @@ class RoleChanceBaselineCaptureService(
             // A permanent unavailable marker prevents a later operation from being
             // misrepresented as the first selection when capture was impossible.
             baselines.saveAndFlush(RoleChanceBaselineEntity(id, prepared?.at?.takeIf { values != null }))
+            if (values != null) supersede(eventId, roleKey, prepared!!.at)
             if (values != null) entries.saveAll(values.map { (participantId, percent) -> RoleChanceBaselineEntryEntity(RoleChanceBaselineEntryId(eventId, roleKey, participantId), percent) })
         }
     }

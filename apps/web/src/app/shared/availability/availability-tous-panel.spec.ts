@@ -189,6 +189,19 @@ describe('AvailabilityTousPanel', () => {
     expect(fixture.nativeElement.textContent).toContain('La capture ne couvre pas tous les candidats affichés.')
   })
 
+  it('labels a partial reconstruction and its date as estimated', async () => {
+    await TestBed.configureTestingModule({ imports: [AvailabilityTousPanel, NoopAnimationsModule] }).compileComponents()
+    const fixture = TestBed.createComponent(AvailabilityTousPanel)
+    fixture.componentRef.setInput('summary', { ...mockSummary, roles: [{ ...mockSummary.roles[0], chanceProvenance: 'reconstructed', chanceSnapshotAt: '2026-01-02T12:00:00Z', candidates: [{ participantId: 'p1', displayName: 'Patrice', chancePercent: null }] }] })
+    fixture.componentRef.setInput('chanceSource', 'baseline')
+    fixture.componentRef.setInput('explainabilityEnabled', true)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('Estimation reconstituée pour le 02/01/2026')
+    expect(fixture.nativeElement.textContent).toContain('date estimée')
+    expect(fixture.nativeElement.textContent).toContain('L’estimation ne couvre pas tous les candidats affichés.')
+    expect(fixture.nativeElement.textContent).not.toContain('Capture des chances du')
+  })
+
   it('does not render recorded evidence when chance access is disabled', async () => {
     await TestBed.configureTestingModule({ imports: [AvailabilityTousPanel, NoopAnimationsModule] }).compileComponents()
     const fixture = TestBed.createComponent(AvailabilityTousPanel)

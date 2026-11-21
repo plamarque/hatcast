@@ -62,6 +62,8 @@ La branche git **`staging`** reste dédiée au déploiement **V1** (Firebase Hos
 
 Le workflow [`.github/workflows/deploy-v2-cloud-run.yml`](../../.github/workflows/deploy-v2-cloud-run.yml) applique cet environnement selon la branche ; les secrets ci-dessous doivent être **définis dans chaque environnement** (valeurs différentes par cible).
 
+**Notifications en dev cloud :** le workflow désactive systématiquement l'envoi de notifications push et email pour `development` : la clé privée push n'est pas transmise au service et l'email est forcé à `false`, même si des secrets existent. Cela protège notamment les destinataires réels quand les données de production sont copiées en dev. Les configurations staging et production ne sont pas modifiées. Ce garde-fou n'efface pas les abonnements ni les journaux de notification.
+
 #### Gate CI E2E avant déploiement staging Cloud Run
 
 Sur **`staging-v2` uniquement**, le workflow de déploiement exécute d’abord le smoke Playwright ([`.github/workflows/e2e-smoke.yml`](../../.github/workflows/e2e-smoke.yml), profil API `e2e`, recette 3.19 S2–S5). Le job **deploy** ne démarre que si ce smoke est **vert**.

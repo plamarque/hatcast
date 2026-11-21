@@ -17,6 +17,8 @@ import com.hatcast.api.draw.DrawPolicyResolutionService
 import com.hatcast.api.participant.ParticipantRowPresentation
 import com.hatcast.api.composition.CompositionDrawChanceSnapshotService
 import com.hatcast.api.composition.CompositionVisibilityRules
+import com.hatcast.api.composition.RoleChanceReconstructionRepository
+import com.hatcast.api.composition.RoleChanceReconstructionEntryRepository
 import com.hatcast.api.composition.RoleChanceBaselineRepository
 import com.hatcast.api.composition.RoleChanceBaselineEntryRepository
 import com.hatcast.api.composition.assignedParticipantId
@@ -77,6 +79,8 @@ class AvailabilityService(
     private val drawChanceSnapshots: CompositionDrawChanceSnapshotService,
     private val compositionRepository: EventCompositionRepository,
     private val compositionSlotRepository: EventCompositionSlotRepository,
+    private val roleChanceReconstructionRepository: RoleChanceReconstructionRepository,
+    private val roleChanceReconstructionEntryRepository: RoleChanceReconstructionEntryRepository,
     private val roleChanceBaselineRepository: RoleChanceBaselineRepository,
     private val roleChanceBaselineEntryRepository: RoleChanceBaselineEntryRepository,
     private val auditRecorder: AuditEventRecorder,
@@ -311,7 +315,12 @@ class AvailabilityService(
             }
         val baselineByRole = if (visiblePublishedBaseline) roleChanceBaselineRepository.findByIdEventId(event.id).associateBy { it.id.roleKey } else emptyMap()
         val baselineByRoleAndParticipant = if (visiblePublishedBaseline) roleChanceBaselineEntryRepository.findByIdEventId(event.id).associateBy { it.id.roleKey to it.id.participantId } else emptyMap()
-        val displayedHistoricalIds = publishedAssignments.keys.map { it.second }.toSet() + baselineByRoleAndParticipant.keys.map { it.second }
+        // A successful observed capture always wins; a null marker is not a capture.
+        val reconstructions = if (visiblePublishedBaseline) roleChanceReconstructionRepository.findByIdEventId(event.id)
+            .filter { it.supersededAt == null && baselineByRole[it.id.roleKey]?.capturedAt == null }.associateBy { it.id.roleKey } else emptyMap()
+        val reconstructionEntries = if (visiblePublishedBaseline) roleChanceReconstructionEntryRepository.findByIdEventId(event.id)
+            .filter { it.id.roleKey in reconstructions }.associateBy { it.id.roleKey to it.id.participantId } else emptyMap()
+        val displayedHistoricalIds = publishedAssignments.keys.map { it.second }.toSet() + baselineByRoleAndParticipant.keys.map { it.second } + reconstructionEntries.keys.map { it.second }
         val missingAssigneeIds = displayedHistoricalIds - participants.map { it.participantId }.toSet()
         val missingSeasonRows = seasonParticipantRepository.findAllByIdWithUserAssociations(missingAssigneeIds)
             .filter { it.season.id == seasonId }.map { toEligibleRow(it) }
@@ -354,7 +363,7 @@ class AvailabilityService(
                 // A visible assignee can have changed availability after selection. Keep the
                 // scoring pool intact while still presenting their recorded assignment.
                 val displayCandidates = roleCandidates + (participants + extraAssignedParticipants).filter { participant ->
-                    participant !in roleCandidates && (publishedAssignments.containsKey(roleKey to participant.participantId) || baselineByRoleAndParticipant.containsKey(roleKey to participant.participantId))
+                    participant !in roleCandidates && (publishedAssignments.containsKey(roleKey to participant.participantId) || baselineByRoleAndParticipant.containsKey(roleKey to participant.participantId) || reconstructionEntries.containsKey(roleKey to participant.participantId))
                 }
                 var roleUsedEstimatedFallback = false
                 val candidates =
@@ -425,7 +434,8 @@ class AvailabilityService(
                             val assignment = publishedAssignments[roleKey to row.participantId]
                             val chancePercent =
                                 if (visiblePublishedBaseline) {
-                                    baselineByRoleAndParticipant[roleKey to row.participantId]?.chancePercent
+                                    if (roleKey in reconstructions) reconstructionEntries[roleKey to row.participantId]?.chancePercent
+                                    else baselineByRoleAndParticipant[roleKey to row.participantId]?.chancePercent
                                 } else if (snapshot != null) {
                                     snapshot.chancePercent
                                 } else {
@@ -463,7 +473,8 @@ class AvailabilityService(
                     requiredCount = requiredCount,
                     candidates = candidates,
                     hasPartialEstimatedChances = roleUsedEstimatedFallback,
-                    chanceSnapshotAt = baselineByRole[roleKey]?.capturedAt,
+                    chanceSnapshotAt = reconstructions[roleKey]?.estimatedAt ?: baselineByRole[roleKey]?.capturedAt,
+                    chanceProvenance = if (roleKey in reconstructions) "reconstructed" else if (baselineByRole[roleKey]?.capturedAt != null) "observed" else null,
                 )
             }
         val chanceSource =
