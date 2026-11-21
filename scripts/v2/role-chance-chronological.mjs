@@ -66,7 +66,9 @@ const e=get(a.event_id),b=a.before_json||{},v=a.after_json||{},m=a.metadata_json
    if(type==='COMPOSITION_DRAW_COMPLETED'){applySlots(e,v.assignmentsByRole);continue}
   }
   if(type.startsWith('SLOT_')||type.startsWith('PARTICIPATION_')){const role=m.roleKey||v.roleKey||b.roleKey,idx=m.slotIndex??v.slotIndex??b.slotIndex;if(role!=null&&idx!=null){const slotKey=role+':'+idx,tie=(slotCounts.get([a.event_id,role,idx,a.occurred_at].join('|'))||0)>1;if(tie)e.uncertainSlots.add(slotKey);else e.uncertainSlots.delete(slotKey)}}
-  if(type==='SLOT_ASSIGNED'||type==='SLOT_CLEARED'||type==='SLOT_DELETED'){let role=m.roleKey||v.roleKey||b.roleKey,idx=m.slotIndex??v.slotIndex??b.slotIndex;if(role!=null&&idx!=null){const key=role+':'+idx,p=v.participantId||v.seasonParticipantId;if(p)e.slots.set(key,{role,participantId:p,status:v.participationStatus||'UNKNOWN'});else e.slots.delete(key)}continue}
+  if(type==='SLOT_ASSIGNED'||type==='SLOT_CLEARED'||type==='SLOT_DELETED'){let role=m.roleKey||v.roleKey||b.roleKey,idx=m.slotIndex??v.slotIndex??b.slotIndex;if(role!=null&&idx!=null){const key=role+':'+idx,p=v.participantId||v.seasonParticipantId;if(p)e.slots.set(key,{role,participantId:p,status:v.participationStatus||'UNKNOWN'});else e.slots.delete(key);
+    if(type==='SLOT_DELETED'&&m.outsideModel!==true){const moved=[...e.slots.entries()].filter(([k,x])=>x.role===role&&Number(k.slice(role.length+1))>idx).sort((a,b)=>Number(a[0].slice(role.length+1))-Number(b[0].slice(role.length+1)));for(const [k,slot] of moved){const oldIndex=Number(k.slice(role.length+1));e.slots.delete(k);e.slots.set(role+':'+(oldIndex-1),slot)}const shifted=new Set();for(const k of e.uncertainSlots){if(!k.startsWith(role+':'))shifted.add(k);else{const n=Number(k.slice(role.length+1));if(n<idx)shifted.add(k);else if(n>idx)shifted.add(role+':'+(n-1))}}e.uncertainSlots=shifted}
+   }continue}
   if(type.startsWith('PARTICIPATION_')){let key=(v.roleKey||b.roleKey)+':'+(v.slotIndex??b.slotIndex),slot=e.slots.get(key);if(slot)slot.status=v.participationStatus||'UNKNOWN'}
  }
  // A later before-state mismatch proves that an earlier interval is incomplete.

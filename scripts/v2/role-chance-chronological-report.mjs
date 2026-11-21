@@ -17,6 +17,37 @@ const COMMON_ASSUMPTIONS = [
   'The analysis starts from the supplied audit history; missing prior events are not inferred.',
 ];
 
+// Keep the last evidenced value for each person across decisions, rather than
+// treating the candidate pool of the last draw as the complete history.
+const timelineBlocking = new Set(['same_timestamp_order_unresolved','event_history_inconsistent','history_order_ambiguous','assignment_order_ambiguous']);
+export function replayRoleTimeline(decisions, audits, eventId, role) {
+  const values = new Map();
+  let firstDecision = true;
+  for (const d of decisions.filter(x=>x.eventId===eventId && x.role===role)) {
+    const matches=audits.filter(a=>a.event_id===eventId && a.occurred_at===d.at && a.action_type===d.decision);
+    const first = firstDecision; firstDecision = false;
+    if(matches.length!==1 || d.unknowns.some(x=>timelineBlocking.has(x))) {
+      if(d.decision==='COMPOSITION_DRAW_COMPLETED') values.clear();
+      else for(const a of matches) { const id=a.after_json?.participantId || a.after_json?.seasonParticipantId; if(id) values.delete(id); }
+      continue;
+    }
+    const a=matches[0];
+    if(d.decision==='COMPOSITION_DRAW_COMPLETED') {
+      const options=scenarios(d,a);
+      if(options.length!==1 || options[0].missingSelected?.length) continue;
+      for(const v of options[0].values) values.set(v.participantId,{...v,estimatedAt:d.at,origin:'draw'});
+    } else if(d.decision==='SLOT_ASSIGNED') {
+      const id=a.after_json?.participantId || a.after_json?.seasonParticipantId;
+      if(!id) continue;
+      if(first && d.estimateV1) for(const v of d.estimateV1) values.set(v.participantId,{...v,estimatedAt:d.at,origin:'manual_opening'});
+      const entry=d.estimateV1?.find(v=>v.participantId===id);
+      // Never retain an older percentage as though it described a later selection.
+      if(entry) values.set(id,{...entry,estimatedAt:d.at,origin:'manual'}); else values.delete(id);
+    }
+  }
+  return [...values.values()];
+}
+
 export function report(input, seasonId) {
   if (seasonId !== ALLOWED_SEASON_ID || input?.seasonId !== seasonId) throw new Error('Explicit authorised season and matching input season are required.');
   if (![input.events, input.audits, input.identities].every(Array.isArray)) throw new Error('Events, audits and identities must be arrays.');
@@ -48,6 +79,10 @@ export function report(input, seasonId) {
       const issues = [...new Set([...(decision?.unknowns||[]),...selected.uncertainties,...(matching.length>1?['decision_audit_ambiguous']:[])])];
       // Ambiguous matching audits must never silently pick one for a scenario.
       const estimates = matching.length===1 ? scenarios(decision, matching[0]) : [];
+      if (estimates.length===1) {
+        const timeline = replayRoleTimeline(reconstructed.decisions, ordered, event.id, role);
+        estimates[0] = {...estimates[0], values:timeline};
+      }
       result.push({eventId:event.id, eventTitle:event.title, role, decisionAt:decision?.at??null,
         decisionType:decision?.decision??null, estimates, issues,
         eligibility:'exploratory_only', authorisedForWrite:false});

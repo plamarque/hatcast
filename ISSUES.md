@@ -10,6 +10,13 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Current follow-up
 
+### BUG-128 — Historical selection origin replay loses trace across slot changes
+
+- **Status:** Fixed locally; development replay verification pending. **Severity:** Medium. **Affected area:** Story 19.26 historical selection origin reconstruction.
+- **Observed behavior:** The origin replay marks six current-season selections unknown despite relevant audit history: it does not shift later slot indices after a structural deletion, and it discards a known draw origin when a subsequent draw leaves the same participant in place.
+- **Expected behavior:** Replay structural deletion with the same slot compaction as the application and preserve a known draw origin when an unchanged slot either remains assigned or is selected again by a draw. A previously manual origin may remain ambiguous after an unchanged draw.
+- **Context:** Read-only diagnostic on the development copy of production on 21 November 2026: four Cambo player slots after deletion of slot 0, and one player each for CCAS and Apérock. No database changes were made by this diagnostic.
+
 ### BUG-127 — Advent catalogue database test misses bonus schema
 
 - **Status:** Fixed locally; CI verification pending. **Severity:** Medium. **Affected area:** Advent catalogue database integration test.
