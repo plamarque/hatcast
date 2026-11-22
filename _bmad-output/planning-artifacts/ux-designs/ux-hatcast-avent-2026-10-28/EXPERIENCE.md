@@ -23,7 +23,7 @@ Animation intégrée à HatCast, mobile-first et utilisable sur desktop ; Angula
 | Porte et quiz du jour | Du 1er au 24, quiz disponible et non répondu : ouverture automatique selon FR-2, ou accès par icône et notification ; une fermeture supprime l’ouverture automatique du jour sur tous les appareils. |
 | Confirmation | Accusé sans résultat ni points, invitation à revenir demain et action vers le classement. |
 | Classement | Dans la story 25.4, l’accusé après réponse donne accès par « Voir le classement » au score personnel, à la position et à la liste, sous réserve de la révélation prioritaire. En production les scores sont révélés ; en test isolé ils incluent toutes les réponses notées enregistrées, y compris celles en attente. |
-| Calendrier | Grille ordonnée des 24 quiz et du 25 ; accès aux contenus passés et au quiz du jour disponible. Cases futures bloquées en parcours ordinaire. |
+| Calendrier | Grille ordonnée des 24 cadeaux et du 25, avec accès indépendant au bonus lorsqu’il existe ; accès aux contenus passés et au quiz du jour disponible. Cases futures bloquées en parcours ordinaire. |
 | 25 décembre | Après l’éventuelle révélation prioritaire du 24 : message de joyeux Noël, invitation à profiter des fêtes, félicitations, rappel du score personnel et rendez-vous à la rentrée ; accès au classement et au calendrier. Père Noël et boîte au-dessus du message, puis score bien visible. |
 | Mode test | Développement isolé, indication visible ; rejeu personnel de sa propre réponse et remise à zéro ciblée. Date simulée propre à l’onglet opérateur, validée côté serveur : le numéro du jour simulé est visible et annoncé entre les flèches ; les flèches avancent ou reculent d’un jour sans effacer les réponses ni modifier la date des autres membres ; le résultat est révélé le lendemain simulé. Le classement affiche le score actuel de toutes les réponses notées enregistrées, indépendamment de la date simulée ; il peut donc donner un indice sur les points en attente. Le parcours et le CTA restent les mêmes. Un reset ciblé redémarre la partie. |
 
@@ -102,7 +102,7 @@ La collecte et la transmission des anecdotes ainsi que l’intégration des cont
 ## Arbitrages et passage de relais
 
 - **UX / Patrice et Toinou** : éventuelle animation du 25 ; réalisation graphique du Père Noël classique, de sa boîte décorative au logo de La Malice et du village éventuel ; présentation des cases manquées.
-- **Barème confirmé dans le PRD final** : 10 points pour une bonne réponse, 0 pour une mauvaise, 1 point de participation par réponse ; +2 par groupe de trois bonnes réponses consécutives, une mauvaise rompt la série, un jour manqué ne la rompt pas. Les groupes ne se chevauchent pas : bonus aux 3e, 6e, 9e bonnes réponses consécutives, même si des jours sont manqués ; maximum théorique de 280 points.
+- **Barème confirmé dans le PRD final** : 10 points pour une bonne réponse, 0 pour une mauvaise, 1 point de participation par réponse ; +2 par groupe de trois bonnes réponses consécutives, une mauvaise rompt la série, un jour manqué ne la rompt pas. Les groupes ne se chevauchent pas : bonus aux 3e, 6e, 9e bonnes réponses consécutives, même si des jours sont manqués ; maximum théorique de `11 × (24 + N) + 2 × floor((24 + N) / 3)` points pour N jours bonus.
 - **Architecture** : confidentialité des réponses et points en attente, y compris déduction via classement ; limites de minuit Paris, état vu et fermeture partagés, interruption et concurrence ; séries, notification à 10 h, publication tardive, test isolé et simulation ; rétention et mesure PostHog.
 - **Spec** : réconcilier contrats d’accès, divulgation différée, calcul, historique et cas manqués après arbitrages ; préserver les décisions compatibles.
 - **Epic 25 et stories** : critères et dépendances révisés validés avec Patrice le 29 octobre 2026. Appliquer les règles actuelles et les critères M3 ; vérifier les parcours sur appareils, au clavier, avec contraste et mouvement réduit.
@@ -225,3 +225,10 @@ Dans un quiz jouable autorisé, chaque récit fourni peut être ouvert indépend
 Dans la barre du mode test autorisé, une commande distincte de la case simulée demande un rappel immédiat sur cet appareil. Elle explique le refus ou l’absence d’autorisation et distingue l’acceptation de l’envoi de la réception effective. La date simulée détermine la case ; l’ouverture respecte la découverte et la révélation prioritaire. Une case manquante ou inaccessible conduit au calendrier et à une explication.
 
 Un lien vers une case verrouillée, absente ou indisponible ouvre le calendrier avec une explication, sans divulguer de contenu protégé.
+
+
+### Quiz bonus Avent
+
+Un quiz bonus affecté suit la réponse quotidienne, avec reprise multi-appareils. Les résultats sont présentés quotidien puis bonus ; si le bonus a été laissé sans réponse, le résultat quotidien précède sa proposition tardive. Le calendrier conserve un cadeau et offre des accès distincts aux quiz disponibles.
+
+The surprise invitation uses a large actionable gift, with a short prompt and a clear late-play notice when applicable. The gift opens the bonus quiz, supports keyboard interaction and respects reduced-motion settings.

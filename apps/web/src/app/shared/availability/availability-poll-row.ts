@@ -1,3 +1,4 @@
+import { DatePipe } from '@angular/common'
 import { Component, input, output, signal } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { MatCheckboxModule } from '@angular/material/checkbox'
@@ -7,6 +8,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 
 import type { CompositionPoolPreviewSegment } from '../../core/composition/composition-api.service'
 import type { SummaryRoleCandidate } from '../../core/availability/availability-api.service'
+import { AvailabilityRecordedCandidates } from './availability-recorded-candidates'
 import { CompositionPoolPreview } from '../composition/composition-pool-preview'
 import { UserAvatarComponent } from '../user-avatar/user-avatar'
 import type { PollRowKind } from './availability-vote.utils'
@@ -14,12 +16,14 @@ import type { PollRowKind } from './availability-vote.utils'
 @Component({
   selector: 'app-availability-poll-row',
   imports: [
+    DatePipe,
     MatCheckboxModule,
     MatButtonModule,
     MatIconModule,
     MatProgressBarModule,
     MatProgressSpinnerModule,
     CompositionPoolPreview,
+    AvailabilityRecordedCandidates,
     UserAvatarComponent,
   ],
   templateUrl: './availability-poll-row.html',
@@ -42,14 +46,21 @@ export class AvailabilityPollRow {
   readonly poolSegments = input<CompositionPoolPreviewSegment[]>([])
   readonly poolShowChancePreview = input(false)
   readonly poolShowNeutral = input(false)
-  readonly poolChancesUnavailable = input(false)
   readonly poolInteractive = input(false)
+  readonly showRecorded = input(false)
+  readonly showSnapshot = input(false)
+  readonly snapshotAt = input<string | null>(null)
+  readonly chanceProvenance = input<'observed' | 'reconstructed' | null>(null)
   readonly saving = input(false)
   readonly hasCandidates = input(false)
 
   readonly checkedChange = output<boolean>()
   readonly poolTrigger = output<void>()
-  readonly poolSegmentTap = output<{ participantId: string; chancePercent: number }>()
+  readonly poolSegmentTap = output<{ participantId: string; chancePercent: number | null }>()
+
+  protected readonly hasMissingChance = (candidate: SummaryRoleCandidate): boolean => candidate.chancePercent == null
+  protected readonly hasChance = (candidate: SummaryRoleCandidate): boolean => candidate.chancePercent != null
+  protected readonly hasPublishedAssignment = (candidate: SummaryRoleCandidate): boolean => !!candidate.publishedAssignment
 
   protected onCheckboxChange(checked: boolean): void {
     if (this.disabled() || this.saving() || this.mandatory()) {

@@ -7,10 +7,20 @@ public class AdventLocalH2Fixture {
  s.execute("INSERT INTO users VALUES ('00000000-0000-0000-0000-000000000001')");
  java.nio.file.Path dir=java.nio.file.Paths.get(a[2]);
  try(java.util.stream.Stream<java.nio.file.Path> files=java.nio.file.Files.list(dir)){
-  for(java.nio.file.Path file:(Iterable<java.nio.file.Path>)files.filter(p->p.getFileName().toString().matches("V(7[0-9]|8[0-5])__.*\\.sql")).sorted()::iterator)
+  for(java.nio.file.Path file:(Iterable<java.nio.file.Path>)files.filter(p->p.getFileName().toString().matches("V(7[0-9]|8[0-5]|87)__.*\\.sql")).sorted()::iterator)
    s.execute("RUNSCRIPT FROM '"+file.toAbsolutePath().toString().replace("'","''")+"'");
  }
  }}else if(a[1].equals("hold")){System.out.println("READY");System.out.flush();System.in.read();}
+ else if(a[1].equals("bonus-seed")){try(Statement q=c.createStatement()){
+ for(int day:new int[]{1,2}){
+ q.execute("INSERT INTO advent_bonus_quizzes(quiz_day,character_key,display_name,statement_0,statement_1,statement_2,false_choice) VALUES ("+day+",'bonus-"+day+"','Fiction','one','two','three',2)");
+ q.execute("INSERT INTO advent_bonus_answers(user_id,quiz_day,answer_id,choice,correct_choice,answered_at,reveal_at) VALUES ('00000000-0000-0000-0000-000000000001',"+day+",'00000000-0000-0000-0000-00000000000"+day+"',0,2,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)");
+ q.execute("INSERT INTO advent_bonus_generations(user_id,quiz_day,generation) VALUES ('00000000-0000-0000-0000-000000000001',"+day+",'10000000-0000-0000-0000-00000000000"+day+"')");
+ q.execute("INSERT INTO advent_bonus_attempts(id,user_id,quiz_day) VALUES ('20000000-0000-0000-0000-00000000000"+day+"','00000000-0000-0000-0000-000000000001',"+day+")");
+ q.execute("INSERT INTO advent_bonus_replays(user_id,quiz_day) VALUES ('00000000-0000-0000-0000-000000000001',"+day+")");
+ }
+ }}
+ else if(a[1].equals("bonus-check")){for(String table:new String[]{"advent_bonus_quizzes","advent_bonus_answers","advent_bonus_generations","advent_bonus_attempts","advent_bonus_replays"})try(ResultSet r=c.createStatement().executeQuery("SELECT quiz_day FROM "+table+" ORDER BY quiz_day")){while(r.next())System.out.print(table+":"+r.getInt(1)+",");}}
  else if(a[1].equals("legacy-valid")){try(Statement q=c.createStatement()){
  q.execute("INSERT INTO advent_quizzes (quiz_day,display_name,portrait_ref,statement_0,statement_1,statement_2,false_choice,explanation) VALUES (1,'Fiction','fiction.png','one','two','three',2,NULL)");
  q.execute("INSERT INTO advent_character_reservations(quiz_day,character_key,display_name,portrait_ref) VALUES (1,NULL,'Fiction','fiction.png')");

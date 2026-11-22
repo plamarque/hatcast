@@ -1,3 +1,4 @@
+import { DatePipe } from '@angular/common'
 import { Component, effect, inject, input, output, signal } from '@angular/core'
 import { MatExpansionModule } from '@angular/material/expansion'
 import { MatIconModule } from '@angular/material/icon'
@@ -11,6 +12,7 @@ import type {
   SummaryParticipant,
   SummaryRoleCandidate,
 } from '../../core/availability/availability-api.service'
+import { AvailabilityRecordedCandidates } from './availability-recorded-candidates'
 import { CompositionPoolPreview } from '../composition/composition-pool-preview'
 import { ChanceBreakdownService } from '../composition/chance-breakdown.service'
 import { UserAvatarComponent } from '../user-avatar/user-avatar'
@@ -24,11 +26,13 @@ import {
 @Component({
   selector: 'app-availability-tous-panel',
   imports: [
+    DatePipe,
     MatExpansionModule,
     MatIconModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
     CompositionPoolPreview,
+    AvailabilityRecordedCandidates,
     UserAvatarComponent,
   ],
   templateUrl: './availability-tous-panel.html',
@@ -83,7 +87,7 @@ export class AvailabilityTousPanel {
   }
 
   protected readonly partialRoleTooltip =
-    'Certains pourcentages de ce rôle sont estimés (pas capturés au tirage pour ces candidats).'
+    'Certaines chances sont estimées : elles n’ont pas été capturées au tirage.'
 
   protected statusLabel(status: SummaryParticipant['status']): string {
     switch (status) {
@@ -116,6 +120,14 @@ export class AvailabilityTousPanel {
     return this.expandedRoles().has(roleKey)
   }
 
+  protected candidateCount(candidates: SummaryRoleCandidate[]): number {
+    return candidates.filter((candidate) => candidate.isCandidate !== false).length
+  }
+
+  protected readonly hasMissingChance = (candidate: SummaryRoleCandidate): boolean => candidate.chancePercent == null
+  protected readonly hasChance = (candidate: SummaryRoleCandidate): boolean => candidate.chancePercent != null
+  protected readonly hasPublishedAssignment = (candidate: SummaryRoleCandidate): boolean => !!candidate.publishedAssignment
+
   protected roleHasChancePool(role: { candidates: SummaryRoleCandidate[] }): boolean {
     return role.candidates.some((candidate) => candidate.chancePercent != null)
   }
@@ -140,14 +152,14 @@ export class AvailabilityTousPanel {
   protected canOpenBreakdown(candidate: SummaryRoleCandidate): boolean {
     return (
       this.explainabilityEnabled() &&
-      candidate.chancePercent != null &&
+      (candidate.publishedAssignment || candidate.chancePercent != null || (this.chanceSource() === 'baseline' && candidate.isCandidate !== false)) &&
       !!this.seasonId() &&
       !!this.eventId()
     )
   }
 
   protected async onPoolSegmentTap(
-    event: { participantId: string; chancePercent: number },
+    event: { participantId: string; chancePercent: number | null },
     roleKey: string,
   ): Promise<void> {
     const candidate = this.summary()

@@ -97,6 +97,11 @@ export class ChanceBreakdownSheet {
     return date ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeStyle: 'short' }).format(new Date(date)) : null
   }
 
+  protected recordedPersonLabel(): string {
+    const name = this.breakdown().displayName.trim()
+    return /^[aàâäeéèêëiîïoôöuùûüyÿh]/i.test(name) ? `d’${name}` : `de ${name}`
+  }
+
   protected chanceTodayLabel(): string {
     return this.viewingSelf() ? 'Ta chance estimée' : 'Sa chance estimée'
   }
@@ -108,37 +113,6 @@ export class ChanceBreakdownSheet {
     }
     const label = count === 1 ? '1 candidat' : `${count} candidats`
     return `Chance de base pour les ${label}`
-  }
-
-  protected poolRankSummary(): string {
-    const current = this.breakdown()
-    const total = current.candidateCount
-    let poolRank = current.poolRank ?? null
-    let aheadCount = current.aheadCount ?? null
-    const tiedAtChance = current.tiedAtChanceCount
-    if ((poolRank == null || aheadCount == null) && current.pool?.peers != null) {
-      aheadCount = current.pool.peers.length
-      poolRank = aheadCount + 1
-    }
-    if (total == null || total <= 0 || poolRank == null || aheadCount == null) {
-      return 'Classement indisponible.'
-    }
-    const chancePercent = current.chancePercent
-    const totalLabel = `${total} candidat${total > 1 ? 's' : ''}`
-    const aheadLabel = this.viewingSelf() ? 'devant toi' : 'devant lui·elle'
-    if (poolRank === 1 && (tiedAtChance ?? 1) > 1) {
-      return `Ex aequo en tête du pool · ${tiedAtChance} candidats à ${chancePercent} %`
-    }
-    if (poolRank === 1) {
-      return 'En tête du pool pour ce rôle.'
-    }
-    const ordinal = this.rankOrdinal(poolRank)
-    const exAequoSuffix = (tiedAtChance ?? 1) > 1 ? ' ex aequo' : ''
-    return `${ordinal}${exAequoSuffix} sur ${totalLabel} · ${aheadCount} ${aheadLabel}`
-  }
-
-  private rankOrdinal(rank: number): string {
-    return rank === 1 ? '1er' : `${rank}e`
   }
 
   protected showMultiPlaceHint(): boolean {

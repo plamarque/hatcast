@@ -1,5 +1,5 @@
 <h2 mat-dialog-title cdkFocusInitial tabindex="-1">
-  Indique tes disponibilités
+  {{ data.noRequiredRoles ? 'Disponibilités' : 'Indique tes disponibilités' }}
 </h2>
 
 <mat-dialog-content class="availability-dialog">
@@ -8,6 +8,9 @@
     <p class="availability-dialog__event-date">{{ formattedDate }}</p>
   </div>
 
+  @if (data.noRequiredRoles) {
+    <p role="status">Aucun rôle n’est recherché pour ce spectacle. La saisie des disponibilités est fermée.</p>
+  } @else {
   <app-availability-form
     [externalSubmit]="true"
     [seasonId]="data.seasonId"
@@ -21,6 +24,7 @@
     [availabilityOpenedAt]="data.availabilityOpenedAt ?? null"
     (saved)="onSaved($event)"
   />
+  }
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
@@ -29,8 +33,10 @@
   } @else if (form()?.detailsDirty()) {
     <p class="availability-dialog__dirty-hint" role="status">Modifications non enregistrées</p>
   }
-  <app-hatcast-dialog-dismiss label="annuler" [disabled]="form()?.saving() ?? false" (clicked)="close()" />
+  <app-hatcast-dialog-dismiss [label]="data.noRequiredRoles ? 'fermer' : 'annuler'" [disabled]="form()?.saving() ?? false" (clicked)="close()" />
+  @if (!data.noRequiredRoles) {
   <button mat-flat-button type="button" [disabled]="form()?.saving()" (click)="form()?.submit()">
     {{ form()?.saving() ? 'Enregistrement…' : 'Enregistrer' }}
   </button>
+  }
 </mat-dialog-actions>

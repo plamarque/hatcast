@@ -575,3 +575,7 @@ Lien « Comprendre le tirage en général » → DrawChancesHelpDialog (carrouse
 | Patrice (PO) | **Recette validée** — W3′–W7′, W17′, W18′–W20, pool, aide slides | 2026-06-07 |
 
 **Décisions PO tranchées (historique + as-shipped) :** `referencePercent` = tirage pur sans facteurs (**W18**) ; hint multi-places en en-tête (**W19′**) ; pool aperçu via toggle rôle (**W17′**) ; fiche = waterfall + rang texte (**W3′–W4′**) ; aide générale = carrousel 5 slides (**W6′**).
+
+## Amendement du 22 novembre 2026 — affichage du rang
+
+La fiche de chances ne présente plus de phrase de classement (« ex aequo », nombre de personnes devant, etc.). Les personnes restent classées par pourcentage dans le pool. Cette décision remplace les mentions du résumé de rang dans les décisions historiques W3′–W4′ ; les détails du calcul restent affichés.

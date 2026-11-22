@@ -3,6 +3,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 
 import type { MemberGender } from '../../core/account/member-gender'
 import { drawSelectionStatusLabel } from '../../core/account/member-gender'
+import { selectionBackground } from '../availability/availability-selection-colors'
 import { UserAvatarComponent } from '../user-avatar/user-avatar'
 import {
   chancePoolTier,
@@ -24,6 +25,7 @@ export type PreviewSegment = {
   widthPercent: number
   avatarUrl?: string | null
   gender?: MemberGender | null
+  participationStatus?: CompositionPoolPreviewSegment['participationStatus']
 }
 
 @Component({
@@ -43,6 +45,7 @@ export class CompositionDrawAnimation {
   readonly previewPool = input<CompositionPoolPreviewSegment[]>([])
   /** Compact embed (e.g. Dispos › Tous) — less chrome. */
   readonly embedded = input(false)
+  readonly dispos = input(false)
   readonly showPreviewTitle = input(true)
   /** Flow-wrap pool bar; segment flex-basis stays % of a single-line bar. */
   readonly wrapSegments = input(false)
@@ -117,6 +120,7 @@ export class CompositionDrawAnimation {
         widthPercent: 100 / Math.max(sorted.length, 1),
         avatarUrl: c.avatarUrl ?? null,
         gender: c.gender ?? null,
+        participationStatus: c.participationStatus ?? null,
       }))
     }
     return sorted.map((c) => ({
@@ -127,6 +131,7 @@ export class CompositionDrawAnimation {
       widthPercent: (c.chancePercent / totalChance) * 100,
       avatarUrl: c.avatarUrl ?? null,
       gender: c.gender ?? null,
+      participationStatus: c.participationStatus ?? null,
     }))
   }
 
@@ -162,8 +167,14 @@ export class CompositionDrawAnimation {
     return `composition-draw-segment-${participantId}`
   }
 
-  protected segmentBackground(chancePercent: number): string {
-    return chanceSpectrumSegmentBackground(chancePercent)
+  protected segmentBackground(chancePercent: number, status?: CompositionPoolPreviewSegment['participationStatus']): string {
+    return this.dispos() && status ? selectionBackground(status) : chanceSpectrumSegmentBackground(chancePercent)
+  }
+
+  protected segmentAriaLabel(segment: PreviewSegment): string {
+    const status = segment.participationStatus
+    const label = status === 'confirmed' ? 'sélection confirmée' : status === 'pending' ? 'sélection en attente' : status === 'declined' ? 'sélection déclinée' : status === 'selected' ? 'sélectionnée' : null
+    return `${segment.displayName}, ${segment.chancePercent} pour cent${label ? ', ' + label : ''}`
   }
 
   protected segmentChanceTier(chancePercent: number): ChancePoolTier {

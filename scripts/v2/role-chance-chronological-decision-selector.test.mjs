@@ -1,0 +1,6 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {selectDecision} from './role-chance-chronological-decision-selector.mjs';
+const d=(at,decision,role='player')=>({eventId:'e',at,decision,role});
+test('first manual selection stands after later manual changes',()=>{const x=selectDecision([d('1','SLOT_ASSIGNED'),d('2','SLOT_ASSIGNED')],[],'e','player');assert.equal(x.selected.at,'1')});
+test('later draw of role supersedes prior selection and later manual change does not',()=>{const x=selectDecision([d('1','SLOT_ASSIGNED'),d('2','COMPOSITION_DRAW_COMPLETED'),d('3','SLOT_ASSIGNED')],[],'e','player');assert.equal(x.selected.at,'2')});
+test('later unchanged draw marks ambiguity',()=>{const x=selectDecision([d('1','SLOT_ASSIGNED')],[{event_id:'e',action_type:'COMPOSITION_DRAW_COMPLETED',occurred_at:'2',before_json:{assignmentsByRole:{player:[{slotIndex:0,participantId:'a'}]}},after_json:{assignmentsByRole:{player:[{slotIndex:0,participantId:'a'}]}}}],'e','player');assert.ok(x.uncertainties.includes('later_draw_may_have_redrawn_same_role_without_change'))});
+test('roles and events do not cross',()=>{assert.equal(selectDecision([d('1','SLOT_ASSIGNED','mc')],[],'e','player').selected,null)});

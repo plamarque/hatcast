@@ -1085,6 +1085,7 @@ export class SeasonHome implements OnDestroy, OnInit {
       subjectDisplayName: this.myDisplayName(),
       troupeId: s.troupeId,
       roleSlots: normalizeRoleSlots(ev.roleSlots),
+      templateType: ev.templateType,
       fallbackStatus: payload.status,
       availabilityOpenedAt: ev.availabilityOpenedAt ?? null,
     }).catch(() => {

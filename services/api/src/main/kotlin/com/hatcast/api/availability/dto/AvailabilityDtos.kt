@@ -40,6 +40,10 @@ data class SummaryRoleCandidateDto(
     val avatarUrl: String? = null,
     val gender: String = "non_specified",
     val chancePercent: Int? = null,
+    val isCandidate: Boolean = true,
+    val publishedAssignment: Boolean = false,
+    val participationStatus: String? = null,
+    val selectionChanceAt: Instant? = null,
 )
 
 data class SummaryRoleDto(
@@ -48,6 +52,8 @@ data class SummaryRoleDto(
     val candidates: List<SummaryRoleCandidateDto>,
     /** True when at least one candidate % uses retrospective recalc instead of a draw snapshot. */
     val hasPartialEstimatedChances: Boolean = false,
+    val chanceSnapshotAt: Instant? = null,
+    val chanceProvenance: String? = null,
 )
 
 data class EventAvailabilitySummaryResponse(

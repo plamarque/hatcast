@@ -75,7 +75,9 @@ and `{project-root}/_bmad/custom/story-branch-workflow.md`.
 
 - **Provision or repair** — from a clean `v2`, run
   `{project-root}/scripts/v2/story-branch.sh start <story-key>`; run `assert` from the unit
-  before code changes. Reopen the same unit only before integration.
+  before code changes. The controller automatically provisions the pinned BMad runtime,
+  including its download when needed, without a separate confirmation. Reopen the same
+  unit only before integration.
 - **Prepare review** — require committed, targeted verification. For UX work,
   create the prescribed smoke evidence; for technical-only work, report the
   relevant verification without inventing visual artefacts. Create or update

@@ -10,6 +10,7 @@ export interface AvailabilityDialogData {
   initialStatus: AvailabilityStatus
   troupeId: string
   roleSlots: RoleSlots
+  noRequiredRoles?: boolean
   initialRoleKeys?: string[] | null
   initialComment?: string | null
   /** ISO when availability window is open (FR47 — required for first-submission capture). */

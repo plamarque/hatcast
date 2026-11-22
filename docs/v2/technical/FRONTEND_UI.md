@@ -74,7 +74,7 @@ Ne pas étendre ces exceptions à d’autres écrans sans décision PO.
 |-------|-----------------|---------------------|-------|
 | **19.7** explainability | Cibles tactiles ≥ 48 dp | Segments du pool (`composition-pool-preview`, `composition-draw-animation`) ~36–44 dp ; chevrons carrousel aide = 48 dp | [`19-7-breakdown-explicabilite-par-facteur.md`](../../../_bmad-output/implementation-artifacts/19-7-breakdown-explicabilite-par-facteur.md) § Review Findings |
 | **19.7** | Contrôles imbriqués | Trigger `%` dans listes Dispos / picker (HTML imbriqué) — dette a11y connue | idem |
-| **19.7** | Barre pool dans fiche | Pas de barre décorative dans `chance-breakdown-sheet` ; résumé rang texte à la place (spec UX W3′) | [`ux-design-factor-breakdown-19-7.md`](../../../_bmad-output/planning-artifacts/ux-design-factor-breakdown-19-7.md) § Amendement as-shipped |
+| **19.7** | Barre pool dans fiche | Pas de barre décorative ni de résumé de rang dans `chance-breakdown-sheet` ; les candidats sont classés par pourcentage dans le pool. | [`ux-design-factor-breakdown-19-7.md`](../../../_bmad-output/planning-artifacts/ux-design-factor-breakdown-19-7.md) § Amendement du 22 novembre 2026 |
 
 ### Composants et structure
 

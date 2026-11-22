@@ -1,6 +1,6 @@
 import {acquireGcsHolds} from './advent-catalogue-gcs-holds.mjs';
 import {validatePng} from './advent-catalogue-png.mjs';
-import {validateCatalogue} from './advent-catalogue-validation.mjs';
+import {validateCatalogue,validateBonusSelection} from './advent-catalogue-validation.mjs';
 const SOURCE_BUCKET='impro-selector-avent-content-private';
 const SOURCE_OBJECT='catalogue/avent-2026.json';
 const fail=()=>{throw Error('Private source verification failed')};
@@ -51,7 +51,8 @@ export function createGcsSource({storage,auth,expectedPrincipal}) {
   }
   async function snapshot(days, operation) {
     const catalogue=await readVersion(SOURCE_OBJECT,2_000_000);
-    const rows=validateCatalogue(JSON.parse(catalogue.bytes.toString('utf8')),days);
+    const root=JSON.parse(catalogue.bytes.toString('utf8'));
+    const rows=operation==='bonus' ? validateBonusSelection(root,days) : validateCatalogue(root,days);
     const portraits=[];
     for(const ref of operation==='quiz' ? [] : [...new Set(rows.map(row=>row.portrait_ref))]) {
       const image=await readVersion(`portraits/${ref}`,5_000_000);

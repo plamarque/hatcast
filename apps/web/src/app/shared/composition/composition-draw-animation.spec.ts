@@ -158,6 +158,31 @@ describe('CompositionDrawAnimation', () => {
     )
   })
 
+  it('uses participation colors only for visible Dispos assignments while sorting by chance', () => {
+    fixture.componentRef.setInput('mode', 'preview')
+    fixture.componentRef.setInput('wrapSegments', true)
+    fixture.componentRef.setInput('embedded', true)
+    fixture.componentRef.setInput('dispos', true)
+    fixture.componentRef.setInput('previewPool', [
+      { participantId: 'confirmed', displayName: 'Alice', chancePercent: 20, weight: 20, participationStatus: 'confirmed' },
+      { participantId: 'pending', displayName: 'Bob', chancePercent: 50, weight: 50, participationStatus: 'pending' },
+      { participantId: 'declined', displayName: 'Camille', chancePercent: 30, weight: 30, participationStatus: 'declined' },
+      { participantId: 'unknown', displayName: 'Dom', chancePercent: 40, weight: 40, participationStatus: 'selected' },
+      { participantId: 'candidate', displayName: 'Eli', chancePercent: 60, weight: 60 },
+    ])
+    fixture.detectChanges()
+    const labels = [...fixture.nativeElement.querySelectorAll('.composition-draw-animation__segment-label')].map((el: Element) => el.textContent?.trim())
+    expect(labels).toEqual(['Eli', 'Bob', 'Dom', 'Camille', 'Alice'])
+    const component = fixture.componentInstance as any
+    expect(component.segmentBackground(20, 'confirmed')).toContain('participation-selected-gradient-strong')
+    expect(component.segmentBackground(50, 'pending')).toContain('participation-pending-gradient-strong')
+    expect(component.segmentBackground(30, 'declined')).toContain('participation-declined-gradient-strong')
+    expect(component.segmentBackground(40, 'selected')).toContain('participation-selected-gradient-strong')
+    expect(component.segmentBackground(60, null)).not.toContain('participation-')
+    expect(fixture.nativeElement.querySelector('[data-testid="composition-draw-segment-pending"]').getAttribute('aria-label')).toContain('sélection en attente')
+    expect(fixture.nativeElement.querySelector('[data-testid="composition-draw-segment-candidate"]').getAttribute('aria-label')).not.toContain('sélection')
+  })
+
   it('preview mode sizes segments by chance percent not draw weight', () => {
     fixture.componentRef.setInput('mode', 'preview')
     fixture.componentRef.setInput('step', null)

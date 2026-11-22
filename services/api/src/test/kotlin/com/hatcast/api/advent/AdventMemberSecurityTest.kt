@@ -194,7 +194,7 @@ class AdventMemberSecurityTest {
     }
     @Test fun `anonymous and unrelated user cannot access member data and errors are not cached`() {
         val cookie = TestAuthSupport.sessionCookieFromGoogleSignIn(mvc, google, "outsider-advent-member")
-        for (path in listOf("/v1/advent/editor/days", "/v1/advent/editor/23", "/v1/advent/preview-capability", "/v1/advent/discovery", "/v1/advent/entry", "/v1/advent/clock", "/v1/advent/doors/1", "/v1/advent/doors/1/answer", "/v1/advent/doors/1/result", "/v1/advent/results/latest-unseen", "/v1/advent/ranking", "/v1/advent/calendar", "/v1/advent/doors/1/history")) {
+        for (path in listOf("/v1/advent/editor/days", "/v1/advent/editor/23", "/v1/advent/preview-capability", "/v1/advent/discovery", "/v1/advent/entry", "/v1/advent/clock", "/v1/advent/doors/1", "/v1/advent/doors/1/answer", "/v1/advent/doors/1/result", "/v1/advent/results/latest-unseen", "/v1/advent/ranking", "/v1/advent/calendar", "/v1/advent/doors/1/history", "/v1/advent/doors/1?bonus=true", "/v1/advent/doors/1/answer?bonus=true", "/v1/advent/doors/1/result?bonus=true", "/v1/advent/doors/1/history?bonus=true", "/v1/advent/editor/1?bonus=true")) {
             mvc.perform(get(path)).andExpect(status().isUnauthorized).andExpect(header().string("Cache-Control", "private, no-store"))
             mvc.perform(get(path).cookie(cookie)).andExpect(status().isForbidden).andExpect(header().string("Cache-Control", "private, no-store"))
         }
@@ -332,6 +332,8 @@ class AdventMemberSecurityTest {
             assert(token == json.readTree(memberSession.response.contentAsString).get("sessionId").asText())
             jdbc.update("DELETE FROM advent_quizzes WHERE quiz_day = 1")
             jdbc.update("INSERT INTO advent_quizzes (quiz_day, display_name, statement_0, statement_1, statement_2, false_choice) VALUES (1, 'Fictif', 'A', 'B', 'C', 0)")
+            jdbc.update("INSERT INTO advent_bonus_quizzes (quiz_day, character_key, display_name, statement_0, statement_1, statement_2, false_choice) SELECT 1, 'security-bonus', 'Bonus fictif', 'A', 'B', 'C', 0 WHERE NOT EXISTS (SELECT 1 FROM advent_bonus_quizzes WHERE quiz_day=1)")
+            mvc.perform(get("/v1/advent/doors/1?bonus=true").cookie(member).header("X-Advent-Test-Session", token)).andExpect(status().isNotFound)
             mvc.perform(get("/v1/advent/entry").cookie(member)).andExpect(status().isOk).andExpect(header().string("Cache-Control", "private, no-store")).andExpect(jsonPath("$.autoOpen").value(true)).andExpect(jsonPath("$.answer").doesNotExist()).andExpect(jsonPath("$.score").doesNotExist())
             mvc.perform(post("/v1/advent/entry/dismiss").cookie(member).with(csrf()).header("X-Advent-Test-Session", token)).andExpect(status().isOk).andExpect(header().string("Cache-Control", "private, no-store"))
             mvc.perform(get("/v1/advent/entry").cookie(member)).andExpect(jsonPath("$.autoOpen").value(false))
@@ -341,6 +343,13 @@ class AdventMemberSecurityTest {
             val attempt = UUID.randomUUID()
             mvc.perform(post("/v1/advent/doors/1/answer/reserve").cookie(member).with(csrf()).header("X-Advent-Test-Session", token).contentType(MediaType.APPLICATION_JSON).content("""{"attemptId":"$attempt","generation":"$generation"}""")).andExpect(status().isOk)
             mvc.perform(post("/v1/advent/doors/1/answer").cookie(member).with(csrf()).header("X-Advent-Test-Session", token).contentType(MediaType.APPLICATION_JSON).content("""{"attemptId":"$attempt","choice":0}""")).andExpect(status().isOk)
+            mvc.perform(get("/v1/advent/doors/1?bonus=true").cookie(member).header("X-Advent-Test-Session", token)).andExpect(status().isOk).andExpect(header().string("Cache-Control", "private, no-store")).andExpect(jsonPath("$.name").value("Bonus fictif"))
+            val bonusReconciliation = mvc.perform(post("/v1/advent/doors/1/answer/reconcile?bonus=true").cookie(member).with(csrf()).header("X-Advent-Test-Session", token)).andExpect(status().isOk).andReturn()
+            val bonusGeneration = json.readTree(bonusReconciliation.response.contentAsString)["generation"].asText()
+            val bonusAttempt = UUID.randomUUID()
+            mvc.perform(post("/v1/advent/doors/1/answer/reserve?bonus=true").cookie(member).with(csrf()).header("X-Advent-Test-Session", token).contentType(MediaType.APPLICATION_JSON).content("""{"attemptId":"$bonusAttempt","generation":"$bonusGeneration"}""")).andExpect(status().isOk)
+            mvc.perform(post("/v1/advent/doors/1/answer?bonus=true").cookie(member).with(csrf()).header("X-Advent-Test-Session", token).contentType(MediaType.APPLICATION_JSON).content("""{"attemptId":"$bonusAttempt","choice":0}""")).andExpect(status().isOk).andExpect(jsonPath("$.status").value("recorded"))
+            mvc.perform(get("/v1/advent/doors/1/result?bonus=true").cookie(member).header("X-Advent-Test-Session", token)).andExpect(status().isNotFound).andExpect(header().string("Cache-Control", "private, no-store"))
             mvc.perform(get("/v1/advent/calendar").cookie(member).header("X-Advent-Test-Session", token))
                 .andExpect(status().isOk).andExpect(header().string("Cache-Control", "private, no-store"))
                 .andExpect(jsonPath("$.days[0].state").value("played")).andExpect(jsonPath("$.days[1].state").value("locked"))
@@ -355,7 +364,7 @@ class AdventMemberSecurityTest {
             val memberJson = json.readTree(memberBoard.response.contentAsString)
             val operatorJson = json.readTree(operatorBoard.response.contentAsString)
             assert(memberJson["ranking"]["entries"].first { it["mine"].asBoolean() }["score"].asInt() == 0)
-            assert(operatorJson["ranking"]["entries"].first { it["name"].asText() == "Fictif shared-member" }["score"].asInt() == 11)
+            assert(operatorJson["ranking"]["entries"].first { it["name"].asText() == "Fictif shared-member" }["score"].asInt() == 22)
             assert(!memberBoard.response.contentAsString.contains("correct"))
             jdbc.update("INSERT INTO advent_quizzes (quiz_day, display_name, statement_0, statement_1, statement_2, false_choice) SELECT 2, 'Fictif', 'A', 'B', 'C', 0 WHERE NOT EXISTS (SELECT 1 FROM advent_quizzes WHERE quiz_day = 2)")
             jdbc.update("UPDATE advent_quizzes SET story_0 = ?, story_1 = NULL, story_2 = ? WHERE quiz_day = 2", "Récit futur\n\nété", "Fin fictive")

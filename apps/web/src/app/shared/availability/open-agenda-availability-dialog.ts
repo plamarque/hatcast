@@ -3,6 +3,7 @@ import { MatDialog } from '@angular/material/dialog'
 import { AvailabilityApiService } from '../../core/availability/availability-api.service'
 import type { AvailabilityStatus } from '../../core/availability/availability-status'
 import type { RoleSlots } from '../../core/events/event-types'
+import { totalSlots } from '../../core/events/event-types'
 import {
   AvailabilityDialog,
   type AvailabilityDialogData,
@@ -16,6 +17,7 @@ export interface OpenAgendaAvailabilityDialogParams {
   eventStartsAt: string
   troupeId: string
   roleSlots: RoleSlots
+  templateType?: string
   subjectDisplayName: string
   fallbackStatus: AvailabilityStatus
   availabilityOpenedAt?: string | null
@@ -26,6 +28,13 @@ export async function openAgendaAvailabilityDialog(
   availabilityApi: AvailabilityApiService,
   params: OpenAgendaAvailabilityDialogParams,
 ): Promise<AvailabilityDialogResult | undefined> {
+  if (params.templateType && params.templateType !== 'survey' && totalSlots(params.roleSlots) === 0) {
+    const ref = dialog.open(AvailabilityDialog, {
+      data: { ...params, initialStatus: params.fallbackStatus, noRequiredRoles: true },
+      width: 'min(100vw - 2rem, 26rem)',
+    })
+    return new Promise((resolve) => ref.afterClosed().subscribe(() => resolve(undefined)))
+  }
   const availability = await availabilityApi.getMyAvailability(params.seasonId, params.eventId)
   if (!availability.ok || !availability.data) throw new Error('availability-load')
   const initialStatus = availability.data.status

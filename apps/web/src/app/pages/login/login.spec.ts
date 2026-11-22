@@ -210,8 +210,42 @@ describe('Login email IdP', () => {
     expect(signInWithIdentityPlatformIdToken).toHaveBeenCalledWith('login-id-token', true)
     expect(signInWithIdentityPlatformIdToken).toHaveBeenCalledTimes(1)
     expect(signInWithIdentityPlatformIdTokenWithRetry).not.toHaveBeenCalled()
-    expect(snackOpen).toHaveBeenCalledWith('Connexion réussie.', 'OK', { duration: 3500 })
+    expect(snackOpen).not.toHaveBeenCalled()
     expect(navigateAfterSignIn).toHaveBeenCalled()
+  })
+  it('ignores repeated submits while a sign-in is in flight', async () => {
+    let resolveIdp!: (value: { ok: boolean; status: number }) => void
+    signInWithIdentityPlatformIdToken.mockReturnValue(
+      new Promise((resolve) => {
+        resolveIdp = resolve
+      }),
+    )
+
+    fixture.detectChanges()
+    const component = fixture.componentInstance as Login & {
+      signInWithEmail: () => Promise<void>
+    }
+    component['emailForm'].setValue({
+      email: 'user@example.com',
+      password: 'password123',
+    })
+
+    const first = component.signInWithEmail()
+    const second = component.signInWithEmail()
+    fixture.detectChanges()
+
+    const submit = fixture.nativeElement.querySelector('button[type="submit"]') as HTMLButtonElement
+    expect(submit.disabled).toBe(true)
+    await second
+    expect(signInWithEmailAndPassword).toHaveBeenCalledTimes(1)
+
+    resolveIdp({ ok: true, status: 200 })
+    await first
+    fixture.detectChanges()
+
+    expect(signInWithIdentityPlatformIdToken).toHaveBeenCalledTimes(1)
+    expect(snackOpen).not.toHaveBeenCalled()
+    expect(submit.disabled).toBe(false)
   })
 })
 

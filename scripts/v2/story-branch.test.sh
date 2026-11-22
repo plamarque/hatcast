@@ -135,11 +135,6 @@ git -C "${foreign}" branch feat/21-6-checked-elsewhere origin/v2
 git -C "${foreign}" worktree add "${tmp_root}/21-6-checked-elsewhere" feat/21-6-checked-elsewhere >/dev/null
 expect_fail env HATCAST_BMAD_TEST_MODE=1 HATCAST_BMAD_PROVISIONER="${foreign}/scripts/v2/test-fixtures/mock-bmad-provisioner.sh" bash "${foreign}/scripts/v2/story-branch.sh" start 21-6-checked-elsewhere
 
-broken="$(make_fixture broken)"
-network_output="$(bash "${broken}/scripts/v2/story-branch.sh" start 21-7-unavailable-runtime 2>&1)" && fail "network confirmation guard unexpectedly succeeded"
-[[ "${network_output}" == *"NETWORK_CONFIRMATION_REQUIRED="* ]] || fail "missing explicit network confirmation"
-[[ -d "${broken}-21-7-unavailable-runtime" ]] || fail "failed bootstrap unit was not preserved"
-
 failed_unit="${integration}-21-8-failed-installer"
 expect_fail env HATCAST_BMAD_TEST_MODE=1 HATCAST_BMAD_TEST_FAIL=1 HATCAST_BMAD_PROVISIONER="${integration}/scripts/v2/test-fixtures/mock-bmad-provisioner.sh" bash "${integration}/scripts/v2/story-branch.sh" start 21-8-failed-installer
 [[ -d "${failed_unit}" ]] || fail "failed installer unit was not preserved"
@@ -151,7 +146,7 @@ mkdir "${mock_bin}"
 ln -s "${source_root}/scripts/v2/test-fixtures/mock-npx.sh" "${mock_bin}/npx"
 ln -s "${source_root}/scripts/v2/test-fixtures/mock-bmad-provisioner.sh" "${mock_bin}/mock-bmad-provisioner.sh"
 production_unit="${integration}-21-9-production-path"
-HATCAST_BMAD_NPX_LOG="${tmp_root}/npx.log" HATCAST_BMAD_FIXTURE_DIR="${source_root}/scripts/v2/test-fixtures" PATH="${mock_bin}:${PATH}" HATCAST_BMAD_ALLOW_NETWORK=1 bash "${integration}/scripts/v2/story-branch.sh" start 21-9-production-path >/dev/null
+HATCAST_BMAD_NPX_LOG="${tmp_root}/npx.log" HATCAST_BMAD_FIXTURE_DIR="${source_root}/scripts/v2/test-fixtures" PATH="${mock_bin}:${PATH}" bash "${integration}/scripts/v2/story-branch.sh" start 21-9-production-path >/dev/null
 grep -Fx -- '--action' "${tmp_root}/npx.log" >/dev/null
 grep -Fx -- 'update' "${tmp_root}/npx.log" >/dev/null
 assert_file "${production_unit}/.agents/skills/bmad-code-review/SKILL.md"

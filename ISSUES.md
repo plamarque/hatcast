@@ -10,12 +10,97 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Current follow-up
 
-### BUG-124 — Event tab changes counted as notification link opens
+### BUG-137 — Availability remains open when a spectacle has no required roles
 
-- **Status:** Fixed locally; production data verification pending. **Severity:** Medium. **Affected area:** V2 PostHog `notification_link_opened` (FR47) on the event detail page.
-- **Observed behavior:** A tab change on the event detail page writes `?tab=dispos|equipe` into the URL, and the page captured `notification_link_opened` for each change. A silent event reload also captured the tab of the current URL. Organizer tab changes produced most of the recorded opens, so the opens no longer match notification arrivals and the open-to-submission ratio looked broken.
-- **Expected behavior:** The event is captured once per event page entry, from the URL that opened the page. In-app tab changes and silent reloads are not captured.
-- **Context:** A notification click, an email link, or a shared link loads a full page, so the entry URL keeps these arrivals. A bookmark or a full reload of a tab URL still counts, as the deploy guide states.
+- **Status:** Fixed locally; development verification pending. **Severity:** Medium. **Affected area:** Availability collection for spectacles without required slots.
+- **Observed behavior:** After all four player slots were deleted from Match à Nantes, its availability poll continued to show and accept general responses despite there being no roles to fill.
+- **Expected behavior:** Close availability entry while no role is required, retain existing responses, and allow general availability for the simple survey format.
+- **Context:** Reported on 22 November 2026; production audit records the four structural slot deletions on 20 November.
+
+### BUG-136 — False warning after validating a composition
+
+- **Status:** Fixed locally; development verification pending. **Severity:** Low. **Affected area:** Composition validation and recorded-chance refresh.
+- **Observed behavior:** After successful validation, a warning says recorded chances are unavailable even though the follow-up composition request succeeds.
+- **Expected behavior:** A successful refresh must not be reported as unavailable solely because equivalent validation timestamps have different precision.
+- **Context:** On Match Caprani in development on 22 November 2026, validation and the follow-up read both returned HTTP 200. The validation audit contains nanosecond precision while PostgreSQL stores the same instant to microsecond precision; the client compares timestamp strings strictly. The composition has recorded individual chances and reconstructed capture entries.
+
+### BUG-135 — Newly available candidate missing from expanded role
+
+- **Status:** Fixed locally; development verification pending. **Severity:** Medium. **Affected area:** Availability poll with an expanded role and chance display.
+- **Observed behavior:** When a person adds a role, the response is saved but their new candidate entry has no calculated chance yet; the expanded list renders only candidates with a percentage and omits that person.
+- **Expected behavior:** Show the newly available person immediately and refresh the chance display after the vote is saved.
+- **Context:** Reported for Patrice, coach on Match Pau, in development on 22 November 2026. Audit confirms the role was added and subsequently removed during the test.
+
+### BUG-134 — Uncaptured available candidates cannot open their chances
+
+- **Status:** Fixed locally; development verification pending. **Severity:** Medium. **Affected area:** Published availability chance details.
+- **Observed behavior:** An available candidate absent from the role capture was disabled, preventing access to a current estimate. A role-wide warning obscured the capture heading.
+- **Expected behavior:** Retain the dated role heading and allow eligible uncaptured candidates to open a clearly labelled current estimate. Mention late availability only when the role-specific audit supports it.
+- **Context:** Reported for Patrice, MC at Apérock café, in development on 22 November 2026.
+
+### BUG-133 — Replayed capture dates are hidden or shared across people
+
+- **Status:** Fixed locally; development verification pending. **Severity:** Medium. **Affected area:** Published chance explanation.
+- **Observed behavior:** Reconstructed selections showed no recording date, while other candidates could see the role-level date rather than the timestamp associated with their own reconstructed value. Repeated caveats obscured the result.
+- **Expected behavior:** Show each recorded evidence timestamp when available and use concise capture wording without repeated caveats; do not invent dates when evidence is missing.
+- **Context:** Reported for Apérock café in development on 22 November 2026. Replay evidence already contains individual decision timestamps.
+
+### BUG-132 — Historical chances hidden by role-wide replay gate
+
+- **Status:** Fixed locally; staging verification pending. **Severity:** Medium. **Affected area:** Published availability chances and historical replay.
+- **Observed behavior:** The availability grid omitted recorded individual chances when a role photograph was missing. An ambiguous earlier draw also blocked later, independently reconstructible manual selections for the entire role.
+- **Expected behavior:** Display recorded individual chances when no role capture exists, and reconstruct later manual selections independently when their own evidence is sufficient.
+- **Context:** Caprani DJ and referee have recorded individual chances; Cambo volunteer has two later manual selections. Other candidates without supported values remain unavailable.
+
+### BUG-131 — Draw photograph omits available volunteers
+
+- **Status:** Fixed locally; development verification pending. **Severity:** Medium. **Affected area:** Role chance references after a draw and historical replay.
+- **Observed behavior:** After a draw on Match Caprani, available people disappeared from the role chance photograph when they were assigned to another role or retained in an already filled slot.
+- **Expected behavior:** Each successful draw captures a role reference for all available volunteers, including people not selected and people retained or assigned elsewhere. Actual draw-step chances remain separate and preserve eligibility exclusions.
+- **Context:** Reproduced by Patrice in development on 21 November 2026. Replay and live draw use the same full role reference rule.
+
+### BUG-130 — Flat availability list opens empty when chances are enabled
+
+- **Status:** Fixed locally; development verification pending. **Severity:** Medium. **Affected area:** Availability poll for events without configured role slots.
+- **Observed behavior:** On Match à Nantes, the available count is 11 but expanding the available row shows an empty panel.
+- **Expected behavior:** Expanding the row lists available people, including when chance explainability is enabled.
+- **Context:** Reproduced in development on 21 November 2026. Flat availability has no role-specific chance pool and must show the neutral participant list.
+- **Nantes investigation (22 November 2026):** The neutral list is now visible but its participants have no role-specific chance to open. The event has no configured slots in development or production: four assigned player slots were deleted individually on 20 November after a draw, as recorded by `SLOT_DELETED` audit events. Consequently the team tab has no role slots to display. The audit retains the deleted assignments; no restoration was performed during this investigation.
+
+### BUG-129 — Selected member sheet hides reconstructed chance
+
+- **Status:** Fixed locally; deployment verification pending. **Severity:** Medium. **Affected area:** Published composition chance explanation.
+- **Observed behavior:** The candidate list displays a reconstructed percentage, but opening a selected participant with no individual recorded chance says the chance is unavailable.
+- **Expected behavior:** When an individual recorded chance is absent, display the supported reconstruction as an estimate; a recorded individual chance retains priority.
+- **Context:** Reported on development on 21 November 2026 for Manolo, Apérock café.
+
+### BUG-128 — Historical selection origin replay loses trace across slot changes
+
+- **Status:** Fixed locally; development replay verification pending. **Severity:** Medium. **Affected area:** Story 19.26 historical selection origin reconstruction.
+- **Observed behavior:** The origin replay marks six current-season selections unknown despite relevant audit history: it does not shift later slot indices after a structural deletion, and it discards a known draw origin when a subsequent draw leaves the same participant in place.
+- **Expected behavior:** Replay structural deletion with the same slot compaction as the application and preserve a known draw origin when an unchanged slot either remains assigned or is selected again by a draw. A previously manual origin may remain ambiguous after an unchanged draw.
+- **Context:** Read-only diagnostic on the development copy of production on 21 November 2026: four Cambo player slots after deletion of slot 0, and one player each for CCAS and Apérock. No database changes were made by this diagnostic.
+
+### BUG-127 — Advent catalogue database test misses bonus schema
+
+- **Status:** Fixed locally; CI verification pending. **Severity:** Medium. **Affected area:** Advent catalogue database integration test.
+- **Observed behavior:** PostgreSQL and H2 catalogue integration tests fail because their disposable databases apply migrations only through V85, while deletion and synchronization also access bonus tables introduced by V87.
+- **Expected behavior:** The fixture includes the required bonus schema and verifies that deleting one test day preserves other days.
+- **Context:** Reproduced by CI on 21 November 2026, including the pre-existing code at the parent revision. The local PostgreSQL and H2 tests now apply V87 and verify bonus records for adjacent days.
+
+### BUG-126 — Agenda and draw history show different roles for Cambo
+
+- **Status:** Fixed locally in story 12.8; mobile review accepted, deployment pending. **Severity:** Medium. **Affected area:** Staging member agenda and draw chance explanations.
+- **Observed behavior:** On 21 November 2026, Patrice's agenda screenshot showed only Bénévole for Match Cambo on 12 December, while the staging database contained confirmed volunteer and assistant referee assignments for the same participant in its validated composition. The assistant referee assignment contributes to the Caprani role history.
+- **Expected behavior:** The member can understand their assigned roles and the history used in their chance explanation consistently.
+- **Context:** The shared participant summary selects one role using an order that places volunteer before assistant referee. Multi-role assignments are allowed. The match is in the future.
+
+### BUG-124 — Ouvertures de liens de notification surcomptées
+
+- **Status:** Correctif intégré localement depuis la [PR #21](https://github.com/plamarque/hatcast/pull/21) ; vérification après déploiement en attente. **Severity:** Medium. **Affected area:** V2, métrique PostHog `notification_link_opened` sur la fiche événement.
+- **Observed behavior:** Les changements d’onglet et certains rechargements silencieux peuvent déclencher cette métrique sans ouverture d’un lien de notification. Les rapports qui l’utilisent peuvent donc surestimer les ouvertures.
+- **Expected behavior:** Ne pas comptabiliser les changements d’onglet et les rechargements silencieux comme des ouvertures de lien.
+- **Limite connue:** Les URL de notification ne portent pas de marqueur de provenance ; une arrivée par favori ou lien partagé peut aussi être comptabilisée.
 
 ### BUG-123 — Staging release checks fail after data refresh
 
@@ -23,6 +108,13 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 - **Observed behavior:** Run 43962761217 attempt 2 failed the reminder organizer participant boundary and four hub assertions. The latter expected the 2025–2026 season while the hub displayed 2026–2027. Staging health returns 503 when a disabled email service's configured SMTP server rejects authentication.
 - **Expected behavior:** Release tests select their intended season and create a stable isolated reminder fixture; health reflects dependencies used by the configured service.
 - **Context:** Organizer authentication and permissions succeeded. The existing fixture does not create an absent removed participant, allowing normal membership synchronization to add one. One chance-detail test passed on retry; its cause is not established.
+
+### BUG-125 — Advent bonus review exposed journey and catalogue inconsistencies
+
+- **Status:** Fixed locally in story 25.28; human acceptance completed, deployment pending. **Severity:** High. **Affected area:** Advent bonus results, replay and private catalogue synchronization.
+- **Observed behavior:** During review of the initial local implementation, a late bonus offer promised points; a result acknowledgment could race the next reveal; reconciling an uncertain daily answer could omit the bonus offer; replaying the daily answer could leave an inaccessible bonus answer; and ordinary catalogue synchronization did not check character identities already assigned to bonuses.
+- **Expected behavior:** Late play explains that it earns no points; results advance in order; the bonus remains recoverable; replay preserves a coherent daily-before-bonus state; and character identity conflicts are rejected in both synchronization directions.
+- **Context:** These findings concern unreleased work, not an observed production incident. The local corrections have targeted UI, game, security and catalogue tests; Patrice accepted the recorded journey on 19 November 2026.
 
 ### BUG-122 — Playwright CI cannot install Chromium on Ubuntu 26.04
 

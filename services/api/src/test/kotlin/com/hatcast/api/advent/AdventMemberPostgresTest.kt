@@ -23,6 +23,58 @@ import java.util.concurrent.TimeoutException
 
 @EnabledIfEnvironmentVariable(named = "ADVENT_TEST_POSTGRES_URL", matches = ".+")
 class AdventMemberPostgresTest {
+    @Test fun `bonus migration preserves daily rows and serializes midnight confirmation`() {
+        val url = System.getenv("ADVENT_TEST_POSTGRES_URL")
+        require(url.startsWith("jdbc:postgresql://127.0.0.1:"))
+        val username = System.getenv("ADVENT_TEST_POSTGRES_USER"); val password = System.getenv("ADVENT_TEST_POSTGRES_PASSWORD")
+        val root = JdbcTemplate(DriverManagerDataSource(url, username, password))
+        val schema = "advent_bonus_" + UUID.randomUUID().toString().replace("-", "")
+        root.execute("CREATE SCHEMA $schema")
+        try {
+            val ds = DriverManagerDataSource(url + (if (url.contains('?')) "&" else "?") + "currentSchema=$schema", username, password)
+            val jdbc = JdbcTemplate(ds)
+            listOf(
+                "CREATE TABLE users (id UUID PRIMARY KEY)",
+                "CREATE TABLE advent_member_lock (id INTEGER PRIMARY KEY, test_session_id UUID)", "INSERT INTO advent_member_lock VALUES (1, NULL)",
+                "CREATE TABLE advent_member_answers (user_id UUID, quiz_day INTEGER, answer_id UUID, choice INTEGER, correct_choice INTEGER, answered_at TIMESTAMPTZ, reveal_at TIMESTAMPTZ, seen_at TIMESTAMPTZ, late BOOLEAN NOT NULL DEFAULT FALSE)",
+                "CREATE TABLE advent_quizzes (quiz_day INTEGER, display_name TEXT, portrait_ref TEXT, statement_0 TEXT, statement_1 TEXT, statement_2 TEXT, false_choice INTEGER, explanation TEXT, story_0 TEXT, story_1 TEXT, story_2 TEXT)",
+                "INSERT INTO advent_quizzes VALUES (1, 'Daily', NULL, 'A', 'B', 'C', 0, NULL, NULL, NULL, NULL)"
+            ).forEach(jdbc::execute)
+            val user = UUID.randomUUID(); jdbc.update("INSERT INTO users VALUES (?)", user)
+            val dailyId = UUID.randomUUID()
+            jdbc.update("INSERT INTO advent_member_answers VALUES (?, 1, ?, 0, 0, ?, ?, NULL, FALSE)", user, dailyId, Timestamp.from(Instant.parse("2026-12-01T12:00:00Z")), Timestamp.from(Instant.parse("2026-12-01T23:00:00Z")))
+            ds.connection.use { ScriptUtils.executeSqlScript(it, ClassPathResource("db/migration/V87__advent_bonus_quizzes.sql")) }
+            assertEquals(dailyId, jdbc.queryForObject("SELECT answer_id FROM advent_member_answers", UUID::class.java))
+            jdbc.update("INSERT INTO advent_bonus_quizzes (quiz_day, character_key, display_name, statement_0, statement_1, statement_2, false_choice) VALUES (1, 'bonus', 'Bonus', 'A', 'B', 'C', 0)")
+            assertThrows(org.springframework.dao.DataIntegrityViolationException::class.java) { jdbc.update("INSERT INTO advent_bonus_quizzes (quiz_day, character_key, display_name, statement_0, statement_1, statement_2, false_choice) VALUES (1, 'other', 'Bonus', 'A', 'B', 'C', 0)") }
+            val clock = mock(AdventMemberClock::class.java)
+            val instant = java.util.concurrent.atomic.AtomicReference(Instant.parse("2026-12-01T22:59:59Z"))
+            `when`(clock.instant()).thenAnswer { instant.get() }
+            val game = AdventMemberGame(jdbc, clock, AdventTestAnswers(jdbc), MockEnvironment())
+            val tx = TransactionTemplate(DataSourceTransactionManager(ds))
+            val generation = tx.execute { game.reconcile(user, 1, bonus = true).generation!! }!!
+            val attempt = UUID.randomUUID()
+            tx.executeWithoutResult { game.reserve(user, 1, attempt, generation, bonus = true) }
+            val pool=Executors.newFixedThreadPool(2);val held=CountDownLatch(1);val release=CountDownLatch(1)
+            try {
+                val writer=pool.submit { tx.executeWithoutResult { jdbc.queryForObject("SELECT id FROM advent_member_lock WHERE id=1 FOR UPDATE", Int::class.java); held.countDown(); check(release.await(10, TimeUnit.SECONDS)) } }
+                assertTrue(held.await(10, TimeUnit.SECONDS))
+                val confirmation=pool.submit(Callable { tx.execute { game.confirm(user, 1, 0, attempt, bonus = true) }!! })
+                assertThrows(TimeoutException::class.java) { confirmation.get(100, TimeUnit.MILLISECONDS) }
+                instant.set(Instant.parse("2026-12-01T23:00:00Z"));release.countDown();writer.get(10, TimeUnit.SECONDS)
+                assertEquals("closed", confirmation.get(10, TimeUnit.SECONDS).status)
+                assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM advent_bonus_answers", Int::class.java))
+                assertEquals(dailyId, jdbc.queryForObject("SELECT answer_id FROM advent_member_answers", UUID::class.java))
+                instant.set(Instant.parse("2026-12-01T12:00:00Z"))
+                val resumed=tx.execute { game.reconcile(user, 1, bonus = true).generation!! }!!
+                val retryAttempt=UUID.randomUUID();tx.executeWithoutResult { game.reserve(user, 1, retryAttempt, resumed, bonus = true) }
+                val first=pool.submit(Callable { tx.execute { game.confirm(user, 1, 0, retryAttempt, bonus = true) }!! })
+                val second=pool.submit(Callable { tx.execute { game.confirm(user, 1, 0, retryAttempt, bonus = true) }!! })
+                assertEquals("recorded",first.get(10, TimeUnit.SECONDS).status);assertEquals("recorded",second.get(10, TimeUnit.SECONDS).status)
+                assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM advent_bonus_answers", Int::class.java))
+            } finally { release.countDown();pool.shutdownNow() }
+        } finally { root.execute("DROP SCHEMA $schema CASCADE") }
+    }
     @Test fun `preview reads only its owners future result on PostgreSQL`() {
         val url = System.getenv("ADVENT_TEST_POSTGRES_URL")
         require(url.startsWith("jdbc:postgresql://127.0.0.1:"))
@@ -41,6 +93,8 @@ class AdventMemberPostgresTest {
                 "CREATE TABLE advent_quizzes (quiz_day INTEGER, display_name TEXT, portrait_ref TEXT, statement_0 TEXT, statement_1 TEXT, statement_2 TEXT, false_choice INTEGER, explanation TEXT, story_0 TEXT, story_1 TEXT, story_2 TEXT)",
                 "INSERT INTO advent_quizzes (quiz_day,display_name,portrait_ref,statement_0,statement_1,statement_2,false_choice,explanation) VALUES (23, 'Fictif', NULL, 'A', 'B', 'C', 1, 'Explication fictive')"
             ).forEach(jdbc::execute)
+            jdbc.execute("CREATE TABLE users (id UUID PRIMARY KEY)")
+            ds.connection.use { ScriptUtils.executeSqlScript(it, ClassPathResource("db/migration/V87__advent_bonus_quizzes.sql")) }
             val owner = UUID.randomUUID(); val other = UUID.randomUUID()
             jdbc.update("INSERT INTO advent_member_answers VALUES (?, 23, ?, 1, 1, ?, ?, ?, FALSE)", owner, UUID.randomUUID(), Timestamp.from(Instant.parse("2026-11-30T12:00:00Z")), Timestamp.from(Instant.parse("2026-12-23T23:00:00Z")), Timestamp.from(Instant.parse("2026-11-30T12:00:00Z")))
             val clock = mock(AdventMemberClock::class.java)
@@ -152,6 +206,7 @@ class AdventMemberPostgresTest {
                 "CREATE TABLE advent_quizzes (quiz_day INTEGER, display_name TEXT, portrait_ref TEXT, statement_0 TEXT, statement_1 TEXT, statement_2 TEXT, false_choice INTEGER, explanation TEXT, story_0 TEXT, story_1 TEXT, story_2 TEXT)",
                 "INSERT INTO advent_quizzes (quiz_day,display_name,portrait_ref,statement_0,statement_1,statement_2,false_choice,explanation) VALUES (1, 'Fictif', NULL, 'A', 'B', 'C', 0, NULL)"
             ).forEach(jdbc::execute)
+            ds.connection.use { ScriptUtils.executeSqlScript(it, ClassPathResource("db/migration/V87__advent_bonus_quizzes.sql")) }
             val member = UUID.randomUUID(); val troupe = UUID.randomUUID(); val excluded = setOf(UUID.randomUUID(), UUID.randomUUID())
             (excluded + member).forEach { jdbc.update("INSERT INTO users VALUES (?)", it) }
             jdbc.update("INSERT INTO troupe_memberships VALUES (?, ?, 'Fictif', 'ACTIVE', 'MEMBER')", troupe, member)

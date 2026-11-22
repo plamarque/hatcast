@@ -14,7 +14,7 @@ export async function deleteTestDays(client, environment, days) {
       if (lock.rowCount !== 1) throw new Error('Missing game lock');
     }
     const affected = await client.query('SELECT DISTINCT user_id FROM advent_test_answers WHERE quiz_day = ANY($1::int[])', [days]);
-    for (const table of ['advent_member_attempts','advent_member_generations','advent_member_replays','advent_member_answers',
+    for (const table of ['advent_bonus_attempts','advent_bonus_generations','advent_bonus_replays','advent_bonus_answers','advent_bonus_quizzes','advent_member_attempts','advent_member_generations','advent_member_replays','advent_member_answers',
       'advent_test_attempts','advent_test_generations','advent_test_replays','advent_test_answers',
       'advent_offline_content_conflicts','advent_member_demo_quizzes','advent_quizzes']) {
       await client.query(`DELETE FROM ${table} WHERE quiz_day = ANY($1::int[])`, [days]);

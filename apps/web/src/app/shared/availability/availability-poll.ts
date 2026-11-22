@@ -225,13 +225,13 @@ export class AvailabilityPoll {
   protected roleFillPercent(roleKey: string): number {
     const role = this.summary().roles.find((r) => r.roleKey === roleKey)
     if (!role) return 0
-    return roleGaugeFillPercent(role.candidates.length, role.requiredCount)
+    return roleGaugeFillPercent(role.candidates.filter((candidate) => candidate.isCandidate !== false).length, role.requiredCount)
   }
 
   protected roleCounterText(roleKey: string): string {
     const role = this.summary().roles.find((r) => r.roleKey === roleKey)
     if (!role) return '0/0'
-    return `${role.candidates.length}/${role.requiredCount}`
+    return `${role.candidates.filter((candidate) => candidate.isCandidate !== false).length}/${role.requiredCount}`
   }
 
   protected roleAvatars(roleKey: string): SummaryRoleCandidate[] {
@@ -273,23 +273,15 @@ export class AvailabilityPoll {
     return !this.explainabilityEnabled() && this.roleAvatars(roleKey).length > 0
   }
 
-  protected rolePoolChancesUnavailable(roleKey: string): boolean {
-    return (
-      this.explainabilityEnabled() &&
-      this.summaryIncludesChances() &&
-      !this.loadingChances() &&
-      this.roleAvatars(roleKey).length > 0 &&
-      !this.roleHasChancePool(roleKey)
-    )
-  }
-
   protected unavailablePoolShowNeutral(): boolean {
     // An unavailable response is not a draw candidate, so it never has chances to preview.
     return this.unavailableAvatars().length > 0
   }
 
   protected flatAvailablePoolShowNeutral(): boolean {
-    return !this.explainabilityEnabled() && this.flatAvailableAvatars().length > 0
+    // A flat availability vote has no role-specific chance pool, even when
+    // chance explainability is enabled for the event.
+    return this.flatAvailableAvatars().length > 0
   }
 
   protected unavailablePoolSegments(): CompositionPoolPreviewSegment[] {
@@ -301,7 +293,10 @@ export class AvailabilityPoll {
   }
 
   protected poolInteractive(roleKey: string): boolean {
-    return this.explainabilityEnabled() && this.roleHasChancePool(roleKey)
+    return this.explainabilityEnabled() && this.roleAvatars(roleKey).some(
+      (candidate) => candidate.publishedAssignment || candidate.chancePercent != null ||
+        (this.summary().chanceSource === 'baseline' && candidate.isCandidate !== false),
+    )
   }
 
   private candidatesToPoolSegments(
@@ -374,13 +369,14 @@ export class AvailabilityPoll {
   }
 
   protected async onPoolSegmentTap(
-    event: { participantId: string; chancePercent: number },
+    event: { participantId: string; chancePercent: number | null },
     roleKey: string,
   ): Promise<void> {
     const candidate = this.summary()
       .roles.find((role) => role.roleKey === roleKey)
       ?.candidates.find((row) => row.participantId === event.participantId)
-    if (!candidate || candidate.chancePercent == null) {
+    if (!candidate || (!candidate.publishedAssignment && candidate.chancePercent == null &&
+      (this.summary().chanceSource !== 'baseline' || candidate.isCandidate === false))) {
       return
     }
     await this.chanceBreakdown.open({
@@ -468,6 +464,10 @@ export class AvailabilityPoll {
     roleKeys: RoleKey[],
   ): Promise<void> {
     if (!this.canEdit() || this.busy()) return
+    // A summary fetched before this vote must never overwrite its newer state.
+    const shouldRefreshChances = this.summaryIncludesChances() || this.loadingChances()
+    this.chancesLoadGeneration++
+    this.loadingChances.set(false)
     this.savingRowKey.set(rowKey)
     const subject = this.subject()
     const previousSummary = this.summary()
@@ -516,6 +516,9 @@ export class AvailabilityPoll {
       comment: result.data.comment ?? null,
       scope: 'status',
     })
+    if (shouldRefreshChances && this.explainabilityEnabled()) {
+      await this.ensureChancesLoaded()
+    }
   }
 
   protected volunteerLocked(roleKey: string): boolean {

@@ -84,7 +84,7 @@ describe('AvailabilityTousPanel', () => {
     expect(fixture.nativeElement.textContent).toContain(
       'ℹ️ Pourcentages capturés au moment du tirage.',
     )
-    expect(fixture.nativeElement.querySelector('.availability-tous__partial-warning')).toBeTruthy()
+    expect(fixture.nativeElement.querySelector('.availability-tous__partial-warning')?.getAttribute('aria-label')).toBe('Certaines chances sont estimées : elles n’ont pas été capturées au tirage.')
   })
 
   it('hides chance hint for live source', async () => {
@@ -120,6 +120,109 @@ describe('AvailabilityTousPanel', () => {
     expect(trigger).toBeTruthy()
     trigger.click()
     expect(open).toHaveBeenCalled()
+  })
+
+  it('renders a published selection without a detail control and preserves other candidates', async () => {
+    const open = vi.fn()
+    await TestBed.configureTestingModule({
+      imports: [AvailabilityTousPanel, NoopAnimationsModule],
+      providers: [{ provide: ChanceBreakdownService, useValue: { open } }],
+    }).compileComponents()
+    const fixture = TestBed.createComponent(AvailabilityTousPanel)
+    fixture.componentRef.setInput('summary', {
+      ...mockSummary,
+      roles: [{ ...mockSummary.roles[0], candidates: [
+        { participantId: 'p1', displayName: 'Patrice', chancePercent: 37, selectionChanceAt: '2026-01-02T12:00:00Z', publishedAssignment: true, isCandidate: false },
+        { participantId: 'p2', displayName: 'Alex', chancePercent: 63 },
+      ] }],
+    })
+    fixture.componentRef.setInput('seasonId', 'season-1')
+    fixture.componentRef.setInput('eventId', 'event-1')
+    fixture.componentRef.setInput('explainabilityEnabled', true)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('(1/5)')
+    const selected = fixture.nativeElement.querySelector('[data-testid="composition-draw-segment-p1"]') as HTMLButtonElement
+    const other = fixture.nativeElement.querySelector('[data-testid="composition-draw-segment-p2"]') as HTMLButtonElement
+    expect(selected.title).toContain('37 %')
+    selected.click()
+    expect(open).toHaveBeenCalledWith(expect.objectContaining({ participantId: 'p1' }))
+    other.click()
+    expect(open).toHaveBeenCalledWith(expect.objectContaining({ participantId: 'p2' }))
+  })
+
+  it('opens each person when role photograph values are missing', async () => {
+    const open = vi.fn()
+    await TestBed.configureTestingModule({
+      imports: [AvailabilityTousPanel, NoopAnimationsModule],
+      providers: [{ provide: ChanceBreakdownService, useValue: { open } }],
+    }).compileComponents()
+    const fixture = TestBed.createComponent(AvailabilityTousPanel)
+    fixture.componentRef.setInput('summary', { ...mockSummary, roles: [{ ...mockSummary.roles[0], candidates: [
+      { participantId: 'p1', displayName: 'Patrice', chancePercent: null, publishedAssignment: true },
+      { participantId: 'p2', displayName: 'Alex', chancePercent: null },
+    ] }] })
+    fixture.componentRef.setInput('chanceSource', 'baseline')
+    fixture.componentRef.setInput('seasonId', 'season-1')
+    fixture.componentRef.setInput('eventId', 'event-1')
+    fixture.componentRef.setInput('explainabilityEnabled', true)
+    fixture.detectChanges()
+    const [selected, other] = Array.from(fixture.nativeElement.querySelectorAll('.recorded-missing')) as HTMLButtonElement[]
+    expect(selected.disabled).toBe(false)
+    expect(other.disabled).toBe(false)
+    selected.click()
+    other.click()
+    expect(open).toHaveBeenCalledTimes(2)
+    expect(open).toHaveBeenCalledWith(expect.objectContaining({ participantId: 'p1', roleKey: 'player' }))
+    expect(open).toHaveBeenCalledWith(expect.objectContaining({ participantId: 'p2', roleKey: 'player' }))
+  })
+
+  it('shows the date of the common role photograph', async () => {
+    await TestBed.configureTestingModule({ imports: [AvailabilityTousPanel, NoopAnimationsModule] }).compileComponents()
+    const fixture = TestBed.createComponent(AvailabilityTousPanel)
+    fixture.componentRef.setInput('summary', { ...mockSummary, roles: [{ ...mockSummary.roles[0], chanceSnapshotAt: '2026-01-02T12:00:00Z' }] })
+    fixture.componentRef.setInput('chanceSource', 'baseline')
+    fixture.componentRef.setInput('explainabilityEnabled', true)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('Capture de référence du 02/01/2026')
+    expect(fixture.nativeElement.textContent).not.toContain('La capture ne couvre pas tous les candidats affichés.')
+    fixture.componentRef.setInput('summary', { ...mockSummary, roles: [{ ...mockSummary.roles[0], chanceSnapshotAt: '2026-01-02T12:00:00Z', candidates: [{ participantId: 'p1', displayName: 'Patrice', chancePercent: null, publishedAssignment: true }] }] })
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).not.toContain('La capture ne couvre pas tous les candidats affichés.')
+  })
+
+  it('labels a partial reconstruction and its date as estimated', async () => {
+    await TestBed.configureTestingModule({ imports: [AvailabilityTousPanel, NoopAnimationsModule] }).compileComponents()
+    const fixture = TestBed.createComponent(AvailabilityTousPanel)
+    fixture.componentRef.setInput('summary', { ...mockSummary, roles: [{ ...mockSummary.roles[0], chanceProvenance: 'reconstructed', chanceSnapshotAt: '2026-01-02T12:00:00Z', candidates: [{ participantId: 'p1', displayName: 'Patrice', chancePercent: null }] }] })
+    fixture.componentRef.setInput('chanceSource', 'baseline')
+    fixture.componentRef.setInput('explainabilityEnabled', true)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('Capture de référence du 02/01/2026')
+    expect(fixture.nativeElement.textContent).not.toContain('reconstituée')
+    expect(fixture.nativeElement.textContent).not.toContain('La capture ne couvre pas tous les candidats affichés.')
+  })
+
+  it('labels an individual chance without a role capture as partial', async () => {
+    await TestBed.configureTestingModule({ imports: [AvailabilityTousPanel, NoopAnimationsModule] }).compileComponents()
+    const fixture = TestBed.createComponent(AvailabilityTousPanel)
+    fixture.componentRef.setInput('summary', { ...mockSummary, roles: [{ ...mockSummary.roles[0], chanceSnapshotAt: null, candidates: [{ participantId: 'p1', displayName: 'Patrice', chancePercent: 100, publishedAssignment: true }] }] })
+    fixture.componentRef.setInput('chanceSource', 'baseline')
+    fixture.componentRef.setInput('explainabilityEnabled', true)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('Capture des chances partielle.')
+  })
+
+  it('does not render recorded evidence when chance access is disabled', async () => {
+    await TestBed.configureTestingModule({ imports: [AvailabilityTousPanel, NoopAnimationsModule] }).compileComponents()
+    const fixture = TestBed.createComponent(AvailabilityTousPanel)
+    fixture.componentRef.setInput('summary', { ...mockSummary, roles: [{ ...mockSummary.roles[0], candidates: [
+      { participantId: 'p1', displayName: 'Patrice', chancePercent: 37, selectionChanceAt: '2026-01-02T12:00:00Z', publishedAssignment: true },
+    ] }] })
+    fixture.componentRef.setInput('explainabilityEnabled', false)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('app-availability-recorded-candidates')).toBeNull()
+    expect(fixture.nativeElement.textContent).not.toContain('37 %')
+    expect(fixture.nativeElement.textContent).not.toContain('02/01/2026')
   })
 
   it('renders pool bar for role candidates when explainability enabled', async () => {

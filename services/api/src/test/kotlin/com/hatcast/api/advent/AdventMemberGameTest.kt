@@ -26,6 +26,100 @@ import java.util.concurrent.TimeoutException
 @SpringBootTest
 @ActiveProfiles("test")
 class AdventMemberGameTest {
+    @Test fun `bonus requires daily answer and reveals after it without leaking pending points`() {
+        jdbc.update("DELETE FROM advent_bonus_quizzes WHERE quiz_day = 1")
+        jdbc.update("INSERT INTO advent_bonus_quizzes (quiz_day, character_key, display_name, statement_0, statement_1, statement_2, false_choice) VALUES (1, 'bonus-fictif', 'Bonus fictif', 'A', 'B', 'C', 0)")
+        assertEquals("unavailable", game.state(member, 1, bonus = true).status)
+        assertThrows(ResponseStatusException::class.java) { game.quiz(1, bonus = true, user = member) }
+        val dailyGeneration = game.reconcile(member, 1).generation!!
+        val dailyAttempt = UUID.randomUUID()
+        game.reserve(member, 1, dailyAttempt, dailyGeneration)
+        game.confirm(member, 1, 0, dailyAttempt)
+        assertEquals("available", game.calendar(member).days!![0].bonusState)
+        val generation = game.reconcile(member, 1, bonus = true).generation!!
+        val attempt = UUID.randomUUID()
+        game.reserve(member, 1, attempt, generation, bonus = true)
+        assertEquals("recorded", game.confirm(member, 1, 0, attempt, bonus = true).status)
+        assertEquals("recorded", game.confirm(member, 1, 0, attempt, bonus = true).status)
+        assertEquals("unavailable", game.state(other, 1, bonus = true).status)
+        assertNull(game.result(other, 1, bonus = true))
+        assertNull(game.result(member, 1, bonus = true))
+        assertEquals(0, game.ranking(member, troupe, excluded).ranking!!.score)
+        at("2026-12-01T23:00:00Z")
+        val daily = game.latestUnseen(member)!!
+        assertFalse(daily.bonus)
+        game.acknowledge(member, 1, UUID.fromString(daily.answerId))
+        val bonus = game.latestUnseen(member)!!
+        assertTrue(bonus.bonus)
+        assertEquals(22, bonus.totalPoints)
+        game.acknowledge(member, 1, UUID.fromString(bonus.answerId), bonus = true)
+        assertNull(game.latestUnseen(member))
+    }
+    @Test fun `skipped bonus follows daily reveal and late play never changes score`() {
+        jdbc.update("DELETE FROM advent_quizzes WHERE quiz_day = 4")
+        jdbc.update("INSERT INTO advent_quizzes (quiz_day, display_name, statement_0, statement_1, statement_2, false_choice) VALUES (4, 'Daily', 'A', 'B', 'C', 0)")
+        jdbc.update("INSERT INTO advent_bonus_quizzes (quiz_day, character_key, display_name, statement_0, statement_1, statement_2, false_choice) VALUES (4, 'bonus-late', 'Bonus', 'A', 'B', 'C', 0)")
+        at("2026-12-04T12:00:00Z")
+        val generation=game.reconcile(member, 4).generation!!;val attempt=UUID.randomUUID()
+        game.reserve(member, 4, attempt, generation);game.confirm(member, 4, 0, attempt)
+        at("2026-12-04T23:00:00Z")
+        val daily=game.latestUnseen(member)!!
+        assertFalse(daily.bonus);assertTrue(daily.bonusAvailable);assertEquals(11, daily.totalPoints)
+        game.acknowledge(member, 4, UUID.fromString(daily.answerId))
+        val lateGeneration=game.reconcile(member, 4, lateAccess = true, bonus = true).generation!!;val lateAttempt=UUID.randomUUID()
+        game.reserve(member, 4, lateAttempt, lateGeneration, bonus = true)
+        game.confirm(member, 4, 0, lateAttempt, bonus = true)
+        val result=game.result(member, 4, bonus = true)!!
+        assertTrue(result.late);assertEquals(0, result.responsePoints + result.participationPoints + result.bonusPoints);assertEquals(11, result.totalPoints)
+        assertEquals(11, game.ranking(member, troupe, excluded).ranking!!.score)
+    }
+    @Test fun `replaying the daily answer preserves the independent bonus answer`() {
+        jdbc.update("DELETE FROM advent_quizzes WHERE quiz_day = 5")
+        jdbc.update("INSERT INTO advent_quizzes (quiz_day, display_name, statement_0, statement_1, statement_2, false_choice) VALUES (5, 'Daily', 'A', 'B', 'C', 0)")
+        jdbc.update("INSERT INTO advent_bonus_quizzes (quiz_day, character_key, display_name, statement_0, statement_1, statement_2, false_choice) VALUES (5, 'bonus-replay', 'Bonus', 'A', 'B', 'C', 0)")
+        at("2026-12-05T12:00:00Z")
+        val gen=game.reconcile(member,5,operator=true).generation!!;val attempt=UUID.randomUUID()
+        game.reserve(member,5,attempt,gen,operator=true);val daily=game.confirm(member,5,0,attempt,operator=true)
+        val bonusGen=game.reconcile(member,5,operator=true,bonus=true).generation!!;val bonusAttempt=UUID.randomUUID()
+        game.reserve(member,5,bonusAttempt,bonusGen,operator=true,bonus=true);val bonus=game.confirm(member,5,1,bonusAttempt,operator=true,bonus=true)
+        assertEquals(423,assertThrows(ResponseStatusException::class.java) { game.replay(member,5,daily.replayToken!!,game.session()) }.statusCode.value())
+        assertEquals(daily.replayToken,game.state(member,5,operator=true).replayToken)
+        assertEquals(bonus.replayToken,game.state(member,5,operator=true,bonus=true).replayToken)
+        assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM advent_bonus_answers WHERE user_id=? AND quiz_day=5",Int::class.java,member))
+    }
+    @Test fun `Christmas reveals daily then bonus and final ranking includes both`() {
+        jdbc.update("DELETE FROM advent_quizzes WHERE quiz_day=24")
+        jdbc.update("INSERT INTO advent_quizzes (quiz_day,display_name,statement_0,statement_1,statement_2,false_choice) VALUES (24,'Daily','A','B','C',0)")
+        jdbc.update("INSERT INTO advent_bonus_quizzes (quiz_day,character_key,display_name,statement_0,statement_1,statement_2,false_choice) VALUES (24,'bonus-christmas','Bonus','A','B','C',0)")
+        at("2026-12-24T22:59:59Z")
+        val gen=game.reconcile(member,24).generation!!;val attempt=UUID.randomUUID()
+        game.reserve(member,24,attempt,gen);game.confirm(member,24,0,attempt)
+        val bonusGen=game.reconcile(member,24,bonus=true).generation!!;val bonusAttempt=UUID.randomUUID()
+        game.reserve(member,24,bonusAttempt,bonusGen,bonus=true);game.confirm(member,24,0,bonusAttempt,bonus=true)
+        assertNull(game.result(member,24));assertNull(game.result(member,24,bonus=true))
+        assertEquals(0,game.ranking(member,troupe,excluded).ranking!!.score)
+        at("2026-12-24T23:00:00Z")
+        val daily=game.latestUnseen(member)!!;assertFalse(daily.bonus);assertTrue(daily.bonusUnseen)
+        game.acknowledge(member,24,UUID.fromString(daily.answerId))
+        val bonus=game.latestUnseen(member)!!;assertTrue(bonus.bonus)
+        game.acknowledge(member,24,UUID.fromString(bonus.answerId),bonus=true)
+        assertEquals(22,game.ranking(member,troupe,excluded).ranking!!.score)
+        assertEquals("christmas",game.calendar(member).days!![24].state)
+    }
+    @Test fun `late daily and bonus are played in order without points`() {
+        jdbc.update("DELETE FROM advent_quizzes WHERE quiz_day=6")
+        jdbc.update("INSERT INTO advent_quizzes (quiz_day,display_name,statement_0,statement_1,statement_2,false_choice) VALUES (6,'Daily','A','B','C',0)")
+        jdbc.update("INSERT INTO advent_bonus_quizzes (quiz_day,character_key,display_name,statement_0,statement_1,statement_2,false_choice) VALUES (6,'bonus-both-late','Bonus','A','B','C',0)")
+        at("2026-12-07T12:00:00Z")
+        assertEquals("unavailable",game.reconcile(member,6,lateAccess=true,bonus=true).status)
+        val gen=game.reconcile(member,6,lateAccess=true).generation!!;val attempt=UUID.randomUUID()
+        game.reserve(member,6,attempt,gen);game.confirm(member,6,0,attempt)
+        assertTrue(game.result(member,6)!!.bonusAvailable)
+        val bonusGen=game.reconcile(member,6,lateAccess=true,bonus=true).generation!!;val bonusAttempt=UUID.randomUUID()
+        game.reserve(member,6,bonusAttempt,bonusGen,bonus=true);game.confirm(member,6,0,bonusAttempt,bonus=true)
+        assertTrue(game.result(member,6,bonus=true)!!.late)
+        assertEquals(0,game.ranking(member,troupe,excluded).ranking!!.score)
+    }
     @Test fun `early Christmas is available in private preview but locked for ordinary members`() {
         assertEquals("christmas", game.calendar(member, preview = true).days!![24].state)
         assertEquals("locked", game.calendar(member).days!![24].state)

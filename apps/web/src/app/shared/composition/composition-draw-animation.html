@@ -2,6 +2,7 @@
   class="composition-draw-animation"
   [class.composition-draw-animation--preparing]="preparing()"
   [class.composition-draw-animation--embedded]="embedded()"
+  [class.composition-draw-animation--dispos]="dispos()"
   role="status"
   aria-live="polite"
 >
@@ -43,8 +44,9 @@
                 highlightParticipantId() === segment.participantId
               "
               [style.flex]="segmentFlowFlex(segment.widthPercent)"
-              [style.background]="segmentBackground(segment.chancePercent)"
+              [style.background]="segmentBackground(segment.chancePercent, segment.participationStatus)"
               [title]="segment.displayName + ' — ' + segment.chancePercent + ' %'"
+              [attr.aria-label]="dispos() ? segmentAriaLabel(segment) : null"
               [attr.data-testid]="segmentTestId(segment.participantId)"
               (click)="onSegmentTap(segment.participantId, segment.chancePercent)"
             >
@@ -79,8 +81,9 @@
                 segmentChanceTier(segment.chancePercent) === 'red'
               "
               [style.flex]="segmentFlowFlex(segment.widthPercent)"
-              [style.background]="segmentBackground(segment.chancePercent)"
+              [style.background]="segmentBackground(segment.chancePercent, segment.participationStatus)"
               [title]="segment.displayName + ' — ' + segment.chancePercent + ' %'"
+              [attr.aria-label]="dispos() ? segmentAriaLabel(segment) : null"
               [attr.data-testid]="segmentTestId(segment.participantId)"
             >
               <span class="composition-draw-animation__segment-content">
@@ -123,8 +126,9 @@
                   highlightParticipantId() === segment.participantId
                 "
                 [style.width.%]="segment.widthPercent"
-                [style.background]="segmentBackground(segment.chancePercent)"
+                [style.background]="segmentBackground(segment.chancePercent, segment.participationStatus)"
                 [title]="segment.displayName + ' — ' + segment.chancePercent + ' %'"
+              [attr.aria-label]="dispos() ? segmentAriaLabel(segment) : null"
                 [attr.data-testid]="segmentTestId(segment.participantId)"
                 (click)="onSegmentTap(segment.participantId, segment.chancePercent)"
               >
@@ -159,8 +163,9 @@
                   segmentChanceTier(segment.chancePercent) === 'red'
                 "
                 [style.width.%]="segment.widthPercent"
-                [style.background]="segmentBackground(segment.chancePercent)"
+                [style.background]="segmentBackground(segment.chancePercent, segment.participationStatus)"
                 [title]="segment.displayName + ' — ' + segment.chancePercent + ' %'"
+              [attr.aria-label]="dispos() ? segmentAriaLabel(segment) : null"
                 [attr.data-testid]="segmentTestId(segment.participantId)"
               >
                 <span class="composition-draw-animation__segment-content">
@@ -214,8 +219,9 @@
               highlightParticipantId() === segment.participantId
             "
             [style.flex-grow]="segment.widthPercent"
-            [style.background]="segmentBackground(segment.chancePercent)"
+            [style.background]="segmentBackground(segment.chancePercent, segment.participationStatus)"
             [title]="segment.displayName + ' — ' + segment.chancePercent + ' %'"
+              [attr.aria-label]="dispos() ? segmentAriaLabel(segment) : null"
             [attr.data-testid]="segmentTestId(segment.participantId)"
             (click)="onSegmentTap(segment.participantId, segment.chancePercent)"
           >
@@ -237,8 +243,9 @@
               segmentChanceTier(segment.chancePercent) === 'red'
             "
             [style.flex-grow]="segment.widthPercent"
-            [style.background]="segmentBackground(segment.chancePercent)"
+            [style.background]="segmentBackground(segment.chancePercent, segment.participationStatus)"
             [title]="segment.displayName + ' — ' + segment.chancePercent + ' %'"
+              [attr.aria-label]="dispos() ? segmentAriaLabel(segment) : null"
           >
             <span class="composition-draw-animation__segment-label">{{ segment.displayName }}</span>
           </div>

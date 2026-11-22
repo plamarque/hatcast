@@ -225,7 +225,7 @@ start_story_branch() {
     echo "ERROR: created or reopened unit path is not a valid Git worktree: ${unit_path}" >&2
     exit 1
   fi
-  if ! bash "${_script_dir}/story-worktree-bootstrap.sh" "${unit_path}"; then
+  if ! bash "${_script_dir}/story-worktree-bootstrap.sh" --allow-network "${unit_path}"; then
     echo "ERROR: BMad bootstrap failed; the unit worktree was preserved for inspection: ${unit_path}" >&2
     exit 1
   fi

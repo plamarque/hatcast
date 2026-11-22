@@ -1,0 +1,12 @@
+{
+  "version": "2.8.3",
+  "date": "__BUILD_DATE__",
+  "source": "curated-release",
+  "notes": "Product release",
+  "changes": [
+    "Amélioration de l’affichage des % de chances"
+  ],
+  "changes_en": [
+    "Improved display of chance percentages"
+  ]
+}

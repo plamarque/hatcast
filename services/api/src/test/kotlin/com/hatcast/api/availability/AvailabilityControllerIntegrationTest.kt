@@ -312,6 +312,13 @@ class AvailabilityControllerIntegrationTest {
         setAvailabilityForMember(seasonId, eventId, admin, "available", listOf("player"))
         setAvailabilityForMember(seasonId, eventId, member, "available", listOf("player"))
         syncSeasonParticipants(seasonId)
+        val now = Instant.parse("2026-01-02T12:00:00Z")
+        compositionRepository.save(EventCompositionEntity(eventId, now, now, now, now))
+        slotRepository.save(EventCompositionSlotEntity(
+            eventId = eventId, roleKey = "player", slotIndex = 0,
+            seasonParticipantId = participantIdForUser(seasonId, "sub-avail-dispos-archived-member"),
+            selectionChancePercent = 37, selectionChanceAt = now,
+        ))
 
         mockMvc
             .perform(
@@ -327,6 +334,8 @@ class AvailabilityControllerIntegrationTest {
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.chanceSource").value(nullValue()))
             .andExpect(jsonPath("$.roles[0].candidates[*].chancePercent").value(org.hamcrest.Matchers.everyItem(nullValue())))
+            .andExpect(jsonPath("$.roles[0].candidates[*].selectionChanceAt").value(org.hamcrest.Matchers.everyItem(nullValue())))
+            .andExpect(jsonPath("$.roles[0].candidates[*].publishedAssignment").value(org.hamcrest.Matchers.everyItem(org.hamcrest.Matchers.`is`(false))))
     }
 
     @Test
@@ -1154,7 +1163,7 @@ class AvailabilityControllerIntegrationTest {
 
     @Test
     @Tag("FR19")
-    fun `past event without draw snapshot returns live chance source`() {
+    fun `past published event without reliable baseline does not invent chances`() {
         val admin = memberCookie("sub-avail-chance-estimated-admin")
         val member = memberCookie("sub-avail-chance-estimated-member")
         val (seasonId, eventId) =
@@ -1195,8 +1204,120 @@ class AvailabilityControllerIntegrationTest {
                 get("/v1/seasons/$seasonId/events/$eventId/availability/summary?includeChances=true")
                     .cookie(admin),
             ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.chanceSource").value("live"))
-            .andExpect(jsonPath("$.roles[?(@.roleKey == 'player')].candidates[0].chancePercent").exists())
+            .andExpect(jsonPath("$.chanceSource").value("baseline"))
+            .andExpect(jsonPath("$.roles[?(@.roleKey == 'player')].candidates[0].chancePercent").value(org.hamcrest.Matchers.contains(org.hamcrest.Matchers.nullValue())))
+    }
+
+    @Test
+    fun `legacy published assignment never invents a baseline and preserves visibility`() {
+        val admin = memberCookie("sub-avail-recorded-admin")
+        val member = signInOnly("sub-avail-recorded-member")
+        TestAuthSupport.joinSeedTroupe(mockMvc, member, seedTroupeId)
+        val (seasonId, eventId) = createSeasonAndEvent(admin)
+        setAvailabilityForMember(seasonId, eventId, member, "available", listOf("player"))
+        syncSeasonParticipants(seasonId)
+        val assigneeId = participantIdForUser(seasonId, "sub-avail-recorded-member")
+        val now = Instant.parse("2026-01-02T12:00:00Z")
+        val composition = compositionRepository.save(EventCompositionEntity(eventId, null, null, now, now))
+        val slot = slotRepository.save(EventCompositionSlotEntity(eventId = eventId, roleKey = "player", slotIndex = 0, seasonParticipantId = assigneeId, selectionChancePercent = 37, selectionChanceAt = now))
+        val path = "/v1/seasons/$seasonId/events/$eventId/availability/summary?includeChances=true"
+        mockMvc.perform(get(path).cookie(admin)).andExpect(status().isOk)
+            .andExpect(jsonPath("$.roles[?(@.roleKey == 'player')].candidates[0].publishedAssignment").value(false))
+        val hiddenBeforePublication = mapper.readTree(
+            mockMvc.perform(get(path).cookie(member)).andExpect(status().isOk).andReturn().response.contentAsString,
+        )["roles"]
+        composition.publishedAt = now
+        compositionRepository.saveAndFlush(composition)
+        mockMvc.perform(get(path).cookie(admin)).andExpect(status().isOk)
+            .andExpect(jsonPath("$.roles[?(@.roleKey == 'player')].candidates[0].publishedAssignment").value(true))
+            .andExpect(jsonPath("$.roles[?(@.roleKey == 'player')].candidates[0].participationStatus").value("pending"))
+            .andExpect(jsonPath("$.roles[?(@.roleKey == 'player')].candidates[0].chancePercent").value(37))
+            .andExpect(jsonPath("$.roles[?(@.roleKey == 'player')].candidates[0].selectionChanceAt").value("2026-01-02T12:00:00Z"))
+        val hiddenAfterPublication = mapper.readTree(
+            mockMvc.perform(get(path).cookie(member)).andExpect(status().isOk).andReturn().response.contentAsString,
+        )["roles"]
+        org.junit.jupiter.api.Assertions.assertEquals(hiddenBeforePublication, hiddenAfterPublication)
+        mockMvc.perform(get(path).cookie(member)).andExpect(status().isOk)
+            .andExpect(jsonPath("$.roles[?(@.roleKey == 'player')].candidates[0].participationStatus").value(org.hamcrest.Matchers.contains(org.hamcrest.Matchers.nullValue())))
+        mockMvc.perform(get("/v1/seasons/$seasonId/events/$eventId/availability/summary").cookie(admin))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.roles[?(@.roleKey == 'player')].candidates[0].publishedAssignment").value(false))
+            .andExpect(jsonPath("$.roles[?(@.roleKey == 'player')].candidates[0].selectionChanceAt").value(org.hamcrest.Matchers.contains(org.hamcrest.Matchers.nullValue())))
+        composition.publishedAt = null
+        compositionRepository.saveAndFlush(composition)
+        mockMvc.perform(post("/v1/seasons/$seasonId/events/$eventId/composition/validate").cookie(admin).with(csrf()))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.publishedAt").isEmpty)
+            .andExpect(jsonPath("$.validatedAt").isNotEmpty)
+        mockMvc.perform(get(path).cookie(member)).andExpect(status().isOk)
+            .andExpect(jsonPath("$.roles[?(@.roleKey == 'player')].candidates[0].publishedAssignment").value(true))
+            .andExpect(jsonPath("$.roles[?(@.roleKey == 'player')].candidates[0].chancePercent").value(37))
+        mockMvc.perform(get("/v1/seasons/$seasonId/events/$eventId/composition").cookie(member))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.slots[0].chancePercent").value(37))
+            .andExpect(jsonPath("$.slots[0].selectionChanceAt").value("2026-01-02T12:00:00Z"))
+        slot.selectionChancePercent = null
+        slot.selectionChanceAt = null
+        slotRepository.saveAndFlush(slot)
+        mockMvc.perform(get(path).cookie(admin)).andExpect(status().isOk)
+            .andExpect(jsonPath("$.roles[?(@.roleKey == 'player')].candidates[0].chancePercent").value(org.hamcrest.Matchers.contains(org.hamcrest.Matchers.nullValue())))
+        slot.seasonParticipantId = null
+        slotRepository.saveAndFlush(slot)
+        mockMvc.perform(get(path).cookie(admin)).andExpect(status().isOk)
+            .andExpect(jsonPath("$.roles[?(@.roleKey == 'player')].candidates[0].publishedAssignment").value(false))
+            .andExpect(jsonPath("$.roles[?(@.roleKey == 'player')].candidates[0].chancePercent").value(org.hamcrest.Matchers.contains(org.hamcrest.Matchers.nullValue())))
+    }
+
+    @Test
+    fun `legacy composition keeps missing photographs unavailable after availability changes`() {
+        val admin = memberCookie("sub-avail-recorded-roles-admin")
+        val member = signInOnly("sub-avail-recorded-roles-member")
+        TestAuthSupport.joinSeedTroupe(mockMvc, member, seedTroupeId)
+        val (seasonId, eventId) = createSeasonAndEvent(
+            admin,
+            """{"title":"Recorded roles","startsAt":"2031-04-01T19:00:00Z","roleSlots":{"player":1,"mc":1}}""",
+        )
+        setAvailabilityForMember(seasonId, eventId, admin, "available", listOf("player"))
+        setAvailabilityForMember(seasonId, eventId, member, "available", listOf("player", "mc"))
+        syncSeasonParticipants(seasonId)
+        val assigneeId = participantIdForUser(seasonId, "sub-avail-recorded-roles-member")
+        val adminId = participantIdForUser(seasonId, "sub-avail-recorded-roles-admin")
+        val now = Instant.parse("2026-01-02T12:00:00Z")
+        compositionRepository.save(EventCompositionEntity(eventId, now, now, now, now))
+        slotRepository.save(EventCompositionSlotEntity(
+            eventId = eventId, roleKey = "player", slotIndex = 0,
+            seasonParticipantId = assigneeId, selectionChancePercent = 37, selectionChanceAt = now,
+        ))
+        val path = "/v1/seasons/$seasonId/events/$eventId/availability/summary?includeChances=true"
+        fun candidates(role: String): List<com.fasterxml.jackson.databind.JsonNode> {
+            val response = mockMvc.perform(get(path).cookie(admin)).andExpect(status().isOk).andReturn()
+            return mapper.readTree(response.response.contentAsString)["roles"]
+                .first { it["roleKey"].asText() == role }["candidates"].toList()
+        }
+        val otherRole = candidates("mc").single { it["participantId"].asText() == assigneeId.toString() }
+        org.junit.jupiter.api.Assertions.assertFalse(otherRole["publishedAssignment"].asBoolean())
+        org.junit.jupiter.api.Assertions.assertTrue(otherRole["chancePercent"].isNull)
+        org.junit.jupiter.api.Assertions.assertTrue(otherRole["selectionChanceAt"].isNull)
+
+        setAvailabilityForMember(seasonId, eventId, member, "available", listOf("mc"))
+        val playerCandidates = candidates("player")
+        val selected = playerCandidates.single { it["participantId"].asText() == assigneeId.toString() }
+        val other = playerCandidates.single { it["participantId"].asText() == adminId.toString() }
+        org.junit.jupiter.api.Assertions.assertTrue(selected["publishedAssignment"].asBoolean())
+        org.junit.jupiter.api.Assertions.assertEquals(37, selected["chancePercent"].asInt())
+        org.junit.jupiter.api.Assertions.assertEquals("2026-01-02T12:00:00Z", selected["selectionChanceAt"].asText())
+        org.junit.jupiter.api.Assertions.assertTrue(other["chancePercent"].isNull)
+        org.junit.jupiter.api.Assertions.assertFalse(other["publishedAssignment"].asBoolean())
+        org.junit.jupiter.api.Assertions.assertFalse(selected["isCandidate"].asBoolean())
+        org.junit.jupiter.api.Assertions.assertTrue(other["isCandidate"].asBoolean())
+
+        val removed = seasonParticipantRepository.findById(assigneeId).orElseThrow()
+        removed.status = ParticipantStatus.REMOVED
+        seasonParticipantRepository.saveAndFlush(removed)
+        val removedAssignee = candidates("player").single { it["participantId"].asText() == assigneeId.toString() }
+        org.junit.jupiter.api.Assertions.assertTrue(removedAssignee["publishedAssignment"].asBoolean())
+        org.junit.jupiter.api.Assertions.assertFalse(removedAssignee["isCandidate"].asBoolean())
+        org.junit.jupiter.api.Assertions.assertEquals(37, removedAssignee["chancePercent"].asInt())
     }
 
     @Test
@@ -1309,6 +1430,22 @@ class AvailabilityControllerIntegrationTest {
                 .content("""{"status":"available","roleKeys":[]}"""))
                 .andExpect(status().isOk)
                 .andExpect(jsonPath("$.roleKeys").isEmpty)
+        }
+    }
+
+    @Test
+    fun `spectacle without required roles rejects availability writes for self and proxy`() {
+        val admin = memberCookie("sub-roleless-match")
+        val (seasonId, eventId) = createSeasonAndEvent(admin,
+            """{"title":"Match sans places", "startsAt":"2031-03-20T19:00:00Z", "templateType":"match", "roleSlots":{}}""")
+        val participantId = createSeasonParticipant(seasonId, "Roleless match proxy")
+        for (suffix in listOf("me", "participants/$participantId")) {
+            for (status in listOf("available", "unavailable", "unknown")) {
+                mockMvc.perform(put("/v1/seasons/$seasonId/events/$eventId/availability/$suffix")
+                    .cookie(admin).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"$status","roleKeys":[]}"""))
+                    .andExpect(status().isConflict)
+            }
         }
     }
 

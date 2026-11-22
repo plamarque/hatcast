@@ -25,6 +25,8 @@ class AdventOfflineFixturesTest {
         val ds = DriverManagerDataSource("jdbc:h2:file:${dir.resolve("hatcast")};MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE", "sa", "")
         val jdbc = JdbcTemplate(ds)
         jdbc.execute("CREATE TABLE advent_quizzes (quiz_day INTEGER PRIMARY KEY, display_name TEXT, portrait_ref TEXT, statement_0 TEXT, statement_1 TEXT, statement_2 TEXT, false_choice INTEGER, explanation TEXT)")
+        jdbc.execute("CREATE TABLE advent_bonus_quizzes (quiz_day INTEGER PRIMARY KEY, character_key TEXT, display_name TEXT, statement_0 TEXT, statement_1 TEXT, statement_2 TEXT, false_choice INTEGER)")
+        jdbc.execute("CREATE TABLE advent_bonus_answers (quiz_day INTEGER)")
         jdbc.execute("CREATE TABLE advent_local_deleted_days (quiz_day INTEGER PRIMARY KEY)")
         jdbc.execute("CREATE TABLE advent_character_reservations (quiz_day INTEGER PRIMARY KEY)")
         jdbc.execute("CREATE TABLE advent_test_answers (quiz_day INTEGER, marker VARCHAR(20))")

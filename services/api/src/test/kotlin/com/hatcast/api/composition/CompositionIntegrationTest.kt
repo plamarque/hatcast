@@ -265,6 +265,10 @@ class CompositionIntegrationTest {
         val eventId = createEvent(adminCookie, seasonId, "Publish flow")
         val participantId = createSeasonParticipant(seasonId, "Charlie")
         seedDraftComposition(eventId, participantId)
+        val recorded = slotRepository.findByEventId(eventId).single()
+        recorded.selectionChancePercent = 37
+        recorded.selectionChanceAt = Instant.parse("2026-01-02T12:00:00Z")
+        slotRepository.saveAndFlush(recorded)
 
         mockMvc
             .perform(
@@ -275,6 +279,13 @@ class CompositionIntegrationTest {
             .andExpect(jsonPath("$.visibility").value("organizerDraft"))
             .andExpect(jsonPath("$.publishedAt").isNotEmpty)
             .andExpect(jsonPath("$.slots[0].participantDisplayName").value("Charlie"))
+            .andExpect(jsonPath("$.slots[0].chancePercent").isEmpty)
+            .andExpect(jsonPath("$.slots[0].selectionChanceAt").isEmpty)
+
+        mockMvc.perform(get("/v1/seasons/$seasonId/events/$eventId/composition").cookie(adminCookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.slots[0].chancePercent").value(37))
+            .andExpect(jsonPath("$.slots[0].selectionChanceAt").value("2026-01-02T12:00:00Z"))
 
         mockMvc
             .perform(get("/v1/seasons/$seasonId/events/$eventId/composition").cookie(memberCookie))

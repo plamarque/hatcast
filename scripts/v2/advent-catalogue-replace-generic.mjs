@@ -29,6 +29,7 @@ export async function replaceGeneric(client, environment, row, reviewed) {
    if(lock.rowCount!==1)throw Error();
   }
   await client.query(`LOCK TABLE advent_character_reservations, advent_quizzes, ${GAME_TABLES.join(', ')} IN SHARE ROW EXCLUSIVE MODE`);
+  if((await client.query('SELECT character_key FROM advent_bonus_quizzes WHERE character_key=$1',[row.character_key])).rows.length)throw Error();
   if(JSON.stringify(await inspectSelectedContent(client,[row]))!==JSON.stringify(reviewed))throw Error();
   for(const table of GAME_TABLES) {
    const result=await client.query(`SELECT 1 FROM ${table} WHERE quiz_day=$1 LIMIT 1`,[row.quiz_day]);

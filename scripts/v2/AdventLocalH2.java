@@ -20,7 +20,20 @@ public final class AdventLocalH2 {
         String line;
         while((line=in.readLine())!=null) {
           String[] p=line.split("\\t",-1);
-          if(p[0].equals("CHECK")&&p.length==2) {
+          if(p[0].equals("BONUS_CHECK")&&p.length==2) {
+            try(PreparedStatement lock=c.prepareStatement("SELECT id FROM advent_member_lock WHERE id=1 FOR UPDATE")){lock.executeQuery();}
+            int day=Integer.parseInt(p[1]);if(day<1||day>24)throw new Exception();
+            try(PreparedStatement q=c.prepareStatement("SELECT character_key,display_name,portrait_ref,statement_0,statement_1,statement_2,false_choice,explanation,story_0,story_1,story_2 FROM advent_bonus_quizzes WHERE quiz_day=?")) {
+              q.setInt(1,day);try(ResultSet r=q.executeQuery()){if(!r.next())out.println("ABSENT");else {StringJoiner j=new StringJoiner("\t","ROW\t","");for(int i=1;i<=11;i++)j.add(encode(r.getString(i)));out.println(j);}}
+            }
+          } else if(p[0].equals("BONUS_ADD")&&p.length==13) {
+            int day=Integer.parseInt(p[1]);if(day<1||day>24)throw new Exception();
+            try(PreparedStatement lock=c.prepareStatement("SELECT id FROM advent_member_lock WHERE id=1 FOR UPDATE")){lock.executeQuery();}
+            try(PreparedStatement q=c.prepareStatement("SELECT 1 FROM advent_character_reservations WHERE character_key=? UNION ALL SELECT 1 FROM advent_bonus_quizzes WHERE character_key=?")) {q.setString(1,decode(p[2]));q.setString(2,decode(p[2]));try(ResultSet r=q.executeQuery()){if(r.next())throw new Exception();}}
+            try(PreparedStatement q=c.prepareStatement("INSERT INTO advent_bonus_quizzes (quiz_day,character_key,display_name,portrait_ref,statement_0,statement_1,statement_2,false_choice,explanation,story_0,story_1,story_2) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)")) {
+              q.setInt(1,day);for(int i=0;i<11;i++){if(i==6)q.setInt(i+2,Integer.parseInt(decode(p[i+2])));else q.setString(i+2,decode(p[i+2]));}if(q.executeUpdate()!=1)throw new Exception();
+            } out.println("OK");
+          } else if(p[0].equals("CHECK")&&p.length==2) {
             int day=Integer.parseInt(p[1]);if(day<1||day>24)throw new Exception();
             try(PreparedStatement q=c.prepareStatement("SELECT display_name,portrait_ref,statement_0,statement_1,statement_2,false_choice,explanation,story_0,story_1,story_2 FROM advent_quizzes WHERE quiz_day=?")) {
               q.setInt(1,day);try(ResultSet r=q.executeQuery()) {if(!r.next())out.println("ABSENT");else {StringJoiner j=new StringJoiner("\t","ROW\t","");for(int i=1;i<=10;i++)j.add(encode(r.getString(i)));out.println(j);}}
@@ -50,6 +63,8 @@ public final class AdventLocalH2 {
           } else if((p[0].equals("CHARACTER") || p[0].equals("QUIZ")) && p.length==14) {
             int day=Integer.parseInt(p[1]);String key=decode(p[2]),name=decode(p[3]),portrait=decode(p[4]);
             if(day<1||day>24||key==null||name==null||portrait==null)throw new Exception();
+            try(PreparedStatement lock=c.prepareStatement("SELECT id FROM advent_member_lock WHERE id=1 FOR UPDATE")){lock.executeQuery();}
+            try(PreparedStatement q=c.prepareStatement("SELECT 1 FROM advent_bonus_quizzes WHERE character_key=?")){q.setString(1,key);try(ResultSet r=q.executeQuery()){if(r.next())throw new Exception();}}
             boolean found=false;String oldKey=null,oldName=null,oldPortrait=null;
             try(PreparedStatement q=c.prepareStatement("SELECT quiz_day,character_key,display_name,portrait_ref FROM advent_character_reservations WHERE quiz_day=? OR character_key=?")){
               q.setInt(1,day);q.setString(2,key);try(ResultSet r=q.executeQuery()){while(r.next()){
@@ -79,6 +94,7 @@ public final class AdventLocalH2 {
             Set<String> users=new HashSet<>();
             for(int day:days){
               try(PreparedStatement q=c.prepareStatement("SELECT DISTINCT user_id FROM advent_test_answers WHERE quiz_day=?")){q.setInt(1,day);try(ResultSet r=q.executeQuery()){while(r.next())users.add(r.getString(1));}}
+              for(String table:new String[]{"advent_bonus_attempts","advent_bonus_generations","advent_bonus_replays","advent_bonus_answers","advent_bonus_quizzes"})try(PreparedStatement q=c.prepareStatement("DELETE FROM "+table+" WHERE quiz_day=?")){q.setInt(1,day);q.executeUpdate();}
               for(String table:TABLES)try(PreparedStatement q=c.prepareStatement("DELETE FROM "+table+" WHERE quiz_day=?")){q.setInt(1,day);q.executeUpdate();}
               for(String table:new String[]{"advent_offline_content_conflicts","advent_member_demo_quizzes","advent_quizzes"})try(PreparedStatement q=c.prepareStatement("DELETE FROM "+table+" WHERE quiz_day=?")){q.setInt(1,day);q.executeUpdate();}
               try(PreparedStatement marker=c.prepareStatement("MERGE INTO advent_local_deleted_days (quiz_day) KEY (quiz_day) VALUES (?)")){marker.setInt(1,day);marker.executeUpdate();}

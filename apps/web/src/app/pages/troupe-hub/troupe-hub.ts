@@ -543,6 +543,7 @@ export class TroupeHub implements OnInit, OnDestroy {
       subjectDisplayName: this.myDisplayName(),
       troupeId: troupe.id,
       roleSlots: normalizeRoleSlots(ev.roleSlots),
+      templateType: ev.templateType,
       fallbackStatus: payload.status,
       availabilityOpenedAt: ev.availabilityOpenedAt ?? null,
     })

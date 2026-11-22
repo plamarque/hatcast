@@ -20,9 +20,9 @@ class AdventTestAnswers(private val jdbc: JdbcTemplate) {
     fun transitionRequired(): Boolean = jdbc.queryForObject("SELECT reset_required FROM advent_content_transition WHERE id = 1", Boolean::class.java) == true
     fun requireContentReady() { if (transitionRequired()) throw ResponseStatusException(HttpStatus.LOCKED) }
 
-    fun quiz(day: Int): AdventQuiz? {
+    fun quiz(day: Int, bonus: Boolean = false): AdventQuiz? {
         if (day !in 1..24) return null
-        return jdbc.query("SELECT display_name, portrait_ref, statement_0, statement_1, statement_2, false_choice, explanation FROM advent_quizzes WHERE quiz_day = ?", { rs, _ ->
+        return jdbc.query("SELECT display_name, portrait_ref, statement_0, statement_1, statement_2, false_choice, explanation FROM ${if (bonus) "advent_bonus_quizzes" else "advent_quizzes"} WHERE quiz_day = ?", { rs, _ ->
             AdventQuiz(rs.getString(1), rs.getString(2), listOf(rs.getString(3), rs.getString(4), rs.getString(5)), rs.getInt(6), rs.getString(7))
         }, day).singleOrNull()?.takeIf { quiz ->
             quiz.name.isNotBlank() && quiz.statements.all { it.isNotBlank() } && quiz.falseChoice in 0..2 &&
@@ -31,8 +31,8 @@ class AdventTestAnswers(private val jdbc: JdbcTemplate) {
     }
 
     // Call only after the playable quiz or result has passed its authorization checks.
-    fun revealedStories(day: Int): List<String?>? = jdbc.query(
-        "SELECT story_0, story_1, story_2 FROM advent_quizzes WHERE quiz_day = ?", { rs, _ ->
+    fun revealedStories(day: Int, bonus: Boolean = false): List<String?>? = jdbc.query(
+        "SELECT story_0, story_1, story_2 FROM ${if (bonus) "advent_bonus_quizzes" else "advent_quizzes"} WHERE quiz_day = ?", { rs, _ ->
             listOf(rs.getString(1), rs.getString(2), rs.getString(3))
         }, day).singleOrNull()?.takeIf { stories -> stories.any { it != null } }
 
@@ -294,9 +294,9 @@ class AdventTestAnswers(private val jdbc: JdbcTemplate) {
     private fun validateDay(day: Int) { if (day !in 1..24) throw ResponseStatusException(HttpStatus.NOT_FOUND) }
 }
 
-data class AdventResult(val answerId: String, val day: Int, val selectedChoice: Int, val falseChoice: Int, val correct: Boolean, val responsePoints: Int, val participationPoints: Int, val bonusPoints: Int, val totalPoints: Int, val seen: Boolean, val explanation: String? = null, val late: Boolean = false, val stories: List<String?>? = null)
+data class AdventResult(val answerId: String, val day: Int, val selectedChoice: Int, val falseChoice: Int, val correct: Boolean, val responsePoints: Int, val participationPoints: Int, val bonusPoints: Int, val totalPoints: Int, val seen: Boolean, val explanation: String? = null, val late: Boolean = false, val stories: List<String?>? = null, val bonus: Boolean = false, val bonusAvailable: Boolean = false, val bonusUnseen: Boolean = false)
 
-data class AnswerState(val status: String, val generation: UUID? = null, val replayToken: UUID? = null, val late: Boolean = false, val priorityResult: AdventResult? = null)
+data class AnswerState(val status: String, val generation: UUID? = null, val replayToken: UUID? = null, val late: Boolean = false, val priorityResult: AdventResult? = null, val bonusAvailable: Boolean = false)
 data class ReplayAnswer(val replayToken: UUID?, val close: Boolean = false)
 data class ConfirmAnswer(val choice: Int?, val attemptId: UUID?)
 data class AnswerAttempt(val attemptId: UUID?, val generation: UUID?)
@@ -316,7 +316,7 @@ object AdventParisTime {
 data class AdventQuiz(val name: String, val portraitRef: String?, val statements: List<String>, val falseChoice: Int, val explanation: String?, val stories: List<String?>? = null)
 
 data class RankingMember(val id: UUID, val name: String)
-data class RankingAnswer(val user: UUID, val day: Int, val correct: Boolean, val revealAt: Instant, val answeredAt: Instant = Instant.MIN)
+data class RankingAnswer(val user: UUID, val day: Int, val correct: Boolean, val revealAt: Instant, val answeredAt: Instant = Instant.MIN, val bonus: Boolean = false)
 enum class AdventTieReason { CORRECT, ANSWERS, STREAK, ATTAINMENT, NAME, ID }
 data class AdventRankingEntry(val name: String, val score: Int, val rank: Int, val mine: Boolean, val tieReason: AdventTieReason? = null)
 data class AdventRanking(val score: Int, val rank: Int?, val entries: List<AdventRankingEntry>)
@@ -333,7 +333,7 @@ object AdventRankingCalculator {
                 var streak = 0
                 var longest = 0
                 var score = 0
-                rows.sortedBy { it.day }.forEach { answer ->
+                rows.sortedWith(compareBy<RankingAnswer> { it.day }.thenBy { it.bonus }).forEach { answer ->
                     streak = if (answer.correct) streak + 1 else 0
                     longest = maxOf(longest, streak)
                     score += 1 + (if (answer.correct) 10 else 0) + (if (streak > 0 && streak % 3 == 0) 2 else 0)

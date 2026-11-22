@@ -59,6 +59,7 @@ export class AgendaEventActionsService {
         eventStartsAt: item.startsAt,
         troupeId: item.troupeId,
         roleSlots: normalizeRoleSlots(event.data.roleSlots),
+        templateType: event.data.templateType,
         subjectDisplayName: this.troupes.currentUserDisplayLabel(this.auth.sessionUser()),
         fallbackStatus: item.myAvailabilityStatus ?? 'unknown',
         availabilityOpenedAt: event.data.availabilityOpenedAt ?? null,

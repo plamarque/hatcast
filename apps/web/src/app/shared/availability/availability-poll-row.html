@@ -81,14 +81,34 @@
         <div class="poll-row__pool-loading" role="status">
           <mat-spinner diameter="28" />
         </div>
+      } @else if (showRecorded() && (showSnapshot() || avatars().some(hasPublishedAssignment))) {
+        @if (showSnapshot()) {
+          <p>@if (snapshotAt()) { Capture de référence du {{ snapshotAt() | date:'dd/MM/yyyy HH:mm' }} } @else if (avatars().some(hasChance)) { Capture des chances partielle. } @else { Capture des chances indisponible. }</p>
+        }
+        <app-availability-recorded-candidates
+          [candidates]="avatars()"
+          [interactive]="poolInteractive()"
+          (segmentTap)="poolSegmentTap.emit($event)"
+        />
       } @else if (poolShowChancePreview() && poolSegments().length > 0) {
         <app-composition-pool-preview
+          [dispos]="true"
           class="poll-row__pool-preview"
           [pool]="poolSegments()"
           [interactive]="poolInteractive()"
           (segmentTap)="poolSegmentTap.emit($event)"
         />
-      } @else if (poolShowNeutral()) {
+        @if (avatars().some(hasMissingChance)) { <div class="poll-row__pool-neutral" role="list">
+          @for (avatar of avatars(); track avatar.participantId) {
+            @if (avatar.chancePercent == null) {
+              <span class="poll-row__pool-chip" role="listitem" [title]="avatar.displayName">
+                <app-user-avatar [displayName]="avatar.displayName" [avatarUrl]="avatar.avatarUrl ?? null" [gender]="avatar.gender ?? null" [size]="20" />
+                <span class="poll-row__pool-chip-label">{{ avatar.displayName }}</span>
+              </span>
+            }
+          }
+        </div> }
+      } @else if (poolShowNeutral() || avatars().length > 0) {
         <div class="poll-row__pool-neutral" role="list">
           @for (avatar of avatars(); track avatar.participantId) {
             <span class="poll-row__pool-chip" role="listitem" [title]="avatar.displayName">
@@ -103,8 +123,6 @@
             </span>
           }
         </div>
-      } @else if (poolChancesUnavailable()) {
-        <p class="poll-row__pool-empty">Pourcentages indisponibles pour ce rôle.</p>
       }
     </div>
   }

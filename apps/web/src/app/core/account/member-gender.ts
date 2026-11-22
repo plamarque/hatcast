@@ -37,12 +37,8 @@ export function multiPlaceChanceTooltipCopy(options: {
   placesCount: number
 }): string {
   const placesLabel = `${options.placesCount} place${options.placesCount > 1 ? 's' : ''}`
-  const chanceLabel = options.viewingSelf ? 'ta chance' : 'sa chance'
-  const participle = drawPickPastParticipleLabel(options.gender)
-  if (participle) {
-    return `Ce % reflète ${chanceLabel} d’être ${participle} une fois parmi les ${placesLabel}`
-  }
-  return `Ce % reflète ${chanceLabel} d’obtenir une place au tirage parmi les ${placesLabel}`
+  const chanceLabel = options.viewingSelf ? 'Ta chance' : 'Sa chance'
+  return `${chanceLabel} d’obtenir une des ${placesLabel}.`
 }
 
 export function effectiveMemberGender(raw: unknown): MemberGender {

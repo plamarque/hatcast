@@ -17,7 +17,7 @@ const os = require('node:os');
   await a.query('CREATE SCHEMA fixture'); await a.query('SET search_path TO fixture'); await b.query('SET search_path TO fixture');
   await a.query('CREATE TABLE users (id UUID PRIMARY KEY)');
   const migrations=path.resolve(__dirname,'../../services/api/src/main/resources/db/migration');
-  for (const filename of fs.readdirSync(migrations).filter(f=>/^V(?:7[0-9]|8[0-5])__.*\.sql$/.test(f)).sort()) await a.query(fs.readFileSync(path.join(migrations,filename),'utf8'));
+  for (const filename of fs.readdirSync(migrations).filter(f=>/^V(?:7[0-9]|8[0-5]|87)__.*\.sql$/.test(f)).sort()) await a.query(fs.readFileSync(path.join(migrations,filename),'utf8'));
   await a.query("INSERT INTO users VALUES ('00000000-0000-0000-0000-000000000001')");
   const gameTables=['advent_test_clock','advent_test_clock_advances','advent_test_member_state','advent_test_answers','advent_test_attempts','advent_test_generations','advent_test_replays','advent_member_lock','advent_member_answers','advent_member_attempts','advent_member_generations','advent_member_replays','advent_member_demo_quizzes','advent_content_transition','advent_offline_content_conflicts'];
   async function snapshot() { const state={}; for(const table of gameTables) state[table]=(await a.query(`SELECT COALESCE(json_agg(t ORDER BY row_to_json(t)::text), '[]'::json) AS rows FROM ${table} t`)).rows[0].rows; return state; }
@@ -82,8 +82,20 @@ const os = require('node:os');
   }
   await a.query('INSERT INTO advent_test_member_state (user_id,correct_streak) VALUES ($1,4)',[user]);
   await a.query('INSERT INTO advent_test_generations (user_id,quiz_day,generation) VALUES ($1,11,$2)',[user,'00000000-0000-0000-0000-000000000004']);
+  // Bonus answers and in-flight state for a deleted test day must be removed,
+  // while the neighboring day's bonus and its evidence remain untouched.
+  for (const day of [11,12]) {
+   await a.query(`INSERT INTO advent_bonus_quizzes (quiz_day,character_key,display_name,statement_0,statement_1,statement_2,false_choice) VALUES ($1,$2,'Synthetic','One','Two','Three',2)`,[day,`bonus-${day}`]);
+   await a.query(`INSERT INTO advent_bonus_answers (user_id,quiz_day,answer_id,choice,correct_choice,answered_at,reveal_at) VALUES ($1,$2,$3,0,2,now(),now())`,[user,day,`00000000-0000-0000-0000-${String(day).padStart(12,'0')}`]);
+   await a.query(`INSERT INTO advent_bonus_generations (user_id,quiz_day,generation) VALUES ($1,$2,$3)`,[user,day,`10000000-0000-0000-0000-${String(day).padStart(12,'0')}`]);
+   await a.query(`INSERT INTO advent_bonus_attempts (id,user_id,quiz_day) VALUES ($1,$2,$3)`,[`20000000-0000-0000-0000-${String(day).padStart(12,'0')}`,user,day]);
+   await a.query(`INSERT INTO advent_bonus_replays (user_id,quiz_day) VALUES ($1,$2)`,[user,day]);
+  }
   await assert.rejects(deleteTestDays(a,'production',[11]));
   await deleteTestDays(a,'development',[11]);
+  for (const table of ['advent_bonus_quizzes','advent_bonus_answers','advent_bonus_generations','advent_bonus_attempts','advent_bonus_replays']) {
+   assert.deepEqual((await a.query(`SELECT quiz_day FROM ${table} ORDER BY quiz_day`)).rows,[{quiz_day:12}]);
+  }
   assert.deepEqual((await a.query('SELECT quiz_day,bonus_points FROM advent_test_answers ORDER BY quiz_day')).rows,[{quiz_day:10,bonus_points:0},{quiz_day:12,bonus_points:0},{quiz_day:13,bonus_points:2}]);
   assert.equal((await a.query('SELECT correct_streak FROM advent_test_member_state WHERE user_id=$1',[user])).rows[0].correct_streak,3);
   assert.equal((await a.query('SELECT COUNT(*)::int AS n FROM advent_test_generations WHERE quiz_day=11')).rows[0].n,0);
