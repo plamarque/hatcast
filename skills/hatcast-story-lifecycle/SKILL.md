@@ -1,6 +1,6 @@
 ---
 name: hatcast-story-lifecycle
-description: Coordinates a HatCast story delivery lifecycle. Use when the user says "start story delivery", "review this story", "approve this PR", "request story changes", or "prepare a HatCast release".
+description: Coordinates HatCast story delivery and incoming pull request review and local integration. Use for story delivery, an incoming PR, review decisions, or HatCast release preparation.
 ---
 
 # HatCast story lifecycle
@@ -20,7 +20,9 @@ action must leave him an auditable PR, exact revision and clear next decision.
 
 ## On Activation
 
-Identify the requested operation and story key first; ask only for either item
+Identify whether the work is a HatCast story or an incoming PR. For an incoming
+PR, use the separate procedure below; do not treat it as a story. For a story,
+identify the requested operation and story key first; ask only for either item
 that is missing. Then read `{project-root}/AGENTS.md`, the relevant story
 specification and `{project-root}/_bmad/custom/story-branch-workflow.md`.
 
@@ -57,6 +59,34 @@ python3 {project-root}/scripts/v2/github_review_decision_controller.py \
 `prepare` resolves or creates the single PR and captures every snapshot page;
 `record` writes the explicitly authorised lane and attestation, then re-reads
 and validates it; `preflight` only captures and validates.
+
+## Incoming pull requests
+
+An incoming PR is a proposed contribution, not necessarily a tracked story or
+a branch owned by Patrice. Identify it by repository and PR number; use
+`pr-<number>` as its local unit key (for example `pr-21`). Read its actual
+base, head SHA, changes and review state before acting, and recheck the head
+before integrating. Never invent a story or add it to `sprint-status.yaml`.
+
+The current `story-branch.sh start` validates story keys against the epic
+registry and does not support arbitrary PR keys. Do not repeatedly invoke it or
+claim it supports `pr-<number>`. If no dedicated incoming-PR controller exists,
+prepare an isolated Git worktree and local branch for the exact PR head; record
+the repository, PR URL, base and head. Keep unrelated work and the integration
+checkout intact. Apply requested fixes and run checks in that unit. Review the
+PR against its own merge base and separately assess conflicts against current
+`v2`; document any test or human-smoke gaps.
+
+When Patrice explicitly requests local closure, commit only the accepted PR
+work and local corrections, reconcile conflicts as authorized, integrate into a
+clean `v2` and verify the final tree and ancestry. Preserve the original PR
+commit in the local history when practical so an eventual push can associate the
+contribution with the PR. Clean up only this unit after verified local
+integration. Local closure does not authorize a push, deployment, GitHub
+comment, PR closure or remote branch deletion. If a push is separately
+authorized, verify the remote commit and inspect whether GitHub marked the PR as
+merged indirectly; do not assume it did. Do not push fixes to the author's PR
+branch unless explicitly requested.
 
 ## Local stack ports
 
