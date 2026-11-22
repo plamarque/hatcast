@@ -10,6 +10,13 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Current follow-up
 
+### BUG-134 — Uncaptured available candidates cannot open their chances
+
+- **Status:** Fixed locally; development verification pending. **Severity:** Medium. **Affected area:** Published availability chance details.
+- **Observed behavior:** An available candidate absent from the role capture was disabled, preventing access to a current estimate. A role-wide warning obscured the capture heading.
+- **Expected behavior:** Retain the dated role heading and allow eligible uncaptured candidates to open a clearly labelled current estimate. Mention late availability only when the role-specific audit supports it.
+- **Context:** Reported for Patrice, MC at Apérock café, in development on 22 November 2026.
+
 ### BUG-133 — Replayed capture dates are hidden or shared across people
 
 - **Status:** Fixed locally; development verification pending. **Severity:** Medium. **Affected area:** Published chance explanation.

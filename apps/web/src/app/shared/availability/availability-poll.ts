@@ -304,7 +304,8 @@ export class AvailabilityPoll {
 
   protected poolInteractive(roleKey: string): boolean {
     return this.explainabilityEnabled() && this.roleAvatars(roleKey).some(
-      (candidate) => candidate.publishedAssignment || candidate.chancePercent != null,
+      (candidate) => candidate.publishedAssignment || candidate.chancePercent != null ||
+        (this.summary().chanceSource === 'baseline' && candidate.isCandidate !== false),
     )
   }
 
@@ -384,7 +385,8 @@ export class AvailabilityPoll {
     const candidate = this.summary()
       .roles.find((role) => role.roleKey === roleKey)
       ?.candidates.find((row) => row.participantId === event.participantId)
-    if (!candidate || (!candidate.publishedAssignment && candidate.chancePercent == null)) {
+    if (!candidate || (!candidate.publishedAssignment && candidate.chancePercent == null &&
+      (this.summary().chanceSource !== 'baseline' || candidate.isCandidate === false))) {
       return
     }
     await this.chanceBreakdown.open({

@@ -84,7 +84,6 @@
       } @else if (showRecorded() && (showSnapshot() || avatars().some(hasPublishedAssignment))) {
         @if (showSnapshot()) {
           <p>@if (snapshotAt()) { Capture de référence du {{ snapshotAt() | date:'dd/MM/yyyy HH:mm' }} } @else if (avatars().some(hasChance)) { Capture des chances partielle. } @else { Capture des chances indisponible. }</p>
-          @if (snapshotAt() && avatars().some(hasMissingChance)) { <p>La capture ne couvre pas tous les candidats affichés.</p> }
         }
         <app-availability-recorded-candidates
           [candidates]="avatars()"

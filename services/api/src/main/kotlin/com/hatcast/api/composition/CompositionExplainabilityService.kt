@@ -30,6 +30,8 @@ import com.hatcast.api.user.MemberGender
 import com.hatcast.api.user.ParticipantAvatarResolver
 import com.hatcast.api.user.ParticipantGenderResolver
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.hatcast.api.audit.AuditActionType
+import com.hatcast.api.audit.AuditEventRepository
 import org.springframework.beans.factory.ObjectProvider
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
@@ -63,7 +65,24 @@ class CompositionExplainabilityService(
     private val troupeCategoryRepository: TroupeCategoryRepository,
     private val roleChanceReconstructionRepository: RoleChanceReconstructionRepository,
     private val objectMapper: ObjectMapper,
+    private val auditEventRepository: AuditEventRepository,
 ) {
+    private fun availabilityForRoleAfterCapture(eventId: UUID, participantId: UUID, userId: UUID?, roleKey: String, capturedAt: Instant?): Boolean {
+        if (capturedAt == null) return false
+        fun candidate(state: Map<String, Any?>?): Boolean? {
+            state ?: return false
+            val status = state["status"] as? String ?: return null
+            val roles = state["roleKeys"] as? List<*> ?: return null
+            return status.equals("available", ignoreCase = true) && (roles.isEmpty() || roleKey in roles)
+        }
+        val relevant = auditEventRepository.findByEventIdOrderByOccurredAtDesc(eventId).filter {
+            it.actionType in setOf(AuditActionType.AVAILABILITY_CREATED, AuditActionType.AVAILABILITY_UPDATED, AuditActionType.AVAILABILITY_DELETED) &&
+                (it.subjectSeasonParticipantId == participantId || it.subjectEventParticipantId == participantId ||
+                    (it.subjectSeasonParticipantId == null && it.subjectEventParticipantId == null && userId != null && it.subjectUserId == userId))
+        }
+        val transition = relevant.firstOrNull { candidate(it.beforeJson) != candidate(it.afterJson) } ?: return false
+        return transition.occurredAt.isAfter(capturedAt) && candidate(transition.beforeJson) == false && candidate(transition.afterJson) == true
+    }
     private fun reconstructedChanceDate(eventId: UUID, roleKey: String, participantId: UUID): Instant? {
         val reconstruction = roleChanceReconstructionRepository.findById(RoleChanceBaselineId(eventId, roleKey)).orElse(null)
             ?.takeIf { it.supersededAt == null } ?: return null
@@ -145,21 +164,26 @@ class CompositionExplainabilityService(
                 gender = participantGenderResolver.resolveByParticipantIds(eventId, setOf(participantId))[participantId] ?: "non_specified",
             )
         }
+        var currentEstimateAfterCapture = false
+        var availableForRoleAfterCapture = false
         if (canViewAssignments && CompositionVisibilityRules.hasPublishedSelection(composition)) {
             val summary = availabilityService.getSummary(seasonId, eventId, principal, includeChances = true, formulaId = formulaId)
             if (summary.chanceSource == "baseline") {
                 val role = summary.roles.firstOrNull { it.roleKey == roleKey }
                 val candidate = role?.candidates?.firstOrNull { it.participantId == participantId }
                     ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Participant non éligible pour ce rôle")
-                return ChanceBreakdownDto(
+                if (candidate.chancePercent != null || !candidate.isCandidate) return ChanceBreakdownDto(
                     participantId = participantId, roleKey = roleKey, displayName = candidate.displayName,
                     chancePercent = null, recordedSnapshot = true, recordedPercent = candidate.chancePercent,
                     recordedAt = if (role.chanceProvenance == "reconstructed") reconstructedChanceDate(eventId, roleKey, participantId) else role.chanceSnapshotAt,
                     recordedSource = role.chanceProvenance, avatarUrl = candidate.avatarUrl, gender = candidate.gender,
                 )
+                currentEstimateAfterCapture = true
+                val userId = summary.participants.firstOrNull { it.participantId == participantId }?.userId
+                availableForRoleAfterCapture = availabilityForRoleAfterCapture(eventId, participantId, userId, roleKey, role.chanceSnapshotAt)
             }
-            // Never fall through to the live simulation for a visible publication.
-            throw ResponseStatusException(HttpStatus.FORBIDDEN, "Accès refusé")
+            // A live calculation is available only for an uncaptured, currently eligible candidate.
+            if (!currentEstimateAfterCapture) throw ResponseStatusException(HttpStatus.FORBIDDEN, "Accès refusé")
         }
         val legacySnapshot =
             if (currentAssignment != null && currentAssignment.selectionChanceSource == null) {
@@ -242,6 +266,8 @@ class CompositionExplainabilityService(
             )
 
         return ChanceBreakdownDto(
+            currentEstimateAfterCapture = currentEstimateAfterCapture,
+            availableForRoleAfterCapture = availableForRoleAfterCapture,
             recordedPercent = currentAssignment?.selectionChancePercent ?: legacySnapshot?.chancePercent,
             recordedAt = currentAssignment?.selectionChanceAt ?: legacySnapshot?.snapshottedAt,
             recordedSource = currentAssignment?.selectionChanceSource ?: legacySnapshot?.let { "draw_opening" },

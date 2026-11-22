@@ -15,8 +15,8 @@ import { UserAvatarComponent } from '../user-avatar/user-avatar'
       <app-composition-pool-preview [dispos]="true" [pool]="pool()" [interactive]="interactive()" (segmentTap)="segmentTap.emit($event)" />
     }
     @for (candidate of missingRecorded(); track candidate.participantId) {
-      <button mat-button type="button" class="recorded-missing" [class.recorded-missing--assigned]="candidate.publishedAssignment" [style.background]="candidate.publishedAssignment ? selectionBackground(candidate.participationStatus) : 'var(--mat-sys-surface-container-highest)'" [disabled]="!interactive() || !candidate.publishedAssignment"
-        [attr.aria-label]="candidate.publishedAssignment ? 'Voir la fiche de sélection de ' + candidate.displayName + ', capture des chances indisponible' : candidate.displayName + ', capture indisponible'"
+      <button mat-button type="button" class="recorded-missing" [class.recorded-missing--assigned]="candidate.publishedAssignment" [style.background]="candidate.publishedAssignment ? selectionBackground(candidate.participationStatus) : 'var(--mat-sys-surface-container-highest)'" [disabled]="!interactive() || (candidate.isCandidate === false && !candidate.publishedAssignment)"
+        [attr.aria-label]="candidate.publishedAssignment ? 'Voir la fiche de sélection de ' + candidate.displayName + ', capture des chances indisponible' : 'Voir les chances de ' + candidate.displayName"
         (click)="segmentTap.emit({ participantId: candidate.participantId, chancePercent: null })">
         <app-user-avatar [displayName]="candidate.displayName" [avatarUrl]="candidate.avatarUrl ?? null" [gender]="candidate.gender ?? null" [size]="20" />
         <span class="recorded-missing__label">{{ candidate.displayName }}</span>

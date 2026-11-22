@@ -37,7 +37,6 @@
         } @else if (explainabilityEnabled() && (chanceSource() === 'baseline' || role.candidates.some(hasPublishedAssignment))) {
           @if (chanceSource() === 'baseline') {
             <p>@if (role.chanceSnapshotAt) { Capture de référence du {{ role.chanceSnapshotAt | date:'dd/MM/yyyy HH:mm' }} } @else if (role.candidates.some(hasChance)) { Capture des chances partielle. } @else { Capture des chances indisponible. }</p>
-            @if (role.chanceSnapshotAt && role.candidates.some(hasMissingChance)) { <p>La capture ne couvre pas tous les candidats affichés.</p> }
           }
           <app-availability-recorded-candidates
             [candidates]="role.candidates"

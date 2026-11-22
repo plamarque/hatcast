@@ -97,6 +97,8 @@ export interface ChanceBreakdownPeer {
 }
 
 export interface ChanceBreakdown {
+  currentEstimateAfterCapture?: boolean
+  availableForRoleAfterCapture?: boolean
   participantId: string
   roleKey: string
   displayName: string

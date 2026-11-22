@@ -1367,6 +1367,55 @@ class CompositionDrawIntegrationTest {
     }
 
     @Test
+    fun `uncaptured candidate can see a current estimate after becoming available`() {
+        val admin = memberCookie("sub-late-estimate-admin", admin = true)
+        val first = memberCookie("sub-late-estimate-first")
+        val second = memberCookie("sub-late-estimate-second")
+        val seasonId = createSeason(admin)
+        val eventId = createEvent(admin, seasonId, """{ "player": 1 }""")
+        setAvailability(first, seasonId, eventId, "available")
+        setAvailability(second, seasonId, eventId, "unavailable")
+        val firstId = participantIdForUser(seasonId, "sub-late-estimate-first")
+        val secondId = participantIdForUser(seasonId, "sub-late-estimate-second")
+        assignSlot(admin, seasonId, eventId, "player", 0, firstId)
+        validateComposition(eventId)
+        setAvailability(second, seasonId, eventId, "available")
+        val path = "/v1/seasons/$seasonId/events/$eventId/composition/chance-breakdown"
+        mockMvc.perform(get(path).param("roleKey", "player").param("participantId", secondId.toString()).cookie(admin))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.currentEstimateAfterCapture").value(true))
+            .andExpect(jsonPath("$.availableForRoleAfterCapture").value(true))
+            .andExpect(jsonPath("$.recordedSnapshot").value(false))
+            .andExpect(jsonPath("$.chancePercent").isNumber)
+        mockMvc.perform(get(path).param("roleKey", "player").param("participantId", firstId.toString()).cookie(admin))
+            .andExpect(status().isOk).andExpect(jsonPath("$.recordedSelection").value(true))
+            .andExpect(jsonPath("$.currentEstimateAfterCapture").value(false))
+    }
+
+    @Test
+    fun `a missing capture alone does not imply late availability`() {
+        val admin = memberCookie("sub-unknown-estimate-admin", admin = true)
+        val first = memberCookie("sub-unknown-estimate-first")
+        val second = memberCookie("sub-unknown-estimate-second")
+        val seasonId = createSeason(admin)
+        val eventId = createEvent(admin, seasonId, """{ "player": 1 }""")
+        setAvailability(first, seasonId, eventId, "available")
+        setAvailability(second, seasonId, eventId, "available")
+        val firstId = participantIdForUser(seasonId, "sub-unknown-estimate-first")
+        val secondId = participantIdForUser(seasonId, "sub-unknown-estimate-second")
+        assignSlot(admin, seasonId, eventId, "player", 0, firstId)
+        validateComposition(eventId)
+        roleChanceBaselineEntryRepository.deleteById(RoleChanceBaselineEntryId(eventId, "player", secondId))
+        roleChanceBaselineEntryRepository.flush()
+        mockMvc.perform(get("/v1/seasons/$seasonId/events/$eventId/composition/chance-breakdown")
+            .param("roleKey", "player").param("participantId", secondId.toString()).cookie(admin))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.currentEstimateAfterCapture").value(true))
+            .andExpect(jsonPath("$.availableForRoleAfterCapture").value(false))
+            .andExpect(jsonPath("$.chancePercent").isNumber)
+    }
+
+    @Test
     fun `complete redraw captures all eligible candidates for legacy composition`() {
         val admin = memberCookie("sub-redraw-legacy-admin", admin = true)
         val members = listOf("a", "b", "c").map { memberCookie("sub-redraw-legacy-$it") }

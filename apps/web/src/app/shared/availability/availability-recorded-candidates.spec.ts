@@ -29,7 +29,7 @@ describe('AvailabilityRecordedCandidates', () => {
     other.click()
     expect(tap).toHaveBeenCalledWith({ participantId: 'b', chancePercent: 63 })
   })
-  it('distinguishes neutral disabled badges from assigned gradient badges without changing access', async () => {
+  it('makes neutral and assigned badges accessible when interaction is enabled', async () => {
     await TestBed.configureTestingModule({ imports: [AvailabilityRecordedCandidates] }).compileComponents()
     const fixture = TestBed.createComponent(AvailabilityRecordedCandidates)
     fixture.componentRef.setInput('interactive', true)
@@ -40,7 +40,8 @@ describe('AvailabilityRecordedCandidates', () => {
     ])
     fixture.detectChanges()
     const badges = [...fixture.nativeElement.querySelectorAll('.recorded-missing')] as HTMLButtonElement[]
-    expect(badges[0].disabled).toBe(true)
+    expect(badges[0].disabled).toBe(false)
+    expect(badges[0].getAttribute('aria-label')).toBe('Voir les chances de Noor')
     expect(badges[0].classList.contains('recorded-missing--assigned')).toBe(false)
     expect(badges[1].disabled).toBe(false)
     expect(badges[1].getAttribute('aria-label')).toBe('Voir la fiche de sélection de Paul, capture des chances indisponible')

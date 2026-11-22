@@ -199,6 +199,17 @@ describe('ChanceBreakdownSheet', () => {
     expect(el.querySelector('[data-testid="chance-breakdown-final"]')?.textContent).toContain('18')
   })
 
+  it('distinguishes a current estimate for a late candidate from the capture', () => {
+    fixture.componentInstance['breakdown'].set({ ...baseBreakdown, currentEstimateAfterCapture: true, availableForRoleAfterCapture: true, chancePercent: 25 })
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent.replace(/\s+/g, ' ')).toContain('Disponible pour ce rôle après la capture. Voici son estimation actuelle.')
+    expect(fixture.nativeElement.textContent).toContain('25')
+    fixture.componentInstance['breakdown'].set({ ...baseBreakdown, currentEstimateAfterCapture: true, availableForRoleAfterCapture: false, chancePercent: 25 })
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent.replace(/\s+/g, ' ')).toContain('Cette personne ne figure pas dans la capture. Voici son estimation actuelle.')
+    expect(fixture.nativeElement.textContent).not.toContain('Disponible pour ce rôle après la capture.')
+  })
+
   it('shows the current breakdown and recorded selection separately', () => {
     fixture.componentInstance['breakdown'].set({
       ...baseBreakdown, recordedPercent: 36, recordedAt: '2026-11-12T19:15:00Z', recordedSource: 'manual',
