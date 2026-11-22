@@ -1393,6 +1393,28 @@ class CompositionDrawIntegrationTest {
     }
 
     @Test
+    fun `availability after a draft capture but before validation is not labelled after composition`() {
+        val admin = memberCookie("sub-draft-estimate-admin", admin = true)
+        val first = memberCookie("sub-draft-estimate-first")
+        val second = memberCookie("sub-draft-estimate-second")
+        val seasonId = createSeason(admin)
+        val eventId = createEvent(admin, seasonId, """{ "player": 1 }""")
+        setAvailability(first, seasonId, eventId, "available")
+        setAvailability(second, seasonId, eventId, "unavailable")
+        val firstId = participantIdForUser(seasonId, "sub-draft-estimate-first")
+        val secondId = participantIdForUser(seasonId, "sub-draft-estimate-second")
+        assignSlot(admin, seasonId, eventId, "player", 0, firstId)
+        setAvailability(second, seasonId, eventId, "available")
+        validateComposition(eventId)
+        mockMvc.perform(get("/v1/seasons/$seasonId/events/$eventId/composition/chance-breakdown")
+            .param("roleKey", "player").param("participantId", secondId.toString()).cookie(admin))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.currentEstimateAfterCapture").value(true))
+            .andExpect(jsonPath("$.availableForRoleAfterCapture").value(false))
+            .andExpect(jsonPath("$.chancePercent").isNumber)
+    }
+
+    @Test
     fun `a missing capture alone does not imply late availability`() {
         val admin = memberCookie("sub-unknown-estimate-admin", admin = true)
         val first = memberCookie("sub-unknown-estimate-first")

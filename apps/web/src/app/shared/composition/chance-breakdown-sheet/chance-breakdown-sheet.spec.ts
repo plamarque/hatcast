@@ -202,12 +202,12 @@ describe('ChanceBreakdownSheet', () => {
   it('distinguishes a current estimate for a late candidate from the capture', () => {
     fixture.componentInstance['breakdown'].set({ ...baseBreakdown, currentEstimateAfterCapture: true, availableForRoleAfterCapture: true, chancePercent: 25 })
     fixture.detectChanges()
-    expect(fixture.nativeElement.textContent.replace(/\s+/g, ' ')).toContain('Disponible pour ce rôle après la capture. Voici son estimation actuelle.')
+    expect(fixture.nativeElement.textContent.replace(/\s+/g, ' ')).toContain('Alice a été disponible après que la composition ait été faite. Voici l’estimation de ses chances actuelles.')
     expect(fixture.nativeElement.textContent).toContain('25')
     fixture.componentInstance['breakdown'].set({ ...baseBreakdown, currentEstimateAfterCapture: true, availableForRoleAfterCapture: false, chancePercent: 25 })
     fixture.detectChanges()
-    expect(fixture.nativeElement.textContent.replace(/\s+/g, ' ')).toContain('Cette personne ne figure pas dans la capture. Voici son estimation actuelle.')
-    expect(fixture.nativeElement.textContent).not.toContain('Disponible pour ce rôle après la capture.')
+    expect(fixture.nativeElement.textContent.replace(/\s+/g, ' ')).toContain('Cette personne ne figure pas dans la capture. Voici l’estimation de ses chances actuelles.')
+    expect(fixture.nativeElement.textContent).not.toContain('après que la composition ait été faite.')
   })
 
   it('shows the current breakdown and recorded selection separately', () => {

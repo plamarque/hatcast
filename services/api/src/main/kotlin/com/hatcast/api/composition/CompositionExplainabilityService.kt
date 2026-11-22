@@ -180,7 +180,8 @@ class CompositionExplainabilityService(
                 )
                 currentEstimateAfterCapture = true
                 val userId = summary.participants.firstOrNull { it.participantId == participantId }?.userId
-                availableForRoleAfterCapture = availabilityForRoleAfterCapture(eventId, participantId, userId, roleKey, role.chanceSnapshotAt)
+                val compositionReadyAt = listOfNotNull(role.chanceSnapshotAt, composition?.validatedAt, composition?.publishedAt).maxOrNull()
+                availableForRoleAfterCapture = availabilityForRoleAfterCapture(eventId, participantId, userId, roleKey, compositionReadyAt)
             }
             // A live calculation is available only for an uncaptured, currently eligible candidate.
             if (!currentEstimateAfterCapture) throw ResponseStatusException(HttpStatus.FORBIDDEN, "Accès refusé")

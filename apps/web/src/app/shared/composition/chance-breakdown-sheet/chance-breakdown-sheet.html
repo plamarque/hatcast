@@ -7,7 +7,7 @@
 >
   @let displayedPercent = (breakdown().recordedSelection || breakdown().recordedSnapshot) ? breakdown().recordedPercent : breakdown().chancePercent;
   @if (breakdown().currentEstimateAfterCapture) {
-    <p class="chance-breakdown-sheet__step-banner" role="status">@if (breakdown().availableForRoleAfterCapture) { Disponible pour ce rôle après la capture. } @else { Cette personne ne figure pas dans la capture. } Voici son estimation actuelle.</p>
+    <p class="chance-breakdown-sheet__step-banner" role="status">@if (breakdown().availableForRoleAfterCapture) { {{ breakdown().displayName }} a été disponible après que la composition ait été faite. } @else { Cette personne ne figure pas dans la capture. } Voici l’estimation de ses chances actuelles.</p>
   }
   @if (!(breakdown().recordedSelection || breakdown().recordedSnapshot) && data.stepBanner) {
     <p class="chance-breakdown-sheet__step-banner" role="status">{{ data.stepBanner }}</p>
