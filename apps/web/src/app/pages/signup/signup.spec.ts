@@ -92,7 +92,7 @@ describe('Signup', () => {
     expect(getPendingPostLoginRedirect()).toBe('/agenda?tab=upcoming')
   })
 
-  it('shows snackbar and skips IdP when passwords mismatch', async () => {
+  it('shows inline error and skips IdP when passwords mismatch', async () => {
     fixture.detectChanges()
     const component = fixture.componentInstance as Signup & {
       signUpWithEmail: () => Promise<void>
@@ -106,11 +106,8 @@ describe('Signup', () => {
 
     await component.signUpWithEmail()
 
-    expect(snackOpen).toHaveBeenCalledWith(
-      'Les deux mots de passe ne correspondent pas.',
-      'OK',
-      { duration: 6000 },
-    )
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.auth__error')?.textContent).toContain('Les deux mots de passe ne correspondent pas.')
     expect(createUserWithEmailAndPassword).not.toHaveBeenCalled()
   })
 
@@ -137,7 +134,7 @@ describe('Signup', () => {
       'fresh-id-token',
       true,
     )
-    expect(snackOpen).toHaveBeenCalledWith('Connexion réussie.', 'OK', { duration: 3500 })
+    expect(snackOpen).not.toHaveBeenCalled()
     expect(navigateAfterSignIn).toHaveBeenCalled()
     expect(routerNavigateSpy).not.toHaveBeenCalled()
   })
@@ -224,11 +221,47 @@ describe('Signup', () => {
     await component.signUpWithEmail()
 
     expect(routerNavigateSpy).not.toHaveBeenCalled()
-    expect(snackOpen).toHaveBeenCalledWith(
-      'Ce compte n’est pas autorisé à accéder à HatCast.',
-      'OK',
-      { duration: 8000 },
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.auth__error')?.textContent).toContain('Ce compte n’est pas autorisé à accéder à HatCast.')
+  })
+
+  it('ignores repeated submits while a sign-up is in flight', async () => {
+    createUserWithEmailAndPassword.mockResolvedValue({
+      user: { getIdToken: vi.fn().mockResolvedValue('fresh-id-token') },
+    })
+    let resolveIdp!: (value: { ok: boolean; status: number }) => void
+    signInWithIdentityPlatformIdTokenWithRetry.mockReturnValue(
+      new Promise((resolve) => {
+        resolveIdp = resolve
+      }),
     )
+
+    fixture.detectChanges()
+    const component = fixture.componentInstance as Signup & {
+      signUpWithEmail: () => Promise<void>
+    }
+    component['emailForm'].setValue({
+      email: 'new@example.com',
+      password: 'password123',
+      confirmPassword: 'password123',
+    })
+
+    const first = component.signUpWithEmail()
+    const second = component.signUpWithEmail()
+    fixture.detectChanges()
+
+    const submit = fixture.nativeElement.querySelector('button[type="submit"]') as HTMLButtonElement
+    expect(submit.disabled).toBe(true)
+    await second
+    expect(createUserWithEmailAndPassword).toHaveBeenCalledTimes(1)
+
+    resolveIdp({ ok: true, status: 200 })
+    await first
+    fixture.detectChanges()
+
+    expect(signInWithIdentityPlatformIdTokenWithRetry).toHaveBeenCalledTimes(1)
+    expect(snackOpen).not.toHaveBeenCalled()
+    expect(submit.disabled).toBe(false)
   })
 
   it('does not reference deleteUser in signup.ts', () => {

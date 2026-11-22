@@ -13,13 +13,16 @@ import { MatButtonModule } from '@angular/material/button'
 import { MatCardModule } from '@angular/material/card'
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { MatFormFieldModule } from '@angular/material/form-field'
+import { MatIconModule } from '@angular/material/icon'
 import { MatInputModule } from '@angular/material/input'
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 import { createUserWithEmailAndPassword } from 'firebase/auth'
 import { firstValueFrom } from 'rxjs'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
+import { showAuthSuccess } from '../../core/auth/auth-success-feedback'
 import { finishIdpSignInAfterEmailAuth } from '../../core/auth/finish-idp-email-auth'
 import {
   userMessageForGoogleSignInFailure,
@@ -74,7 +77,9 @@ declare global {
     MatCardModule,
     MatButtonModule,
     MatFormFieldModule,
+    MatIconModule,
     MatInputModule,
+    MatProgressSpinnerModule,
     MatDialogModule,
     ReactiveFormsModule,
     RouterLink,
@@ -105,6 +110,13 @@ export class Signup implements AfterViewInit, OnDestroy, OnInit {
   })
 
   protected readonly hasEmailAuth = signal(this.firebaseAuth.hasFirebaseWebConfig())
+
+  /** Bloque les soumissions répétées pendant qu’une inscription est en cours. */
+  protected readonly submitting = signal(false)
+  protected readonly submittingMethod = signal<'email' | 'google' | null>(null)
+  protected readonly authSucceeded = signal(false)
+  protected readonly emailError = signal<string | null>(null)
+  protected readonly googleError = signal<string | null>(null)
 
   ngOnInit(): void {
     this.ingestReturnUrlFromQuery()
@@ -194,9 +206,8 @@ export class Signup implements AfterViewInit, OnDestroy, OnInit {
     const rawW = stack?.getBoundingClientRect().width ?? 0
     const w = Math.max(Math.floor(rawW), 280)
     host.replaceChildren()
-    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches
     g.renderButton(host, {
-      theme: dark ? 'filled_black' : 'outline',
+      theme: 'filled_blue',
       type: 'standard',
       size: 'large',
       shape: 'pill',
@@ -207,34 +218,52 @@ export class Signup implements AfterViewInit, OnDestroy, OnInit {
   }
 
   private async onGoogleCredential(idToken: string): Promise<void> {
-    this.devLog.set(null)
-    const r = await this.auth.signInWithGoogleIdToken(idToken, SIGNUP_REMEMBER_ME)
-    if (r.ok && r.data) {
-      setHatcastRememberMePreference(SIGNUP_REMEMBER_ME)
-      await this.maybePromptGoogleAvatarImport(r.data)
-      this.snack.open('Connexion réussie.', 'OK', { duration: 3500 })
-      await this.postLoginNav.navigateAfterSignIn(this.router)
-      return
-    }
-    const msg = userMessageForGoogleSignInFailure(r.status)
-    this.snack.open(msg, 'OK', { duration: 8000 })
-    if (this.isDev) {
-      this.devLog.set(JSON.stringify({ status: r.status, hint: 'voir logs API pour le détail' }, null, 2))
+    if (this.submitting()) return
+    this.submitting.set(true)
+    this.googleError.set(null)
+    this.emailError.set(null)
+    this.submittingMethod.set('google')
+    try {
+      this.devLog.set(null)
+      const r = await this.auth.signInWithGoogleIdToken(idToken, SIGNUP_REMEMBER_ME)
+      if (r.ok && r.data) {
+        setHatcastRememberMePreference(SIGNUP_REMEMBER_ME)
+        await this.maybePromptGoogleAvatarImport(r.data)
+        await showAuthSuccess(() => this.authSucceeded.set(true))
+        await this.postLoginNav.navigateAfterSignIn(this.router)
+        return
+      }
+      const msg = userMessageForGoogleSignInFailure(r.status)
+      this.googleError.set(msg)
+      if (this.isDev) {
+        this.devLog.set(JSON.stringify({ status: r.status, hint: 'voir logs API pour le détail' }, null, 2))
+      }
+    } finally {
+      this.submittingMethod.set(null)
+      this.submitting.set(false)
     }
   }
 
   protected async signUpWithEmail(): Promise<void> {
+    if (this.submitting()) return
+    this.emailError.set(null)
+    this.googleError.set(null)
     this.emailForm.markAllAsTouched()
-    if (this.emailForm.invalid) return
+    if (this.emailForm.invalid) {
+      this.emailError.set('Vérifiez les champs renseignés et réessayez.')
+      return
+    }
     const auth = this.firebaseAuth.getAuthOrNull()
     if (!auth) return
 
     const { email, password, confirmPassword } = this.emailForm.getRawValue()
     if (password !== confirmPassword) {
-      this.snack.open('Les deux mots de passe ne correspondent pas.', 'OK', { duration: 6000 })
+      this.emailError.set('Les deux mots de passe ne correspondent pas.')
       return
     }
 
+    this.submitting.set(true)
+    this.submittingMethod.set('email')
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password)
       const idToken = await cred.user.getIdToken()
@@ -246,6 +275,8 @@ export class Signup implements AfterViewInit, OnDestroy, OnInit {
           postLoginNav: this.postLoginNav,
           isDev: this.isDev,
           devLog: this.devLog,
+          showSuccess: () => this.authSucceeded.set(true),
+          showError: (message) => this.emailError.set(message),
         },
         {
           idToken,
@@ -257,10 +288,16 @@ export class Signup implements AfterViewInit, OnDestroy, OnInit {
       )
     } catch (e: unknown) {
       const code = typeof e === 'object' && e && 'code' in e ? String((e as { code: string }).code) : ''
-      this.snack.open(userMessageForIdentityPlatformAuth(code), 'OK', { duration: 8000 })
+      const message = userMessageForIdentityPlatformAuth(code)
+      this.emailError.set(code === 'auth/wrong-password' || code === 'auth/invalid-credential'
+        ? 'Email ou mot de passe incorrect. Vérifiez-les ou essayez de vous connecter avec Google.'
+        : message)
       if (this.isDev) {
         this.devLog.set(code || String(e))
       }
+    } finally {
+      this.submittingMethod.set(null)
+      this.submitting.set(false)
     }
   }
 

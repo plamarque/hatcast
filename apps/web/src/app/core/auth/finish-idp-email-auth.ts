@@ -4,6 +4,7 @@ import { Router } from '@angular/router'
 
 import { PostLoginNavigationService } from '../navigation/post-login-navigation.service'
 import { AuthApiService } from './auth-api.service'
+import { showAuthSuccess } from './auth-success-feedback'
 import {
   userMessageForIdpApiFailure,
   userMessageForSignupIdpRecovery,
@@ -12,7 +13,6 @@ import { setHatcastRememberMePreference } from './hatcast-remember-me-storage'
 import { isTransientIdpFailure } from './idp-transient-retry'
 
 const RECOVERY_SNACKBAR_DURATION_MS = 8000
-const SUCCESS_SNACKBAR_DURATION_MS = 3500
 
 export interface FinishIdpEmailAuthContext {
   auth: AuthApiService
@@ -21,6 +21,8 @@ export interface FinishIdpEmailAuthContext {
   postLoginNav: PostLoginNavigationService
   isDev: boolean
   devLog: WritableSignal<string | null>
+  showSuccess: () => void
+  showError: (message: string) => void
 }
 
 export interface FinishIdpEmailAuthOptions {
@@ -54,7 +56,7 @@ export async function finishIdpSignInAfterEmailAuth(
 
   if (r.ok) {
     setHatcastRememberMePreference(rememberMe)
-    ctx.snack.open('Connexion réussie.', 'OK', { duration: SUCCESS_SNACKBAR_DURATION_MS })
+    await showAuthSuccess(ctx.showSuccess)
     await ctx.postLoginNav.navigateAfterSignIn(ctx.router)
     return
   }
@@ -68,8 +70,14 @@ export async function finishIdpSignInAfterEmailAuth(
     return
   }
 
-  const msg = userMessageForIdpApiFailure(r.status)
-  ctx.snack.open(msg, 'OK', { duration: RECOVERY_SNACKBAR_DURATION_MS })
+  const msg = r.status === 401
+    ? 'Email ou mot de passe incorrect. Vérifiez-les ou essayez de vous connecter avec Google.'
+    : r.status === 0
+      ? 'Connexion au serveur impossible. Vérifiez votre réseau et réessayez.'
+      : r.status === 400
+        ? 'Données de connexion invalides. Vérifiez-les et réessayez.'
+        : userMessageForIdpApiFailure(r.status)
+  ctx.showError(msg)
   if (ctx.isDev) {
     ctx.devLog.set(JSON.stringify({ status: r.status }, null, 2))
   }
