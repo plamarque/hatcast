@@ -35,8 +35,8 @@
         } @else if (!(breakdown().recordedSelection || breakdown().recordedSnapshot)) {
           <p>Estimation actuelle indisponible</p>
         }
-        @if (displayedPercent != null && (breakdown().recordedSelection || breakdown().recordedSnapshot || showMultiPlaceHint())) {
-          @let hint = breakdown().recordedSelection ? recordedSelectionExplanation() : breakdown().recordedSnapshot ? recordedSnapshotExplanation() : multiPlaceChanceExplanation();
+        @if (displayedPercent != null && !(breakdown().recordedSelection || breakdown().recordedSnapshot) && showMultiPlaceHint()) {
+          @let hint = multiPlaceChanceExplanation();
           <button type="button" class="chance-breakdown-sheet__hero-hint" #chanceHintTooltip="matTooltip"
             [matTooltip]="hint" matTooltipPosition="below" matTooltipTouchGestures="on"
             matTooltipShowDelay="0" matTooltipHideDelay="1500" (click)="onHintClick($event, chanceHintTooltip)"
@@ -47,6 +47,7 @@
   </header>
   @if (breakdown().recordedSelection || breakdown().recordedSnapshot) {
     @if (displayedPercent == null) { <p class="chance-selection__description">Chance enregistrée indisponible</p> }
+    @else { <p class="chance-selection__description">Ce pourcentage correspond aux chances {{ recordedPersonLabel() }} @if (recordedDate(); as date) { capturées le {{ date }} } lors de la composition de l’équipe.</p> }
   } @else {
   @if (breakdown().chancePercent != null) {
     <p class="chance-breakdown-sheet__pool-summary" data-testid="chance-breakdown-rank-summary">

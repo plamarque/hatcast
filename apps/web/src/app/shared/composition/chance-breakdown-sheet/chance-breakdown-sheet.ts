@@ -97,6 +97,11 @@ export class ChanceBreakdownSheet {
     return date ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeStyle: 'short' }).format(new Date(date)) : null
   }
 
+  protected recordedPersonLabel(): string {
+    const name = this.breakdown().displayName.trim()
+    return /^[aàâäeéèêëiîïoôöuùûüyÿh]/i.test(name) ? `d’${name}` : `de ${name}`
+  }
+
   protected chanceTodayLabel(): string {
     return this.viewingSelf() ? 'Ta chance estimée' : 'Sa chance estimée'
   }
@@ -159,16 +164,6 @@ export class ChanceBreakdownSheet {
   protected onHintClick(event: MouseEvent, tooltip: MatTooltip): void {
     event.stopPropagation()
     tooltip.toggle()
-  }
-
-  protected recordedSelectionExplanation(): string {
-    const date = this.recordedDate()
-    return 'Chance calculée au moment de la sélection de cette personne.' + (date ? ` Enregistrée le ${date}.` : ' Date indisponible.')
-  }
-
-  protected recordedSnapshotExplanation(): string {
-    const date = this.recordedDate()
-    return 'Chance calculée pour cette composition.' + (date ? ` Capture du ${date}.` : ' Date indisponible.')
   }
 
   protected multiPlaceChanceExplanation(): string {
