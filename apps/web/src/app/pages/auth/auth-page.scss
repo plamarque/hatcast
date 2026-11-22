@@ -85,6 +85,14 @@
   min-height: 3rem;
 }
 
+// Google renders a 40 px large button inside a larger iframe with white margins.
+.auth__google-host {
+  height: 40px;
+  min-height: 40px;
+  overflow: hidden;
+  border-radius: 999px;
+}
+
 .auth__google-visual {
   width: 100%;
   min-height: 3rem;

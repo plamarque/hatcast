@@ -2052,4 +2052,66 @@ describe('EventDetail', () => {
     expect(getEventPage).toHaveBeenCalledTimes(2)
   })
 
+  it('captures one notification link open for the URL that opened the event', async () => {
+    const route = TestBed.inject(ActivatedRoute) as unknown as { snapshot: { queryParamMap: ReturnType<typeof convertToParamMap> } }
+    route.snapshot.queryParamMap = convertToParamMap({ tab: 'equipe' })
+    queryParamMap$.next(convertToParamMap({ tab: 'equipe' }))
+    const captureOpened = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureNotificationLinkOpened')
+    fixture.detectChanges()
+    await vi.waitFor(() => expect(captureOpened).toHaveBeenCalledTimes(1))
+
+    expect(captureOpened).toHaveBeenCalledWith(
+      expect.objectContaining({ event_id: 'event-2', season_id: 'season-1', troupe_id: 'troupe-1' }),
+      { link_tab: 'equipe' },
+    )
+  })
+
+  it('keeps one notification link open after tab changes and a silent reload', async () => {
+    const route = TestBed.inject(ActivatedRoute) as unknown as { snapshot: { queryParamMap: ReturnType<typeof convertToParamMap> } }
+    route.snapshot.queryParamMap = convertToParamMap({ tab: 'equipe' })
+    queryParamMap$.next(convertToParamMap({ tab: 'equipe' }))
+    const captureOpened = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureNotificationLinkOpened')
+    fixture.detectChanges()
+    const cmp = fixture.componentInstance as unknown as EventDetailHarness & {
+      onTabChange(index: number): void
+      visibleTabs: () => string[]
+      reloadEvent(message: string): Promise<void>
+    }
+    await vi.waitFor(() => expect(captureOpened).toHaveBeenCalledTimes(1))
+
+    cmp.onTabChange(cmp.visibleTabs().indexOf('dispos'))
+    route.snapshot.queryParamMap = convertToParamMap({ tab: 'dispos' })
+    queryParamMap$.next(convertToParamMap({ tab: 'dispos' }))
+    fixture.detectChanges()
+    await cmp.reloadEvent('Mis à jour')
+
+    expect(captureOpened).toHaveBeenCalledTimes(1)
+    expect(captureOpened).toHaveBeenCalledWith(
+      expect.objectContaining({ event_id: 'event-2', season_id: 'season-1', troupe_id: 'troupe-1' }),
+      { link_tab: 'equipe' },
+    )
+  })
+
+  it('does not count in-app tab changes or silent reloads as notification link opens', async () => {
+    const route = TestBed.inject(ActivatedRoute) as unknown as { snapshot: { queryParamMap: ReturnType<typeof convertToParamMap> } }
+    const captureOpened = vi.spyOn(TestBed.inject(ProductAnalyticsService), 'captureNotificationLinkOpened')
+    fixture.detectChanges()
+    const cmp = fixture.componentInstance as unknown as EventDetailHarness & {
+      onTabChange(index: number): void
+      visibleTabs: () => string[]
+      reloadEvent(message: string): Promise<void>
+    }
+    await vi.waitFor(() => expect(cmp.event()).not.toBeNull())
+
+    for (const tab of ['equipe', 'dispos'] as const) {
+      cmp.onTabChange(cmp.visibleTabs().indexOf(tab))
+      route.snapshot.queryParamMap = convertToParamMap({ tab })
+      queryParamMap$.next(convertToParamMap({ tab }))
+      fixture.detectChanges()
+    }
+    await cmp.reloadEvent('Mis à jour')
+
+    expect(captureOpened).not.toHaveBeenCalled()
+  })
+
 })

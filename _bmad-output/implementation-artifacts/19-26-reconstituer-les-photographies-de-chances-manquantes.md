@@ -13,7 +13,11 @@ En tant que membre, je veux retrouver des chances comparables pour les compositi
 
 ## Clôture et suite de release
 
-Le 21 novembre 2026, Patrice valide la recette de développement et demande la clôture de l’implémentation avant la nouvelle RC. Les critères ci-dessous qui concernent la synchronisation, l’exécution ou la recette **staging restent des étapes de release non réalisées**, suivies dans [19-26-reprise-staging.md](19-26-reprise-staging.md). Leur report ne constitue pas une validation de la préproduction ni une autorisation d’écriture en production. Le dernier replay complet sur Neon development précédait la dernière modification de la référence du tirage ; cette modification a été vérifiée par tests et recette humaine du tirage, sans nouveau replay complet sur Neon.
+Le 21 novembre 2026, Patrice valide la recette de développement et demande la clôture de l’implémentation avant la nouvelle RC. Le 22 novembre, la préproduction est réinitialisée depuis la production, migrée puis rejouée pour la saison autorisée ; la RC 2.8.3-rc.3 est déployée et les contrôles E1 passent. Patrice valide ensuite la clôture de la story. La mise en production et toute écriture de replay en production restent une décision distincte.
+
+Le replay staging a reconstitué 35 rôles entièrement et un partiellement ; deux rôles de Caprani restent sans capture collective, leurs deux personnes sélectionnées conservant chacune une chance individuelle enregistrée. Un second passage a préservé les 36 résultats enregistrés. Ces chiffres portent sur les rôles, pas sur les spectacles ni sur le nombre de personnes.
+
+Pour le dernier reset, Patrice a demandé la procédure arrêt, reset depuis production et redémarrage sans nouvelle sauvegarde ; la restauration complète d’une sauvegarde staging n’a pas été vérifiée dans cette opération, malgré le critère historique AC2 ci-dessous.
 
 ## Acceptance Criteria
 
@@ -42,11 +46,12 @@ Le 21 novembre 2026, Patrice valide la recette de développement et demande la c
 - [x] Vérifier les changements de tirage et d’affichage en développement, puis recueillir la validation de Patrice.
 - [x] Mettre à jour les contrats, les tests et les protections de ciblage pour préparer staging.
 
-### Opérations de release en attente — non validées par cette clôture
+### Opérations de préproduction et suite de release
 
-- [ ] (AC2) Vérifier la sauvegarde et la restauration staging, neutraliser les notifications et synchroniser les données selon la procédure autorisée.
-- [ ] (AC3–5) Exécuter et contrôler le replay sur staging, comparer les captures et confirmer la reprise sans effets supplémentaires.
-- [ ] (AC6) Effectuer les contrôles et la recette humaine de préproduction avant toute décision sur la production.
+- [x] (AC2) Neutraliser les notifications et synchroniser staging depuis production selon la procédure explicitement autorisée par Patrice.
+- [x] (AC3–5) Exécuter le replay sur staging et vérifier la reprise sans réécriture des résultats déjà enregistrés ; les limites de couverture sont indiquées ci-dessus.
+- [x] (AC6) Exécuter les contrôles de préproduction et recueillir la validation de Patrice pour la clôture de la story.
+- [ ] Décider séparément de la mise en production après intégration des autres fonctionnalités prévues dans la patch release.
 
 ## Dev Notes
 
@@ -76,7 +81,7 @@ Codex.
 
 - Les données de production ont été copiées en development après désactivation des notifications ; Flyway et le replay y ont été exécutés. Les tables des compositions, disponibilités et chances individuelles préexistantes ont été préservées lors de l’essai.
 - Les estimations sont identifiées comme reconstituées ; les origines observées et inférées sont distinguées. La règle complète des volontaires au tirage et le replay ont été corrigés puis validés par les tests ciblés ; Patrice a validé le comportement en développement.
-- La suite API locale a exécuté 1 414 tests sans échec (19 ignorés) ; les tests ciblés du replay et des protections de cible passent. La synchronisation, le replay et la recette staging restent à réaliser séparément avant toute décision de production.
+- La suite API locale a exécuté 1 414 tests sans échec (19 ignorés) ; les tests ciblés du replay et des protections de cible passent. La RC 2.8.3-rc.3 et son contrôle E1 sont verts en préproduction ; sa recette est validée pour clôturer la story.
 
 ### File List
 
@@ -88,3 +93,4 @@ Codex.
 
 - 2026-11-21 : intention et décisions de préproduction enregistrées ; story en backlog.
 - 2026-11-21 : implémentation validée en développement et clôturée à la demande de Patrice ; migration et recette staging reportées aux opérations de release.
+- 2026-11-22 : replay et contrôles staging effectués, recette validée par Patrice ; production reportée à une release ultérieure enrichie.

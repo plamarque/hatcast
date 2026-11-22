@@ -477,7 +477,7 @@ Hors scope : modification de la capture ou du contenu des session replays, featu
 2. Récupérer la **Project API Key** (clé publique d’ingestion — même classe que `apiKey` Firebase côté front).
 3. Dashboards pilote : filtrer **`is_demo_troupe != true`** pour exclure la troupe Démo (FR64 / ADR-0015).
 
-**Événement `notification_link_opened` (MVP)** : déclenché dès que l’URL contient `?tab=dispos|equipe`, `?showConfirm=true` ou `?showAvailability=true` — y compris navigation manuelle ou favori, pas seulement un clic email/push (pas de param `src=notif` dans cette story). Interpréter les KPI « suivi notification » comme indicateur de **deep-link tab**, pas de source notif exclusive.
+**Événement `notification_link_opened` (MVP)** : déclenché une fois par ouverture de la fiche événement, quand l’URL d’arrivée contient `?tab=dispos|equipe`, `?showConfirm=true` ou `?showAvailability=true` — y compris navigation manuelle, favori ou rechargement de la page, pas seulement un clic email/push (pas de param `src=notif` dans cette story). Les changements d’onglet dans la fiche réécrivent `?tab=` mais ne déclenchent pas l’événement. Interpréter les KPI « suivi notification » comme indicateur de **deep-link tab**, pas de source notif exclusive.
 
 #### PWA adoption PostHog (Story 11.5)
 

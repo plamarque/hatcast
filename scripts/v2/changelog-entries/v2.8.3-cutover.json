@@ -4,9 +4,13 @@
   "source": "curated-release",
   "notes": "Product release",
   "changes": [
-    "Amélioration de l’affichage des % de chances"
+    "Des messages plus clairs à la connexion et à l’inscription.",
+    "Des chances de tirage et des disponibilités plus faciles à lire.",
+    "Le rôle prioritaire s’affiche dans l’agenda."
   ],
   "changes_en": [
-    "Improved display of chance percentages"
+    "Clearer feedback when signing in or signing up.",
+    "Easier-to-read draw odds and availability.",
+    "Your highest-priority role appears in the schedule."
   ]
 }

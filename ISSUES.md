@@ -97,7 +97,7 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ### BUG-124 — Ouvertures de liens de notification surcomptées
 
-- **Status:** Signalé ; correctif proposé dans la [PR #21](https://github.com/plamarque/hatcast/pull/21), non intégré. **Severity:** Medium. **Affected area:** V2, métrique PostHog `notification_link_opened` sur la fiche événement.
+- **Status:** Correctif intégré localement depuis la [PR #21](https://github.com/plamarque/hatcast/pull/21) ; vérification après déploiement en attente. **Severity:** Medium. **Affected area:** V2, métrique PostHog `notification_link_opened` sur la fiche événement.
 - **Observed behavior:** Les changements d’onglet et certains rechargements silencieux peuvent déclencher cette métrique sans ouverture d’un lien de notification. Les rapports qui l’utilisent peuvent donc surestimer les ouvertures.
 - **Expected behavior:** Ne pas comptabiliser les changements d’onglet et les rechargements silencieux comme des ouvertures de lien.
 - **Limite connue:** Les URL de notification ne portent pas de marqueur de provenance ; une arrivée par favori ou lien partagé peut aussi être comptabilisée.
