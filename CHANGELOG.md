@@ -1,5 +1,26 @@
 # Changelog
 
+## [2.8.3] - 2026-11-22
+
+### 🐛 Bug Fixes
+- fix(dispos): Close entry without role needs
+- fix(chances): Compare stored timestamps
+- fix(dispos): Show new role candidates
+- fix(chances): Remove rank summaries
+- fix(chances): Explain captures in the sheet
+- fix(chances): Clarify late availability
+- fix(chances): Show late candidate estimates
+- fix(chances): Simplify capture details
+- fix(chances): Show recorded capture dates
+- fix(chances): Restore selection chance display
+
+### 📝 Other Changes
+- chore(v2): promote v2 to staging-v2
+- test(chances): Align saved chance checks
+- chore(v2): sync release v2.8.3-rc.2 artifacts to v2
+
+---
+
 ## [2.8.3] - 2026-11-21
 
 ### ✨ New Features
