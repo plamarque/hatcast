@@ -1231,7 +1231,7 @@ class AvailabilityControllerIntegrationTest {
         mockMvc.perform(get(path).cookie(admin)).andExpect(status().isOk)
             .andExpect(jsonPath("$.roles[?(@.roleKey == 'player')].candidates[0].publishedAssignment").value(true))
             .andExpect(jsonPath("$.roles[?(@.roleKey == 'player')].candidates[0].participationStatus").value("pending"))
-            .andExpect(jsonPath("$.roles[?(@.roleKey == 'player')].candidates[0].chancePercent").value(org.hamcrest.Matchers.contains(org.hamcrest.Matchers.nullValue())))
+            .andExpect(jsonPath("$.roles[?(@.roleKey == 'player')].candidates[0].chancePercent").value(37))
             .andExpect(jsonPath("$.roles[?(@.roleKey == 'player')].candidates[0].selectionChanceAt").value("2026-01-02T12:00:00Z"))
         val hiddenAfterPublication = mapper.readTree(
             mockMvc.perform(get(path).cookie(member)).andExpect(status().isOk).andReturn().response.contentAsString,
@@ -1251,7 +1251,7 @@ class AvailabilityControllerIntegrationTest {
             .andExpect(jsonPath("$.validatedAt").isNotEmpty)
         mockMvc.perform(get(path).cookie(member)).andExpect(status().isOk)
             .andExpect(jsonPath("$.roles[?(@.roleKey == 'player')].candidates[0].publishedAssignment").value(true))
-            .andExpect(jsonPath("$.roles[?(@.roleKey == 'player')].candidates[0].chancePercent").value(org.hamcrest.Matchers.contains(org.hamcrest.Matchers.nullValue())))
+            .andExpect(jsonPath("$.roles[?(@.roleKey == 'player')].candidates[0].chancePercent").value(37))
         mockMvc.perform(get("/v1/seasons/$seasonId/events/$eventId/composition").cookie(member))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.slots[0].chancePercent").value(37))
@@ -1304,7 +1304,7 @@ class AvailabilityControllerIntegrationTest {
         val selected = playerCandidates.single { it["participantId"].asText() == assigneeId.toString() }
         val other = playerCandidates.single { it["participantId"].asText() == adminId.toString() }
         org.junit.jupiter.api.Assertions.assertTrue(selected["publishedAssignment"].asBoolean())
-        org.junit.jupiter.api.Assertions.assertTrue(selected["chancePercent"].isNull)
+        org.junit.jupiter.api.Assertions.assertEquals(37, selected["chancePercent"].asInt())
         org.junit.jupiter.api.Assertions.assertEquals("2026-01-02T12:00:00Z", selected["selectionChanceAt"].asText())
         org.junit.jupiter.api.Assertions.assertTrue(other["chancePercent"].isNull)
         org.junit.jupiter.api.Assertions.assertFalse(other["publishedAssignment"].asBoolean())
@@ -1317,7 +1317,7 @@ class AvailabilityControllerIntegrationTest {
         val removedAssignee = candidates("player").single { it["participantId"].asText() == assigneeId.toString() }
         org.junit.jupiter.api.Assertions.assertTrue(removedAssignee["publishedAssignment"].asBoolean())
         org.junit.jupiter.api.Assertions.assertFalse(removedAssignee["isCandidate"].asBoolean())
-        org.junit.jupiter.api.Assertions.assertTrue(removedAssignee["chancePercent"].isNull)
+        org.junit.jupiter.api.Assertions.assertEquals(37, removedAssignee["chancePercent"].asInt())
     }
 
     @Test
