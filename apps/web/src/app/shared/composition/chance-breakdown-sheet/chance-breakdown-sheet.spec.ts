@@ -283,7 +283,7 @@ describe('ChanceBreakdownSheet', () => {
     )
   })
 
-  it('shows ex aequo summary when top candidates share the same chance', async () => {
+  it('does not show a rank summary for equal chances', async () => {
     await TestBed.resetTestingModule()
       .configureTestingModule({
         imports: [ChanceBreakdownSheet, NoopAnimationsModule],
@@ -325,18 +325,18 @@ describe('ChanceBreakdownSheet', () => {
     const summary = tiedFixture.nativeElement.querySelector(
       '[data-testid="chance-breakdown-rank-summary"]',
     )
-    expect(summary?.textContent).toContain('Ex aequo en tête du pool')
-    expect(summary?.textContent).toContain('3 candidats à 100 %')
+    expect(summary).toBeNull()
+    expect(tiedFixture.nativeElement.textContent).toContain('100')
   })
 
-  it('shows rank summary without duplicating the pool list', () => {
+  it('shows neither a rank summary nor a duplicate pool list', () => {
     const el = fixture.nativeElement as HTMLElement
     const summary = el.querySelector('[data-testid="chance-breakdown-rank-summary"]')
-    expect(summary?.textContent).toContain('devant toi')
+    expect(summary).toBeNull()
     expect(el.querySelector('[data-testid="chance-breakdown-peer-p-bob"]')).toBeNull()
   })
 
-  it('derives rank summary from pool peers when poolRank is absent', async () => {
+  it('does not show a rank summary when poolRank is absent', async () => {
     await TestBed.resetTestingModule()
       .configureTestingModule({
         imports: [ChanceBreakdownSheet, NoopAnimationsModule],
@@ -377,9 +377,8 @@ describe('ChanceBreakdownSheet', () => {
     const summary = legacyFixture.nativeElement.querySelector(
       '[data-testid="chance-breakdown-rank-summary"]',
     )
-    expect(summary?.textContent).toContain('2e')
-    expect(summary?.textContent).toContain('2 candidats')
-    expect(summary?.textContent).not.toContain('indisponible')
+    expect(summary).toBeNull()
+    expect(legacyFixture.nativeElement.textContent).not.toContain('Classement indisponible')
   })
 
   it('uses third-person copy when viewer is not the subject', async () => {
@@ -411,8 +410,6 @@ describe('ChanceBreakdownSheet', () => {
 
     expect(el.textContent).toContain('Sa chance estimée')
     expect(el.textContent).toContain('D’où vient ce % ?')
-    expect(el.querySelector('[data-testid="chance-breakdown-rank-summary"]')?.textContent).toContain(
-      'devant lui·elle',
-    )
+    expect(el.querySelector('[data-testid="chance-breakdown-rank-summary"]')).toBeNull()
   })
 })

@@ -50,10 +50,6 @@
     @else { <p class="chance-selection__description">Ce pourcentage correspond aux chances {{ recordedPersonLabel() }} @if (recordedDate(); as date) { capturées le {{ date }} } lors de la composition de l’équipe.</p> }
   } @else {
   @if (breakdown().chancePercent != null) {
-    <p class="chance-breakdown-sheet__pool-summary" data-testid="chance-breakdown-rank-summary">
-      {{ poolRankSummary() }}
-    </p>
-
     <section class="chance-breakdown-sheet__waterfall" [attr.aria-label]="chanceScaleTitle()">
       <h3 class="chance-breakdown-sheet__section-title">{{ chanceScaleTitle() }}</h3>
       <ol
