@@ -129,6 +129,41 @@ async function setupPoll(options: {
 }
 
 describe('AvailabilityPoll', () => {
+  it('shows a newly available coach immediately and refreshes chances after saving', async () => {
+    const { fixture, setMyAvailability, getEventAvailabilitySummary } = await setupPoll({ initialStatus: 'available', initialRoleKeys: ['player'] })
+    const subject = { ...mockSummary.participants[0], status: 'available' as const, roleKeys: ['player'] }
+    const initial = { ...mockSummary, roleSlots: { player: 4, coach: 1 }, chanceSource: 'live' as const,
+      participants: [subject, mockSummary.participants[1]], roles: [
+        { roleKey: 'player', requiredCount: 4, candidates: [{ participantId: 'p1', displayName: 'Patrice', chancePercent: 50 }] },
+        { roleKey: 'coach', requiredCount: 1, candidates: [{ participantId: 'p2', displayName: 'Alex', chancePercent: 100 }] },
+      ] }
+    const refreshed = { ...initial, participants: [{ ...subject, roleKeys: ['player', 'coach'] }, mockSummary.participants[1]],
+      roles: [initial.roles[0], { ...initial.roles[1], candidates: [...initial.roles[1].candidates, { participantId: 'p1', displayName: 'Patrice', chancePercent: 50 }] }] }
+    fixture.componentRef.setInput('roleSlots', { player: 4, coach: 1 })
+    fixture.componentRef.setInput('subject', subject)
+    fixture.componentRef.setInput('summary', initial)
+    fixture.componentInstance.summaryPatch.subscribe(value => fixture.componentRef.setInput('summary', value))
+    getEventAvailabilitySummary.mockResolvedValueOnce({ ok: true, status: 200, data: initial })
+    getEventAvailabilitySummary.mockResolvedValueOnce({ ok: true, status: 200, data: refreshed })
+    fixture.detectChanges()
+    const rows = fixture.nativeElement.querySelectorAll('app-availability-poll-row')
+    const coachRow = rows[2] as HTMLElement
+    ;(coachRow.querySelector('.poll-row__stats-trigger') as HTMLButtonElement).click()
+    await vi.waitFor(() => { fixture.detectChanges(); expect(coachRow.textContent).toContain('Alex') })
+    let finishVote!: (value: unknown) => void
+    setMyAvailability.mockImplementationOnce(() => new Promise(resolve => { finishVote = resolve }))
+    const vote = (fixture.componentInstance as any).onRoleToggle('coach', true)
+    fixture.detectChanges()
+    expect(coachRow.textContent).toContain('Alex')
+    expect(coachRow.textContent).toContain('Patrice')
+    finishVote({ ok: true, status: 200, data: { status: 'available', roleKeys: ['player', 'coach'], comment: null } })
+    await vote
+    fixture.detectChanges()
+    expect(getEventAvailabilitySummary).toHaveBeenCalledTimes(2)
+    expect(coachRow.textContent).toContain('Patrice')
+    expect(coachRow.querySelector('[data-testid="composition-draw-segment-p1"]')).toBeTruthy()
+  })
+
   it('shows available people when the event has no role slots and explainability is enabled', async () => {
     const { fixture, getEventAvailabilitySummary } = await setupPoll()
     fixture.componentRef.setInput('roleSlots', {})
@@ -182,13 +217,13 @@ describe('AvailabilityPoll', () => {
     fixture.componentInstance.summaryPatch.subscribe(value => fixture.componentRef.setInput('summary', value))
     const row = fixture.nativeElement.querySelectorAll('app-availability-poll-row')[1] as HTMLElement
     ;(row.querySelector('.poll-row__stats-trigger') as HTMLButtonElement).click()
-    await vi.waitFor(() => { fixture.detectChanges(); expect(row.textContent).toContain('Capture des chances du 02/01/2026') })
+    await vi.waitFor(() => { fixture.detectChanges(); expect(row.textContent).toContain('Capture de référence du 02/01/2026') })
     expect(row.querySelector('[data-testid="composition-draw-segment-p2"]')).toBeTruthy()
     const missing = row.querySelector('.recorded-missing') as HTMLButtonElement
     expect(missing.textContent).toContain('Camille')
-    expect(missing.disabled).toBe(true)
+    expect(missing.disabled).toBe(false)
     expect(missing.textContent).not.toContain('%')
-    expect(row.textContent).toContain('La capture ne couvre pas tous les candidats affichés.')
+    expect(row.textContent).not.toContain('La capture ne couvre pas tous les candidats affichés.')
   })
 
   it('opens the selected person when every role photograph value is missing', async () => {
@@ -204,11 +239,28 @@ describe('AvailabilityPoll', () => {
     await vi.waitFor(() => { fixture.detectChanges(); expect(row.querySelectorAll('.recorded-missing')).toHaveLength(2) })
     const [selected, other] = Array.from(row.querySelectorAll('.recorded-missing')) as HTMLButtonElement[]
     expect(selected.disabled).toBe(false)
-    expect(other.disabled).toBe(true)
+    expect(other.disabled).toBe(false)
     selected.click()
     other.click()
-    expect(chanceBreakdownOpen).toHaveBeenCalledOnce()
+    expect(chanceBreakdownOpen).toHaveBeenCalledTimes(2)
     expect(chanceBreakdownOpen).toHaveBeenCalledWith(expect.objectContaining({ participantId: 'p2', roleKey: 'player' }))
+    expect(chanceBreakdownOpen).toHaveBeenCalledWith(expect.objectContaining({ participantId: 'p3', roleKey: 'player' }))
+  })
+
+  it('opens an available candidate when no one has a captured value', async () => {
+    const { fixture, getEventAvailabilitySummary, chanceBreakdownOpen } = await setupPoll()
+    const updated = { ...mockSummary, chanceSource: 'baseline' as const, roles: [{ ...mockSummary.roles[0], candidates: [
+      { participantId: 'p3', displayName: 'Camille', chancePercent: null, isCandidate: true },
+    ] }, ...mockSummary.roles.slice(1)] }
+    getEventAvailabilitySummary.mockResolvedValueOnce({ ok: true, status: 200, data: updated })
+    fixture.componentInstance.summaryPatch.subscribe(value => fixture.componentRef.setInput('summary', value))
+    const row = fixture.nativeElement.querySelectorAll('app-availability-poll-row')[1] as HTMLElement
+    ;(row.querySelector('.poll-row__stats-trigger') as HTMLButtonElement).click()
+    await vi.waitFor(() => { fixture.detectChanges(); expect(row.querySelector('.recorded-missing')).toBeTruthy() })
+    const candidate = row.querySelector('.recorded-missing') as HTMLButtonElement
+    expect(candidate.disabled).toBe(false)
+    candidate.click()
+    expect(chanceBreakdownOpen).toHaveBeenCalledWith(expect.objectContaining({ participantId: 'p3', roleKey: 'player' }))
   })
 
   it('maps a successful Dispos trigger to its bounded analytics entry point', async () => {

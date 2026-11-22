@@ -2,10 +2,13 @@
   class="chance-breakdown-sheet"
   role="dialog"
   [attr.aria-labelledby]="(breakdown().recordedSelection || breakdown().recordedSnapshot) ? null : 'chance-breakdown-title'"
-  [attr.aria-label]="breakdown().recordedSelection ? 'Fiche de sélection de ' + breakdown().displayName : breakdown().recordedSnapshot ? (breakdown().recordedSource === 'reconstructed' ? 'Estimation reconstituée des chances de ' : 'Capture des chances de ') + breakdown().displayName : null"
+  [attr.aria-label]="breakdown().recordedSelection ? 'Fiche de sélection de ' + breakdown().displayName : breakdown().recordedSnapshot ? 'Capture des chances de ' + breakdown().displayName : null"
   data-testid="chance-breakdown-sheet"
 >
   @let displayedPercent = (breakdown().recordedSelection || breakdown().recordedSnapshot) ? breakdown().recordedPercent : breakdown().chancePercent;
+  @if (breakdown().currentEstimateAfterCapture) {
+    <p class="chance-breakdown-sheet__step-banner" role="status">@if (breakdown().availableForRoleAfterCapture) { {{ breakdown().displayName }} a été disponible après que la composition ait été faite. } @else { Cette personne ne figure pas dans la capture. } Voici l’estimation de ses chances actuelles.</p>
+  }
   @if (!(breakdown().recordedSelection || breakdown().recordedSnapshot) && data.stepBanner) {
     <p class="chance-breakdown-sheet__step-banner" role="status">{{ data.stepBanner }}</p>
   }
@@ -26,14 +29,14 @@
           <div class="chance-breakdown-sheet__chance-value">
             <p class="chance-breakdown-sheet__hero-chance" [class]="chanceColorClass(displayedPercent)"
               [attr.data-testid]="breakdown().recordedSelection ? null : 'chance-breakdown-final'"
-              [attr.aria-label]="(breakdown().recordedSelection || breakdown().recordedSnapshot) ? (breakdown().recordedSource === 'reconstructed' ? 'Chance estimée : ' : 'Chance enregistrée : ') + displayedPercent + ' pour cent' : null">{{ displayedPercent }}&nbsp;%</p>
-            <span class="chance-breakdown-sheet__chance-kind">{{ breakdown().recordedSelection ? 'effectif' : breakdown().recordedSnapshot ? (breakdown().recordedSource === 'reconstructed' ? 'estimé' : 'capture') : 'estimé' }}</span>
+              [attr.aria-label]="(breakdown().recordedSelection || breakdown().recordedSnapshot) ? 'Chance enregistrée : ' + displayedPercent + ' pour cent' : null">{{ displayedPercent }}&nbsp;%</p>
+            <span class="chance-breakdown-sheet__chance-kind">{{ breakdown().recordedSelection ? 'effectif' : breakdown().recordedSnapshot ? 'capture' : 'estimé' }}</span>
           </div>
         } @else if (!(breakdown().recordedSelection || breakdown().recordedSnapshot)) {
           <p>Estimation actuelle indisponible</p>
         }
-        @if (displayedPercent != null && (breakdown().recordedSelection || breakdown().recordedSnapshot || showMultiPlaceHint())) {
-          @let hint = breakdown().recordedSelection ? recordedSelectionExplanation() : breakdown().recordedSnapshot ? recordedSnapshotExplanation() : multiPlaceChanceExplanation();
+        @if (displayedPercent != null && !(breakdown().recordedSelection || breakdown().recordedSnapshot) && showMultiPlaceHint()) {
+          @let hint = multiPlaceChanceExplanation();
           <button type="button" class="chance-breakdown-sheet__hero-hint" #chanceHintTooltip="matTooltip"
             [matTooltip]="hint" matTooltipPosition="below" matTooltipTouchGestures="on"
             matTooltipShowDelay="0" matTooltipHideDelay="1500" (click)="onHintClick($event, chanceHintTooltip)"
@@ -43,23 +46,10 @@
     </div>
   </header>
   @if (breakdown().recordedSelection || breakdown().recordedSnapshot) {
-    <section aria-labelledby="selection-explanation-title">
-      <h3 class="chance-breakdown-sheet__section-title" id="selection-explanation-title">D’où vient ce % ?</h3>
-      <ol class="chance-breakdown-sheet__waterfall-list">
-        <li class="chance-breakdown-sheet__waterfall-row chance-selection__date">
-          <mat-icon aria-hidden="true">schedule</mat-icon>
-          <span>@if (recordedDate(); as date) { {{ breakdown().recordedSnapshot ? (breakdown().recordedSource === 'reconstructed' ? 'Date estimée :' : 'Capture du') : 'Enregistré le' }} {{ date }} } @else { Date d’enregistrement indisponible }</span>
-        </li>
-      </ol>
-    </section>
-    @if (breakdown().recordedSource === 'reconstructed') { <p>Estimation reconstituée à partir des éléments historiques disponibles ; elle peut être incertaine.</p> }
     @if (displayedPercent == null) { <p class="chance-selection__description">Chance enregistrée indisponible</p> }
+    @else { <p class="chance-selection__description">Ce pourcentage correspond aux chances {{ recordedPersonLabel() }} @if (recordedDate(); as date) { capturées le {{ date }} } lors de la composition de l’équipe.</p> }
   } @else {
   @if (breakdown().chancePercent != null) {
-    <p class="chance-breakdown-sheet__pool-summary" data-testid="chance-breakdown-rank-summary">
-      {{ poolRankSummary() }}
-    </p>
-
     <section class="chance-breakdown-sheet__waterfall" [attr.aria-label]="chanceScaleTitle()">
       <h3 class="chance-breakdown-sheet__section-title">{{ chanceScaleTitle() }}</h3>
       <ol

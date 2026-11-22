@@ -2,6 +2,8 @@
   <p class="event-dispos__draft-hint" role="status">
     Ce spectacle est en brouillon. La collecte des disponibilités est momentanément fermée.
   </p>
+} @else if (noRequiredRoles()) {
+  <p class="event-dispos__empty" role="status">Aucun rôle n’est recherché pour ce spectacle. La saisie des disponibilités est fermée.</p>
 } @else if (loading()) {
   <div class="event-dispos__spinner" role="status">
     <mat-spinner diameter="36" />

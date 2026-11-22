@@ -150,7 +150,7 @@ describe('AvailabilityTousPanel', () => {
     expect(open).toHaveBeenCalledWith(expect.objectContaining({ participantId: 'p2' }))
   })
 
-  it('opens only the selected person when every role photograph value is missing', async () => {
+  it('opens each person when role photograph values are missing', async () => {
     const open = vi.fn()
     await TestBed.configureTestingModule({
       imports: [AvailabilityTousPanel, NoopAnimationsModule],
@@ -168,11 +168,12 @@ describe('AvailabilityTousPanel', () => {
     fixture.detectChanges()
     const [selected, other] = Array.from(fixture.nativeElement.querySelectorAll('.recorded-missing')) as HTMLButtonElement[]
     expect(selected.disabled).toBe(false)
-    expect(other.disabled).toBe(true)
+    expect(other.disabled).toBe(false)
     selected.click()
     other.click()
-    expect(open).toHaveBeenCalledOnce()
+    expect(open).toHaveBeenCalledTimes(2)
     expect(open).toHaveBeenCalledWith(expect.objectContaining({ participantId: 'p1', roleKey: 'player' }))
+    expect(open).toHaveBeenCalledWith(expect.objectContaining({ participantId: 'p2', roleKey: 'player' }))
   })
 
   it('shows the date of the common role photograph', async () => {
@@ -182,11 +183,11 @@ describe('AvailabilityTousPanel', () => {
     fixture.componentRef.setInput('chanceSource', 'baseline')
     fixture.componentRef.setInput('explainabilityEnabled', true)
     fixture.detectChanges()
-    expect(fixture.nativeElement.textContent).toContain('Capture des chances du 02/01/2026')
+    expect(fixture.nativeElement.textContent).toContain('Capture de référence du 02/01/2026')
     expect(fixture.nativeElement.textContent).not.toContain('La capture ne couvre pas tous les candidats affichés.')
     fixture.componentRef.setInput('summary', { ...mockSummary, roles: [{ ...mockSummary.roles[0], chanceSnapshotAt: '2026-01-02T12:00:00Z', candidates: [{ participantId: 'p1', displayName: 'Patrice', chancePercent: null, publishedAssignment: true }] }] })
     fixture.detectChanges()
-    expect(fixture.nativeElement.textContent).toContain('La capture ne couvre pas tous les candidats affichés.')
+    expect(fixture.nativeElement.textContent).not.toContain('La capture ne couvre pas tous les candidats affichés.')
   })
 
   it('labels a partial reconstruction and its date as estimated', async () => {
@@ -196,9 +197,19 @@ describe('AvailabilityTousPanel', () => {
     fixture.componentRef.setInput('chanceSource', 'baseline')
     fixture.componentRef.setInput('explainabilityEnabled', true)
     fixture.detectChanges()
-    expect(fixture.nativeElement.textContent).toContain('Estimations reconstituées à partir de l’historique')
-    expect(fixture.nativeElement.textContent).toContain('L’estimation ne couvre pas tous les candidats affichés.')
-    expect(fixture.nativeElement.textContent).not.toContain('Capture des chances du')
+    expect(fixture.nativeElement.textContent).toContain('Capture de référence du 02/01/2026')
+    expect(fixture.nativeElement.textContent).not.toContain('reconstituée')
+    expect(fixture.nativeElement.textContent).not.toContain('La capture ne couvre pas tous les candidats affichés.')
+  })
+
+  it('labels an individual chance without a role capture as partial', async () => {
+    await TestBed.configureTestingModule({ imports: [AvailabilityTousPanel, NoopAnimationsModule] }).compileComponents()
+    const fixture = TestBed.createComponent(AvailabilityTousPanel)
+    fixture.componentRef.setInput('summary', { ...mockSummary, roles: [{ ...mockSummary.roles[0], chanceSnapshotAt: null, candidates: [{ participantId: 'p1', displayName: 'Patrice', chancePercent: 100, publishedAssignment: true }] }] })
+    fixture.componentRef.setInput('chanceSource', 'baseline')
+    fixture.componentRef.setInput('explainabilityEnabled', true)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('Capture des chances partielle.')
   })
 
   it('does not render recorded evidence when chance access is disabled', async () => {

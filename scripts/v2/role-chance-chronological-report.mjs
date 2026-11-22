@@ -88,7 +88,7 @@ export function report(input, seasonId) {
         eligibility:'exploratory_only', authorisedForWrite:false});
     }
   }
-  return {seasonId, assumptions:COMMON_ASSUMPTIONS, gaps:reconstructed.gaps, roles:result};
+  return {seasonId, assumptions:COMMON_ASSUMPTIONS, gaps:reconstructed.gaps, roles:result, decisions:reconstructed.decisions};
 }
 
 if (process.argv[1] && import.meta.url === new URL(process.argv[1], 'file:').href) {

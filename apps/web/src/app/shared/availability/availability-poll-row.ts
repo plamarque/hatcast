@@ -46,7 +46,6 @@ export class AvailabilityPollRow {
   readonly poolSegments = input<CompositionPoolPreviewSegment[]>([])
   readonly poolShowChancePreview = input(false)
   readonly poolShowNeutral = input(false)
-  readonly poolChancesUnavailable = input(false)
   readonly poolInteractive = input(false)
   readonly showRecorded = input(false)
   readonly showSnapshot = input(false)
@@ -60,6 +59,7 @@ export class AvailabilityPollRow {
   readonly poolSegmentTap = output<{ participantId: string; chancePercent: number | null }>()
 
   protected readonly hasMissingChance = (candidate: SummaryRoleCandidate): boolean => candidate.chancePercent == null
+  protected readonly hasChance = (candidate: SummaryRoleCandidate): boolean => candidate.chancePercent != null
   protected readonly hasPublishedAssignment = (candidate: SummaryRoleCandidate): boolean => !!candidate.publishedAssignment
 
   protected onCheckboxChange(checked: boolean): void {

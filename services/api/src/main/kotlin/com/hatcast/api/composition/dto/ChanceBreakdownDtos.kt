@@ -55,6 +55,8 @@ data class ChanceBreakdownDto(
     val recordedPercent: Int? = null,
     val recordedAt: java.time.Instant? = null,
     val recordedSource: String? = null,
+    val currentEstimateAfterCapture: Boolean = false,
+    val availableForRoleAfterCapture: Boolean = false,
 )
 
 data class CompositionPoolPreviewSegmentDto(

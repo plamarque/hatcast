@@ -1125,9 +1125,9 @@ describe('EventEquipeTab', () => {
   it('reloads recorded chances after a lightweight validation response', async () => {
     const slot = { roleKey: 'player', slotIndex: 0, participantId: 'p-1', participantDisplayName: 'Alice', participationStatus: 'pending' }
     const draft = { publishedAt: null, validatedAt: null, visibility: 'organizerDraft', slots: [slot] }
-    const validated = { ...draft, validatedAt: '2026-01-02T00:00:00Z', visibility: 'validated' }
+    const validated = { ...draft, validatedAt: '2026-11-22T11:03:37.324855478Z', visibility: 'validated' }
     getComposition.mockResolvedValueOnce({ ok: true, data: draft }).mockResolvedValueOnce({
-      ok: true, data: { ...validated, slots: [{ ...slot, chancePercent: 37, selectionChanceAt: '2026-01-02T12:00:00Z' }] },
+      ok: true, data: { ...validated, validatedAt: '2026-11-22T11:03:37.324855Z', slots: [{ ...slot, chancePercent: 37, selectionChanceAt: '2026-01-02T12:00:00Z' }] },
     })
     validateComposition.mockResolvedValue({ ok: true, data: validated })
     fixture.componentRef.setInput('canManageComposition', true)
@@ -1139,6 +1139,35 @@ describe('EventEquipeTab', () => {
       expect(fixture.nativeElement.querySelector('[data-testid="recorded-selection-chance"]')?.textContent).toContain('37')
     })
     expect(getComposition).toHaveBeenCalledTimes(2)
+    expect(snackOpen).not.toHaveBeenCalledWith('Les chances enregistrées ne sont pas disponibles. Actualise la page.', 'OK', { duration: 6000 })
+  })
+
+  it('does not replace the composition when a subsequent validation is genuinely different', async () => {
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    const current = { publishedAt: null, validatedAt: '2026-11-22T11:03:37.324855478Z', visibility: 'validated', slots: [] }
+    getComposition.mockResolvedValueOnce({ ok: true, data: { ...current, validatedAt: '2026-11-22T11:03:37.324857Z' } })
+    ;(fixture.componentInstance as any).applyCompositionUpdate(current)
+    await vi.waitFor(() => expect(snackOpen).toHaveBeenCalledWith(
+      'Les chances enregistrées ne sont pas disponibles. Actualise la page.', 'OK', { duration: 6000 },
+    ))
+    expect((fixture.componentInstance as any).composition()).toBe(current)
+  })
+
+  it.each([
+    ['2026-11-22T11:03:37.324855999Z', '2026-11-22T11:03:37.324856Z'],
+    ['2026-11-22T11:03:59.999999999Z', '2026-11-22T11:04:00Z'],
+  ])('accepts the database precision for %s', async (before, after) => {
+    fixture.componentRef.setInput('canManageComposition', true)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    const current = { publishedAt: null, validatedAt: before, visibility: 'validated', slots: [] }
+    const refreshed = { ...current, publishedAt: undefined, validatedAt: after }
+    getComposition.mockResolvedValueOnce({ ok: true, data: refreshed })
+    ;(fixture.componentInstance as any).applyCompositionUpdate(current)
+    await vi.waitFor(() => expect((fixture.componentInstance as any).composition()).toBe(refreshed))
+    expect(snackOpen).not.toHaveBeenCalledWith('Les chances enregistrées ne sont pas disponibles. Actualise la page.', 'OK', { duration: 6000 })
   })
 
   it('publishes then opens the announcement dialog after successful validation', async () => {

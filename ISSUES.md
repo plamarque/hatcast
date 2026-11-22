@@ -10,6 +10,48 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Current follow-up
 
+### BUG-137 — Availability remains open when a spectacle has no required roles
+
+- **Status:** Fixed locally; development verification pending. **Severity:** Medium. **Affected area:** Availability collection for spectacles without required slots.
+- **Observed behavior:** After all four player slots were deleted from Match à Nantes, its availability poll continued to show and accept general responses despite there being no roles to fill.
+- **Expected behavior:** Close availability entry while no role is required, retain existing responses, and allow general availability for the simple survey format.
+- **Context:** Reported on 22 November 2026; production audit records the four structural slot deletions on 20 November.
+
+### BUG-136 — False warning after validating a composition
+
+- **Status:** Fixed locally; development verification pending. **Severity:** Low. **Affected area:** Composition validation and recorded-chance refresh.
+- **Observed behavior:** After successful validation, a warning says recorded chances are unavailable even though the follow-up composition request succeeds.
+- **Expected behavior:** A successful refresh must not be reported as unavailable solely because equivalent validation timestamps have different precision.
+- **Context:** On Match Caprani in development on 22 November 2026, validation and the follow-up read both returned HTTP 200. The validation audit contains nanosecond precision while PostgreSQL stores the same instant to microsecond precision; the client compares timestamp strings strictly. The composition has recorded individual chances and reconstructed capture entries.
+
+### BUG-135 — Newly available candidate missing from expanded role
+
+- **Status:** Fixed locally; development verification pending. **Severity:** Medium. **Affected area:** Availability poll with an expanded role and chance display.
+- **Observed behavior:** When a person adds a role, the response is saved but their new candidate entry has no calculated chance yet; the expanded list renders only candidates with a percentage and omits that person.
+- **Expected behavior:** Show the newly available person immediately and refresh the chance display after the vote is saved.
+- **Context:** Reported for Patrice, coach on Match Pau, in development on 22 November 2026. Audit confirms the role was added and subsequently removed during the test.
+
+### BUG-134 — Uncaptured available candidates cannot open their chances
+
+- **Status:** Fixed locally; development verification pending. **Severity:** Medium. **Affected area:** Published availability chance details.
+- **Observed behavior:** An available candidate absent from the role capture was disabled, preventing access to a current estimate. A role-wide warning obscured the capture heading.
+- **Expected behavior:** Retain the dated role heading and allow eligible uncaptured candidates to open a clearly labelled current estimate. Mention late availability only when the role-specific audit supports it.
+- **Context:** Reported for Patrice, MC at Apérock café, in development on 22 November 2026.
+
+### BUG-133 — Replayed capture dates are hidden or shared across people
+
+- **Status:** Fixed locally; development verification pending. **Severity:** Medium. **Affected area:** Published chance explanation.
+- **Observed behavior:** Reconstructed selections showed no recording date, while other candidates could see the role-level date rather than the timestamp associated with their own reconstructed value. Repeated caveats obscured the result.
+- **Expected behavior:** Show each recorded evidence timestamp when available and use concise capture wording without repeated caveats; do not invent dates when evidence is missing.
+- **Context:** Reported for Apérock café in development on 22 November 2026. Replay evidence already contains individual decision timestamps.
+
+### BUG-132 — Historical chances hidden by role-wide replay gate
+
+- **Status:** Fixed locally; staging verification pending. **Severity:** Medium. **Affected area:** Published availability chances and historical replay.
+- **Observed behavior:** The availability grid omitted recorded individual chances when a role photograph was missing. An ambiguous earlier draw also blocked later, independently reconstructible manual selections for the entire role.
+- **Expected behavior:** Display recorded individual chances when no role capture exists, and reconstruct later manual selections independently when their own evidence is sufficient.
+- **Context:** Caprani DJ and referee have recorded individual chances; Cambo volunteer has two later manual selections. Other candidates without supported values remain unavailable.
+
 ### BUG-131 — Draw photograph omits available volunteers
 
 - **Status:** Fixed locally; development verification pending. **Severity:** Medium. **Affected area:** Role chance references after a draw and historical replay.
@@ -23,6 +65,7 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 - **Observed behavior:** On Match à Nantes, the available count is 11 but expanding the available row shows an empty panel.
 - **Expected behavior:** Expanding the row lists available people, including when chance explainability is enabled.
 - **Context:** Reproduced in development on 21 November 2026. Flat availability has no role-specific chance pool and must show the neutral participant list.
+- **Nantes investigation (22 November 2026):** The neutral list is now visible but its participants have no role-specific chance to open. The event has no configured slots in development or production: four assigned player slots were deleted individually on 20 November after a draw, as recorded by `SLOT_DELETED` audit events. Consequently the team tab has no role slots to display. The audit retains the deleted assignments; no restoration was performed during this investigation.
 
 ### BUG-129 — Selected member sheet hides reconstructed chance
 

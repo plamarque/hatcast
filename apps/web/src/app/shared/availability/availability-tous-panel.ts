@@ -125,6 +125,7 @@ export class AvailabilityTousPanel {
   }
 
   protected readonly hasMissingChance = (candidate: SummaryRoleCandidate): boolean => candidate.chancePercent == null
+  protected readonly hasChance = (candidate: SummaryRoleCandidate): boolean => candidate.chancePercent != null
   protected readonly hasPublishedAssignment = (candidate: SummaryRoleCandidate): boolean => !!candidate.publishedAssignment
 
   protected roleHasChancePool(role: { candidates: SummaryRoleCandidate[] }): boolean {
@@ -151,7 +152,7 @@ export class AvailabilityTousPanel {
   protected canOpenBreakdown(candidate: SummaryRoleCandidate): boolean {
     return (
       this.explainabilityEnabled() &&
-      (candidate.publishedAssignment || candidate.chancePercent != null) &&
+      (candidate.publishedAssignment || candidate.chancePercent != null || (this.chanceSource() === 'baseline' && candidate.isCandidate !== false)) &&
       !!this.seasonId() &&
       !!this.eventId()
     )

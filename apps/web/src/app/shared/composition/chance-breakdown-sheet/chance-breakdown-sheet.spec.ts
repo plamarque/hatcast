@@ -89,12 +89,13 @@ describe('ChanceBreakdownSheet', () => {
     expect(el.querySelector('[data-testid="recorded-theoretical-position"]')).toBeNull()
     expect(el.textContent?.match(/12\s*%/g)).toHaveLength(1)
     expect(el.textContent).not.toContain('18 %')
-    expect(el.querySelector('#selection-explanation-title')?.textContent).toContain('D’où vient ce % ?')
-    expect(el.querySelectorAll('.chance-breakdown-sheet__waterfall-list li')).toHaveLength(1)
-    expect(el.querySelector('.chance-selection__date')?.textContent).toContain('Enregistré le')
+    expect(el.querySelector('#selection-explanation-title')).toBeNull()
+    expect(el.querySelectorAll('.chance-breakdown-sheet__waterfall-list li')).toHaveLength(0)
+    expect(el.querySelector('.chance-breakdown-sheet__hero-hint')).toBeNull()
+    expect(el.querySelector('.chance-selection__description')?.textContent).toContain('Ce pourcentage correspond aux chances d’Alice')
+    expect(el.querySelector('.chance-selection__description')?.textContent).toContain('novembre 2026')
     expect(el.querySelector('[role="dialog"]')?.getAttribute('aria-label')).toBe('Fiche de sélection de Alice')
     expect(el.textContent).not.toContain('Chance au moment de la sélection')
-    expect(el.querySelector('.chance-selection__date')?.textContent).toContain('novembre 2026')
     expect(el.querySelectorAll('.chance-breakdown-sheet__actions button')).toHaveLength(1)
     expect(el.querySelector('.chance-breakdown-sheet__actions button')?.textContent).toContain('Fermer')
     expect(el.querySelector('[data-testid="chance-breakdown-waterfall"]')).toBeNull()
@@ -105,27 +106,17 @@ describe('ChanceBreakdownSheet', () => {
     fixture.detectChanges()
     expect(el.querySelector('[data-testid="selection-card"]')?.textContent).not.toContain('%')
     expect(el.textContent).toContain('Chance enregistrée indisponible')
-    expect(el.textContent).toContain('Date d’enregistrement indisponible')
+    expect(el.textContent).not.toContain('Date d’enregistrement indisponible')
     expect(el.querySelector('[data-testid="recorded-theoretical-position"]')).toBeNull()
     expect(el.textContent).not.toContain('Enregistré le')
     expect(el.textContent).not.toContain('Estimation actuelle')
   })
 
-  it('provides focusable and tappable help for recorded selection even with one place', () => {
+  it('explains a recorded selection directly, including zero percent', () => {
     fixture.componentInstance['breakdown'].set({ ...baseBreakdown, requiredCount: 1, recordedSelection: true, recordedPercent: 0 })
     fixture.detectChanges()
-    const hint = fixture.nativeElement.querySelector('.chance-breakdown-sheet__hero-hint') as HTMLButtonElement
-    expect(hint).toBeTruthy()
-    expect(hint.type).toBe('button')
-    expect(hint.getAttribute('aria-label')).toBe('Chance calculée au moment de la sélection de cette personne.')
-    expect(hint.getAttribute('aria-label')).not.toContain('tirage')
-    const tooltip = fixture.debugElement.query(By.directive(MatTooltip)).injector.get(MatTooltip)
-    expect(tooltip.message).toBe(hint.getAttribute('aria-label'))
-    const toggle = vi.spyOn(tooltip, 'toggle')
-    hint.focus()
-    expect(document.activeElement).toBe(hint)
-    hint.click()
-    expect(toggle).toHaveBeenCalledOnce()
+    expect(fixture.nativeElement.querySelector('.chance-breakdown-sheet__hero-hint')).toBeNull()
+    expect(fixture.nativeElement.textContent.replace(/\s+/g, ' ')).toContain('Ce pourcentage correspond aux chances d’Alice lors de la composition de l’équipe.')
     fixture.componentInstance['breakdown'].set({ ...baseBreakdown, recordedSelection: true, recordedPercent: null })
     fixture.detectChanges()
     expect(fixture.nativeElement.querySelector('.chance-breakdown-sheet__hero-hint')).toBeNull()
@@ -142,20 +133,12 @@ describe('ChanceBreakdownSheet', () => {
     expect(fixture.nativeElement.querySelector('.chance-breakdown-sheet__hero-hint')).toBeNull()
   })
 
-  it('provides focusable and tappable help only when the captured percentage exists', () => {
+  it('explains a capture without inventing a missing date', () => {
     fixture.componentInstance['breakdown'].set({ ...baseBreakdown, requiredCount: 1, recordedSnapshot: true, recordedPercent: 0, recordedAt: null })
     fixture.detectChanges()
-    const hint = fixture.nativeElement.querySelector('.chance-breakdown-sheet__hero-hint') as HTMLButtonElement
-    expect(hint.type).toBe('button')
-    expect(hint.getAttribute('aria-label')).toBe('Chance calculée avant la sélection pour ce rôle.')
-    const tooltip = fixture.debugElement.query(By.directive(MatTooltip)).injector.get(MatTooltip)
-    expect(tooltip.message).toBe(hint.getAttribute('aria-label'))
-    const toggle = vi.spyOn(tooltip, 'toggle')
-    hint.focus()
-    expect(document.activeElement).toBe(hint)
-    hint.click()
-    expect(toggle).toHaveBeenCalledOnce()
-    expect(fixture.nativeElement.textContent).toContain('Date d’enregistrement indisponible')
+    expect(fixture.nativeElement.querySelector('.chance-breakdown-sheet__hero-hint')).toBeNull()
+    expect(fixture.nativeElement.textContent.replace(/\s+/g, ' ')).toContain('Ce pourcentage correspond aux chances d’Alice lors de la composition de l’équipe.')
+    expect(fixture.nativeElement.textContent).not.toContain('Date d’enregistrement indisponible')
     fixture.componentInstance['breakdown'].set({ ...baseBreakdown, recordedSnapshot: true, recordedPercent: null, recordedAt: null })
     fixture.detectChanges()
     expect(fixture.nativeElement.querySelector('.chance-breakdown-sheet__hero-hint')).toBeNull()
@@ -170,19 +153,21 @@ describe('ChanceBreakdownSheet', () => {
     expect(el.querySelector('[role="dialog"]')?.getAttribute('aria-label')).toBe('Capture des chances de Alice')
     expect(el.querySelector('.chance-breakdown-sheet__chance-kind')?.textContent).toContain('capture')
     expect(el.textContent?.match(/67\s*%/g)).toHaveLength(1)
-    expect(el.textContent).toContain('Capture du')
+    expect(el.querySelector('.chance-selection__description')?.textContent).toContain('capturées le')
+    expect(el.querySelector('.chance-selection__description')?.textContent).toContain('novembre 2026')
+    expect(el.textContent).not.toContain('D’où vient ce % ?')
     expect(el.textContent).not.toContain('18 %')
     expect(el.querySelector('[data-testid="chance-breakdown-waterfall"]')).toBeNull()
   })
 
-  it('labels reconstructed chances and their uncertainty accessibly', () => {
+  it('displays the recorded time of a reconstructed capture without duplicate explanations', () => {
     fixture.componentInstance['breakdown'].set({ ...baseBreakdown, recordedSnapshot: true, recordedSource: 'reconstructed', recordedPercent: 42, recordedAt: '2026-11-19T23:53:00Z' })
     fixture.detectChanges()
     const el = fixture.nativeElement as HTMLElement
-    expect(el.querySelector('[role="dialog"]')?.getAttribute('aria-label')).toBe('Estimation reconstituée des chances de Alice')
-    expect(el.textContent).toContain('Date estimée :')
-    expect(el.textContent).toContain('elle peut être incertaine')
-    expect(el.textContent).not.toContain('Capture du')
+    expect(el.querySelector('[role="dialog"]')?.getAttribute('aria-label')).toBe('Capture des chances de Alice')
+    expect(el.querySelector('.chance-selection__description')?.textContent).toContain('capturées le')
+    expect(el.textContent).not.toContain('Date estimée')
+    expect(el.textContent).not.toContain('reconstituée')
   })
 
   it('renders waterfall with reference and final lines', () => {
@@ -195,6 +180,17 @@ describe('ChanceBreakdownSheet', () => {
     )
     expect(el.querySelector('[data-testid="chance-breakdown-reference"]')?.textContent).toContain('63')
     expect(el.querySelector('[data-testid="chance-breakdown-final"]')?.textContent).toContain('18')
+  })
+
+  it('distinguishes a current estimate for a late candidate from the capture', () => {
+    fixture.componentInstance['breakdown'].set({ ...baseBreakdown, currentEstimateAfterCapture: true, availableForRoleAfterCapture: true, chancePercent: 25 })
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent.replace(/\s+/g, ' ')).toContain('Alice a été disponible après que la composition ait été faite. Voici l’estimation de ses chances actuelles.')
+    expect(fixture.nativeElement.textContent).toContain('25')
+    fixture.componentInstance['breakdown'].set({ ...baseBreakdown, currentEstimateAfterCapture: true, availableForRoleAfterCapture: false, chancePercent: 25 })
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent.replace(/\s+/g, ' ')).toContain('Cette personne ne figure pas dans la capture. Voici l’estimation de ses chances actuelles.')
+    expect(fixture.nativeElement.textContent).not.toContain('après que la composition ait été faite.')
   })
 
   it('shows the current breakdown and recorded selection separately', () => {
@@ -287,7 +283,7 @@ describe('ChanceBreakdownSheet', () => {
     )
   })
 
-  it('shows ex aequo summary when top candidates share the same chance', async () => {
+  it('does not show a rank summary for equal chances', async () => {
     await TestBed.resetTestingModule()
       .configureTestingModule({
         imports: [ChanceBreakdownSheet, NoopAnimationsModule],
@@ -329,18 +325,18 @@ describe('ChanceBreakdownSheet', () => {
     const summary = tiedFixture.nativeElement.querySelector(
       '[data-testid="chance-breakdown-rank-summary"]',
     )
-    expect(summary?.textContent).toContain('Ex aequo en tête du pool')
-    expect(summary?.textContent).toContain('3 candidats à 100 %')
+    expect(summary).toBeNull()
+    expect(tiedFixture.nativeElement.textContent).toContain('100')
   })
 
-  it('shows rank summary without duplicating the pool list', () => {
+  it('shows neither a rank summary nor a duplicate pool list', () => {
     const el = fixture.nativeElement as HTMLElement
     const summary = el.querySelector('[data-testid="chance-breakdown-rank-summary"]')
-    expect(summary?.textContent).toContain('devant toi')
+    expect(summary).toBeNull()
     expect(el.querySelector('[data-testid="chance-breakdown-peer-p-bob"]')).toBeNull()
   })
 
-  it('derives rank summary from pool peers when poolRank is absent', async () => {
+  it('does not show a rank summary when poolRank is absent', async () => {
     await TestBed.resetTestingModule()
       .configureTestingModule({
         imports: [ChanceBreakdownSheet, NoopAnimationsModule],
@@ -381,9 +377,8 @@ describe('ChanceBreakdownSheet', () => {
     const summary = legacyFixture.nativeElement.querySelector(
       '[data-testid="chance-breakdown-rank-summary"]',
     )
-    expect(summary?.textContent).toContain('2e')
-    expect(summary?.textContent).toContain('2 candidats')
-    expect(summary?.textContent).not.toContain('indisponible')
+    expect(summary).toBeNull()
+    expect(legacyFixture.nativeElement.textContent).not.toContain('Classement indisponible')
   })
 
   it('uses third-person copy when viewer is not the subject', async () => {
@@ -415,8 +410,6 @@ describe('ChanceBreakdownSheet', () => {
 
     expect(el.textContent).toContain('Sa chance estimée')
     expect(el.textContent).toContain('D’où vient ce % ?')
-    expect(el.querySelector('[data-testid="chance-breakdown-rank-summary"]')?.textContent).toContain(
-      'devant lui·elle',
-    )
+    expect(el.querySelector('[data-testid="chance-breakdown-rank-summary"]')).toBeNull()
   })
 })

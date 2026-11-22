@@ -159,16 +159,7 @@ app-user-avatar.chance-breakdown-sheet__hero-avatar {
   font-weight: 600;
 }
 
-.chance-breakdown-sheet__pool-summary {
-  margin: 0;
-  padding: 0.5rem 0.65rem;
-  border-radius: 0.5rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  line-height: 1.4;
-  color: var(--mat-sys-on-surface-variant);
-  background: color-mix(in srgb, var(--mat-sys-surface-container) 65%, transparent);
-}
+
 
 .chance-breakdown-sheet__waterfall-list {
   list-style: none;

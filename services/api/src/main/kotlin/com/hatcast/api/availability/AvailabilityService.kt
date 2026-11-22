@@ -1,5 +1,6 @@
 package com.hatcast.api.availability
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.hatcast.api.audit.AuditActionType
 import com.hatcast.api.audit.AuditEventRecorder
 import com.hatcast.api.audit.AuditRecordRequest
@@ -66,6 +67,7 @@ import java.util.UUID
 
 @Service
 class AvailabilityService(
+    private val objectMapper: ObjectMapper,
     private val availabilityRepository: EventAvailabilityRepository,
     private val eventRepository: EventRepository,
     private val seasonRepository: SeasonRepository,
@@ -436,8 +438,9 @@ class AvailabilityService(
                             val assignment = publishedAssignments[roleKey to row.participantId]
                             val chancePercent =
                                 if (visiblePublishedBaseline) {
-                                    if (roleKey in reconstructions) reconstructionEntries[roleKey to row.participantId]?.chancePercent
+                                    val captured = if (roleKey in reconstructions) reconstructionEntries[roleKey to row.participantId]?.chancePercent
                                     else baselineByRoleAndParticipant[roleKey to row.participantId]?.chancePercent
+                                    assignment?.selectionChancePercent ?: captured
                                 } else if (snapshot != null) {
                                     snapshot.chancePercent
                                 } else {
@@ -475,7 +478,10 @@ class AvailabilityService(
                     requiredCount = requiredCount,
                     candidates = candidates,
                     hasPartialEstimatedChances = roleUsedEstimatedFallback,
-                    chanceSnapshotAt = reconstructions[roleKey]?.estimatedAt ?: baselineByRole[roleKey]?.capturedAt,
+                    chanceSnapshotAt = reconstructions[roleKey]?.let { reconstruction ->
+                        val partial = runCatching { objectMapper.readTree(reconstruction.evidence).path("partial").asBoolean(false) }.getOrDefault(false)
+                        reconstruction.estimatedAt.takeUnless { partial }
+                    } ?: baselineByRole[roleKey]?.capturedAt,
                     chanceProvenance = if (roleKey in reconstructions) "reconstructed" else if (baselineByRole[roleKey]?.capturedAt != null) "observed" else null,
                 )
             }
@@ -987,6 +993,9 @@ class AvailabilityService(
         principal: SessionUserPrincipal,
     ) {
         requireEditableEvent(event)
+        if (event.templateType != "survey" && AvailabilityRoleRules.rolesRequiredForEvent(event.roleSlots).isEmpty()) {
+            throw ResponseStatusException(HttpStatus.CONFLICT, "Aucun rôle n’est recherché pour ce spectacle.")
+        }
         if (event.isAvailabilityOpen()) {
             return
         }
