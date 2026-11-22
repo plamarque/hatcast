@@ -67,6 +67,13 @@ async function setup(data: Partial<AvailabilityDialogData> = {}) {
 }
 
 describe('AvailabilityDialog', () => {
+  it('explains that entry is closed when no role is required', async () => {
+    const { fixture, setMyAvailability } = await setup({ noRequiredRoles: true })
+    expect(fixture.nativeElement.textContent).toContain('Aucun rôle n’est recherché')
+    expect(fixture.nativeElement.querySelector('app-availability-form')).toBeNull()
+    expect(fixture.nativeElement.querySelector('mat-dialog-actions').textContent).not.toContain('Enregistrer')
+    expect(setMyAvailability).not.toHaveBeenCalled()
+  })
   function form(fixture: Awaited<ReturnType<typeof setup>>['fixture']): AvailabilityForm {
     return fixture.debugElement.query(d => d.componentInstance instanceof AvailabilityForm).componentInstance
   }

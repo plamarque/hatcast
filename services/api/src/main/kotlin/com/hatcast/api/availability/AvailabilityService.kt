@@ -993,6 +993,9 @@ class AvailabilityService(
         principal: SessionUserPrincipal,
     ) {
         requireEditableEvent(event)
+        if (event.templateType != "survey" && AvailabilityRoleRules.rolesRequiredForEvent(event.roleSlots).isEmpty()) {
+            throw ResponseStatusException(HttpStatus.CONFLICT, "Aucun rôle n’est recherché pour ce spectacle.")
+        }
         if (event.isAvailabilityOpen()) {
             return
         }

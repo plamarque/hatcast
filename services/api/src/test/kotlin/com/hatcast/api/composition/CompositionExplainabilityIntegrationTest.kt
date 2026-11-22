@@ -250,6 +250,51 @@ class CompositionExplainabilityIntegrationTest {
     }
 
     @Test
+    fun `unlock hides recorded chances from members even with a legacy publication date`() {
+        for (legacyPublished in listOf(false, true)) {
+            val suffix = if (legacyPublished) "published" else "unpublished"
+            val admin = memberCookie("sub-exp-unlocked-$suffix-admin", admin = true)
+            val member = memberCookie("sub-exp-unlocked-$suffix-member")
+            val seasonId = createSeason(admin)
+            val eventId = createEvent(admin, seasonId)
+            mockMvc.perform(put("/v1/seasons/$seasonId/events/$eventId/availability/me")
+                .cookie(member).contentType(MediaType.APPLICATION_JSON)
+                .content("""{"status":"available","roleKeys":["player"]}""").with(csrf())).andExpect(status().isOk)
+            seasonParticipantService.ensureMembershipParticipants(seasonRepository.findById(seasonId).orElseThrow())
+            val user = userRepository.findByGoogleSub("sub-exp-unlocked-$suffix-member")!!
+            val membership = membershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, user.id)!!
+            val participantId = seasonParticipantRepository.findBySeason_IdAndTroupeMembership_Id(seasonId, membership.id)!!.id
+            seedDraftComposition(eventId, participantId)
+            val slot = slotRepository.findByEventIdAndRoleKeyAndSlotIndex(eventId, "player", 0)!!
+            slot.selectionChancePercent = 42
+            slot.selectionChanceAt = Instant.parse("2026-01-02T12:00:00Z")
+            slot.selectionChanceSource = "manual"
+            slotRepository.saveAndFlush(slot)
+            if (legacyPublished) mockMvc.perform(post("/v1/seasons/$seasonId/events/$eventId/composition/publish").cookie(admin).with(csrf())).andExpect(status().isOk)
+            mockMvc.perform(post("/v1/seasons/$seasonId/events/$eventId/composition/validate").cookie(admin).with(csrf())).andExpect(status().isOk)
+            mockMvc.perform(post("/v1/seasons/$seasonId/events/$eventId/composition/unlock").cookie(admin).with(csrf()))
+                .andExpect(status().isOk).andExpect(jsonPath("$.visibility").value("organizerDraft"))
+            val url = "/v1/seasons/$seasonId/events/$eventId/composition/chance-breakdown?roleKey=player&participantId=$participantId"
+            mockMvc.perform(get(url).cookie(member)).andExpect(status().isOk)
+                .andExpect(jsonPath("$.chancePercent").exists())
+                .andExpect(jsonPath("$.recordedPercent").doesNotExist())
+                .andExpect(jsonPath("$.recordedAt").doesNotExist())
+                .andExpect(jsonPath("$.recordedSource").doesNotExist())
+                .andExpect(jsonPath("$.recordedSelection").value(false))
+                .andExpect(jsonPath("$.recordedSnapshot").value(false))
+            val summary = mapper.readTree(mockMvc.perform(get("/v1/seasons/$seasonId/events/$eventId/availability/summary?includeChances=true").cookie(member))
+                .andExpect(status().isOk).andReturn().response.contentAsString)
+            val role = summary["roles"].first { it["roleKey"].asText() == "player" }
+            org.junit.jupiter.api.Assertions.assertEquals("live", summary["chanceSource"].asText())
+            org.junit.jupiter.api.Assertions.assertTrue(role["chanceSnapshotAt"].isNull)
+            org.junit.jupiter.api.Assertions.assertTrue(role["candidates"].none { it["publishedAssignment"].asBoolean() })
+            val organizer = mockMvc.perform(get(url).cookie(admin)).andExpect(status().isOk)
+                .andExpect(jsonPath("$.recordedPercent").value(42))
+            if (!legacyPublished) organizer.andExpect(jsonPath("$.chancePercent").exists())
+        }
+    }
+
+    @Test
     fun `recorded chance does not reveal unpublished composition to a member`() {
         val admin = memberCookie("sub-exp-private-admin", admin = true)
         val member = memberCookie("sub-exp-private-member")

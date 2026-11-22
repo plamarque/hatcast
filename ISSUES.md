@@ -10,6 +10,13 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Current follow-up
 
+### BUG-137 — Availability remains open when a spectacle has no required roles
+
+- **Status:** Fixed locally; development verification pending. **Severity:** Medium. **Affected area:** Availability collection for spectacles without required slots.
+- **Observed behavior:** After all four player slots were deleted from Match à Nantes, its availability poll continued to show and accept general responses despite there being no roles to fill.
+- **Expected behavior:** Close availability entry while no role is required, retain existing responses, and allow general availability for the simple survey format.
+- **Context:** Reported on 22 November 2026; production audit records the four structural slot deletions on 20 November.
+
 ### BUG-136 — False warning after validating a composition
 
 - **Status:** Fixed locally; development verification pending. **Severity:** Low. **Affected area:** Composition validation and recorded-chance refresh.
@@ -58,6 +65,7 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 - **Observed behavior:** On Match à Nantes, the available count is 11 but expanding the available row shows an empty panel.
 - **Expected behavior:** Expanding the row lists available people, including when chance explainability is enabled.
 - **Context:** Reproduced in development on 21 November 2026. Flat availability has no role-specific chance pool and must show the neutral participant list.
+- **Nantes investigation (22 November 2026):** The neutral list is now visible but its participants have no role-specific chance to open. The event has no configured slots in development or production: four assigned player slots were deleted individually on 20 November after a draw, as recorded by `SLOT_DELETED` audit events. Consequently the team tab has no role slots to display. The audit retains the deleted assignments; no restoration was performed during this investigation.
 
 ### BUG-129 — Selected member sheet hides reconstructed chance
 

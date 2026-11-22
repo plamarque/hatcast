@@ -151,6 +151,17 @@ async function setup(
 }
 
 describe('EventDisposTab', () => {
+  it('ferme la saisie pour un spectacle sans place tout en conservant le sondage simple', async () => {
+    const { fixture } = await setup()
+    const event = { id: 'event-1', title: 'Match', startsAt: '2030-06-15T18:00:00Z', templateType: 'match', roleSlots: {}, archived: false }
+    fixture.componentRef.setInput('event', event)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('Aucun rôle n’est recherché')
+    expect(fixture.nativeElement.querySelector('app-availability-poll')).toBeNull()
+    fixture.componentRef.setInput('event', { ...event, templateType: 'survey' })
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('app-availability-poll')).not.toBeNull()
+  })
   it('shows unknown names to members without writing and updates with the summary', async () => {
     const { fixture, setMyAvailability, setParticipantAvailability } = await setup()
     const el = fixture.nativeElement as HTMLElement

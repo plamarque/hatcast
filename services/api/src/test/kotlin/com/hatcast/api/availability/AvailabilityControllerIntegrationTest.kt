@@ -1433,6 +1433,22 @@ class AvailabilityControllerIntegrationTest {
         }
     }
 
+    @Test
+    fun `spectacle without required roles rejects availability writes for self and proxy`() {
+        val admin = memberCookie("sub-roleless-match")
+        val (seasonId, eventId) = createSeasonAndEvent(admin,
+            """{"title":"Match sans places", "startsAt":"2031-03-20T19:00:00Z", "templateType":"match", "roleSlots":{}}""")
+        val participantId = createSeasonParticipant(seasonId, "Roleless match proxy")
+        for (suffix in listOf("me", "participants/$participantId")) {
+            for (status in listOf("available", "unavailable", "unknown")) {
+                mockMvc.perform(put("/v1/seasons/$seasonId/events/$eventId/availability/$suffix")
+                    .cookie(admin).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"$status","roleKeys":[]}"""))
+                    .andExpect(status().isConflict)
+            }
+        }
+    }
+
     private fun setAvailabilityForMember(
         seasonId: UUID,
         eventId: UUID,

@@ -10,6 +10,7 @@ import {
 } from '../../core/availability/availability-api.service'
 import type { EventResponse } from '../../core/events/event-api.service'
 import { isEventDraft } from '../../core/events/event-draft'
+import { totalSlots } from '../../core/events/event-types'
 import type { ActorScope } from '../../core/analytics/organizer-analytics'
 import { AvailabilityPoll, type AvailabilityPollSavedPayload } from './availability-poll'
 import { AvailabilitySubjectSelector } from './availability-subject-selector'
@@ -78,6 +79,10 @@ export class EventDisposTab implements OnDestroy {
 
   protected readonly draftBlocksMemberDispos = computed(
     () => isEventDraft(this.event()) && !this.canManageComposition(),
+  )
+
+  protected readonly noRequiredRoles = computed(
+    () => this.event().templateType !== 'survey' && totalSlots(this.event().roleSlots) === 0,
   )
 
   protected readonly subjectProxyMode = computed(() => {
