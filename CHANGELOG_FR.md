@@ -5,6 +5,11 @@
 > Journal technique aligné sur CHANGELOG.md (entrée anglaise pour cette version).
 
 
+## [2.8.3] - 2026-11-22
+
+> Journal technique aligné sur CHANGELOG.md (entrée anglaise pour cette version).
+
+
 ## [2.8.3] - 2026-11-21
 
 > Journal technique aligné sur CHANGELOG.md (entrée anglaise pour cette version).

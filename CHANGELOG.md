@@ -2,6 +2,28 @@
 
 ## [2.8.3] - 2026-11-22
 
+### ✨ New Features
+- feat(story): merge pr-22-auth-resubmit
+- feat(story): merge pr-22-auth-resubmit
+
+### 🐛 Bug Fixes
+- fix(auth): Refine Google button appearance
+- fix(auth): Improve sign-in feedback
+- fix(web): Count notification opens only on entry
+
+### 📝 Other Changes
+- chore(v2): promote v2 to staging-v2
+- docs(release): Refresh 2.8.3 notes
+- docs(skill): Handle incoming pull requests
+- chore: Merge local v2 into PR 21
+- test(analytics): Cover reload after link entry
+- docs(chances): Record staging acceptance
+- chore(v2): sync release v2.8.3-rc.3 artifacts to v2
+
+---
+
+## [2.8.3] - 2026-11-22
+
 ### 🐛 Bug Fixes
 - fix(dispos): Close entry without role needs
 - fix(chances): Compare stored timestamps
