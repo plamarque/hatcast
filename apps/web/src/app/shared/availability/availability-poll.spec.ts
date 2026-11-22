@@ -129,6 +129,41 @@ async function setupPoll(options: {
 }
 
 describe('AvailabilityPoll', () => {
+  it('shows a newly available coach immediately and refreshes chances after saving', async () => {
+    const { fixture, setMyAvailability, getEventAvailabilitySummary } = await setupPoll({ initialStatus: 'available', initialRoleKeys: ['player'] })
+    const subject = { ...mockSummary.participants[0], status: 'available' as const, roleKeys: ['player'] }
+    const initial = { ...mockSummary, roleSlots: { player: 4, coach: 1 }, chanceSource: 'live' as const,
+      participants: [subject, mockSummary.participants[1]], roles: [
+        { roleKey: 'player', requiredCount: 4, candidates: [{ participantId: 'p1', displayName: 'Patrice', chancePercent: 50 }] },
+        { roleKey: 'coach', requiredCount: 1, candidates: [{ participantId: 'p2', displayName: 'Alex', chancePercent: 100 }] },
+      ] }
+    const refreshed = { ...initial, participants: [{ ...subject, roleKeys: ['player', 'coach'] }, mockSummary.participants[1]],
+      roles: [initial.roles[0], { ...initial.roles[1], candidates: [...initial.roles[1].candidates, { participantId: 'p1', displayName: 'Patrice', chancePercent: 50 }] }] }
+    fixture.componentRef.setInput('roleSlots', { player: 4, coach: 1 })
+    fixture.componentRef.setInput('subject', subject)
+    fixture.componentRef.setInput('summary', initial)
+    fixture.componentInstance.summaryPatch.subscribe(value => fixture.componentRef.setInput('summary', value))
+    getEventAvailabilitySummary.mockResolvedValueOnce({ ok: true, status: 200, data: initial })
+    getEventAvailabilitySummary.mockResolvedValueOnce({ ok: true, status: 200, data: refreshed })
+    fixture.detectChanges()
+    const rows = fixture.nativeElement.querySelectorAll('app-availability-poll-row')
+    const coachRow = rows[2] as HTMLElement
+    ;(coachRow.querySelector('.poll-row__stats-trigger') as HTMLButtonElement).click()
+    await vi.waitFor(() => { fixture.detectChanges(); expect(coachRow.textContent).toContain('Alex') })
+    let finishVote!: (value: unknown) => void
+    setMyAvailability.mockImplementationOnce(() => new Promise(resolve => { finishVote = resolve }))
+    const vote = (fixture.componentInstance as any).onRoleToggle('coach', true)
+    fixture.detectChanges()
+    expect(coachRow.textContent).toContain('Alex')
+    expect(coachRow.textContent).toContain('Patrice')
+    finishVote({ ok: true, status: 200, data: { status: 'available', roleKeys: ['player', 'coach'], comment: null } })
+    await vote
+    fixture.detectChanges()
+    expect(getEventAvailabilitySummary).toHaveBeenCalledTimes(2)
+    expect(coachRow.textContent).toContain('Patrice')
+    expect(coachRow.querySelector('[data-testid="composition-draw-segment-p1"]')).toBeTruthy()
+  })
+
   it('shows available people when the event has no role slots and explainability is enabled', async () => {
     const { fixture, getEventAvailabilitySummary } = await setupPoll()
     fixture.componentRef.setInput('roleSlots', {})

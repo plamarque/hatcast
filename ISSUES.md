@@ -10,6 +10,13 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Current follow-up
 
+### BUG-135 — Newly available candidate missing from expanded role
+
+- **Status:** Fixed locally; development verification pending. **Severity:** Medium. **Affected area:** Availability poll with an expanded role and chance display.
+- **Observed behavior:** When a person adds a role, the response is saved but their new candidate entry has no calculated chance yet; the expanded list renders only candidates with a percentage and omits that person.
+- **Expected behavior:** Show the newly available person immediately and refresh the chance display after the vote is saved.
+- **Context:** Reported for Patrice, coach on Match Pau, in development on 22 November 2026. Audit confirms the role was added and subsequently removed during the test.
+
 ### BUG-134 — Uncaptured available candidates cannot open their chances
 
 - **Status:** Fixed locally; development verification pending. **Severity:** Medium. **Affected area:** Published availability chance details.

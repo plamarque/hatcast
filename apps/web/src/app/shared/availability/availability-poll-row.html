@@ -98,7 +98,17 @@
           [interactive]="poolInteractive()"
           (segmentTap)="poolSegmentTap.emit($event)"
         />
-      } @else if (poolShowNeutral()) {
+        @if (avatars().some(hasMissingChance)) { <div class="poll-row__pool-neutral" role="list">
+          @for (avatar of avatars(); track avatar.participantId) {
+            @if (avatar.chancePercent == null) {
+              <span class="poll-row__pool-chip" role="listitem" [title]="avatar.displayName">
+                <app-user-avatar [displayName]="avatar.displayName" [avatarUrl]="avatar.avatarUrl ?? null" [gender]="avatar.gender ?? null" [size]="20" />
+                <span class="poll-row__pool-chip-label">{{ avatar.displayName }}</span>
+              </span>
+            }
+          }
+        </div> }
+      } @else if (poolShowNeutral() || avatars().length > 0) {
         <div class="poll-row__pool-neutral" role="list">
           @for (avatar of avatars(); track avatar.participantId) {
             <span class="poll-row__pool-chip" role="listitem" [title]="avatar.displayName">
@@ -113,8 +123,6 @@
             </span>
           }
         </div>
-      } @else if (poolChancesUnavailable()) {
-        <p class="poll-row__pool-empty">Pourcentages indisponibles pour ce rôle.</p>
       }
     </div>
   }

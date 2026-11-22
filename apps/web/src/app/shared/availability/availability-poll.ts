@@ -273,16 +273,6 @@ export class AvailabilityPoll {
     return !this.explainabilityEnabled() && this.roleAvatars(roleKey).length > 0
   }
 
-  protected rolePoolChancesUnavailable(roleKey: string): boolean {
-    return (
-      this.explainabilityEnabled() &&
-      this.summaryIncludesChances() &&
-      !this.loadingChances() &&
-      this.roleAvatars(roleKey).length > 0 &&
-      !this.roleHasChancePool(roleKey)
-    )
-  }
-
   protected unavailablePoolShowNeutral(): boolean {
     // An unavailable response is not a draw candidate, so it never has chances to preview.
     return this.unavailableAvatars().length > 0
@@ -474,6 +464,10 @@ export class AvailabilityPoll {
     roleKeys: RoleKey[],
   ): Promise<void> {
     if (!this.canEdit() || this.busy()) return
+    // A summary fetched before this vote must never overwrite its newer state.
+    const shouldRefreshChances = this.summaryIncludesChances() || this.loadingChances()
+    this.chancesLoadGeneration++
+    this.loadingChances.set(false)
     this.savingRowKey.set(rowKey)
     const subject = this.subject()
     const previousSummary = this.summary()
@@ -522,6 +516,9 @@ export class AvailabilityPoll {
       comment: result.data.comment ?? null,
       scope: 'status',
     })
+    if (shouldRefreshChances && this.explainabilityEnabled()) {
+      await this.ensureChancesLoaded()
+    }
   }
 
   protected volunteerLocked(roleKey: string): boolean {

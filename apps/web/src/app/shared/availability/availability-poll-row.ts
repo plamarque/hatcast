@@ -46,7 +46,6 @@ export class AvailabilityPollRow {
   readonly poolSegments = input<CompositionPoolPreviewSegment[]>([])
   readonly poolShowChancePreview = input(false)
   readonly poolShowNeutral = input(false)
-  readonly poolChancesUnavailable = input(false)
   readonly poolInteractive = input(false)
   readonly showRecorded = input(false)
   readonly showSnapshot = input(false)
