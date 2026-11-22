@@ -216,7 +216,7 @@ export class Login implements AfterViewInit, OnDestroy, OnInit {
     clearPendingPostLoginRedirect()
   }
 
-  /** Widget GSI superposé au bouton Material (voir template) : largeur = pile parent. */
+  /** Widget Google : largeur adaptée au conteneur. */
   private renderGoogleSignInButton(): void {
     const g = window.google?.accounts?.id
     const host = this.googleHost()?.nativeElement
@@ -226,7 +226,7 @@ export class Login implements AfterViewInit, OnDestroy, OnInit {
     const w = Math.max(Math.floor(rawW), 280)
     host.replaceChildren()
     g.renderButton(host, {
-      theme: 'filled_blue',
+      theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'outline_dark' : 'filled_blue',
       type: 'standard',
       size: 'large',
       shape: 'pill',
