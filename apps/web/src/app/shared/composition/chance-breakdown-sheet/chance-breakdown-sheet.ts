@@ -167,7 +167,7 @@ export class ChanceBreakdownSheet {
 
   protected recordedSnapshotExplanation(): string {
     return this.breakdown().recordedSource === 'reconstructed'
-      ? 'Estimation reconstituée à partir des éléments historiques disponibles ; elle peut être incertaine.'
+      ? 'Capture des chances reconstituée à partir de l’historique.'
       : 'Chance calculée avant la sélection pour ce rôle.'
   }
 

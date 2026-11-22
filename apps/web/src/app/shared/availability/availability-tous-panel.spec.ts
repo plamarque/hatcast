@@ -196,9 +196,19 @@ describe('AvailabilityTousPanel', () => {
     fixture.componentRef.setInput('chanceSource', 'baseline')
     fixture.componentRef.setInput('explainabilityEnabled', true)
     fixture.detectChanges()
-    expect(fixture.nativeElement.textContent).toContain('Estimations reconstituées à partir de l’historique')
-    expect(fixture.nativeElement.textContent).toContain('L’estimation ne couvre pas tous les candidats affichés.')
+    expect(fixture.nativeElement.textContent).toContain('Capture des chances reconstituée à partir de l’historique')
+    expect(fixture.nativeElement.textContent).toContain('La capture ne couvre pas tous les candidats affichés.')
     expect(fixture.nativeElement.textContent).not.toContain('Capture des chances du')
+  })
+
+  it('labels an individual chance without a role capture as partial', async () => {
+    await TestBed.configureTestingModule({ imports: [AvailabilityTousPanel, NoopAnimationsModule] }).compileComponents()
+    const fixture = TestBed.createComponent(AvailabilityTousPanel)
+    fixture.componentRef.setInput('summary', { ...mockSummary, roles: [{ ...mockSummary.roles[0], chanceSnapshotAt: null, candidates: [{ participantId: 'p1', displayName: 'Patrice', chancePercent: 100, publishedAssignment: true }] }] })
+    fixture.componentRef.setInput('chanceSource', 'baseline')
+    fixture.componentRef.setInput('explainabilityEnabled', true)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('Capture des chances partielle.')
   })
 
   it('does not render recorded evidence when chance access is disabled', async () => {

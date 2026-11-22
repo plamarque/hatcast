@@ -10,6 +10,13 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Current follow-up
 
+### BUG-132 — Historical chances hidden by role-wide replay gate
+
+- **Status:** Fixed locally; staging verification pending. **Severity:** Medium. **Affected area:** Published availability chances and historical replay.
+- **Observed behavior:** The availability grid omitted recorded individual chances when a role photograph was missing. An ambiguous earlier draw also blocked later, independently reconstructible manual selections for the entire role.
+- **Expected behavior:** Display recorded individual chances when no role capture exists, and reconstruct later manual selections independently when their own evidence is sufficient.
+- **Context:** Caprani DJ and referee have recorded individual chances; Cambo volunteer has two later manual selections. Other candidates without supported values remain unavailable.
+
 ### BUG-131 — Draw photograph omits available volunteers
 
 - **Status:** Fixed locally; development verification pending. **Severity:** Medium. **Affected area:** Role chance references after a draw and historical replay.

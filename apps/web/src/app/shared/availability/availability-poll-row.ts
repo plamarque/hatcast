@@ -60,6 +60,7 @@ export class AvailabilityPollRow {
   readonly poolSegmentTap = output<{ participantId: string; chancePercent: number | null }>()
 
   protected readonly hasMissingChance = (candidate: SummaryRoleCandidate): boolean => candidate.chancePercent == null
+  protected readonly hasChance = (candidate: SummaryRoleCandidate): boolean => candidate.chancePercent != null
   protected readonly hasPublishedAssignment = (candidate: SummaryRoleCandidate): boolean => !!candidate.publishedAssignment
 
   protected onCheckboxChange(checked: boolean): void {

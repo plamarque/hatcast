@@ -1,8 +1,23 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {runChronologicalReplay,assessRole,validateDevelopmentUrl,DEVELOPMENT_BRANCH,STAGING_BRANCH,validateReplayUrl,mergeObservedManual} from './role-chance-chronological-replay.mjs';
+import {runChronologicalReplay,assessRole,validateDevelopmentUrl,DEVELOPMENT_BRANCH,STAGING_BRANCH,validateReplayUrl,mergeObservedManual,manualSelectionFallback} from './role-chance-chronological-replay.mjs';
 import {ALLOWED_SEASON_ID as seasonId} from './role-chance-chronological-report.mjs';
 const a=(type,date,extra={})=>({id:type,event_id:'event',action_type:type,occurred_at:date,...extra});
+test('later manual selections survive an ambiguous earlier draw without inventing the pool',()=>{
+ const origins=[{eventId:'event',role:'player',origin:'manual',provenance:'reconstructed',participantId:'p',evidenceAt:'2'},{eventId:'event',role:'player',origin:'unknown',provenance:'reconstructed',participantId:'q',evidenceAt:'3'}];
+ const decisions=[{eventId:'event',role:'player',decision:'SLOT_ASSIGNED',at:'2',unknowns:[],estimateV1:[{participantId:'p',estimatedPercent:50},{participantId:'q',estimatedPercent:60}]}];
+ assert.deepEqual(manualSelectionFallback(decisions,origins,'event','player').map(v=>[v.participantId,v.estimatedPercent]),[['p',50]]);
+ decisions[0].unknowns=['same_timestamp_order_unresolved'];assert.deepEqual(manualSelectionFallback(decisions,origins,'event','player'),[]);
+});
+test('a complete replay can replace a partial reconstruction but preserves complete ones',async()=>{
+ for(const [evidence,upgraded] of [[JSON.stringify({partial:true}),true],[JSON.stringify({partial:false}),false],['legacy evidence',false]]){
+  const c=client({existing:true}), original=c.query.bind(c);
+  c.query=async(sql,args)=>sql.startsWith('SELECT evidence FROM event_role_chance_reconstructions')?{rows:[{evidence}]}:original(sql,args);
+  const result=await runChronologicalReplay(c,seasonId);
+  assert.equal(result.results[0].result,upgraded?'reconstructed':'existing_preserved');
+  assert.equal(c.calls.some(x=>x.sql.startsWith('DELETE FROM event_role_chance_reconstruction_entries')),upgraded);
+ }
+});
 function client({branch=DEVELOPMENT_BRANCH,observed=false,existing=false,invalidSelection=false}={}){
  const calls=[];const audits=[a('EVENT_CREATED','2026-09-01T10:00:00Z',{after_json:JSON.stringify({roleSlots:{player:1}})}),a('AVAILABILITY_CREATED','2026-09-02T10:00:00Z',{subject_user_id:'u',after_json:JSON.stringify({status:'available',roleKeys:['player']})}),a('SLOT_ASSIGNED','2026-09-03T10:00:00Z',{after_json:JSON.stringify({participantId:invalidSelection?'unknown':'p',roleKey:'player',slotIndex:0}),metadata_json:JSON.stringify({roleKey:'player',slotIndex:0})})];
  return {calls,async query(sql,params){calls.push({sql,params});

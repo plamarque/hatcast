@@ -38,6 +38,20 @@ export function assessRole(role) {
  return {writable:true,scenario:e};
 }
 
+// An ambiguous old draw must not hide a later, independently evidenced manual
+// selection. This only yields values for current assignees, never a whole pool.
+export function manualSelectionFallback(decisions, origins, eventId, role) {
+ const values=[];
+ for(const origin of origins.filter(x=>x.eventId===eventId&&x.role===role&&x.origin==='manual'&&x.provenance==='reconstructed'&&x.evidenceAt)) {
+  const matches=decisions.filter(d=>d.eventId===eventId&&d.role===role&&d.decision==='SLOT_ASSIGNED'&&d.at===origin.evidenceAt);
+  if(matches.length!==1 || matches[0].unknowns.some(x=>blocking.has(x))) continue;
+  const value=matches[0].estimateV1?.find(x=>x.participantId===origin.participantId);
+  if(!value || !Number.isInteger(value.estimatedPercent) || value.estimatedPercent<0 || value.estimatedPercent>100) continue;
+  values.push({...value,estimatedAt:origin.evidenceAt,origin:'manual'});
+ }
+ return values;
+}
+
 export function mergeObservedManual(values, individual, people) {
  const byPerson=new Map(values.map(v=>[v.participantId,v]));
  for(const item of individual){
@@ -85,7 +99,18 @@ export async function runChronologicalReplay(client,seasonId,target='development
    const individual=(await client.query('SELECT season_participant_id,event_participant_id,selection_chance_percent,selection_chance_at,selection_chance_source FROM event_composition_slots WHERE event_id=$1 AND role_key=$2 AND selection_chance_percent IS NOT NULL',[role.eventId,role.role])).rows;
    const base={eventId:role.eventId,title:role.eventTitle,role:role.role,decisionAt:role.decisionAt,decisionType:role.decisionType,issues:role.issues,individualChances:individual};
    const assessment=assessRole(role);
-   if(!assessment.writable){results.push({...base,result:observed?.captured_at?'observed_preserved':'unavailable',reason:assessment.reason});continue;}
+   if(!assessment.writable){
+    if(observed?.captured_at){results.push({...base,result:'observed_preserved',reason:assessment.reason});continue;}
+    const values=manualSelectionFallback(diagnostic.decisions,selectionOrigins,role.eventId,role.role);
+    if(!values.length){results.push({...base,result:'unavailable',reason:assessment.reason});continue;}
+    const evidence=JSON.stringify({partial:true,individualSources:values.map(v=>({participantId:v.participantId,at:v.estimatedAt,origin:v.origin})),issues:role.issues});
+    const assumptions=JSON.stringify({general:diagnostic.assumptions,gaps:diagnostic.gaps.filter(g=>g.event===role.eventId)});
+    const latest=values.map(v=>v.estimatedAt).sort().at(-1);
+    const inserted=await client.query('INSERT INTO event_role_chance_reconstructions(event_id,role_key,estimated_at,evidence,assumptions) VALUES($1,$2,$3,$4,$5) ON CONFLICT(event_id,role_key) DO NOTHING RETURNING event_id',[role.eventId,role.role,latest,evidence,assumptions]);
+    if(!inserted.rowCount){results.push({...base,result:'existing_preserved'});continue;}
+    for(const item of values)await client.query('INSERT INTO event_role_chance_reconstruction_entries(event_id,role_key,participant_id,chance_percent) VALUES($1,$2,$3,$4)',[role.eventId,role.role,item.participantId,item.estimatedPercent]);
+    results.push({...base,result:'reconstructed_partial',estimatedEntries:values});continue;
+   }
    const values=mergeObservedManual(assessment.scenario.values,individual,[...participants,...guests]);
    const nearby=(await client.query(`SELECT participant_id,chance_percent,snapshotted_at FROM event_draw_chance_snapshots
      WHERE event_id=$1 AND role_key=$2 AND abs(extract(epoch FROM (snapshotted_at-$3::timestamptz)))<3 ORDER BY participant_id`,[role.eventId,role.role,role.decisionAt])).rows;
@@ -94,7 +119,13 @@ export async function runChronologicalReplay(client,seasonId,target='development
    const evidence=JSON.stringify({decisionAt:role.decisionAt,decisionType:role.decisionType,mode:assessment.scenario.mode,individualSources:values.map(v=>({participantId:v.participantId,at:v.estimatedAt,origin:v.origin})),issues:role.issues,comparison});
    const assumptions=JSON.stringify({general:diagnostic.assumptions,scenario:assessment.scenario.issues||[],gaps:diagnostic.gaps.filter(g=>g.event===role.eventId)});
    const inserted=await client.query('INSERT INTO event_role_chance_reconstructions(event_id,role_key,estimated_at,evidence,assumptions) VALUES($1,$2,$3,$4,$5) ON CONFLICT(event_id,role_key) DO NOTHING RETURNING event_id',[role.eventId,role.role,role.decisionAt,evidence,assumptions]);
-   if(!inserted.rowCount){const entries=(await client.query('SELECT participant_id,chance_percent FROM event_role_chance_reconstruction_entries WHERE event_id=$1 AND role_key=$2 ORDER BY participant_id',[role.eventId,role.role])).rows;results.push({...base,comparison,result:'existing_preserved',existingEntries:entries,differs:different(values,entries)});continue;}
+   if(!inserted.rowCount){
+    const existing=(await client.query('SELECT evidence FROM event_role_chance_reconstructions WHERE event_id=$1 AND role_key=$2 FOR UPDATE',[role.eventId,role.role])).rows[0];
+    let partial=false;try{partial=JSON.parse(existing?.evidence||'{}').partial===true;}catch{}
+    if(!partial){const entries=(await client.query('SELECT participant_id,chance_percent FROM event_role_chance_reconstruction_entries WHERE event_id=$1 AND role_key=$2 ORDER BY participant_id',[role.eventId,role.role])).rows;results.push({...base,comparison,result:'existing_preserved',existingEntries:entries,differs:different(values,entries)});continue;}
+    await client.query('UPDATE event_role_chance_reconstructions SET estimated_at=$3,evidence=$4,assumptions=$5 WHERE event_id=$1 AND role_key=$2',[role.eventId,role.role,role.decisionAt,evidence,assumptions]);
+    await client.query('DELETE FROM event_role_chance_reconstruction_entries WHERE event_id=$1 AND role_key=$2',[role.eventId,role.role]);
+   }
    for(const item of values)await client.query('INSERT INTO event_role_chance_reconstruction_entries(event_id,role_key,participant_id,chance_percent) VALUES($1,$2,$3,$4)',[role.eventId,role.role,item.participantId,item.estimatedPercent]);
    results.push({...base,comparison,result:'reconstructed',estimatedEntries:values});
   }

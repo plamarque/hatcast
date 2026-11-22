@@ -1092,7 +1092,10 @@ class CompositionDrawIntegrationTest {
             .andExpect(status().isOk).andExpect(jsonPath("$.chanceSource").value("baseline")).andReturn()
         val role = mapper.readTree(result.response.contentAsString)["roles"].first { it["roleKey"].asText() == "player" }
         assertEquals(3, role["candidates"].size())
-        assertTrue(role["candidates"].all { it["chancePercent"].asInt() == 67 })
+        assertTrue(role["candidates"].all { candidate ->
+            val selected = slots.firstOrNull { it.assignedParticipantId().toString() == candidate["participantId"].asText() }
+            candidate["chancePercent"].asInt() == (selected?.selectionChancePercent ?: 67)
+        })
         assertTrue(!role["chanceSnapshotAt"].isNull)
         val winner = slots.first().assignedParticipantId()!!
         mockMvc.perform(get("/v1/seasons/$seasonId/events/$eventId/composition/chance-breakdown")
@@ -1136,7 +1139,9 @@ class CompositionDrawIntegrationTest {
         roleChanceBaselineRepository.saveAndFlush(RoleChanceBaselineEntity(id, null))
         role = mapper.readTree(mockMvc.perform(get(path).cookie(admin)).andExpect(status().isOk).andReturn().response.contentAsString)["roles"].first()
         assertEquals("reconstructed", role["chanceProvenance"].asText())
-        assertEquals(setOf(42), role["candidates"].map { it["chancePercent"].asInt() }.toSet())
+        val firstRecorded = slotRepository.findByEventIdAndRoleKeyAndSlotIndex(eventId, "player", 0)!!.selectionChancePercent!!
+        assertEquals(firstRecorded, role["candidates"].first { it["participantId"].asText() == firstId.toString() }["chancePercent"].asInt())
+        assertEquals(42, role["candidates"].first { it["participantId"].asText() == secondId.toString() }["chancePercent"].asInt())
         mockMvc.perform(get("/v1/seasons/$seasonId/events/$eventId/composition/chance-breakdown")
             .param("roleKey", "player").param("participantId", secondId.toString()).cookie(admin))
             .andExpect(status().isOk).andExpect(jsonPath("$.recordedSource").value("reconstructed"))
@@ -1327,6 +1332,35 @@ class CompositionDrawIntegrationTest {
     }
 
     @Test
+    fun `published selection displays its saved chance when the role capture is missing`() {
+        val admin = memberCookie("sub-individual-fallback-admin", admin = true)
+        val first = memberCookie("sub-individual-fallback-first")
+        val second = memberCookie("sub-individual-fallback-second")
+        val seasonId = createSeason(admin)
+        val eventId = createEvent(admin, seasonId, """{ "player": 1 }""")
+        setAvailability(first, seasonId, eventId, "available")
+        setAvailability(second, seasonId, eventId, "available")
+        draw(admin, seasonId, eventId)
+        validateComposition(eventId)
+        val slot = slotRepository.findByEventId(eventId).first { it.roleKey == "player" }
+        val selectedId = slot.assignedParticipantId().toString()
+        roleChanceBaselineEntryRepository.deleteAll(roleChanceBaselineEntryRepository.findByIdEventId(eventId))
+        roleChanceBaselineRepository.saveAndFlush(RoleChanceBaselineEntity(RoleChanceBaselineId(eventId, "player"), null))
+        val path = "/v1/seasons/$seasonId/events/$eventId/availability/summary?includeChances=true"
+        for (chance in listOf(100, 0)) {
+            slot.selectionChancePercent = chance
+            slotRepository.saveAndFlush(slot)
+            val role = mapper.readTree(mockMvc.perform(get(path).cookie(admin)).andExpect(status().isOk).andReturn().response.contentAsString)["roles"].first { it["roleKey"].asText() == "player" }
+            assertEquals(chance, role["candidates"].first { it["participantId"].asText() == selectedId }["chancePercent"].asInt())
+            assertTrue(role["candidates"].first { it["participantId"].asText() != selectedId }["chancePercent"].isNull)
+        }
+        slot.selectionChancePercent = null
+        slotRepository.saveAndFlush(slot)
+        val role = mapper.readTree(mockMvc.perform(get(path).cookie(admin)).andExpect(status().isOk).andReturn().response.contentAsString)["roles"].first { it["roleKey"].asText() == "player" }
+        assertTrue(role["candidates"].first { it["participantId"].asText() == selectedId }["chancePercent"].isNull)
+    }
+
+    @Test
     fun `complete redraw captures all eligible candidates for legacy composition`() {
         val admin = memberCookie("sub-redraw-legacy-admin", admin = true)
         val members = listOf("a", "b", "c").map { memberCookie("sub-redraw-legacy-$it") }
@@ -1349,7 +1383,11 @@ class CompositionDrawIntegrationTest {
             .andExpect(status().isOk).andExpect(jsonPath("$.chanceSource").value("baseline")).andReturn()
         val role = mapper.readTree(result.response.contentAsString)["roles"].first { it["roleKey"].asText() == "player" }
         assertEquals(ids.map { it.toString() }.toSet(), role["candidates"].map { it["participantId"].asText() }.toSet())
-        assertTrue(role["candidates"].all { it["chancePercent"].asInt() == 67 })
+        val savedByParticipant = slotRepository.findByEventId(eventId).filter { it.roleKey == "player" }
+            .associate { it.assignedParticipantId().toString() to it.selectionChancePercent }
+        assertTrue(role["candidates"].all { candidate ->
+            candidate["chancePercent"].asInt() == (savedByParticipant[candidate["participantId"].asText()] ?: 67)
+        })
     }
 
     @Test

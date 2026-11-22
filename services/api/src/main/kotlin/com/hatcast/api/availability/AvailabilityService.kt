@@ -436,8 +436,9 @@ class AvailabilityService(
                             val assignment = publishedAssignments[roleKey to row.participantId]
                             val chancePercent =
                                 if (visiblePublishedBaseline) {
-                                    if (roleKey in reconstructions) reconstructionEntries[roleKey to row.participantId]?.chancePercent
+                                    val captured = if (roleKey in reconstructions) reconstructionEntries[roleKey to row.participantId]?.chancePercent
                                     else baselineByRoleAndParticipant[roleKey to row.participantId]?.chancePercent
+                                    assignment?.selectionChancePercent ?: captured
                                 } else if (snapshot != null) {
                                     snapshot.chancePercent
                                 } else {
