@@ -1,5 +1,6 @@
 package com.hatcast.api.availability
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.hatcast.api.audit.AuditActionType
 import com.hatcast.api.audit.AuditEventRecorder
 import com.hatcast.api.audit.AuditRecordRequest
@@ -66,6 +67,7 @@ import java.util.UUID
 
 @Service
 class AvailabilityService(
+    private val objectMapper: ObjectMapper,
     private val availabilityRepository: EventAvailabilityRepository,
     private val eventRepository: EventRepository,
     private val seasonRepository: SeasonRepository,
@@ -476,7 +478,10 @@ class AvailabilityService(
                     requiredCount = requiredCount,
                     candidates = candidates,
                     hasPartialEstimatedChances = roleUsedEstimatedFallback,
-                    chanceSnapshotAt = reconstructions[roleKey]?.estimatedAt ?: baselineByRole[roleKey]?.capturedAt,
+                    chanceSnapshotAt = reconstructions[roleKey]?.let { reconstruction ->
+                        val partial = runCatching { objectMapper.readTree(reconstruction.evidence).path("partial").asBoolean(false) }.getOrDefault(false)
+                        reconstruction.estimatedAt.takeUnless { partial }
+                    } ?: baselineByRole[roleKey]?.capturedAt,
                     chanceProvenance = if (roleKey in reconstructions) "reconstructed" else if (baselineByRole[roleKey]?.capturedAt != null) "observed" else null,
                 )
             }

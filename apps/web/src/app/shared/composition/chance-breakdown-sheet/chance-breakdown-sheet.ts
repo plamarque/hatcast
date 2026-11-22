@@ -162,11 +162,13 @@ export class ChanceBreakdownSheet {
   }
 
   protected recordedSelectionExplanation(): string {
-    return 'Chance calculée au moment de la sélection de cette personne.'
+    const date = this.recordedDate()
+    return 'Chance calculée au moment de la sélection de cette personne.' + (date ? ` Enregistrée le ${date}.` : ' Date indisponible.')
   }
 
   protected recordedSnapshotExplanation(): string {
-    return 'Chance calculée pour cette composition.'
+    const date = this.recordedDate()
+    return 'Chance calculée pour cette composition.' + (date ? ` Capture du ${date}.` : ' Date indisponible.')
   }
 
   protected multiPlaceChanceExplanation(): string {

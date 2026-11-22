@@ -43,15 +43,6 @@
     </div>
   </header>
   @if (breakdown().recordedSelection || breakdown().recordedSnapshot) {
-    <section aria-labelledby="selection-explanation-title">
-      <h3 class="chance-breakdown-sheet__section-title" id="selection-explanation-title">D’où vient ce % ?</h3>
-      <ol class="chance-breakdown-sheet__waterfall-list">
-        <li class="chance-breakdown-sheet__waterfall-row chance-selection__date">
-          <mat-icon aria-hidden="true">schedule</mat-icon>
-          <span>@if (recordedDate(); as date) { {{ breakdown().recordedSnapshot ? 'Capture du' : 'Enregistré le' }} {{ date }} } @else { Date d’enregistrement indisponible }</span>
-        </li>
-      </ol>
-    </section>
     @if (displayedPercent == null) { <p class="chance-selection__description">Chance enregistrée indisponible</p> }
   } @else {
   @if (breakdown().chancePercent != null) {

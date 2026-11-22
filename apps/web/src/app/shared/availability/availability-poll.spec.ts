@@ -182,7 +182,7 @@ describe('AvailabilityPoll', () => {
     fixture.componentInstance.summaryPatch.subscribe(value => fixture.componentRef.setInput('summary', value))
     const row = fixture.nativeElement.querySelectorAll('app-availability-poll-row')[1] as HTMLElement
     ;(row.querySelector('.poll-row__stats-trigger') as HTMLButtonElement).click()
-    await vi.waitFor(() => { fixture.detectChanges(); expect(row.textContent).toContain('Capture des chances du 02/01/2026') })
+    await vi.waitFor(() => { fixture.detectChanges(); expect(row.textContent).toContain('Capture de référence du 02/01/2026') })
     expect(row.querySelector('[data-testid="composition-draw-segment-p2"]')).toBeTruthy()
     const missing = row.querySelector('.recorded-missing') as HTMLButtonElement
     expect(missing.textContent).toContain('Camille')

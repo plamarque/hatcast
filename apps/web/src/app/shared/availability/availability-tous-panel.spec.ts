@@ -182,7 +182,7 @@ describe('AvailabilityTousPanel', () => {
     fixture.componentRef.setInput('chanceSource', 'baseline')
     fixture.componentRef.setInput('explainabilityEnabled', true)
     fixture.detectChanges()
-    expect(fixture.nativeElement.textContent).toContain('Capture des chances du 02/01/2026')
+    expect(fixture.nativeElement.textContent).toContain('Capture de référence du 02/01/2026')
     expect(fixture.nativeElement.textContent).not.toContain('La capture ne couvre pas tous les candidats affichés.')
     fixture.componentRef.setInput('summary', { ...mockSummary, roles: [{ ...mockSummary.roles[0], chanceSnapshotAt: '2026-01-02T12:00:00Z', candidates: [{ participantId: 'p1', displayName: 'Patrice', chancePercent: null, publishedAssignment: true }] }] })
     fixture.detectChanges()
@@ -196,10 +196,9 @@ describe('AvailabilityTousPanel', () => {
     fixture.componentRef.setInput('chanceSource', 'baseline')
     fixture.componentRef.setInput('explainabilityEnabled', true)
     fixture.detectChanges()
-    expect(fixture.nativeElement.textContent).toContain('Capture des chances')
+    expect(fixture.nativeElement.textContent).toContain('Capture de référence du 02/01/2026')
     expect(fixture.nativeElement.textContent).not.toContain('reconstituée')
     expect(fixture.nativeElement.textContent).toContain('La capture ne couvre pas tous les candidats affichés.')
-    expect(fixture.nativeElement.textContent).not.toContain('Capture des chances du')
   })
 
   it('labels an individual chance without a role capture as partial', async () => {

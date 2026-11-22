@@ -1162,6 +1162,10 @@ class CompositionDrawIntegrationTest {
             .andExpect(jsonPath("$.recordedSource").value("reconstructed"))
             .andExpect(jsonPath("$.recordedPercent").value(42))
             .andExpect(jsonPath("$.recordedAt").value("2026-01-02T14:15:00Z"))
+        val partialEvidence = """{"partial":true,"individualSources":[{"participantId":"$firstId","at":"2026-01-02T14:15:00Z"}]}"""
+        reconstructions.saveAndFlush(RoleChanceReconstructionEntity(id, Instant.parse("2026-01-02T14:15:00Z"), partialEvidence, "formula evidence"))
+        role = mapper.readTree(mockMvc.perform(get(path).cookie(admin)).andExpect(status().isOk).andReturn().response.contentAsString)["roles"].first()
+        assertTrue(role["chanceSnapshotAt"].isNull)
         roleChanceBaselines.replaceAfterDraw(eventId, "player", RoleChanceBaselineCaptureService.Prepared(mapOf("player" to listOf(firstId to 50, secondId to 50)), Instant.now()))
         role = mapper.readTree(mockMvc.perform(get(path).cookie(admin)).andExpect(status().isOk).andReturn().response.contentAsString)["roles"].first()
         assertEquals("observed", role["chanceProvenance"].asText())
