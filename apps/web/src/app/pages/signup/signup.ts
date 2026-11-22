@@ -207,7 +207,7 @@ export class Signup implements AfterViewInit, OnDestroy, OnInit {
     const w = Math.max(Math.floor(rawW), 280)
     host.replaceChildren()
     g.renderButton(host, {
-      theme: 'filled_blue',
+      theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'outline_dark' : 'filled_blue',
       type: 'standard',
       size: 'large',
       shape: 'pill',
