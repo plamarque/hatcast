@@ -1126,7 +1126,8 @@ class CompositionDrawIntegrationTest {
         val before = mapper.readTree(mockMvc.perform(get(path).cookie(first)).andExpect(status().isOk).andReturn().response.contentAsString)
         assertTrue(before["roles"].first()["chanceProvenance"].isNull)
         assignSlot(admin, seasonId, eventId, "player", 0, firstId)
-        reconstructions.saveAndFlush(RoleChanceReconstructionEntity(id, Instant.parse("2026-01-01T12:00:00Z"), "audit", "formula evidence"))
+        val evidence = """{"individualSources":[{"participantId":"$firstId","at":"2026-01-02T14:15:00Z"},{"participantId":"$secondId","at":"2026-01-01T12:00:00Z"}]}"""
+        reconstructions.saveAndFlush(RoleChanceReconstructionEntity(id, Instant.parse("2026-01-01T12:00:00Z"), evidence, "formula evidence"))
         reconstructionEntries.saveAll(listOf(firstId, secondId).map {
             RoleChanceReconstructionEntryEntity(RoleChanceBaselineEntryId(eventId, "player", it), 42)
         })
@@ -1146,6 +1147,7 @@ class CompositionDrawIntegrationTest {
             .param("roleKey", "player").param("participantId", secondId.toString()).cookie(admin))
             .andExpect(status().isOk).andExpect(jsonPath("$.recordedSource").value("reconstructed"))
             .andExpect(jsonPath("$.recordedPercent").value(42))
+            .andExpect(jsonPath("$.recordedAt").value("2026-01-01T12:00:00Z"))
         val selected = slotRepository.findByEventIdAndRoleKeyAndSlotIndex(eventId, "player", 0)!!
         val observedChance = selected.selectionChancePercent!!
         val breakdown = "/v1/seasons/$seasonId/events/$eventId/composition/chance-breakdown"
@@ -1159,7 +1161,7 @@ class CompositionDrawIntegrationTest {
             .andExpect(status().isOk).andExpect(jsonPath("$.recordedSnapshot").value(true))
             .andExpect(jsonPath("$.recordedSource").value("reconstructed"))
             .andExpect(jsonPath("$.recordedPercent").value(42))
-            .andExpect(jsonPath("$.recordedAt").doesNotExist())
+            .andExpect(jsonPath("$.recordedAt").value("2026-01-02T14:15:00Z"))
         roleChanceBaselines.replaceAfterDraw(eventId, "player", RoleChanceBaselineCaptureService.Prepared(mapOf("player" to listOf(firstId to 50, secondId to 50)), Instant.now()))
         role = mapper.readTree(mockMvc.perform(get(path).cookie(admin)).andExpect(status().isOk).andReturn().response.contentAsString)["roles"].first()
         assertEquals("observed", role["chanceProvenance"].asText())

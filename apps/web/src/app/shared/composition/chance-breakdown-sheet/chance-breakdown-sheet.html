@@ -48,11 +48,10 @@
       <ol class="chance-breakdown-sheet__waterfall-list">
         <li class="chance-breakdown-sheet__waterfall-row chance-selection__date">
           <mat-icon aria-hidden="true">schedule</mat-icon>
-          <span>@if (recordedDate(); as date) { {{ breakdown().recordedSnapshot ? (breakdown().recordedSource === 'reconstructed' ? 'Date estimée :' : 'Capture du') : 'Enregistré le' }} {{ date }} } @else { Date d’enregistrement indisponible }</span>
+          <span>@if (recordedDate(); as date) { {{ breakdown().recordedSnapshot ? 'Capture du' : 'Enregistré le' }} {{ date }} } @else { Date d’enregistrement indisponible }</span>
         </li>
       </ol>
     </section>
-    @if (breakdown().recordedSource === 'reconstructed') { <p>Capture des chances reconstituée à partir de l’historique.</p> }
     @if (displayedPercent == null) { <p class="chance-selection__description">Chance enregistrée indisponible</p> }
   } @else {
   @if (breakdown().chancePercent != null) {

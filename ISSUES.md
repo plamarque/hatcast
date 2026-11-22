@@ -10,6 +10,13 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Current follow-up
 
+### BUG-133 — Replayed capture dates are hidden or shared across people
+
+- **Status:** Fixed locally; development verification pending. **Severity:** Medium. **Affected area:** Published chance explanation.
+- **Observed behavior:** Reconstructed selections showed no recording date, while other candidates could see the role-level date rather than the timestamp associated with their own reconstructed value. Repeated caveats obscured the result.
+- **Expected behavior:** Show each recorded evidence timestamp when available and use concise capture wording without repeated caveats; do not invent dates when evidence is missing.
+- **Context:** Reported for Apérock café in development on 22 November 2026. Replay evidence already contains individual decision timestamps.
+
 ### BUG-132 — Historical chances hidden by role-wide replay gate
 
 - **Status:** Fixed locally; staging verification pending. **Severity:** Medium. **Affected area:** Published availability chances and historical replay.

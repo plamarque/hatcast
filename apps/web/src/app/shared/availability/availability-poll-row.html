@@ -83,7 +83,7 @@
         </div>
       } @else if (showRecorded() && (showSnapshot() || avatars().some(hasPublishedAssignment))) {
         @if (showSnapshot()) {
-          <p>@if (snapshotAt()) { @if (chanceProvenance() === 'reconstructed') { Capture des chances reconstituée à partir de l’historique. } @else { Capture des chances du {{ snapshotAt() | date:'dd/MM/yyyy HH:mm' }} } } @else if (avatars().some(hasChance)) { Capture des chances partielle. } @else { Capture des chances indisponible. }</p>
+          <p>@if (snapshotAt()) { @if (chanceProvenance() === 'reconstructed') { Capture des chances } @else { Capture des chances du {{ snapshotAt() | date:'dd/MM/yyyy HH:mm' }} } } @else if (avatars().some(hasChance)) { Capture des chances partielle. } @else { Capture des chances indisponible. }</p>
           @if (snapshotAt() && avatars().some(hasMissingChance)) { <p>La capture ne couvre pas tous les candidats affichés.</p> }
         }
         <app-availability-recorded-candidates

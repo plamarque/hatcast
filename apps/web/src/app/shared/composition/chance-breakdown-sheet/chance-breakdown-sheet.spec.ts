@@ -147,7 +147,7 @@ describe('ChanceBreakdownSheet', () => {
     fixture.detectChanges()
     const hint = fixture.nativeElement.querySelector('.chance-breakdown-sheet__hero-hint') as HTMLButtonElement
     expect(hint.type).toBe('button')
-    expect(hint.getAttribute('aria-label')).toBe('Chance calculée avant la sélection pour ce rôle.')
+    expect(hint.getAttribute('aria-label')).toBe('Chance calculée pour cette composition.')
     const tooltip = fixture.debugElement.query(By.directive(MatTooltip)).injector.get(MatTooltip)
     expect(tooltip.message).toBe(hint.getAttribute('aria-label'))
     const toggle = vi.spyOn(tooltip, 'toggle')
@@ -175,14 +175,14 @@ describe('ChanceBreakdownSheet', () => {
     expect(el.querySelector('[data-testid="chance-breakdown-waterfall"]')).toBeNull()
   })
 
-  it('labels reconstructed captures and their estimated date accessibly', () => {
+  it('displays the recorded time of a reconstructed capture without duplicate explanations', () => {
     fixture.componentInstance['breakdown'].set({ ...baseBreakdown, recordedSnapshot: true, recordedSource: 'reconstructed', recordedPercent: 42, recordedAt: '2026-11-19T23:53:00Z' })
     fixture.detectChanges()
     const el = fixture.nativeElement as HTMLElement
     expect(el.querySelector('[role="dialog"]')?.getAttribute('aria-label')).toBe('Capture des chances de Alice')
-    expect(el.textContent).toContain('Date estimée :')
-    expect(el.textContent).toContain('Capture des chances reconstituée à partir de l’historique.')
-    expect(el.textContent).not.toContain('Capture du')
+    expect(el.textContent).toContain('Capture du')
+    expect(el.textContent).not.toContain('Date estimée')
+    expect(el.textContent).not.toContain('reconstituée')
   })
 
   it('renders waterfall with reference and final lines', () => {

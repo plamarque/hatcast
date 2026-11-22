@@ -29,12 +29,14 @@ import com.hatcast.api.troupe.TroupeCategoryRepository
 import com.hatcast.api.user.MemberGender
 import com.hatcast.api.user.ParticipantAvatarResolver
 import com.hatcast.api.user.ParticipantGenderResolver
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.beans.factory.ObjectProvider
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.server.ResponseStatusException
 import java.util.UUID
+import java.time.Instant
 
 @Service
 class CompositionExplainabilityService(
@@ -59,7 +61,19 @@ class CompositionExplainabilityService(
     private val drawWeightPipelineProvider: ObjectProvider<DrawWeightPipeline>,
     private val drawPolicyResolutionService: DrawPolicyResolutionService,
     private val troupeCategoryRepository: TroupeCategoryRepository,
+    private val roleChanceReconstructionRepository: RoleChanceReconstructionRepository,
+    private val objectMapper: ObjectMapper,
 ) {
+    private fun reconstructedChanceDate(eventId: UUID, roleKey: String, participantId: UUID): Instant? {
+        val reconstruction = roleChanceReconstructionRepository.findById(RoleChanceBaselineId(eventId, roleKey)).orElse(null)
+            ?.takeIf { it.supersededAt == null } ?: return null
+        return runCatching {
+            val sources = objectMapper.readTree(reconstruction.evidence).path("individualSources")
+            val date = sources.firstOrNull { it.path("participantId").asText() == participantId.toString() }
+                ?.path("at")?.asText()?.takeIf { it.isNotBlank() }
+            date?.let(Instant::parse)
+        }.getOrNull()
+    }
     private fun resolveDrawPipeline(
         event: EventEntity,
         formulaId: UUID? = null,
@@ -109,7 +123,7 @@ class CompositionExplainabilityService(
                     return ChanceBreakdownDto(
                         participantId = participantId, roleKey = roleKey, displayName = candidate.displayName,
                         chancePercent = null, recordedSnapshot = true, recordedPercent = candidate.chancePercent,
-                        recordedAt = null, recordedSource = "reconstructed", avatarUrl = candidate.avatarUrl, gender = candidate.gender,
+                        recordedAt = reconstructedChanceDate(eventId, roleKey, participantId), recordedSource = "reconstructed", avatarUrl = candidate.avatarUrl, gender = candidate.gender,
                     )
                 }
             }
@@ -140,7 +154,8 @@ class CompositionExplainabilityService(
                 return ChanceBreakdownDto(
                     participantId = participantId, roleKey = roleKey, displayName = candidate.displayName,
                     chancePercent = null, recordedSnapshot = true, recordedPercent = candidate.chancePercent,
-                    recordedAt = role.chanceSnapshotAt, recordedSource = role.chanceProvenance, avatarUrl = candidate.avatarUrl, gender = candidate.gender,
+                    recordedAt = if (role.chanceProvenance == "reconstructed") reconstructedChanceDate(eventId, roleKey, participantId) else role.chanceSnapshotAt,
+                    recordedSource = role.chanceProvenance, avatarUrl = candidate.avatarUrl, gender = candidate.gender,
                 )
             }
             // Never fall through to the live simulation for a visible publication.
