@@ -10,6 +10,13 @@ This is **not** a planning document. Fixing an issue may result in a task in PLA
 
 ## Current follow-up
 
+### BUG-136 — False warning after validating a composition
+
+- **Status:** Fixed locally; development verification pending. **Severity:** Low. **Affected area:** Composition validation and recorded-chance refresh.
+- **Observed behavior:** After successful validation, a warning says recorded chances are unavailable even though the follow-up composition request succeeds.
+- **Expected behavior:** A successful refresh must not be reported as unavailable solely because equivalent validation timestamps have different precision.
+- **Context:** On Match Caprani in development on 22 November 2026, validation and the follow-up read both returned HTTP 200. The validation audit contains nanosecond precision while PostgreSQL stores the same instant to microsecond precision; the client compares timestamp strings strictly. The composition has recorded individual chances and reconstructed capture entries.
+
 ### BUG-135 — Newly available candidate missing from expanded role
 
 - **Status:** Fixed locally; development verification pending. **Severity:** Medium. **Affected area:** Availability poll with an expanded role and chance display.

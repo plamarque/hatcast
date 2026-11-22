@@ -98,6 +98,23 @@ import {
   type EventTypeRolesDialogResult,
 } from './event-type-roles-dialog'
 
+// PostgreSQL stores instants to microsecond precision; validation can return
+// the original nanoseconds before the same instant is read back from storage.
+function sameDatabaseInstant(left: string | null | undefined, right: string | null | undefined): boolean {
+  if (left == null || right == null) return left == null && right == null
+  if (left === right) return true
+  const parse = (value: string): { second: number; nanos: number } | null => {
+    const parts = /T\d{2}:\d{2}:\d{2}(?:\.(\d{1,9}))?(?:Z|[+-]\d{2}:\d{2})$/i.exec(value)
+    const millis = Date.parse(value)
+    if (!parts || !Number.isFinite(millis)) return null
+    return { second: Math.floor(millis / 1000), nanos: Number((parts[1] ?? '').padEnd(9, '0')) }
+  }
+  const a = parse(left)
+  const b = parse(right)
+  if (!a || !b) return false
+  return Math.abs((a.second - b.second) * 1_000_000_000 + a.nanos - b.nanos) < 1_000
+}
+
 interface SlotRow {
   roleKey: string
   slotIndex: number
@@ -1822,8 +1839,8 @@ export class EventEquipeTab {
       const refreshed = await this.compositionApi.getComposition(seasonId, eventId)
       if (this.destroyRef.destroyed || this.seasonId() !== seasonId || this.event().id !== eventId || this.composition() !== current) return
       if (refreshed.ok && refreshed.data &&
-          refreshed.data.publishedAt === current.publishedAt &&
-          refreshed.data.validatedAt === current.validatedAt) {
+          sameDatabaseInstant(refreshed.data.publishedAt, current.publishedAt) &&
+          sameDatabaseInstant(refreshed.data.validatedAt, current.validatedAt)) {
         this.composition.set(refreshed.data)
         return
       }
