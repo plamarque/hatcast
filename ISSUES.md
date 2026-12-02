@@ -51,6 +51,8 @@ integration database).
 
 ### Pending verification or operational follow-up
 
+BUG-095 is corrected locally; the development deployment must be verified.
+
 BUG-094 is corrected locally and validated by Patrice on a phone; deployment remains separate.
 
 BUG-093 is corrected locally and validated by Patrice on a phone; deployment remains separate.
@@ -78,6 +80,14 @@ BUG-024, and BUG-021 have local fixes but still require their stated review,
 human-smoke, integration, or validation gate.
 
 BUG-037 and BUG-029 have fixture-only corrections verified by the complete API suite and independent review; integration remains pending.
+
+### BUG-095 — Advent browser gate rejects changed waiting text
+- **Status**: Corrected locally; development deployment pending.
+- **Severity**: Medium.
+- **Affected area**: Advent waiting screen and deployment regression gate.
+- **Observed behavior**: Story 25.19 changed the ordinary waiting message; its existing browser test failed and blocked the development deploy.
+- **Expected behavior**: Keep the ordinary waiting message, with a specific later-date message when revisiting a future gift.
+- **Notes**: Reported by GitHub Actions deployment run 41934865531; no test was disabled.
 
 ### BUG-094 — Development tester sees a future Advent result immediately
 - **Status**: Corrected locally and validated by Patrice on a phone; deployment remains separate. Reported during story 25.19 human testing.

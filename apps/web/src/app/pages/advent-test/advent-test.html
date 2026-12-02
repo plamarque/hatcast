@@ -269,7 +269,7 @@
               <img class="advent__waiting-art" src="/advent/elf-sleeping-v1.webp" alt="">
               <div class="advent__waiting-copy">
                 <h1 id="recorded-title">{{ selectedFutureTestDay() ? 'Ta réponse est enregistrée !' : 'Reviens demain !' }}</h1>
-                <p>Ton résultat sera disponible après le {{ selectedDay() }} décembre, à minuit, heure de Paris.</p>
+                <p>{{ selectedFutureTestDay() ? 'Ton résultat sera disponible après le ' + selectedDay() + ' décembre, à minuit, heure de Paris.' : 'Ton résultat sera disponible à minuit, heure de Paris.' }}</p>
                 @if (testMode()) { <p>Jour simulé : {{ simulatedDateLabel() }}. Avance au lendemain du cadeau pour découvrir le résultat.</p> }
                 @if (remainingSeconds() !== null) {
                   <div class="advent__waiting-clock" role="timer" aria-live="off" [attr.aria-label]="'Temps restant avant le résultat : ' + waitingTime()">
